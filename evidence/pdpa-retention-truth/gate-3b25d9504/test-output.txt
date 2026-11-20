@@ -1,0 +1,46 @@
+full gate 3b25d9504 (coordinator 2026-10-21): summary of the full-suite run, compared with main's gate fe5a182b8
+the full log stays on the work host at /home/ubuntu/work/state/gate/out/evidence/gate/logs/3b25d950411e65cdba0af2b5a79659ecf2d67858/artifacts/suite-green.log (not committed: it carries epoch-ms runs and key-like strings that gitleaks flags)
+
+suite-green (all suites, parallel)
+Test Suites: 4 failed, 2 skipped, 1134 passed, 1138 of 1140 total
+Tests:       13 failed, 52 skipped, 15029 passed, 15094 total
+Snapshots:   0 total
+Time:        1111.713 s
+failing suites:
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js
+  __tests__/integration/onsite-decision-mint-e2e.test.js
+  __tests__/integration/status-writer-audit-default-invariant.test.js
+  __tests__/unit/finance-paper-text-inside-print-margin.test.js
+failing tests:
+  A0 PR-1 — writer emits the canonical transition row by default, in the same tx › (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #13 — POST /applications/:id/car — late CAR evidence expires the case › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #7 — PATCH /admin/applications/:id/status — admin override › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  O4 — no text on the finance papers runs into the printable right edge › credit-note.html: every text run ends inside the printable area with clearance
+  O4 — no text on the finance papers runs into the printable right edge › debit-note.html: every text run ends inside the printable area with clearance
+  O4 — no text on the finance papers runs into the printable right edge › invoice.html: every text run ends inside the printable area with clearance
+  O4 — no text on the finance papers runs into the printable right edge › receipt-tax-invoice.html: every text run ends inside the printable area with clearance
+  O4 — no text on the finance papers runs into the printable right edge › the invoice is still ONE A4 page and prints the full "5,885.00 บาท"
+  O4 — no text on the finance papers runs into the printable right edge › the receipt / tax invoice is still ONE A4 page and prints the full "5,885.00 บาท"
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+new vs main:
+  __tests__/unit/finance-paper-text-inside-print-margin.test.js
+failing on main's gate, not on this head (main's load flakes included; see notes):
+  __tests__/unit/invoice-documents-fit-one-page.test.js
+
+integration-pg (integration folder, serial, fresh database): 7 failed tests (main: 7)
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #13 — POST /applications/:id/car — late CAR evidence expires the case (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #7 — PATCH /admin/applications/:id/status — admin override (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  status-writer-audit-default-invariant.test.js :: A0 PR-1 — writer emits the canonical transition row by default, in the same tx (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+new vs main:
+  none
+
+Coordinator notes, gate of fix/pdpa-retention-truth at 3b25d9504 (2026-10-21, vs main gate fe5a182b8).
+1. The one suite failing beyond main is finance-paper-text-inside-print-margin: Puppeteer "Navigation timeout of 30000 ms exceeded" under the parallel run. The branch changes no template, PDF or print file. Run alone on the same head through heavy.sh: 6/6. Known load timeout, task #61.
+2. integration-pg 7 = main; probes newly failing none (admin-side-split PASS after fix round 2); gitleaks none new.

@@ -1,0 +1,439 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+         |             ^
+      97 |       current
+
+
+FAIL __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js
+  host table
+    ✕ names staging on this host locally and demo over ssh to 119.59.105.140, nothing else (3 ms)
+  every wrapper is bound to its host and logs every run
+    ✕ staff-mfa-roster.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (14 ms)
+    ✕ staff-first-signin-report.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (12 ms)
+    ✕ staff-2fa-emergency-reset.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (6 ms)
+    ✕ the roster on staging runs the file inside the image after the slot check, never copies from the checkout, and logs done (13 ms)
+    ✕ a container outside its slot, or an image without the script, is refused with the reason logged (14 ms)
+    ✕ the roster on demo goes over ssh to the fixed target with the fixed key and runs inside gacp-backend-demo (14 ms)
+    ✕ the emergency reset forwards its four references (Thai included) to the file in the image and logs the mfa-clear event; short usage is refused (16 ms)
+  mfa-flag-on-staging.sh
+    ✕ turns the flag on, revokes sessions with --event flag-on right after the flag reads on, writes the once-per-host marker, refuses a second apply, and rollback reopens it (8 ms)
+    ✕ when the revoke step refuses, the run exits 2, says the flag is on but sessions stand, writes no marker, and logs refused (4 ms)
+    ✕ refuses off this host before reading any file (5 ms)
+  mfa-flag-on-demo.sh
+    ✕ runs from this host over ssh to the fixed demo target, carries the revoke step with --event flag-on in the remote script, and keeps the once-per-host marker (5 ms)
+    ✕ a refused remote run leaves no marker and is logged as refused; a foreign host never reaches ssh (5 ms)
+
+  ● host table › names staging on this host locally and demo over ssh to 119.59.105.140, nothing else
+
+    ENOENT: no such file or directory, open '/home/ubuntu/.claude/jobs/ca14327e/tmp/round8/red-tree/scripts/ops/staff-2fa-hosts.tsv'
+
+       95 | describe('host table', () => {
+       96 |     test('names staging on this host locally and demo over ssh to 119.59.105.140, nothing else', () => {
+    >  97 |         const rows = fs.readFileSync(path.join(OPS, 'staff-2fa-hosts.tsv'), 'utf8').split('\n').filter((line) => line && !line.startsWith('#')).map((line) => line.split('\t'));
+          |                         ^
+       98 |         expect(rows).toEqual([
+       99 |             ['staging', HOST, 'local', 'gacp-backend-staging', 'staging'],
+      100 |             ['demo', HOST, `ssh ${DEMO_TARGET}`, 'gacp-backend-demo', '-'],
+
+
+  ● every wrapper is bound to its host and logs every run › staff-mfa-roster.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 0
+
+      107 |         const env = setup();
+      108 |         const unknown = run(env, script, ['nowhere']);
+    > 109 |         expect(unknown.status).toBe(2);
+          |                                ^
+      110 |         expect(unknown.stderr).toMatch(/ไม่รู้จัก slot 'nowhere'/);
+      111 |         const foreign = run(env, script, ['staging'], { FAKE_HOSTNAME: 'laptop' });
+      112 |         expect(foreign.status).toBe(2);
+
+
+  ● every wrapper is bound to its host and logs every run › staff-first-signin-report.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 0
+
+      107 |         const env = setup();
+      108 |         const unknown = run(env, script, ['nowhere']);
+    > 109 |         expect(unknown.status).toBe(2);
+          |                                ^
+      110 |         expect(unknown.stderr).toMatch(/ไม่รู้จัก slot 'nowhere'/);
+      111 |         const foreign = run(env, script, ['staging'], { FAKE_HOSTNAME: 'laptop' });
+      112 |         expect(foreign.status).toBe(2);
+
+
+  ● every wrapper is bound to its host and logs every run › staff-2fa-emergency-reset.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /ไม่รู้จัก slot 'nowhere'/
+    Received string:  ""
+
+      108 |         const unknown = run(env, script, ['nowhere']);
+      109 |         expect(unknown.status).toBe(2);
+    > 110 |         expect(unknown.stderr).toMatch(/ไม่รู้จัก slot 'nowhere'/);
+          |                                ^
+      111 |         const foreign = run(env, script, ['staging'], { FAKE_HOSTNAME: 'laptop' });
+      112 |         expect(foreign.status).toBe(2);
+      113 |         expect(foreign.stderr).toMatch(/รันได้เฉพาะบนเครื่อง VM-0-3-ubuntu/);
+
+
+  ● every wrapper is bound to its host and logs every run › the roster on staging runs the file inside the image after the slot check, never copies from the checkout, and logs done
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "gacp-backend-staging on staging runs image tag local-abc"
+    Received string:    "ตัดการเข้าสู่ระบบและ token ที่ค้างอยู่ 3 บัญชี
+    "
+
+      125 |         const result = run(env, 'staff-mfa-roster.sh', ['staging']);
+      126 |         expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: '' });
+    > 127 |         expect(result.stdout).toContain('gacp-backend-staging on staging runs image tag local-abc');
+          |                               ^
+      128 |         const calls = dockerCalls(env);
+      129 |         expect(calls.some((call) => /^exec gacp-backend-staging node -e .*GACP_DEPLOY_SLOT==='staging'/.test(call))).toBe(true);
+      130 |         expect(calls).toContain('exec gacp-backend-staging test -f /app/apps/backend/scripts/ops/staff-mfa-roster.js');
+
+
+  ● every wrapper is bound to its host and logs every run › a container outside its slot, or an image without the script, is refused with the reason logged
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 0
+
+      137 |         const env = setup();
+      138 |         const slot = run(env, 'staff-first-signin-report.sh', ['staging'], { FAKE_SLOT_OK: '1' });
+    > 139 |         expect(slot.status).toBe(2);
+          |                             ^
+      140 |         expect(slot.stderr).toMatch(/GACP_DEPLOY_SLOT=staging/);
+      141 |         const image = run(env, 'staff-first-signin-report.sh', ['staging'], { FAKE_SCRIPT_IN_IMAGE: '1' });
+      142 |         expect(image.status).toBe(2);
+
+
+  ● every wrapper is bound to its host and logs every run › the roster on demo goes over ssh to the fixed target with the fixed key and runs inside gacp-backend-demo
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "ssh-decoded docker exec -w /app/apps/backend gacp-backend-demo node scripts/ops/staff-mfa-roster.js"
+    Received array: ["ps --filter name=^demo$ --filter status=running -q", "exec demo mkdir -p /app/apps/backend/scripts/ops", "cp /home/ubuntu/.claude/jobs/ca14327e/tmp/round8/red-tree/scripts/ops/../../apps/backend/scripts/ops/staff-mfa-roster.js demo:/app/apps/backend/scripts/ops/staff-mfa-roster.js", "exec -w /app/apps/backend demo node scripts/ops/staff-mfa-roster.js"]
+
+      152 |         const calls = dockerCalls(env);
+      153 |         expect(calls.filter((call) => /^ssh /.test(call)).every((call) => call.includes(`-i /home/ubuntu/.ssh/id_ed25519_newhost -o IdentitiesOnly=yes ${DEMO_TARGET} `))).toBe(true);
+    > 154 |         expect(calls).toContain('ssh-decoded docker exec -w /app/apps/backend gacp-backend-demo node scripts/ops/staff-mfa-roster.js');
+          |                       ^
+      155 |         expect(calls.filter((call) => !/^ssh/.test(call))).toEqual([]);
+      156 |         expect(runLog(env)[0].slice(3, 6)).toEqual(['demo', 'roster', 'done']);
+      157 |     });
+
+
+  ● every wrapper is bound to its host and logs every run › the emergency reset forwards its four references (Thai included) to the file in the image and logs the mfa-clear event; short usage is refused
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "exec -w /app/apps/backend gacp-backend-staging node scripts/ops/staff-2fa-emergency-reset.js --target u1 --requester a1 --confirmation หนังสือ 12/2569 --approval คำสั่ง 105"
+    Received array: ["ps --filter name=^staging$ --filter status=running -q", "exec staging mkdir -p /app/apps/backend/scripts/ops", "cp /home/ubuntu/.claude/jobs/ca14327e/tmp/round8/red-tree/scripts/ops/../../apps/backend/scripts/ops/staff-2fa-emergency-reset.js staging:/app/apps/backend/scripts/ops/staff-2fa-emergency-reset.js", "exec -w /app/apps/backend staging node scripts/ops/staff-2fa-emergency-reset.js --target u1 --requester a1 --confirmation หนังสือ 12/2569 --approval คำสั่ง 105"]
+
+      163 |         const result = run(env, 'staff-2fa-emergency-reset.sh', ['staging', ...args]);
+      164 |         expect({ status: result.status, stderr: result.stderr }).toEqual({ status: 0, stderr: '' });
+    > 165 |         expect(dockerCalls(env)).toContain(`exec -w /app/apps/backend gacp-backend-staging node scripts/ops/staff-2fa-emergency-reset.js ${args.join(' ')}`);
+          |                                  ^
+      166 |         const demo = run(env, 'staff-2fa-emergency-reset.sh', ['demo', ...args]);
+      167 |         expect(demo.status).toBe(0);
+      168 |         expect(dockerCalls(env)).toContain(`ssh-decoded docker exec -w /app/apps/backend gacp-backend-demo node scripts/ops/staff-2fa-emergency-reset.js ${args.join(' ')}`);
+
+
+  ● mfa-flag-on-staging.sh › turns the flag on, revokes sessions with --event flag-on right after the flag reads on, writes the once-per-host marker, refuses a second apply, and rollback reopens it
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 3
+
+      Object {
+    -   "status": 0,
+    -   "stderr": "",
+    +   "status": 127,
+    +   "stderr": "bash: /home/ubuntu/.claude/jobs/ca14327e/tmp/round8/red-tree/scripts/ops/mfa-flag-on-staging.sh: No such file or directory
+    + ",
+      }
+
+      175 |         const env = setup();
+      176 |         const first = run(env, 'mfa-flag-on-staging.sh', [], { FAKE_TAG: 'main-abc' });
+    > 177 |         expect({ status: first.status, stderr: first.stderr }).toEqual({ status: 0, stderr: '' });
+          |                                                                ^
+      178 |         expect(fs.readFileSync(path.join(env.platform, '.env.staging'), 'utf8')).toContain('REQUIRE_MFA_FOR_PRIVILEGED=true');
+      179 |         expect(fs.readFileSync(path.join(env.platform, 'docker-compose.staging.yml'), 'utf8')).toContain('REQUIRE_MFA_FOR_PRIVILEGED=${REQUIRE_MFA_FOR_PRIVILEGED:-false}');
+      180 |         const calls = dockerCalls(env);
+
+
+  ● mfa-flag-on-staging.sh › when the revoke step refuses, the run exits 2, says the flag is on but sessions stand, writes no marker, and logs refused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 127
+
+      208 |         const env = setup();
+      209 |         const result = run(env, 'mfa-flag-on-staging.sh', [], { FAKE_NODE_EXIT: '2' });
+    > 210 |         expect(result.status).toBe(2);
+          |                               ^
+      211 |         expect(result.stderr).toMatch(/ธงเปิดแล้ว แต่การตัด session ถูกปฏิเสธหรือล้มเหลว \(exit 2\)/);
+      212 |         expect(fs.existsSync(marker(env, 'staging'))).toBe(false);
+      213 |         expect(runLog(env).map((row) => [row[5], row[6]])).toEqual([['refused', 'exit=2']]);
+
+
+  ● mfa-flag-on-staging.sh › refuses off this host before reading any file
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 127
+
+      217 |         const env = setup();
+      218 |         const result = run(env, 'mfa-flag-on-staging.sh', [], { FAKE_HOSTNAME: 'demo-box' });
+    > 219 |         expect(result.status).toBe(2);
+          |                               ^
+      220 |         expect(dockerCalls(env)).toEqual([]);
+      221 |         expect(fs.readFileSync(path.join(env.platform, '.env.staging'), 'utf8')).toContain('REQUIRE_MFA_FOR_PRIVILEGED=false');
+      222 |     });
+
+
+  ● mfa-flag-on-demo.sh › runs from this host over ssh to the fixed demo target, carries the revoke step with --event flag-on in the remote script, and keeps the once-per-host marker
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 3
+
+      Object {
+    -   "status": 0,
+    -   "stderr": "",
+    +   "status": 127,
+    +   "stderr": "bash: /home/ubuntu/.claude/jobs/ca14327e/tmp/round8/red-tree/scripts/ops/mfa-flag-on-demo.sh: No such file or directory
+    + ",
+      }
+
+      227 |         const env = setup();
+      228 |         const first = run(env, 'mfa-flag-on-demo.sh', [], { FAKE_TAG: 'main-def' });
+    > 229 |         expect({ status: first.status, stderr: first.stderr }).toEqual({ status: 0, stderr: '' });
+          |                                                                ^
+      230 |         const sshCalls = dockerCalls(env).filter((call) => /^ssh /.test(call));
+      231 |         expect(sshCalls.every((call) => call.includes(`${DEMO_TARGET} `))).toBe(true);
+      232 |         expect(sshCalls.some((call) => /MODE=apply STAMP='' NOTE='flag-on demo tag main-def \d{4}-[^']+' bash -s$/.test(call))).toBe(true);
+
+
+  ● mfa-flag-on-demo.sh › a refused remote run leaves no marker and is logged as refused; a foreign host never reaches ssh
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 127
+
+      255 |         const env = setup();
+      256 |         const refused = run(env, 'mfa-flag-on-demo.sh', [], { FAKE_SSH_EXIT: '2' });
+    > 257 |         expect(refused.status).toBe(2);
+          |                                ^
+      258 |         expect(fs.existsSync(marker(env, 'demo'))).toBe(false);
+      259 |         const foreign = run(env, 'mfa-flag-on-demo.sh', [], { FAKE_HOSTNAME: 'laptop' });
+      260 |         expect(foreign.status).toBe(2);
+
+
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+         |             ^
+      97 |       current
+
+
+FAIL __tests__/unit/staff-sessions-revoke-approved-events.test.js
+  approved session-revoke events
+    ✕ are exactly the three the operator named, each owned by one place (4 ms)
+    ✓ flag-on with the flag on is the only run this script accepts (2 ms)
+    ✕ event "" is refused even with the flag on (1 ms)
+    ✕ event "deploy" is refused even with the flag on (2 ms)
+    ✕ event "mfa-clear" is refused even with the flag on (1 ms)
+    ✕ event "mfa-move" is refused even with the flag on (1 ms)
+    ✕ --event and --note are the only options and both need a value (3 ms)
+
+  ● approved session-revoke events › are exactly the three the operator named, each owned by one place
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"flag-on": "scripts/ops/staff-sessions-revoke-at-flag-on.js", "mfa-clear": "scripts/ops/staff-2fa-emergency-reset.js", "mfa-move": "routes/api/identity/mfa.js"}
+    Received: undefined
+
+      12 | describe('approved session-revoke events', () => {
+      13 |     test('are exactly the three the operator named, each owned by one place', () => {
+    > 14 |         expect(SESSION_REVOKE_EVENTS).toEqual({
+         |                                       ^
+      15 |             'flag-on': 'scripts/ops/staff-sessions-revoke-at-flag-on.js',
+      16 |             'mfa-clear': 'scripts/ops/staff-2fa-emergency-reset.js',
+      17 |             'mfa-move': 'routes/api/identity/mfa.js',
+
+
+  ● approved session-revoke events › event "" is refused even with the flag on
+
+    TypeError: expect(received).toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has value: null
+
+      30 |         ['mfa-move', /mfa-move ตัด session ที่ routes\/api\/identity\/mfa\.js ไม่ใช่สคริปต์นี้/],
+      31 |     ])('event %j is refused even with the flag on', (event, reason) => {
+    > 32 |         expect(refusal(on, event)).toMatch(reason);
+         |                                    ^
+      33 |     });
+      34 |
+      35 |     test('--event and --note are the only options and both need a value', () => {
+
+
+  ● approved session-revoke events › event "deploy" is refused even with the flag on
+
+    TypeError: expect(received).toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has value: null
+
+      30 |         ['mfa-move', /mfa-move ตัด session ที่ routes\/api\/identity\/mfa\.js ไม่ใช่สคริปต์นี้/],
+      31 |     ])('event %j is refused even with the flag on', (event, reason) => {
+    > 32 |         expect(refusal(on, event)).toMatch(reason);
+         |                                    ^
+      33 |     });
+      34 |
+      35 |     test('--event and --note are the only options and both need a value', () => {
+
+
+  ● approved session-revoke events › event "mfa-clear" is refused even with the flag on
+
+    TypeError: expect(received).toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has value: null
+
+      30 |         ['mfa-move', /mfa-move ตัด session ที่ routes\/api\/identity\/mfa\.js ไม่ใช่สคริปต์นี้/],
+      31 |     ])('event %j is refused even with the flag on', (event, reason) => {
+    > 32 |         expect(refusal(on, event)).toMatch(reason);
+         |                                    ^
+      33 |     });
+      34 |
+      35 |     test('--event and --note are the only options and both need a value', () => {
+
+
+  ● approved session-revoke events › event "mfa-move" is refused even with the flag on
+
+    TypeError: expect(received).toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has value: null
+
+      30 |         ['mfa-move', /mfa-move ตัด session ที่ routes\/api\/identity\/mfa\.js ไม่ใช่สคริปต์นี้/],
+      31 |     ])('event %j is refused even with the flag on', (event, reason) => {
+    > 32 |         expect(refusal(on, event)).toMatch(reason);
+         |                                    ^
+      33 |     });
+      34 |
+      35 |     test('--event and --note are the only options and both need a value', () => {
+
+
+  ● approved session-revoke events › --event and --note are the only options and both need a value
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 4
+    + Received  + 2
+
+      Object {
+    -   "args": Object {
+    -     "event": "flag-on",
+    -     "note": "deploy ref",
+    -   },
+    +   "error": "ไม่รู้จักตัวเลือก --event
+    + วิธีใช้: node scripts/ops/staff-sessions-revoke-at-flag-on.js [--note <ข้อความอ้างอิงการ deploy>]",
+      }
+
+      34 |
+      35 |     test('--event and --note are the only options and both need a value', () => {
+    > 36 |         expect(parseArgs(['--event', 'flag-on', '--note', 'deploy ref'])).toEqual({ args: { event: 'flag-on', note: 'deploy ref' } });
+         |                                                                           ^
+      37 |         expect(parseArgs([]).args).toEqual({ event: '', note: '' });
+      38 |         expect(parseArgs(['--event']).error).toMatch(/--event ต้องมีค่า/);
+      39 |         expect(parseArgs(['--force']).error).toMatch(/ไม่รู้จักตัวเลือก --force/);
+
+
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+         |             ^
+      97 |       current
+
+
+FAIL __tests__/unit/follows-emergency-reset.test.js
+  followsEmergencyReset
+    ✕ no emergency clear on record: false, and no enrolment count is even asked (3 ms)
+    ✕ the latest clear already has an enrolment or move after it: false (the second enrolment after a clear tells no admin) (1 ms)
+    ✕ the latest clear has nothing after it: true (1 ms)
+
+  ● followsEmergencyReset › no emergency clear on record: false, and no enrolment count is even asked
+
+    TypeError: followsEmergencyReset is not a function
+
+      28 |     test('no emergency clear on record: false, and no enrolment count is even asked', async () => {
+      29 |         const db = fakeDb({ reset: false, enrolmentsAfter: 0 });
+    > 30 |         await expect(followsEmergencyReset(db, USER)).resolves.toBe(false);
+         |                      ^
+      31 |         expect(db.asked.map(([what]) => what)).toEqual(['findFirst']);
+      32 |         expect(db.asked[0][1].where).toEqual({ resourceId: USER, action: 'MFA_EMERGENCY_RESET' });
+      33 |     });
+
+
+  ● followsEmergencyReset › the latest clear already has an enrolment or move after it: false (the second enrolment after a clear tells no admin)
+
+    TypeError: followsEmergencyReset is not a function
+
+      35 |     test('the latest clear already has an enrolment or move after it: false (the second enrolment after a clear tells no admin)', async () => {
+      36 |         const db = fakeDb({ reset: true, enrolmentsAfter: 1 });
+    > 37 |         await expect(followsEmergencyReset(db, USER)).resolves.toBe(false);
+         |                      ^
+      38 |         expect(db.asked[1][1].where).toEqual({ resourceId: USER, action: { in: ['MFA_ENABLED', 'MFA_REENROLLED'] }, createdAt: { gt: RESET_AT } });
+      39 |     });
+      40 |
+
+
+  ● followsEmergencyReset › the latest clear has nothing after it: true
+
+    TypeError: followsEmergencyReset is not a function
+
+      40 |
+      41 |     test('the latest clear has nothing after it: true', async () => {
+    > 42 |         await expect(followsEmergencyReset(fakeDb({ reset: true, enrolmentsAfter: 0 }), USER)).resolves.toBe(true);
+         |                      ^
+      43 |     });
+      44 | });
+      45 |
+
+
+Test Suites: 3 failed, 3 total
+Tests:       22 failed, 1 passed, 23 total
+Snapshots:   0 total
+Time:        2.731 s
+Ran all test suites matching __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js|__tests__/unit/staff-sessions-revoke-approved-events.test.js|__tests__/unit/follows-emergency-reset.test.js.

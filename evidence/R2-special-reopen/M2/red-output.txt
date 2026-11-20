@@ -1,0 +1,804 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/atomic-decision-letter.test.js
+  canonical workflow-transitions — letter atomic with decision (D-8)
+    ✕ REVISION_REQUESTED mints the OFFICIAL_LETTER through the SAME tx as the status write, with all four elements (101 ms)
+    ✕ CAR_PENDING mints the letter too (CAR branch had NO letter before) (24 ms)
+    ✕ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs (33 ms)
+    ✓ non-correction transition (DOC_APPROVED) mints NO letter (negative control) (17 ms)
+  auditor audit-decision — CAR letter atomic with decision (D-8)
+    ✕ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items) (26 ms)
+    ✕ ATOMIC: letter write failure fails the decision — deadline never seeded, 500 (17 ms)
+    ✓ PASS mints NO correction letter (negative control) (19 ms)
+  PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before)
+    ✕ DOC_REVISION mints the OFFICIAL_LETTER in the same tx as status write + deadline upsert (26 ms)
+    ✕ FIELD_CAR mints the letter too (30 ms)
+    ✕ ATOMIC: letter write failure fails the reject — RevisionDeadline never touched, 500 (32 ms)
+  letter template SSOT
+    ✕ the Thai letter copy is defined ONLY in shared/correction-letter-template.js (1 ms)
+    ✕ buildCorrectionLetter emits all four elements + structured metadata (14 ms)
+    ✕ buildCorrectionLetter falls back to the decision message when no structured items exist (3 ms)
+    ✕ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition) (2 ms)
+    ✕ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service (4 ms)
+
+  ● canonical workflow-transitions — letter atomic with decision (D-8) › REVISION_REQUESTED mints the OFFICIAL_LETTER through the SAME tx as the status write, with all four elements
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      259 | /** The single letter row written through the given tx (asserts exactly one). */
+      260 | function letterWrittenThrough(tx) {
+    > 261 |     expect(tx.notification.create).toHaveBeenCalledTimes(1);
+          |                                    ^
+      262 |     return tx.notification.create.mock.calls[0][0].data;
+      263 | }
+      264 |
+
+      at toHaveBeenCalledTimes (__tests__/unit/atomic-decision-letter.test.js:261:36)
+      at Object.letterWrittenThrough (__tests__/unit/atomic-decision-letter.test.js:338:24)
+
+  ● canonical workflow-transitions — letter atomic with decision (D-8) › CAR_PENDING mints the letter too (CAR branch had NO letter before)
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      259 | /** The single letter row written through the given tx (asserts exactly one). */
+      260 | function letterWrittenThrough(tx) {
+    > 261 |     expect(tx.notification.create).toHaveBeenCalledTimes(1);
+          |                                    ^
+      262 |     return tx.notification.create.mock.calls[0][0].data;
+      263 | }
+      264 |
+
+      at toHaveBeenCalledTimes (__tests__/unit/atomic-decision-letter.test.js:261:36)
+      at Object.letterWrittenThrough (__tests__/unit/atomic-decision-letter.test.js:367:24)
+
+  ● canonical workflow-transitions — letter atomic with decision (D-8) › ATOMIC: letter write failure fails the whole transition — no post-commit effect runs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 200
+
+      387 |             .send({ toState: 'REVISION_REQUESTED', comment: 'กรุณาแก้ไขเอกสาร' });
+      388 |
+    > 389 |         expect(res.status).toBe(500);
+          |                            ^
+      390 |         // The tx callback rejected → Prisma rolls back the status write.
+      391 |         await expect(mockCanonicalTransaction.mock.results[0].value).rejects.toThrow('letter write refused');
+      392 |         // The status write ran INSIDE that failed tx (same client) — not outside it.
+
+      at Object.toBe (__tests__/unit/atomic-decision-letter.test.js:389:28)
+
+  ● auditor audit-decision — CAR letter atomic with decision (D-8) › MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items)
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      259 | /** The single letter row written through the given tx (asserts exactly one). */
+      260 | function letterWrittenThrough(tx) {
+    > 261 |     expect(tx.notification.create).toHaveBeenCalledTimes(1);
+          |                                    ^
+      262 |     return tx.notification.create.mock.calls[0][0].data;
+      263 | }
+      264 |
+
+      at toHaveBeenCalledTimes (__tests__/unit/atomic-decision-letter.test.js:261:36)
+      at Object.letterWrittenThrough (__tests__/unit/atomic-decision-letter.test.js:448:24)
+
+  ● auditor audit-decision — CAR letter atomic with decision (D-8) › ATOMIC: letter write failure fails the decision — deadline never seeded, 500
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 200
+
+      460 |             .send({ decision: 'MINOR', notes: 'ต้องแก้ไขเล็กน้อย' });
+      461 |
+    > 462 |         expect(res.status).toBe(500);
+          |                            ^
+      463 |         await expect(mockAuditorTransaction.mock.results[0].value).rejects.toThrow('letter write refused');
+      464 |         expect(mockSeedCarRevisionDeadline).not.toHaveBeenCalled();
+      465 |     });
+
+      at Object.toBe (__tests__/unit/atomic-decision-letter.test.js:462:28)
+
+  ● PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before) › DOC_REVISION mints the OFFICIAL_LETTER in the same tx as status write + deadline upsert
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      259 | /** The single letter row written through the given tx (asserts exactly one). */
+      260 | function letterWrittenThrough(tx) {
+    > 261 |     expect(tx.notification.create).toHaveBeenCalledTimes(1);
+          |                                    ^
+      262 |     return tx.notification.create.mock.calls[0][0].data;
+      263 | }
+      264 |
+
+      at toHaveBeenCalledTimes (__tests__/unit/atomic-decision-letter.test.js:261:36)
+      at Object.letterWrittenThrough (__tests__/unit/atomic-decision-letter.test.js:504:24)
+
+  ● PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before) › FIELD_CAR mints the letter too
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      259 | /** The single letter row written through the given tx (asserts exactly one). */
+      260 | function letterWrittenThrough(tx) {
+    > 261 |     expect(tx.notification.create).toHaveBeenCalledTimes(1);
+          |                                    ^
+      262 |     return tx.notification.create.mock.calls[0][0].data;
+      263 | }
+      264 |
+
+      at toHaveBeenCalledTimes (__tests__/unit/atomic-decision-letter.test.js:261:36)
+      at Object.letterWrittenThrough (__tests__/unit/atomic-decision-letter.test.js:528:24)
+
+  ● PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before) › ATOMIC: letter write failure fails the reject — RevisionDeadline never touched, 500
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 200
+
+      539 |             .send({ comment: 'เอกสารไม่ครบถ้วน', type: 'DOC_REVISION' });
+      540 |
+    > 541 |         expect(res.status).toBe(500);
+          |                            ^
+      542 |         await expect(mockRejectTransaction.mock.results[0].value).rejects.toThrow('letter write refused');
+      543 |         // The deadline upsert lives AFTER the letter mint in the same tx —
+      544 |         // a failed letter means the clock row is never even attempted
+
+      at Object.toBe (__tests__/unit/atomic-decision-letter.test.js:541:28)
+
+  ● letter template SSOT › the Thai letter copy is defined ONLY in shared/correction-letter-template.js
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      574 |
+      575 |     test('the Thai letter copy is defined ONLY in shared/correction-letter-template.js', () => {
+    > 576 |         expect(fs.existsSync(TEMPLATE_PATH)).toBe(true);
+          |                                              ^
+      577 |         // Distinctive template phrases — element 3 + element 4 wording.
+      578 |         for (const phrase of ['กำหนดส่งการแก้ไข', 'ช่องทางการส่งการแก้ไข']) {
+      579 |             const offenders = walkJsFiles(BACKEND)
+
+      at Object.toBe (__tests__/unit/atomic-decision-letter.test.js:576:46)
+
+  ● letter template SSOT › buildCorrectionLetter emits all four elements + structured metadata
+
+    Cannot find module '../../shared/correction-letter-template' from '__tests__/unit/atomic-decision-letter.test.js'
+
+      586 |
+      587 |     test('buildCorrectionLetter emits all four elements + structured metadata', () => {
+    > 588 |         const { buildCorrectionLetter, CORRECTION_LETTER_STAGE } = require('../../shared/correction-letter-template');
+          |                                                                    ^
+      589 |         const due = new Date('2026-08-11T09:59:59.000Z');
+      590 |         const letter = buildCorrectionLetter({
+      591 |             applicationNumber: 'GACP-001',
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/atomic-decision-letter.test.js:588:68)
+
+  ● letter template SSOT › buildCorrectionLetter falls back to the decision message when no structured items exist
+
+    Cannot find module '../../shared/correction-letter-template' from '__tests__/unit/atomic-decision-letter.test.js'
+
+      610 |
+      611 |     test('buildCorrectionLetter falls back to the decision message when no structured items exist', () => {
+    > 612 |         const { buildCorrectionLetter, CORRECTION_LETTER_STAGE } = require('../../shared/correction-letter-template');
+          |                                                                    ^
+      613 |         const letter = buildCorrectionLetter({
+      614 |             applicationNumber: 'GACP-001',
+      615 |             stage: CORRECTION_LETTER_STAGE.FIELD_AUDIT_CAR,
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/atomic-decision-letter.test.js:612:68)
+
+  ● letter template SSOT › buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition)
+
+    Cannot find module '../../shared/correction-letter-template' from '__tests__/unit/atomic-decision-letter.test.js'
+
+      622 |
+      623 |     test('buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition)', () => {
+    > 624 |         const { buildCorrectionLetter, CORRECTION_LETTER_STAGE } = require('../../shared/correction-letter-template');
+          |                                                                    ^
+      625 |         // Missing due date → element 3 impossible.
+      626 |         expect(() => buildCorrectionLetter({
+      627 |             applicationNumber: 'GACP-001',
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/atomic-decision-letter.test.js:624:68)
+
+  ● letter template SSOT › letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /decision-letter-service/
+    Received string:  "const {
+        authenticateProvider,
+        logger,
+        PERMISSIONS,
+        requireCanonicalPermission,
+        obj,
+        arr,
+        prisma,
+        workflowTransitionService,
+        getRequestIp,
+        auditLogger,
+        AuditCategory,
+        AuditSeverity,
+        ResourceType,
+        resolveUserIdFromHealthId,
+        getRevisionDueAt,
+        REVISION_SLA_DAYS,
+        // Blocker F: the Thai-holiday-aware Asia/Bangkok engine (utils/working-days
+        // via the deps barrel) — its calendar is built in, no holiday Set needed.
+        addWorkingDays,
+        ensureCertificateIssuedForApplication,
+    } = require('./workflow-handler-deps');
+    const { writeApplicationStatus } = require('../../../../services/application-status-writer');
+    const { statusTransitionAuditHook } = require('../../../../middleware/audit-logger');
+    // A2 (integrity-audit 2026-07-06): void the auto-issued certificate when a pass
+    // is reversed on this canonical endpoint (AUDIT_PASSED -> CAR_REVIEWING). Mirrors
+    // the auditor.js reject-to-auditor path — required directly (not via
+    // workflow-handler-deps) so the reversal void stays co-located with its caller.
+    const certificateService = require('../../../../services/certificate-service');
+    const { withVisibility } = require('../../../../shared/application-visibility');
+    // Batch 10 — Prisma bypass cleanup. The workflow handler's direct entity
+    // reads (application lookup + re-fetch, comment insert, revisionDeadline
+    // updateMany) now route through application-service + admin-application-service.
+    // `prisma` is preserved only as the transaction handle for canonical writers
+    // (writeApplicationStatus) and passed-through helpers.
+    const applicationService = require('../../../../services/application-service');
+    const adminApplicationService = require('../../../../services/admin-application-service');·
+    const CAR_SLA_DAYS = 5;·
+    const getCarDueAt = (formData) => {
+        const payload = obj(formData);
+        const value = payload.carDueAt || payload.car_due_at || payload.carRequest?.dueAt || null;
+        if (!value) {
+            return null;
+        }
+        const parsed = new Date(value);
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    };·
+    const applicationsWorkflowTransitions = [
+        authenticateProvider,
+        requireCanonicalPermission(PERMISSIONS.APPLICATION_WORKFLOW_TRANSITION),
+        async (req, res) => {
+            try {
+                const idOrNumber = String(req.params.id || '').trim();
+                const toState = String(req.body?.toState || '').trim().toUpperCase();
+                const comment = req.body?.comment || null;
+                const reasonCode = req.body?.reasonCode || null;
+                const metadata = obj(req.body?.metadata);
+                const revisionCategory = String(req.body?.revisionCategory || metadata.revisionCategory || '').trim() || null;
+                const revisionMessage = String(req.body?.revisionMessage || metadata.revisionMessage || '').trim() || null;
+                const revisionItems = arr(req.body?.revisionItems || metadata.revisionItems)
+                    .map((item) => String(item || '').trim())
+                    .filter(Boolean);
+                const force = !!req.body?.force;
+                const requestedState = workflowTransitionService.normalizeWorkflowStateInput(toState) || toState;
+                const effectiveComment = comment || revisionMessage || null;
+                const transitionMetadata = {
+                    ...metadata,
+                    ...(requestedState === 'REVISION_REQUESTED'
+                        ? {
+                            revisionCategory,
+                            revisionMessage: revisionMessage || effectiveComment,
+                            revisionItems,
+                        }
+                        : {}),
+                };
+                if (!idOrNumber || !toState) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'application id and toState are required',
+                    });
+                }
+                if (force && (!reasonCode || !comment)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'force transition requires reasonCode and comment',
+                    });
+                }
+                if (!force && requestedState === 'REVISION_REQUESTED' && !effectiveComment) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'revisionMessage or comment is required when requesting revision',
+                    });
+                }
+                // Wave A Phase 28 — gate workflow transitions by application
+                // visibility. The existing REV-11 inline ownership check at
+                // line ~107 only fires for REVISION_REQUESTED and DOC_APPROVED;
+                // other transitions weren't gated. The visibility helper
+                // narrows auditors to their assigned applications across ALL
+                // transition targets. Non-auditor roles fall through unchanged
+                // (helper returns null).
+                // applicationService.findFirstWithWhere — replaces
+                // prisma.application.findFirst with the visibility-wrapped
+                // OR(id, applicationNumber) predicate.
+                const application = await applicationService.findFirstWithWhere({
+                    where: withVisibility(
+                        {
+                            OR: [{ id: idOrNumber }, { applicationNumber: idOrNumber }],
+                            isDeleted: false,
+                        },
+                        req.user,
+                    ),
+                    select: {
+                        id: true,
+                        applicationNumber: true,
+                        healthId: true,
+                        status: true,
+                        formData: true,
+                        workflowHistory: true,
+                        reviewerId: true,
+                        // auditorId retained for queue/visibility context (the former
+                        // ISO 17065 §7.6 two-person check was removed 2026-06-05).
+                        auditorId: true,
+                    },
+                });
+                if (!application) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Application not found',
+                    });
+                }
+                const healthUserId = await resolveUserIdFromHealthId(application.healthId);
+                const currentState = workflowTransitionService.resolveStateFromApplication(application);
+                const currentFormData = obj(application.formData);·
+                // REV-11: Ownership check — only the assigned reviewer can approve/revision.
+                //
+                // Reads the canonical Application.reviewerId column (the single source
+                // of truth for reviewer assignment). The legacy
+                // formData.PROVIDERAssignment.reviewerId fallback was removed once the
+                // column was backfilled for pre-Phase-44 rows
+                // (scripts/backfill-reviewer-id.js). A null column = unassigned.
+                if (!force && ['REVISION_REQUESTED', 'DOC_APPROVED'].includes(requestedState)) {
+                    if (application.reviewerId && application.reviewerId !== req.user.id) {
+                        return res.status(403).json({
+                            success: false,
+                            error: 'ไม่มีสิทธิ์ดำเนินการ คุณไม่ใช่ผู้ตรวจที่ได้รับมอบหมายสำหรับคำขอนี้',
+                        });
+                    }
+                }·
+                // REV-12 (the all-9-steps approve gate) was DROPPED 2026-06-23 (owner
+                // decision, pilot-simplify): the per-step review-progress UI was never
+                // wired (its writer had no FE caller), so the gate could only ever block.
+                // Document review is a holistic approve / request-revision decision gated
+                // by reviewer-ownership (REV-11) + the mandatory comment on revision + the
+                // role/edge checks. The 9 sections remain a reference checklist in the UI.·
+                const markAsCancelledExpired = async (expiredReason, fromState) => {
+                    const ts = new Date().toISOString();
+                    await writeApplicationStatus({
+                        prisma,
+                        applicationId: application.id,
+                        fromStatus: application.status,
+                        toStatus: 'EXPIRED',
+                        actorId: req.user.id,
+                        actorRole: req.user.canonicalRole || req.user.role || null,
+                        reason: expiredReason === 'REVISION_OVERDUE' ? 'REVISION_DEADLINE_EXPIRED' : 'CAR_DEADLINE_EXPIRED',
+                        additionalData: {
+                            updatedBy: req.user.id,
+                            formData: {
+                                ...currentFormData,
+                                workflowState: 'EXPIRED',
+                                workflowStateUpdatedAt: ts,
+                                canceledExpiredAt: ts,
+                                cancelReason: expiredReason,
+                            },
+                            workflowHistory: [
+                                ...arr(application.workflowHistory),
+                                {
+                                    timestamp: ts,
+                                    action: expiredReason === 'REVISION_OVERDUE'
+                                        ? 'REVISION_DEADLINE_EXPIRED'
+                                        : 'CAR_DEADLINE_EXPIRED',
+                                    fromState,
+                                    toState: 'EXPIRED',
+                                    actorId: req.user.id,
+                                    actorRole: req.user.canonicalRole || req.user.role || null,
+                                },
+                            ],
+                        },
+                    });·
+                    if (expiredReason === 'REVISION_OVERDUE') {
+                        // adminApplicationService.bulkUpdateRevisionDeadlineStatus —
+                        // replaces prisma.revisionDeadline.updateMany.
+                        await adminApplicationService.bulkUpdateRevisionDeadlineStatus({
+                            applicationId: application.id,
+                            fromStatuses: ['PENDING', 'EXTENDED'],
+                            data: { status: 'FAILED', updatedBy: req.user.id },
+                        });
+                    }
+                };·
+                if (!force && currentState === 'REVISION_REQUESTED' && requestedState === 'ASSIGNED_FOR_REVIEW') {
+                    const dueAt = getRevisionDueAt(currentFormData);
+                    if (dueAt && new Date() > dueAt) {
+                        await markAsCancelledExpired('REVISION_OVERDUE', currentState);
+                        return res.status(400).json({
+                            success: false,
+                            error: 'Revision deadline exceeded. Application has been cancelled.',
+                        });
+                    }
+                }·
+                if (!force && currentState === 'CAR_PENDING' && requestedState === 'CAR_REVIEWING') {
+                    const carDueAt = getCarDueAt(currentFormData);
+                    if (carDueAt && new Date() > carDueAt) {
+                        await markAsCancelledExpired('CAR_OVERDUE', currentState);
+                        return res.status(400).json({
+                            success: false,
+                            error: 'CAR deadline exceeded. Application has been cancelled.',
+                        });
+                    }
+                }·
+                const transition = workflowTransitionService.buildTransitionUpdate({
+                    application,
+                    toState,
+                    actorId: req.user.id,
+                    actorRole: req.user.canonicalRole,
+                    reasonCode,
+                    comment: effectiveComment,
+                    metadata: transitionMetadata,
+                    force,
+                });·
+                if (transition.nextState === 'REVISION_REQUESTED') {
+                    const requestedAt = new Date();
+                    // Blocker F: Thai-holiday-aware + Asia/Bangkok (utils/working-days).
+                    // The old services/working-days-service path counted Thai public
+                    // holidays as working days (its holiday sources were never seeded)
+                    // → too-short deadline → early auto-EXPIRE → farmer forfeits งวด 1.
+                    const dueAt = addWorkingDays(requestedAt, REVISION_SLA_DAYS);
+                    transition.updateData.formData = {
+                        ...transition.updateData.formData,
+                        revisionRequestedAt: requestedAt.toISOString(),
+                        revisionDueAt: dueAt.toISOString(),
+                        revisionSlaDays: REVISION_SLA_DAYS,
+                        revision_requested_at: requestedAt.toISOString(),
+                        revision_due_at: dueAt.toISOString(),
+                        revision_sla_days: REVISION_SLA_DAYS,
+                        revisionRequest: {
+                            category: revisionCategory,
+                            message: revisionMessage || effectiveComment,
+                            items: revisionItems,
+                            requestedAt: requestedAt.toISOString(),
+                            dueAt: dueAt.toISOString(),
+                            requestedBy: req.user.providerId || req.user.id,
+                            requestedByRole: req.user.canonicalRole || req.user.role || null,
+                        },
+                    };
+                    transition.transitionEvent.metadata = {
+                        ...(obj(transition.transitionEvent.metadata)),
+                        revisionRequestedAt: requestedAt.toISOString(),
+                        revisionDueAt: dueAt.toISOString(),
+                        revisionSlaDays: REVISION_SLA_DAYS,
+                        revision_requested_at: requestedAt.toISOString(),
+                        revision_due_at: dueAt.toISOString(),
+                        revision_sla_days: REVISION_SLA_DAYS,
+                        revisionCategory,
+                        revisionMessage: revisionMessage || effectiveComment,
+                        revisionItems,
+                    };
+                } else if (transition.nextState === 'CAR_PENDING') {
+                    const requestedAt = new Date();
+                    // Blocker F: same Thai-holiday-aware engine as the REVISION path
+                    // above (and as car-deadline-service.js on the sibling surfaces).
+                    const dueAt = addWorkingDays(requestedAt, CAR_SLA_DAYS);
+                    transition.updateData.formData = {
+                        ...transition.updateData.formData,
+                        carRequestedAt: requestedAt.toISOString(),
+                        carDueAt: dueAt.toISOString(),
+                        carSlaDays: CAR_SLA_DAYS,
+                        car_requested_at: requestedAt.toISOString(),
+                        car_due_at: dueAt.toISOString(),
+                        car_sla_days: CAR_SLA_DAYS,
+                        carRequest: {
+                            message: effectiveComment,
+                            requestedAt: requestedAt.toISOString(),
+                            dueAt: dueAt.toISOString(),
+                            requestedBy: req.user.providerId || req.user.id,
+                            requestedByRole: req.user.canonicalRole || req.user.role || null,
+                        },
+                    };
+                    transition.transitionEvent.metadata = {
+                        ...(obj(transition.transitionEvent.metadata)),
+                        carRequestedAt: requestedAt.toISOString(),
+                        carDueAt: dueAt.toISOString(),
+                        carSlaDays: CAR_SLA_DAYS,
+                        car_requested_at: requestedAt.toISOString(),
+                        car_due_at: dueAt.toISOString(),
+                        car_sla_days: CAR_SLA_DAYS,
+                    };
+                }·
+                if (['REVISION_REQUESTED', 'DOC_APPROVED'].includes(transition.nextState)) {
+                    const reviewHistory = arr(currentFormData.reviewHistory);
+                    transition.updateData.formData = {
+                        ...transition.updateData.formData,
+                        reviewHistory: [
+                            ...reviewHistory,
+                            {
+                                timestamp: new Date().toISOString(),
+                                action: transition.nextState === 'DOC_APPROVED' ? 'approve' : 'revision',
+                                category: revisionCategory,
+                                comment: effectiveComment,
+                                items: revisionItems,
+                                by: req.user.providerId || req.user.id,
+                                byRole: req.user.canonicalRole || req.user.role || null,
+                            },
+                        ],
+                    };
+                }·
+                // Use the canonical writer instead of a direct prisma.update so
+                // every transition spawns its corresponding work-activity row
+                // (ADR-016 Phase 1A) and cancels open activities on terminal
+                // states (REJECTED / EXPIRED / CERTIFIED). Bypassing this
+                // wrapper meant the work queue stayed populated with rows for
+                // applications that had already moved on, and the new-stage
+                // owner saw nothing in their queue for the freshly-arrived
+                // transition. transition.updateData already has the right
+                // shape; we just split status off so writeApplicationStatus
+                // gets toStatus separately.
+                const { status: toStatus, ...transitionExtras } = transition.updateData;
+                // A1 (integrity-audit 2026-07-06): an ADMIN `force` transition bypasses
+                // the role/edge gate, so a FORCED landing on AUDIT_PASSED (or APPROVED)
+                // must NOT let the writer's cert hook auto-mint a certificate with no
+                // fresh audit — that is the single-auditor SoD back-door. This is the
+                // 4th sibling of the 3 admin force/revert paths that already pass
+                // autoIssueCertificate:false (admin.js, admin/applications.js,
+                // admin-application-service.js force+revert). A LEGITIMATE (non-force)
+                // auditor AUDIT_PASSED still auto-issues, and the legitimate APPROVED
+                // issuance still runs via handleCertificateIssuance below regardless of
+                // this flag (it is gated on transition.nextState === 'APPROVED').
+                const writeArgs = {
+                    applicationId: application.id,
+                    fromStatus: application.status,
+                    toStatus,
+                    actorId: req.user.id,
+                    actorRole: req.user.canonicalRole || req.user.role || null,
+                    reason: reasonCode || `WORKFLOW_${transition.nextState}`,
+                    additionalData: transitionExtras,
+                    autoIssueCertificate: !force,
+                };·
+                // Full-system audit area H (2026-07-11): this canonical DOCUMENT_REVIEWER
+                // + admin-force transition path previously wrote its ONLY AuditLog row
+                // AFTER commit, best-effort (workflow-side-effects.logTransitionAudit,
+                // swallows failure) — so a DOC_APPROVED/REVISION_REQUESTED/APPROVED/force
+                // transition could commit with NO immutable hash-chained attribution on a
+                // transient fault. Wire the same in-$transaction onAudit hook every
+                // consequential sibling uses (auditor cert path #646 audits.js, admin
+                // force/revert admin-application-service.js) so the transition row is
+                // written through the tx, atomic with the status flip. (The post-commit
+                // rich WORKFLOW_TRANSITION event below is kept as extra operational
+                // context — additive, no behavior removed.)
+                const transitionAuditMetadata = {
+                    applicationNumber: application.applicationNumber,
+                    previousWorkflowState: transition.previousState,
+                    nextWorkflowState: transition.nextState,
+                    reasonCode: reasonCode || null,
+                    comment: effectiveComment || null,
+                    force,
+                };·
+                // A2 (integrity-audit 2026-07-06): reversing a pass (AUDIT_PASSED ->
+                // CAR_REVIEWING) on this canonical endpoint must VOID the certificate
+                // that was auto-issued on the pass — otherwise the public QR keeps
+                // reporting the cert VALID for a farm now under corrective action.
+                // Mirror the auditor.js reject-to-auditor void: run the status write +
+                // cert void (which also invalidates the audit-pass record, #15) in ONE
+                // transaction so we never leave a live cert for a reverted application
+                // and a re-pass can mint a fresh one. Keyed on the transition EDGE so it
+                // covers BOTH the auditor (non-force) and the ADMIN (force) reversal.
+                // revokeCertificateForApplication is a no-op when no live cert exists.
+                // A2 (integrity-audit 2026-07-06): void on EVERY reversal off a cert-live
+                // state, not just the one AUDIT_PASSED->CAR_REVIEWING edge. A cert is live
+                // after AUDIT_PASSED (writer hook auto-issues) and stays live through
+                // APPROVED/CERTIFIED. The narrow predicate missed ADMIN force reversals
+                // (AUDIT_PASSED->REJECTED, CERTIFIED->REJECTED, APPROVED->CAR_REVIEWING) —
+                // admins WILL use force for AUDIT_PASSED->REJECTED (no non-force edge
+                // exists) — leaving a public-VALID cert on /verify + QR for a
+                // rejected/reverted farm. Void when LEAVING a cert-live state and NOT
+                // staying on the cert track (APPROVED/CERTIFIED). Forward edges
+                // AUDIT_PASSED->APPROVED and APPROVED->CERTIFIED stay on-track (next ∈
+                // CERT_KEEP) → not voided. revokeCertificateForApplication is a no-op
+                // when no live cert exists, so this is safe on all covered edges.
+                const CERT_LIVE = new Set(['AUDIT_PASSED', 'APPROVED', 'CERTIFIED']);
+                const CERT_KEEP = new Set(['APPROVED', 'CERTIFIED']);
+                const isCertVoidingReversal =
+                    CERT_LIVE.has(transition.previousState) && !CERT_KEEP.has(transition.nextState);
+                if (isCertVoidingReversal) {
+                    await prisma.$transaction(async (tx) => {
+                        await writeApplicationStatus({
+                            ...writeArgs,
+                            prisma: tx,
+                            onAudit: statusTransitionAuditHook({ tx, metadata: transitionAuditMetadata }),
+                        });
+                        await certificateService.revokeCertificateForApplication(application.id, {
+                            revokedBy: req.user.id,
+                            reason: `Audit pass reversed: ${effectiveComment || reasonCode || 'CAR review'}`,
+                            prisma: tx,
+                        });
+                    });
+                } else {
+                    await prisma.$transaction(async (tx) => {
+                        await writeApplicationStatus({
+                            ...writeArgs,
+                            prisma: tx,
+                            onAudit: statusTransitionAuditHook({ tx, metadata: transitionAuditMetadata }),
+                        });
+                    });
+                }
+                // Re-fetch with the original select shape since writeApplicationStatus
+                // returns the full row. Downstream side-effects below
+                // (handleRevisionDeadlines, sendTransitionNotifications,
+                // handleCertificateIssuance, logTransitionAudit) all read from
+                // this `updated` reference.
+                // applicationService.getById — replaces prisma.application.findUnique
+                // re-fetch after writeApplicationStatus.
+                const updated = await applicationService.getById(application.id, {
+                    select: {
+                        id: true,
+                        applicationNumber: true,
+                        status: true,
+                        formData: true,
+                        updatedAt: true,
+                        updatedBy: true,
+                    },
+                });·
+                // Persist ApplicationComment for revision/CAR transitions (audit trail)
+                if (['REVISION_REQUESTED', 'CAR_PENDING'].includes(transition.nextState) && effectiveComment) {
+                    // applicationService.isApplicationCommentModelAvailable +
+                    // applicationService.createApplicationCommentIfAvailable —
+                    // replaces direct prisma.applicationComment.create. Split into
+                    // two calls so the \"model unavailable\" branch still emits the
+                    // same dedicated warning as before.
+                    if (applicationService.isApplicationCommentModelAvailable()) {
+                        await applicationService.createApplicationCommentIfAvailable({
+                            applicationId: application.id,
+                            authorId: req.user.id,
+                            role: req.user.canonicalRole || req.user.role || 'PROVIDER',
+                            // commentType (DOC_REVISION/FIELD_CAR) + revisionItems are
+                            // persisted in the transition metadata/formData; the comment
+                            // row carries the human-readable text.
+                            content: effectiveComment,
+                        }).catch((commentErr) => {
+                            logger.warn('[provider] ApplicationComment creation failed', {
+                                message: commentErr.message,
+                                applicationId: application.id,
+                            });
+                        });
+                    } else {
+                        logger.warn('[provider] ApplicationComment model unavailable, skip comment persistence', {
+                            applicationId: application.id,
+                            transition: transition.nextState,
+                        });
+                    }
+                }
+                // ─── Side Effects (extracted to workflow-side-effects.js) ───
+                const sideEffects = require('./workflow-side-effects');·
+                await sideEffects.handleRevisionDeadlines(prisma, {
+                    application, transition, reqUser: req.user, getRevisionDueAt,
+                    updated, arr, logger,
+                });·
+                let issuedCertificate = null;
+                // A1 (integrity-audit 2026-07-06): force-gate this SECOND cert-mint path
+                // too. buildTransitionUpdate lets ADMIN+force land APPROVED from ANY state
+                // (incl. CERTIFIED), and revokeCertificate does NOT clear the audit-pass
+                // record, so a compromised ADMIN force→APPROVED after a revoke would mint a
+                // FRESH active cert off the surviving pass = a hidden un-revoke (public
+                // /verify + QR flip back to VALID). The writer's auto-issue hook is already
+                // force-gated (autoIssueCertificate:!force above); this path must match.
+                if (transition.nextState === 'APPROVED' && !force) {
+                    try {
+                        issuedCertificate = await sideEffects.handleCertificateIssuance(prisma, logger, {
+                            application, transition, reqUser: req.user, healthUserId: healthUserId,
+                            ensureCertificateIssuedForApplication,
+                        });
+                    } catch (certificateError) {
+                        logger.error('[provider] certificate issuance failed on APPROVED', {
+                            applicationId: application.id,
+                            message: certificateError.message,
+                        });
+                        return res.status(409).json({
+                            success: false,
+                            error: 'Certificate issuance failed',
+                            message: certificateError.message,
+                        });
+                    }
+                }·
+                await sideEffects.sendTransitionNotifications(prisma, logger, {
+                    application, transition, healthUserId,
+                    getRevisionDueAt, revisionCategory, revisionMessage, effectiveComment, revisionItems,
+                });·
+                await sideEffects.logTransitionAudit(auditLogger, logger, {
+                    AuditCategory, AuditSeverity, ResourceType,
+                    application, transition, reqUser: req.user,
+                    reasonCode, effectiveComment, force, issuedCertificate,
+                    getRequestIp, req,
+                });·
+                return res.json({
+                    success: true,
+                    data: {
+                        application: updated,
+                        transition: {
+                            fromState: transition.previousState,
+                            toState: transition.nextState,
+                            fromStatus: application.status,
+                            toStatus: transition.nextLegacyStatus,
+                        },
+                        certificate: issuedCertificate ? {
+                            id: issuedCertificate.id,
+                            number: issuedCertificate.certificateNumber,
+                        } : null,
+                    },
+                });
+            } catch (error) {
+                // Workflow transition-guard errors (buildTransitionUpdate throws plain
+                // Errors with these messages, no .status/.code) → 422 INVALID_TRANSITION,
+                // matching the cert-workflow contract + the sibling auditor.js handler.
+                // A genuine server fault (unmatched message) stays 500.
+                const msg = String(error.message || '');
+                const isTransitionGuard = /cannot transition|Invalid transition|already in workflow state|Only admin can force|Unknown actor role|Invalid workflow state|requires a mandatory comment/i.test(msg);
+                const statusCode = error.status || (isTransitionGuard ? 422 : 500);
+                logger.error('[provider] workflow transition failed', { message: error.message });
+                // Surface the transition-guard reason (422 INVALID_TRANSITION) — the FE
+                // error-translator keys off this string. On a genuine 500, return a
+                // generic message so an internal/Prisma error never leaks to the client
+                // (the real cause is logged above).
+                return res.status(statusCode).json({
+                    success: false,
+                    error: 'Workflow transition failed',
+                    code: error.code || (isTransitionGuard ? 'INVALID_TRANSITION' : undefined),
+                    message: statusCode >= 500 ? 'Workflow transition failed' : error.message,
+                });
+            }
+        },
+    ];·
+    module.exports = {
+        applicationsWorkflowTransitions,
+    };
+    "
+
+      653 |             const src = fs.readFileSync(path.join(BACKEND, rel), 'utf8');
+      654 |             expect(src).not.toMatch(/OFFICIAL_LETTER/);
+    > 655 |             expect(src).toMatch(/decision-letter-service/);
+          |                         ^
+      656 |         }
+      657 |     });
+      658 | });
+
+      at Object.toMatch (__tests__/unit/atomic-decision-letter.test.js:655:25)
+
+Test Suites: 1 failed, 1 total
+Tests:       13 failed, 2 passed, 15 total
+Snapshots:   0 total
+Time:        1.74 s, estimated 3 s
+Ran all test suites matching /__tests__\/unit\/atomic-decision-letter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

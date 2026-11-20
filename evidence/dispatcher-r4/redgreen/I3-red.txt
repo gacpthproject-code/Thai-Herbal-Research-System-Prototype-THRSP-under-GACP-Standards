@@ -1,0 +1,34 @@
+error: [Cron Auto Cancel] Error: 
+Invalid `prisma.$executeRaw()` invocation:
+
+
+Raw query failed. Code: `22023`. Message: `ERROR: cannot set path in scalar` {"clientVersion":"5.22.0","code":"P2010","meta":{"code":"22023","message":"ERROR: cannot set path in scalar"},"name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: \nInvalid `prisma.$executeRaw()` invocation:\n\n\nRaw query failed. Code: `22023`. Message: `ERROR: cannot set path in scalar`\n    at $n.handleRequestError (/home/ubuntu/work/wt-dispatcher/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/wt-dispatcher/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/wt-dispatcher/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/wt-dispatcher/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at /home/ubuntu/work/wt-dispatcher/apps/backend/routes/api/system/cron.js:242:13","timestamp":"2026-10-09T07:17:34.625Z"}
+FAIL __tests__/integration/correction-deadline-sweep-real-postgres.test.js
+  correction-deadline sweep (real Postgres)
+    ✕ a filing that is not an object is skipped; the run goes on and the others are reminded (I3) (147 ms)
+    ○ skipped a second revision round gets its own 48 and 24 hour reminders, though the first round's record is still on the filing
+    ○ skipped run by hand, a round whose deadline is new is reminded even with the earlier round's reminder recorded
+    ○ skipped an expiry read before the applicant's resubmission committed does not cancel the resubmission
+
+  ● correction-deadline sweep (real Postgres) › a filing that is not an object is skipped; the run goes on and the others are reminded (I3)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      106 |         await world.raw.revisionDeadline.create({ data: { applicationId: odd.id, organizationId: fx.orgA, revisionDue: due, status: 'PENDING', revisionCount: 1 } });
+      107 |         const res = await runByHand();
+    > 108 |         expect(res.status).toBe(200);
+          |                            ^
+      109 |         expect(remindersOf(fine.id)).toEqual([24]);
+      110 |         expect(remindersOf(odd.id)).toEqual([]);
+      111 |         expect((await world.rowOf(odd.id)).status).toBe('REVISION_REQUESTED');
+
+      at Object.toBe (__tests__/integration/correction-deadline-sweep-real-postgres.test.js:108:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 3 skipped, 4 total
+Snapshots:   0 total
+Time:        1.447 s, estimated 2 s
+Ran all test suites matching __tests__/integration/correction-deadline-sweep-real-postgres.test.js with tests matching "I3".

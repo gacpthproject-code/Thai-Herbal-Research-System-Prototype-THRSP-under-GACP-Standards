@@ -1,0 +1,119 @@
+# Task 7 GREEN — 2026-10-02T19:31:22Z — on f40be2b0 + working tree (script implemented)
+# cmd: SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs -i --verbose __tests__/unit/heal-null-holders-rules.test.js __tests__/integration/heal-null-holders-real-postgres.test.js
+# DB: throwaway postgres:17 127.0.0.1:55435, prisma migrate deploy applied; 0 skipped
+# signing key mtime before/after: 1788623435 / 1788623435 (unchanged)
+# test-side fix between RED and GREEN: unit assertion compared lower-case 'something-else' with the upper-cased evidence; changed to .toUpperCase() (rule unchanged)
+    ✓ INDIVIDUAL declared + filer has exactly one OWNER INDIVIDUAL membership → that entity (3 ms)
+    ✓ absent applicantType (undefined) counts as INDIVIDUAL (1 ms)
+    ✓ absent applicantType (null) counts as INDIVIDUAL (2 ms)
+    ✓ absent applicantType ("") counts as INDIVIDUAL (1 ms)
+    ✓ absent applicantType ("  ") counts as INDIVIDUAL (2 ms)
+    ✓ lower-case individual is the same declaration (1 ms)
+    ✓ JURISTIC declared → unplaced, even when the filer has one personal entity (2 ms)
+    ✓ COMMUNITY_ENTERPRISE declared → unplaced, even when the filer has one personal entity (1 ms)
+    ✓ COMMUNITY declared → unplaced, even when the filer has one personal entity (1 ms)
+    ✓ something-else declared → unplaced, even when the filer has one personal entity (1 ms)
+    ✓ two candidate personal entities → unplaced (1 ms)
+    ✓ no candidate (filer missing or no personal entity) → unplaced (1 ms)
+    ✓ unplaced DRAFT → UNPLACED_DRAFT_DELETE_ON_OPERATOR_WORD; non-draft → UNPLACED_OPERATOR_DECIDES (Q2) (1 ms)
+    ✓ the certificate's application entityId wins over the owner's personal entity (1 ms)
+    ✓ several certificates naming the same entity still place it (1 ms)
+    ✓ certificates naming two different entities → unplaced (two candidates) (1 ms)
+    ✓ no certificate entity → the single personal entity of the owner (1 ms)
+    ✓ no certificate entity and two personal entities → unplaced (1 ms)
+    ✓ nothing at all → unplaced, operator decides (a farm DRAFT is not a deletable draft) (1 ms)
+    ✓ default is a dry run (1 ms)
+    ✓ --apply only when spelled exactly (16 ms)
+    ✓ --db-label=<name> is accepted and sanitised (2 ms)
+    ✓ loopback → local (2 ms)
+    ✓ an explicit label wins (1 ms)
+    ✓ a remote host without a label becomes a fingerprint that holds no part of the url (2 ms)
+    ✓ missing url → unknown (1 ms)
+    ✓ header + quoted fields (1 ms)
+    ✓ dry run writes nothing (every application and farm row, and the membership tables, unchanged) (43 ms)
+    ✓ rows that already have a holder are not in the plan (25 ms)
+    ✓ application rules on real rows (9 ms)
+    ✓ farm rules on real rows: the certificate's application entity wins, then the single personal entity (8 ms)
+    ✓ --apply fills only NULL columns and never overwrites a holder filled after the plan (46 ms)
+Test Suites: 2 passed, 2 total
+Tests:       32 passed, 32 total
+
+# MUTATION: applyHeal where {id, entityId:null} -> {id} (restored after)
+    ✕ --apply fills only NULL columns and never overwrites a holder filled after the plan (26 ms)
+    Expected: "2feefa5f-2c48-4cf6-a889-eae61d2a9473"
+    Received: "1754b256-f6c0-4787-8a20-18bd2b928bd5"
+Tests:       1 failed, 4 passed, 5 total
+
+# CLI smoke on the throwaway DB (output contains no url: grep -c 'pg@|55435|postgresql' = 0)
+$ node scripts/heal-null-holders.js --aply
+ปฏิเสธ: unknown argument: --aply (allowed: --apply, --db-label=<name>)
+exit=2
+$ node scripts/heal-null-holders.js
+ฐานข้อมูล: local · แถวผู้ถือว่าง 0 แถว
+CSV: ../../evidence/heal-null-holders/local-2026-10-02T19-29-11-771Z.csv
+ดูอย่างเดียว — ไม่เขียนฐานข้อมูล · ตรวจ CSV แล้วให้ operator รันซ้ำด้วย --apply
+exit=0
+(smoke CSV deleted after the run — throwaway DB, 0 rows)
+
+# probes
+ratchet: hardcode=26 todo=53 env-direct=101 dup-source=0 PASS
+retired-words PASS · no-skip PASS · no-secret PASS (layer1 0 hits, gitleaks clean) · green-mask PASS (no net-new masks, baseline 15)
+
+## r1 GREEN — 2026-10-02T19:39:57Z — round-1 fixes (Critical + Important 1/2 + Minor)
+# same cmd; fresh postgres:17 on 55435 + migrate deploy; 0 skipped; signing key mtime 1788623435 before/after
+# test-side fix between r1 RED and GREEN: harness({url: undefined}) took the default URL; sentinel changed to null (= key absent)
+    ✓ application rules on real rows (12 ms)
+    ✓ --apply against a different database than the plan was made on → refused before connecting (2 ms)
+    ✓ --apply fills only NULL columns and never overwrites a holder filled after the plan (43 ms)
+    ✓ --apply on a matching plan writes the rollback list from result.updated only (ALREADY_FILLED excluded) (3 ms)
+    ✓ --apply when the re-plan differs from the reviewed plan → refused, applyHeal never called (2 ms)
+    ✓ --apply when the re-plan has an extra row → refused (2 ms)
+    ✓ --apply whose --db-label differs from the plan label → refused before connecting (2 ms)
+    ✓ --apply with a plan that no longer matches the database refuses and writes nothing (164 ms)
+    ✓ --apply without --db-label → refused, never connects (2 ms)
+    ✓ --apply without --plan → refused, never connects (1 ms)
+    ✓ a value placed into process.env after the module loaded (as dotenv would) is not trusted (35 ms)
+    ✓ DATABASE_URL absent from the startup environment → refused, never connects (2 ms)
+    ✓ DATABASE_URL empty → refused, never connects (2 ms)
+    ✓ dry run: plans, writes the plan CSV with the db fingerprint, never reaches applyHeal (3 ms)
+    ✓ dry run writes nothing (every application and farm row, and the membership tables, unchanged) (52 ms)
+    ✓ farm rules on real rows: the certificate's application entity wins, then the single personal entity (7 ms)
+    ✓ rows that already have a holder are not in the plan (13 ms)
+Tests:       45 passed, 45 total
+Test Suites: 2 passed, 2 total
+    ✓ the rollback list holds only rows this run wrote — never one filled by someone else (202 ms)
+
+# r1 MUTATIONS (each restored; file sha256 prefix after = e98a13194b1f78e0 = before)
+M1 fingerprint check off -> FAIL: --apply against a different database ... (1 failed)
+M2 plan-diff refusal off -> FAIL: re-plan differs / extra row / real-PG stale plan / (4 failed)
+M3 rollback list from plan instead of result.updated -> FAIL: both rollback tests (2 failed)
+M4 env = process.env instead of startup snapshot -> FAIL: dotenv-after-load child test (1 failed)
+
+# r1 CLI smoke on the throwaway DB (URL passed per command from a 0600 file; output grep for url parts = 0)
+$ node scripts/heal-null-holders.js --db-label=local   (no DATABASE_URL)
+ปฏิเสธ (ยังไม่ได้ต่อฐานข้อมูล): DATABASE_URL must be exported in this shell before the command (a .env file is never used)
+exit=2
+$ DATABASE_URL="$(cat <URL_FILE>)" node scripts/heal-null-holders.js --db-label=local
+ฐานข้อมูล: local (db=1dda16d6) · แถวผู้ถือว่าง 0 แถว
+แผน (dry run): /home/ubuntu/work/wt-r1/evidence/heal-null-holders/local-1dda16d6-2026-10-02T19-39-19-255Z-plan.csv
+ดูอย่างเดียว — ไม่เขียนฐานข้อมูล · ตรวจไฟล์แผนแล้วให้ operator รัน --apply --plan=<ไฟล์นี้>
+exit=0
+plan first line: # heal-null-holders plan label=local db=1dda16d6 rows=0
+$ ... --apply --db-label=local   (no --plan)
+ปฏิเสธ (ยังไม่ได้ต่อฐานข้อมูล): --apply needs --plan=<the dry-run CSV you reviewed>
+exit=2
+$ ... --apply --db-label=demo --plan=<plan>
+ปฏิเสธ (ยังไม่ได้ต่อฐานข้อมูล): --db-label=demo but the plan was made for local
+exit=2
+$ (other database url) ... --apply --db-label=local --plan=<plan>
+ปฏิเสธ (ยังไม่ได้ต่อฐานข้อมูล): database fingerprint 4017c39b is not the one the plan was made on (1dda16d6)
+exit=2
+$ ... --apply --db-label=local --plan=<plan>
+ฐานข้อมูล: local (db=1dda16d6) · แถวผู้ถือว่าง 0 แถว
+เขียนแล้ว 0 แถว · รายการย้อนกลับ: /home/ubuntu/work/wt-r1/evidence/heal-null-holders/local-1dda16d6-2026-10-02T19-39-19-491Z-applied-rollback.csv
+ข้าม 0 แถว (ถูกเติมไปก่อนแล้ว ไม่ได้เขียน ไม่อยู่ในรายการย้อนกลับ)
+วางไม่ได้ 0 แถว — รอ operator ตัดสินตามแผน (ไม่มีการลบใดๆ จากสคริปต์นี้)
+exit=0
+(smoke files deleted after the run)
+
+# probes: ratchet hardcode=26 todo=53 env-direct=101 dup-source=0 PASS · retired-words PASS · no-skip PASS · no-secret PASS · green-mask PASS

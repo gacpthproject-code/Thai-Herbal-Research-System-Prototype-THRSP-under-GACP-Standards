@@ -1,0 +1,44 @@
+full gate 2d98e70c3 (coordinator 2026-10-20): summary of the full-suite run, compared with main's gate 48815f6db
+the full log stays on the work host at /home/ubuntu/work/state/gate/out/evidence/gate/logs/2d98e70c3f6636102d21bf2f98d63a0a4031ce4c/artifacts/suite-green.log (not committed: it carries epoch-ms runs and key-like strings that gitleaks flags)
+
+suite-green (all suites, parallel)
+Test Suites: 4 failed, 2 skipped, 1132 passed, 1136 of 1138 total
+Tests:       8 failed, 52 skipped, 15054 passed, 15114 total
+Snapshots:   0 total
+Time:        1130.161 s
+failing suites:
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js
+  __tests__/integration/field-audit-clock-real-postgres.test.js
+  __tests__/integration/onsite-decision-mint-e2e.test.js
+  __tests__/integration/status-writer-audit-default-invariant.test.js
+failing tests:
+  A0 PR-1 — writer emits the canonical transition row by default, in the same tx › (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #13 — POST /applications/:id/car — late CAR evidence expires the case › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #7 — PATCH /admin/applications/:id/status — admin override › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  the field audit task is timed from the visit (real Postgres) › a visit booked through the scheduling queue weeks ahead is due a time limit after the visit, not after the booking
+new vs main:
+  __tests__/integration/field-audit-clock-real-postgres.test.js
+failing on main's gate, not on this head (main's load flakes included; see notes):
+  __tests__/integration/registration-sets-no-protected-column-real-postgres.test.js
+
+integration-pg (integration folder, serial, fresh database): 8 failed tests (main: 7)
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #13 — POST /applications/:id/car — late CAR evidence expires the case (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #7 — PATCH /admin/applications/:id/status — admin override (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  field-audit-clock-real-postgres.test.js :: the field audit task is timed from the visit (real Postgres) a visit booked through the scheduling queue weeks ahead is due a time limit after the visit, not after the booking
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  status-writer-audit-default-invariant.test.js :: A0 PR-1 — writer emits the canonical transition row by default, in the same tx (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+new vs main:
+  field-audit-clock-real-postgres.test.js :: the field audit task is timed from the visit (real Postgres) a visit booked through the scheduling queue weeks ahead is due a time limit after the visit, not after the booking
+
+Coordinator notes for the gate of feat/appeal-u1-u2 at 2d98e70c3 (2026-10-20, compared with main's gate 48815f6db).
+
+1. The one suite failing beyond main's gate is field-audit-clock ("a visit booked through the scheduling queue ..."), 409 on the second booking. Cause: both test.each cases book the same inspector at 09:00 on visitOn(15 + random 0-4), so one run in five picks the same day and the second booking hits a slot conflict. Proof (field-audit-clock-same-day-proof.txt, run by the coordinator through heavy.sh on a scratch Postgres): with the day forced equal, the same case fails with 409 on this head and on main c015e5c24 alike; with distinct days, 5/5 pass on both. The branch changes neither the test nor the booking code. The fixture fix is queued (task #65).
+2. registration-sets-no-protected-column fails on main's gate (a random-password fixture), not here.
+3. The independent review (Fable, ~/work/state/reviews/appeal-u2-review-2d98e70c3.md): no veto, Low 4, Info 7; 70 real-HTTP checks on its own backend. Its mutant reruns stayed pending (lane busy); the author's raw mutant results were read and match.

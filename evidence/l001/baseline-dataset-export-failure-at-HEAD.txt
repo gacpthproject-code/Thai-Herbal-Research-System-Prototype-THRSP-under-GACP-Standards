@@ -1,0 +1,55 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/dataset-export-service.test.js
+  dataset-domains config (single source of truth)
+    ✓ has the raw-data domains the contract needs (cultivation/care/harvest/drying/scans/survey) (3 ms)
+    ✓ every field entry carries Thai name + description for the dictionary; unit where numeric (11 ms)
+    ✓ PII columns are NEVER allowlisted (privacy-by-design) (5 ms)
+    ✕ STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF) (5 ms)
+  dataset-export-service.listDomains
+    ✓ returns catalog entries with key/thaiName/description (no prisma call) (5 ms)
+  dataset-export-service.exportDomain
+    ✓ unknown domain → 404 DATASET_NOT_FOUND (2 ms)
+    ✓ invalid format → 400 INVALID_FORMAT (1 ms)
+    ✓ JSONL: emits one JSON object per row with ONLY allowlisted keys (2 ms)
+    ✓ CSV: header from config order, formula guard applied, BOM prefix (2 ms)
+    ✓ pagination loop: drains batches until short batch, single ordered query shape (7 ms)
+    ✓ survey-responses domain flattens answers to long-format rows (1 ms)
+  data dictionary generator
+    ✓ generateDataDictionaryMarkdown covers every domain + field with Thai names (4 ms)
+
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 11 passed, 12 total
+Snapshots:   0 total
+Time:        0.834 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/dataset-export-service.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+exit=1 (run at HEAD f5627c5a with L-001 changes stashed)

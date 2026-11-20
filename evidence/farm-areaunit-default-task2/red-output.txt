@@ -1,0 +1,230 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/application-review-revision-farm-areaunit.test.js
+  submitRevision — farm totalAreaUnit validated on the REVISION_REQUESTED resubmit door (farm-areaunit-default fix, Task 2)
+    × resubmit whose farm has NO totalAreaUnit → 422 errorsByStep[5], no transition written, no quotation (12 ms)
+    √ resubmit whose farm HAS a valid (UI-cased) totalAreaUnit still succeeds — byte-identical success path (3 ms)
+
+  ● submitRevision — farm totalAreaUnit validated on the REVISION_REQUESTED resubmit door (farm-areaunit-default fix, Task 2) › resubmit whose farm has NO totalAreaUnit → 422 errorsByStep[5], no transition written, no quotation
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 422
+    Received: 200
+
+    [0m [90m 124 |[39m         [36mconst[39m result [33m=[39m [36mawait[39m methods[33m.[39msubmitRevision([32m'app-1'[39m[33m,[39m { formData[33m:[39m {}[33m,[39m notes[33m:[39m [32m'fixed'[39m }[33m,[39m actor)[33m;[39m
+     [90m 125 |[39m
+    [31m[1m>[22m[39m[90m 126 |[39m         expect(result[33m.[39mstatus)[33m.[39mtoBe([35m422[39m)[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 127 |[39m         expect(result[33m.[39mbody)[33m.[39mtoMatchObject({ success[33m:[39m [36mfalse[39m[33m,[39m error[33m:[39m [32m'APPLICATION_INCOMPLETE'[39m })[33m;[39m
+     [90m 128 |[39m         expect(result[33m.[39mbody[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 129 |[39m         expect(writeApplicationStatus)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/application-review-revision-farm-areaunit.test.js:126:31)
+
+FAIL __tests__/unit/applications-submit-canonical-validation.test.js (8.85 s)
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (488 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (21 ms)
+    √ (b3) plot missing areaUnit → 422 with step-5 error (F-PLOT-AREAUNIT-DEADEND fix) (11 ms)
+    × (b4) farm missing totalAreaUnit → 422 with step-5 error (farm-areaunit-default fix) (11 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (11 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (14 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (11 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (12 ms)
+
+  ● C2 — canonical /submit with REAL validators (no mock) › (b4) farm missing totalAreaUnit → 422 with step-5 error (farm-areaunit-default fix)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 422
+    Received: 500
+
+    [0m [90m 232 |[39m         mockDraft(fd)[33m;[39m
+     [90m 233 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/applications/submit'[39m)[33m.[39msend({})[33m;[39m
+    [31m[1m>[22m[39m[90m 234 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m422[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 235 |[39m         expect(r[33m.[39mbody[33m.[39merror)[33m.[39mtoBe([32m'APPLICATION_INCOMPLETE'[39m)[33m;[39m
+     [90m 236 |[39m         expect(r[33m.[39mbody[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 237 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/applications-submit-canonical-validation.test.js:234:26)
+
+FAIL __tests__/unit/canonical-application-validator.test.js
+  C2 — normalizeCanonicalToSteps (canonical → step shape)
+    √ maps farm/plot canonical fields into STEP 5 (plot=step5, not step2) (2 ms)
+    √ maps applicantData into STEP 4 (1 ms)
+    √ maps harvest/quality canonical fields into STEP 7 (1 ms)
+    √ maps production canonical fields into STEP 6 (1 ms)
+  C2 — validateCanonicalSubmission (real Zod, complete payload)
+    √ ACCEPTS a complete canonical INDIVIDUAL application (2 ms)
+    √ ACCEPTS a complete canonical JURISTIC application (1 ms)
+  C2 — validateCanonicalSubmission (real Zod, INCOMPLETE payloads reject)
+    √ REJECTS when plots are missing (no plot = step 5 error) (1 ms)
+    √ REJECTS when farmData.farmName is missing (step 5 error) (1 ms)
+    √ REJECTS when applicant data is missing (step 4 error) (1 ms)
+    √ REJECTS when production data (propagation/plantParts) is missing (step 6 error) (1 ms)
+    √ REJECTS when harvestMethod is missing (step 7 error) (1 ms)
+    √ REJECTS when no documents are uploaded (step 8 error) (1 ms)
+    √ REJECTS when plant selection is missing (step 2 error) (1 ms)
+    √ REJECTS a totally empty canonical payload with multiple step errors (1 ms)
+  C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1)
+    √ REJECTS when the only plot has no areaUnit at all (step 5 error, names the plot) (2 ms)
+    √ REJECTS plots[1] missing a unit even when plots[0] is valid — the plots[0]-blindness bug (1 ms)
+    √ ACCEPTS areaUnit "sqm" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "rai" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ngan" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "sqwa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "square_wa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "squarewa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "sqw" from the closed enum
+    √ ACCEPTS areaUnit "wa2" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ตารางวา" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ตารางเมตร" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ไร่" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "งาน" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "Sqm" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "SQM" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "Rai" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "RAI" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "Ngan" case-insensitively (UI casing) (1 ms)
+    √ REJECTS areaUnit "ไร่ครึ่ง" (not in the closed enum) (1 ms)
+    √ REJECTS areaUnit "acres" (not in the closed enum) (2 ms)
+    √ REJECTS areaUnit "hectare" (not in the closed enum) (1 ms)
+    √ REJECTS areaUnit "  " (not in the closed enum) (1 ms)
+  C2 — farm areaUnit enforcement (farm-areaunit-default fix, Task 2)
+    × REJECTS when farmData has no totalAreaUnit at all (step 5 error) (1 ms)
+    × REJECTS when farmData.totalAreaUnit is an empty string (2 ms)
+    √ ACCEPTS farm areaUnit "sqm" from the closed enum (2 ms)
+    √ ACCEPTS farm areaUnit "rai" from the closed enum (15 ms)
+    √ ACCEPTS farm areaUnit "ngan" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "sqwa" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "square_wa" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "squarewa" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "sqw" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "wa2" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "ตารางวา" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "ตารางเมตร" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "ไร่" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "งาน" from the closed enum (1 ms)
+    √ ACCEPTS farm areaUnit "Sqm" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS farm areaUnit "sqm" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS farm areaUnit "Rai" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS farm areaUnit "RAI" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS farm areaUnit "Ngan" case-insensitively (UI casing) (1 ms)
+    × REJECTS farm areaUnit "ไร่ครึ่ง" (not in the closed enum) (1 ms)
+    × REJECTS farm areaUnit "acres" (not in the closed enum) (1 ms)
+    × REJECTS farm areaUnit "hectare" (not in the closed enum) (1 ms)
+    × REJECTS farm areaUnit "  " (not in the closed enum) (1 ms)
+
+  ● C2 — farm areaUnit enforcement (farm-areaunit-default fix, Task 2) › REJECTS when farmData has no totalAreaUnit at all (step 5 error)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 281 |[39m         [36mdelete[39m fd[33m.[39mfarmData[33m.[39mtotalAreaUnit[33m;[39m
+     [90m 282 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 283 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 284 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 285 |[39m         [36mconst[39m messages [33m=[39m result[33m.[39merrorsByStep[[32m'5'[39m][33m.[39mmap((e) [33m=>[39m e[33m.[39mmessage)[33m.[39mjoin([32m' '[39m)[33m;[39m
+     [90m 286 |[39m         [90m// Honesty rule (plot-mission lesson) — the wizard sets this[39m[0m
+
+      at Object.toBe (__tests__/unit/canonical-application-validator.test.js:283:32)
+
+  ● C2 — farm areaUnit enforcement (farm-areaunit-default fix, Task 2) › REJECTS when farmData.totalAreaUnit is an empty string
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 295 |[39m         fd[33m.[39mfarmData[33m.[39mtotalAreaUnit [33m=[39m [32m''[39m[33m;[39m
+     [90m 296 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 297 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 298 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 299 |[39m     })[33m;[39m
+     [90m 300 |[39m[0m
+
+      at Object.toBe (__tests__/unit/canonical-application-validator.test.js:297:32)
+
+  ● C2 — farm areaUnit enforcement (farm-areaunit-default fix, Task 2) › REJECTS farm areaUnit "ไร่ครึ่ง" (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 317 |[39m         fd[33m.[39mfarmData[33m.[39mtotalAreaUnit [33m=[39m unit[33m;[39m
+     [90m 318 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 319 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 320 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 321 |[39m     })[33m;[39m
+     [90m 322 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:319:32)
+
+  ● C2 — farm areaUnit enforcement (farm-areaunit-default fix, Task 2) › REJECTS farm areaUnit "acres" (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 317 |[39m         fd[33m.[39mfarmData[33m.[39mtotalAreaUnit [33m=[39m unit[33m;[39m
+     [90m 318 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 319 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 320 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 321 |[39m     })[33m;[39m
+     [90m 322 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:319:32)
+
+  ● C2 — farm areaUnit enforcement (farm-areaunit-default fix, Task 2) › REJECTS farm areaUnit "hectare" (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 317 |[39m         fd[33m.[39mfarmData[33m.[39mtotalAreaUnit [33m=[39m unit[33m;[39m
+     [90m 318 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 319 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 320 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 321 |[39m     })[33m;[39m
+     [90m 322 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:319:32)
+
+  ● C2 — farm areaUnit enforcement (farm-areaunit-default fix, Task 2) › REJECTS farm areaUnit "  " (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 317 |[39m         fd[33m.[39mfarmData[33m.[39mtotalAreaUnit [33m=[39m unit[33m;[39m
+     [90m 318 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 319 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 320 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 321 |[39m     })[33m;[39m
+     [90m 322 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:319:32)
+
+PASS __tests__/unit/application-review-revision-plot-areaunit.test.js
+  submitRevision — plot areaUnit validated on the REVISION_REQUESTED resubmit door (F-PLOT-AREAUNIT-DEADEND fix, Task 1)
+    √ resubmit whose plot has NO areaUnit → 422 errorsByStep[5], no transition written, no quotation (5 ms)
+    √ resubmit whose plot HAS a valid (UI-cased) areaUnit still succeeds — byte-identical success path (2 ms)
+
+Test Suites: 3 failed, 1 passed, 4 total
+Tests:       8 failed, 64 passed, 72 total
+Snapshots:   0 total
+Time:        14.226 s
+Ran all test suites matching /__tests__\\unit\\canonical-application-validator.test.js|__tests__\\unit\\applications-submit-canonical-validation.test.js|__tests__\\unit\\application-review-revision-farm-areaunit.test.js|__tests__\\unit\\application-review-revision-plot-areaunit.test.js/i.

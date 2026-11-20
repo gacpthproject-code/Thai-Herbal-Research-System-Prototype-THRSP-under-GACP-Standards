@@ -1,0 +1,44 @@
+PASS __tests__/unit/prisma-select-field-guard.test.js
+  stripCommentsAndStrings — the preprocessing step that stopped comment-text false positives
+    ✓ blanks a `//` line comment but keeps line count (so line numbers stay correct) (4 ms)
+    ✓ blanks a `/* */` block comment across multiple lines (1 ms)
+    ✓ blanks string CONTENTS but keeps the quote characters — so a real value still reads as a scalar (1 ms)
+    ✓ blanks a template literal, including its `${...}` interpolation (1 ms)
+    ✓ same length as the input (so every absolute index / line number still lines up) (1 ms)
+  buildRelationFieldTargets / buildModelFieldSets (schema facts)
+    ✓ `applicant` names exactly one target model (User) — unambiguous, so it is checked (2 ms)
+    ✓ User has `phoneNumber`, not `phone` (1 ms)
+  buildModelClientPropertyMap (schema facts)
+    ✓ `user` (the client-property name) maps to model `User` (1 ms)
+    ✓ a multi-word model maps via first-letter-lowercase, e.g. `invoiceLineItem` -> `InvoiceLineItem` (8 ms)
+    ✓ skips (does not map) a client-property name two different models would both produce (1 ms)
+  scanSourceForInvalidRelationSelects — RED: catches the actual regression line
+    ✓ flags `applicant: { select: { phone: true } }` (the exact bug, commit 83157701) (2 ms)
+    ✓ flags the same shape under `auditor` (also a User relation) (2 ms)
+    ✓ does NOT flag the fixed form (`phoneNumber: true`) (1 ms)
+    ✓ does NOT descend into a nested relation select — that is its own match (1 ms)
+    ✓ skips an AMBIGUOUS relation name rather than guessing (no false positive) (1 ms)
+  scanSourceForInvalidDirectCalls — RED: top-level select/omit/where on a literal direct call
+    ✓ flags a wrong key in a TOP-LEVEL select with no relation wrapper — `prisma.user.findFirst({ select: { phone: true } })` (2 ms)
+    ✓ does NOT flag the fixed top-level select (`phoneNumber: true`) (1 ms)
+    ✓ flags a wrong key in a TOP-LEVEL omit — `prisma.user.findMany({ omit: { phone: true } })` (1 ms)
+    ✓ flags a wrong key in a TOP-LEVEL scalar where — `prisma.user.findFirst({ where: { phone: "x" } })` (1 ms)
+    ✓ does NOT flag the fixed scalar where (`phoneNumber: "x"`) (1 ms)
+    ✓ does NOT flag a legitimate top-level where scalar (`email`, `id`) (1 ms)
+    ✓ the same literal-call check also matches `tx.<model>.<op>(...)` (the $transaction(async (tx) => ...) convention) (1 ms)
+    ✓ DOES NOT CATCH #2: a wrong key hidden inside a where OPERATOR object is skipped, not flagged (1 ms)
+    ✓ DOES NOT CATCH #3-4: an array-valued where key (`OR`/`AND`) and its nested objects are skipped, not flagged (1 ms)
+    ✓ DOES NOT CATCH #1: select passed as a variable is not evaluated, so it is not flagged even when wrong (1 ms)
+    ✓ DOES NOT CATCH #5: a non-literal receiver (`db.user.findFirst`) is not resolved, so it is not flagged (1 ms)
+    ✓ a relation-nested select inside a direct call is still caught by the RELATION check, not double-counted by the direct-call check (2 ms)
+  scanBackendSource — GREEN: the real backend source tree today (both checks combined)
+    ✓ zero User-target violations across the whole backend (relation-select + direct-call select/omit/where) (278 ms)
+    ✓ zero NEW invalid fields across the backend — only the named, logged baseline entry may remain (general sweep) (214 ms)
+    ✓ the baseline names only violations that still actually exist (no stale/over-claimed entry) (214 ms)
+    ✓ the sweep finds EXACTLY the known baseline and nothing else — the honest current count (212 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        1.454 s, estimated 2 s
+Ran all test suites matching __tests__/unit/prisma-select-field-guard.test.js.

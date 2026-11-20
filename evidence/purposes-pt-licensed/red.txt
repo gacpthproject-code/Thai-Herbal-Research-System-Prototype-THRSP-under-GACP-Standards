@@ -1,0 +1,103 @@
+RED summary - purposes-pt-licensed (operator ruling 2026-10-05)
+Captured before the implementation code of each area; raw logs not kept (summaries only).
+
+BACKEND (cd apps/backend; jest --config jest.config.cjs), four new files, before shared/certification-purposes.js existed:
+  FAIL certification-purposes-vocabulary.test.js          Cannot find module '../../shared/certification-purposes'
+  FAIL application-requirements-purpose-licences.test.js  Cannot find module '../../shared/certification-purposes'
+  FAIL katorlor1-purpose-line.test.js                     5 assertions failing (no licence line; the MEDICAL box ticked)
+  FAIL applications-purpose-whitelist-doors.test.js       9 of 14 failing: draft door and submit door answer 200/422 for
+                                                          MEDICAL / COMMERCIAL / empty instead of 400 CERTIFICATION_PURPOSE_INVALID
+  Test Suites: 4 failed, 4 total   Tests: 14 failed, 6 passed, 20 total
+  (the 6 passing are pins, born green: draft door still accepts a valid list, an empty list, and a save that says nothing)
+
+WEB (apps/web-app; jest), before step4-variety-purpose-config.ts / client-view.tsx changed:
+  FAIL step4-variety-purpose.test.tsx                      9 failed (still offers MEDICAL/EXPORT, no licence labels,
+                                                          licenceNoticeFor / staleObjectivesNotice not exported)
+  FAIL edit-stale-purpose-needs-a-fresh-choice.test.tsx    3 failed (unknown stored words silently filtered, STALE_PURPOSES_KEY absent)
+  PASS lib/__tests__/certification-purposes.test.ts        PIN, not a fix: written together with src/lib/certification-purposes.ts
+  Tests: 12 failed, 17 passed, 29 total
+
+## fix round 1 (RED)
+purpose-licences-in-requirement-snapshot.test.js, before the fix:
+    ✕ first submit: the stamp built from appliedRules carries licence_pt11 (14 ms)
+    ✕ resubmit without licence_pt11 is refused (purpose PROCESSING, cannabis) (8 ms)
+    Expected value: "licence_pt11"
+    Received array: ["land_rights", "site_map_coords", "production_util_plan", "security_residue_plan", "site_photos", "sop_manual", "field_surround_photos", "id_house_reg", "producer_supervision_letter", "controlled_herb_license"]
+    Received promise resolved instead of rejected
+
+=== fix round 2 (2026-10-05) — RED: licence-slots-by-law.test.js before implementation ===
+    ✓ EXPORT requires licence_pt10 (37 ms)
+    ✕ EXPORT requires kratom_export_licence and no licence_pt10 (15 ms)
+    ✕ the slot is named for section 10 of the kratom act, with no invented form number (8 ms)
+    ✕ PROCESSING asks for no licence slot, in either scope (24 ms)
+    ✕ RESEARCH asks for no licence slot, in either scope (8 ms)
+    ✕ the controlled_herb_license scope rule is gone for kratom (10 ms)
+    ✓ turmeric (17 ms)
+    ✓ ginger (12 ms)
+    ✓ plai (5 ms)
+    ✓ black_galangal (3 ms)
+    ✕ licence_pt11 appears exactly once, in slots, required list and stamp (4 ms)
+    ✕ scope PROCESSING alone (purpose RESEARCH) still requires licence_pt11 (2 ms)
+    ✓ one upload satisfies it (3 ms)
+    ✕ present, optional, and the filing is not held for it (5 ms)
+    ✕ submit-style judgement: only the purpose licence is missing, not the planting one (4 ms)
+    ✕ other herbs do not even show it (3 ms)
+Test Suites: 1 failed, 1 total
+Tests:       10 failed, 6 passed, 16 total
+
+=== fix round 2 — RED: step4 hint + per-plant notice (test written; sources reverted to HEAD) ===
+    ✓ offers exactly ศึกษาวิจัย, ส่งออก and แปรรูปหรือจำหน่าย — each with its licence code (3 ms)
+    ✓ offers neither the medical purpose nor the wizard-invented commercial one (3 ms)
+    ✓ a filing with no objective cannot proceed, and the refusal names the field (1 ms)
+    ✓ the plant is load-bearing but is answered at STEP 1 now — this gate does not re-ask it (1 ms)
+    ✓ several objectives together are lawful — this is not a single choice
+    ✓ a word outside the vocabulary never lets the applicant leave the step (1 ms)
+    ✕ pins the hint wording (2 ms)
+    ✕ renders the hint under the purpose choices (11 ms)
+    ✕ kratom: export names the kratom-act licence, no ภ.ท.; research/processing name none (1 ms)
+    ✕ the other four herbs name no licence (1 ms)
+    ✓ EXPORT alone names ภ.ท. 10 only, never ภ.ท. 11 (1 ms)
+    ✓ names each issued licence the ticked purposes will ask for, and says it is the issued one
+    ✓ says nothing when nothing is ticked, and never names the application form (1 ms)
+    ✓ tells an applicant holding a retired word that the choice must be made again
+    ✓ starts a row with every field blank and both choices unmade (3 ms)
+    ✓ asks where an imported variety came from, and asks a domestic one nothing
+    ✓ keeps the third variety instead of dropping it — the paper prints two (1 ms)
+    ✓ offers both kinds and both origins, in Thai (1 ms)
+    ✓ renders the three labelled options and no retired one (2 ms)
+    ✓ shows the licence notice only when a purpose is ticked (13 ms)
+    ✓ shows a stored word the vocabulary no longer knows as needing a fresh choice (2 ms)
+    ✓ asks for the processing block only when the filing is a PROCESSING request (2 ms)
+    ✓ offers the extra-varieties note once the form’s two rows are exceeded (12 ms)
+    ✓ step 4 no longer asks for the plant — step 1 does (1 ms)
+    ✓ its gate stops demanding the plant, because the plant is already answered
+Tests:       4 failed, 21 passed, 25 total
+
+## fix round 3 - RED (source stashed, new tests only)
+    ✕ draft first-submit leg: a MEDICAL purpose written by the revision body is refused (77 ms)
+    ✕ resubmit leg (REVISION_REQUESTED): MEDICAL / COMMERCIAL is refused as well (13 ms)
+    ✕ draft first-submit leg: stored [] + body [EXPORT] on cannabis without pt10 -> APPLICATION_INCOMPLETE naming licence_pt10 (13 ms)
+    ✕ draft first-submit leg: no purpose at all (stored [] and body silent) is refused (14 ms)
+    ✓ draft first-submit leg: a valid purpose with its licence on file goes through (34 ms)
+    ✕ resubmit leg: a purpose ADDED by the revision body brings its licence with it (10 ms)
+    ✕ a cannabis case with [] is refused for the whole bundle, no transaction opened (16 ms)
+    ✕ cannabis PLANTING: controlled_herb_license is shown but optional (4 ms)
+    ✕ kratom PLANTING: the slot is not there at all (2 ms)
+    ✕ kratom PROCESSING: the slot is not there at all (2 ms)
+    ✕ cannabis PROCESSING: licence_pt11 instead, once, with no pt11 row on the register (3 ms)
+    ✕ cannabis PLANTING stamped with controlled_herb_license, never attached -> resubmit passes (2 ms)
+    ✕ kratom PLANTING stamped with controlled_herb_license, never attached -> resubmit passes (1 ms)
+    ✕ cannabis PROCESSING stamped with controlled_herb_license, never attached -> resubmit passes (30 ms)
+    ✓ other stamped slots still bind (1 ms)
+    ✕ picks every open controlled_herb_license row, in any spelling, and nothing else (1 ms)
+    ✕ idempotent: once everything is closed a second run picks nothing (1 ms)
+    ✓ the form still prints its แพทย์ box, and it is never ticked (3 ms)
+    ✓ EXPORT ticks the ส่งออก box and prints no extra line (1 ms)
+    ✓ RESEARCH alone leaves the ส่งออก box empty and prints the licence line
+    ✓ RESEARCH + PROCESSING prints both, with their licence codes
+    ✓ EXPORT + PROCESSING ticks the box AND prints the line for the one the box cannot say (1 ms)
+    ✓ a retired word ticks nothing and prints nothing (1 ms)
+    ✓ a named non-cannabis plant has no ภ.ท. licence line (fix round 2) (1 ms)
+    ✕ kratom EXPORT prints the equivalent line naming the section-10 licence (fix round 3) (1 ms)
+Test Suites: 3 failed, 3 total
+Tests:       16 failed, 9 passed, 25 total

@@ -1,0 +1,30 @@
+# Backend full suite — fix branch c34e61fc (worktree wt-qtfix) vs base 87b197bf, same machine, Node 24
+# env: NODE_OPTIONS=--max-old-space-size=3072 · SIGNING_KEY_DIR=$(mktemp -d) · DATABASE_URL unset (DB suites skip via describeIfTestDatabase)
+# summary lines only (raw logs trip gitleaks; kept outside the repo)
+
+## base 87b197bf
+Test Suites: 32 skipped, 856 passed, 856 of 888 total
+Tests:       221 skipped, 11020 passed, 11241 total
+Time:        376.099 s, estimated 397 s
+exit=0
+FAIL suites: 0
+
+## fix run 1 (uncommitted tree = c34e61fc minus the 3rd integration test; ran concurrently with a separate single-file jest run in the same worktree)
+Test Suites: 33 skipped, 857 passed, 857 of 890 total
+Tests:       224 skipped, 11023 passed, 11247 total
+Time:        403.109 s
+exit=1
+FAIL suites: 0
+# exit=1 with zero FAIL suites: not reproduced in run 2; cause not determined (in-band run; several CLI-script tests set process.exitCode)
+
+## fix run 2 (c34e61fc, alone)
+Test Suites: 33 skipped, 857 passed, 857 of 890 total
+Tests:       224 skipped, 11023 passed, 11247 total
+Time:        403.335 s
+exit=0
+FAIL suites: 0
+
+## delta vs base: +1 passed suite (quotation-issuer-maps-have-no-undefined, 3 tests) · +1 skipped suite (quotation-issuance-real-postgres, 3 tests, no DB in this run)
+## error-codes-source-pointers.test.js: PASS __tests__/unit/error-codes-source-pointers.test.js
+
+## signing key mtime (main checkout apps/backend/keys/private.pem): before 2026-09-05 22:50:35.069951192 +0700 · after 2026-09-05 22:50:35.069951192 +0700

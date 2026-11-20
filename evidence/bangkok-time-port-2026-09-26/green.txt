@@ -1,0 +1,1096 @@
+# GREEN — fix/bangkok-time c1b66704 (port of 465e3ad4), 2026-09-26
+## host TZ=Asia/Bangkok
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/bangkok-business-dates.test.js
+  the checks below really run on a UTC clock
+    ✓ the child process reads 16 Sep for an instant that is 17 Sep in Bangkok (52 ms)
+  CODE-01 — Thai document dates are the Bangkok date on a UTC server
+    ✓ utils/thai-format prints 17 Sep 2569, not 16 (1 ms)
+    ✓ utils/thai-numerals prints the DTAM date in Thai digits for the Bangkok day (1 ms)
+    ✓ the receipt/tax-invoice issue date (DTAM and PLATFORM) is the Bangkok day (1 ms)
+    ✓ a receipt issued at 01:30 on 1 Jan 2570 prints 2570 as both its date and its year (1 ms)
+    ✓ a credit note issued at 01:30 on 1 Jan 2570 prints 2570, and the original invoice keeps its Bangkok day (1 ms)
+    ✓ the certificate prints its issue, expiry and revision dates as Bangkok days (2 ms)
+    ✓ the lot label prints the Bangkok day, still zero-padded (2 ms)
+    ✓ the กทล.1 form prints the Bangkok filing day (2 ms)
+    ✓ the CAR and audit reports print Bangkok days (2 ms)
+  CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server
+    ✓ the over-cap error and the availability view count both audits on the same Bangkok day (3 ms)
+    ✓ "20 Sep, 09:00" is 09:00 in Bangkok (02:00Z), not 09:00 UTC (16:00 in Bangkok) (11 ms)
+    ✓ a time before 07:00 stays on the chosen Bangkok day (1 ms)
+    ✓ the auditor-busy check counts the Bangkok day of the appointment (1 ms)
+  DOMA-10 — the working-day calendar matches the announced holidays
+    ✓ Mon 7 Dec 2569 (substitute for Father's Day on a Saturday) is not a working day (18 ms)
+    ✓ five working days from Fri 4 Dec 2569 skip 7 Dec and 10 Dec and end on Tue 15 Dec (5 ms)
+    ✓ the same deadline comes out the same on a UTC server (95 ms)
+    ✓ 2569: the announced lunar and special days are holidays (2 ms)
+    ✓ 2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days (1 ms)
+    ✓ 2570: the days in ประกาศ ธปท. 37/2569 are holidays, and 19 Feb is not (2 ms)
+    ✓ 2568: substitutes, the special days and the real Asalha date are holidays; 14 Jul is not (3 ms)
+    ✓ a run of fixed-date holidays that touches a weekend gets one substitute, across the new year too (2 ms)
+    ✓ a substitute that is both announced and derived by the rule is one day off, not two (1 ms)
+    ✓ beyond the dated table, the weekend rule still moves fixed-date holidays (2 ms)
+  VAT period (ภ.พ.30) follows the Bangkok calendar month
+    ✓ September 2569 excludes an invoice issued 2026-09-30T20:00Z (1 Oct 03:00 in Bangkok) (51 ms)
+    ✓ October 2569 includes it (20 ms)
+    ✓ the e-Filing CSV dates that invoice 2026-10-01 (its Bangkok day) (35 ms)
+    ✓ December ends, and January starts, at midnight in Bangkok (19 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[33mwarn[39m: [vat-report] PurchaseInvoice delegate unavailable — returning empty Input VAT report. (Expected in CI before prisma generate; production deploys must have it.) {"service":"gacp-backend","timestamp":"2026-09-26T07:49:52.844Z"}
+PASS __tests__/unit/vat-report-service.test.js
+  [B19-C] vat-report-service — generateOutputVatReport
+    ✓ empty month → totals zero, no rows, inputVat TODO flagged (52 ms)
+    ✓ one PLATFORM payment in May 2026 → 1 row, VAT amount equals journal-line credit (29 ms)
+    ✓ multi-scope invoice (3 scopes) → VAT scales linearly to 105 / taxable 1,500 (31 ms)
+    ✓ corporate (JURISTIC) buyer tax ID is rendered; individual buyer shows dash (17 ms)
+    ✓ reversing entry (credit=0) is excluded from the report (30 ms)
+    ✓ C1 regression: JournalLine query selects scalar invoiceId, NOT a nested invoice relation (25 ms)
+    ✓ rejects invalid year / month (152 ms)
+  [B19-C] vat-report-service — CSV serialisation
+    ✓ UTF-8 BOM prefix present, RFC-4180 escaping, totals footer row (42 ms)
+    ✓ CSV handles empty month — header + empty totals footer only (46 ms)
+    ✓ CSV escapes double-quotes by doubling them per RFC 4180 (38 ms)
+    ✓ CSV serialises Date as YYYY-MM-DD and number as fixed-2 decimal (40 ms)
+  [B19-C] vat-report-service — checkPeriodClosable
+    ✓ returns closable=true when no pending invoices in window (45 ms)
+    ✓ returns closable=false when pending invoices exist in the period (38 ms)
+    ✓ rejects invalid year / month (33 ms)
+  [B19-C] vat-report-service — helpers
+    ✓ monthThai returns the Thai month name (16 ms)
+    ✓ toMonthBoundaries pins the Bangkok start/end of month (15 ms)
+    ✓ OUTPUT_VAT_ACCOUNT_CODES includes canonical 2131-001 plus legacy fallbacks (27 ms)
+    ✓ INPUT_VAT_ACCOUNT_CODES exposes the canonical 1310-001 (Iter 26) (17 ms)
+  [Iter26] vat-report-service — generateInputVatReport
+    ✓ returns empty totals when no APPROVED purchase invoices exist (20 ms)
+    ✓ aggregates per-row taxable + VAT across APPROVED rows (15 ms)
+    ✓ only scans APPROVED rows in the (start, end) window (15 ms)
+    ✓ returns source:unavailable when PurchaseInvoice delegate is missing (24 ms)
+  [Iter26] vat-report-service — generateOutputVatReport with Input side
+    ✓ inputVat block computes from APPROVED PurchaseInvoice rows (13 ms)
+    ✓ falls back to tracked:false marker when PurchaseInvoice missing (19 ms)
+    ✓ collectInputVatSummary helper rounds + aggregates (14 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/checkout-schedule-service.test.js
+  computeDueDate — config-driven business-day windows on the canonical calendar
+    ✓ M1: mint Tue 2026-12-01 lands 2026-12-14 (skips the 05-06 weekend, the 12-07 substitute AND วันรัฐธรรมนูญ 12-10) (6 ms)
+    ✓ M2: mint Fri 2026-12-18 crosses year end to 2027-01-12 (skips 4 weekends + 12-31 + 01-01) (8 ms)
+    ✓ delegates to the canonical addWorkingDays (same instant, end-of-business-day convention) (11 ms)
+    ✓ window lengths come from config, not literals baked into the service (9 ms)
+    ✓ an unknown milestone throws a coded error — never a silent default window (5 ms)
+  isInvoiceOverdue — DERIVED from unpaid status + dueDate, every branch
+    ✓ unpaid (pending) and past due → true (1 ms)
+    ✓ unpaid but not yet past due → false (1 ms)
+    ✓ exactly at the due instant → false (strictly past-due only) (1 ms)
+    ✓ paid → false no matter how late (settlement writes paid — see checkout-settlement-service) (1 ms)
+    ✓ cancelled → false
+    ✓ missing dueDate or missing invoice → false, never a throw
+  overdueInvoiceWhere — the derived-overdue query, no writer anywhere
+    ✓ builds the pending + strictly-past-due where clause with the given instant (1 ms)
+  computeReminderDates — three intended days, shifted onto working days
+    ✓ working-day due (Tue 2026-08-11): PRE_DUE 08-06, DUE_DATE 08-11, OVERDUE_NOTICE skips วันแม่ to 08-13 (5 ms)
+    ✓ weekend due (Sat 2026-08-08): DUE_DATE shifts forward to Mon 08-10 (4 ms)
+    ✓ PRE_DUE walks back across a holiday: due Mon 2026-12-14 → 2026-12-08 (skips 12-13 weekend + 12-10) (4 ms)
+  source pins — the service stays config-driven, derived-only, calendar-free
+    ✓ imports the config and the ONE canonical calendar (1 ms)
+    ✓ no bare due-window literals — the M1/M2 day counts live in config only
+    ✓ no stored-overdue write path: no quoted overdue literal, no prisma, no mutation call (1 ms)
+    ✓ no holiday data of its own — the calendar lives in utils/working-days.js alone
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/working-days.test.js
+  working-days utility (ICT/Asia/Bangkok)
+    isWorkingDay
+      ✓ returns false for Saturday in ICT (2 ms)
+      ✓ returns false for Sunday in ICT (1 ms)
+      ✓ returns true for Monday in ICT (2 ms)
+      ✓ returns false for New Year (Jan 1) (1 ms)
+      ✓ returns false for Songkran (Apr 13) (1 ms)
+      ✓ returns false for Queen Suthida Birthday (Jun 3) (1 ms)
+    isHoliday
+      ✓ detects recurring holidays (1 ms)
+      ✓ detects extra Buddhist holidays for 2026 (1 ms)
+      ✓ returns false for normal working days (1 ms)
+    addWorkingDays
+      ✓ adds 5 working days correctly (simple case, no holidays) (3 ms)
+      ✓ skips weekends correctly (1 ms)
+      ✓ skips holidays correctly (4 ms)
+      ✓ returns end of business day (23:59 ICT) on the deadline date (6 ms)
+      ✓ throws for negative days (16 ms)
+      ✓ honors an explicit timezone parameter (2 ms)
+    ICT timezone edge cases (Bug 3)
+      ✓ Friday 23:00 ICT must still count as Friday for deadline math, even though it is Saturday in UTC (1 ms)
+      ✓ uses ICT calendar to detect Thai holidays even when UTC calendar disagrees (2 ms)
+      ✓ deadline math is invariant under host timezone (uses explicit ICT) (5 ms)
+    countWorkingDaysBetween
+      ✓ counts correctly for a simple week (2 ms)
+      ✓ returns 0 for same instant (1 ms)
+      ✓ returns negative for overdue (2 ms)
+    calculateRevisionDeadline
+      ✓ returns correct deadline with default 5 working days (3 ms)
+    getDeadlineStatus
+      ✓ returns overdue for past dates (3 ms)
+      ✓ returns normal for future dates (6 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/workflow-reject-deadline-holiday.test.js
+  Blocker F — canonical reject deadline is Thai-holiday-aware + Asia/Bangkok
+    ✓ deps barrel exports THE holiday-aware util (identity — not the holiday-blind service) (18 ms)
+    ✓ 5-working-day deadline spanning วันเฉลิมฯ ร.10 (2026-07-28) lands Wed 2026-08-05, not Fri 07-31 (21 ms)
+    ✓ the transitions handler no longer references loadHolidaySet (wiring pin) (1 ms)
+    ✓ the SECOND reject surface (PATCH /applications/:id/reject) uses the holiday-aware engine too (adversarial-verify MUST) (1 ms)
+    ✓ timezone: Friday 23:30 ICT reject still counts Friday as day zero (ICT, not UTC) (4 ms)
+    ✓ lunar-holiday coverage past the table (2028+) warns loudly instead of silently under-counting (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/atomic-decision-letter.test.js
+  canonical workflow-transitions — letter atomic with decision (D-8)
+    ✓ REVISION_REQUESTED mints the OFFICIAL_LETTER through the SAME tx as the status write, with all four elements (79 ms)
+    ✓ CAR_PENDING mints the letter too (CAR branch had NO letter before) (14 ms)
+    ✓ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs (35 ms)
+    ✓ non-correction transition (DOC_APPROVED) mints NO letter (negative control) (8 ms)
+  auditor audit-decision — CAR letter atomic with decision (D-8)
+    ✓ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items) (19 ms)
+    ✓ ATOMIC: letter write failure fails the decision — deadline never seeded, 500 (10 ms)
+    ✓ PASS mints NO correction letter (negative control) (11 ms)
+  PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before)
+    ✓ DOC_REVISION mints the OFFICIAL_LETTER in the same tx as status write + deadline upsert (18 ms)
+    ✓ FIELD_CAR mints the letter too (15 ms)
+    ✓ ATOMIC: letter write failure fails the reject — RevisionDeadline never touched, 500 (15 ms)
+  letter template SSOT
+    ✓ the Thai letter copy is defined ONLY in shared/correction-letter-template.js (76 ms)
+    ✓ buildCorrectionLetter emits all five elements + structured metadata (M3: round number) (4 ms)
+    ✓ buildCorrectionLetter falls back to the decision message when no structured items exist (2 ms)
+    ✓ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition) (5 ms)
+    ✓ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:55.369Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:55.387Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:55.604Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:55.623Z"}
+PASS __tests__/unit/audit-scheduling-service.test.js
+  [Iter25] audit-scheduling-service — assignAuditor
+    ✓ happy path: AUDIT_FEE_PAID → AUDIT_CONFIRMED with auditSchedule (55 ms)
+    ✓ admin role can also assign (ADMIN_OVERRIDE) (18 ms)
+    ✓ rejects non-SCHEDULER actor (FORBIDDEN_ROLE) (20 ms)
+    ✓ tenant guard: rejects a cross-tenant application (APPLICATION_NOT_FOUND) — audit 2.5 (13 ms)
+    ✓ rejects past scheduledDate (VALIDATION_ERROR) (16 ms)
+    ✓ rejects weekend (NON_WORKING_DAY) (28 ms)
+    ✓ rejects when application not in AUDIT_FEE_PAID (INVALID_STATE) (19 ms)
+    ✓ rejects when auditor user not found (AUDITOR_NOT_FOUND) (20 ms)
+    ✓ rejects when auditor does NOT hold AUDITOR role (AUDITOR_INVALID_ROLE) (25 ms)
+    ✓ AUDITOR_OVER_CAP when auditor already has 2 audits that day (20 ms)
+    ✓ AUDITOR_BUSY surfaces overlapping window (14 ms)
+    ✓ returns APPLICATION_NOT_FOUND for unknown id (22 ms)
+    ✓ ONSITE assign find-or-creates one AuditChecklist (IN_PROGRESS, auditorId=assigned, org=app org) (16 ms)
+    ✓ ONSITE assign is idempotent: an existing active AuditChecklist is reused, not duplicated (24 ms)
+  [Iter25] audit-scheduling-service — requestReschedule
+    ✓ HEALTH applicant creates PENDING reschedule entry (17 ms)
+    ✓ rejects non-HEALTH actor (12 ms)
+    ✓ rejects when application state is not AUDIT_CONFIRMED (24 ms)
+    ✓ rejects reason that is too short (13 ms)
+    ✓ rejects ownership mismatch (different healthId) (13 ms)
+  [Iter25] audit-scheduling-service — approveReschedule
+    ✓ scheduler approves PENDING reschedule with new date (24 ms)
+    ✓ rejects when reschedule already APPROVED (RESCHEDULE_NOT_PENDING) (13 ms)
+    ✓ rejects when rescheduleId not found (12 ms)
+    ✓ rejects past date as newDate (19 ms)
+  [Iter25] audit-scheduling-service — getAuditorAvailability
+    ✓ returns busy slots + cap + overCapDays (14 ms)
+    ✓ rejects missing dateRange (14 ms)
+  [Iter25] audit-scheduling-service — getSchedulingQueue
+    ✓ returns AUDIT_FEE_PAID applications (21 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    ✓ QUOTATION_NOT_ISSUED is catalogued with status 409 (2 ms)
+    ✓ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_EXPIRED is catalogued with status 409 (9 ms)
+    ✓ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (1 ms)
+    ✓ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (2 ms)
+    ✓ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_ISSUE_FAILED is catalogued with status 500 (1 ms)
+    ✓ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    ✓ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    ✓ SNAPSHOT_REQUIRED is catalogued with status 409 (1 ms)
+    ✓ the four gate codes point at the shared gate module, not at one rail
+    ✓ every gate code`s source line is the line that actually raises it (1 ms)
+    ✓ the two shared refusals name the line that actually raises them (1 ms)
+    ✓ the two not-priced refusals are separate rows pointing at their own door (6 ms)
+    ✓ neither not-priced copy sends the applicant to a staff door that does not exist (2 ms)
+    ✓ no applicant-facing row on this path promises a staff re-issue (1 ms)
+    ✓ the not-issued copy stops promising a refresh the window cannot honour (1 ms)
+    ✓ only QUOTATION_EXPIRED mentions a new document, and it mentions it as a condition (1 ms)
+    ✓ the snapshot refusal names the cause and an action staff can actually take (1 ms)
+    ✓ the expiry copy names the door that may replace the row, and what to do when it does not (1 ms)
+    ✓ the price-drift remediation names the step that unblocks the applicant (1 ms)
+    ✓ the payment-terms remediation no longer names the request body ruling 2 deleted
+    ✓ the two rail-specific messages no longer name only the slip
+    ✓ no Thai message uses an em dash (thai-ui-copy rule) (1 ms)
+    ✓ only the rows that actually alert staff say staff were alerted (1 ms)
+    ✓ the close-failure copy still tells the applicant their money and receipt stand (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:56.527Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:56.565Z"}
+PASS __tests__/unit/sc-ten-1-auditor-tenant-scope.test.js
+  [X3-FIX-D / SC-TEN-1] assignAuditor — tenant-scope auditor lookup
+    ✓ POSITIVE: SCHEDULER from tenant T1 assigning tenant T1 auditor → success (200 path) (19 ms)
+    ✓ NEGATIVE: SCHEDULER from tenant T1 attempting to assign tenant T2 auditor → AUDITOR_NOT_FOUND (404 anti-enumeration) (20 ms)
+    ✓ LEGACY FALLBACK: actor without organizationId still resolves (no regression for system callers) (17 ms)
+
+Test Suites: 9 passed, 9 total
+Tests:       172 passed, 172 total
+Snapshots:   0 total
+Time:        6.229 s, estimated 8 s
+Ran all test suites matching /__tests__\/unit\/bangkok-business-dates.test.js|__tests__\/unit\/working-days.test.js|__tests__\/unit\/checkout-schedule-service.test.js|__tests__\/unit\/workflow-reject-deadline-holiday.test.js|__tests__\/unit\/vat-report-service.test.js|__tests__\/unit\/audit-scheduling-service.test.js|__tests__\/unit\/sc-ten-1-auditor-tenant-scope.test.js|__tests__\/unit\/atomic-decision-letter.test.js|__tests__\/unit\/quotation-gate-error-codes.test.js/i.
+exit=0
+## TZ=UTC
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/bangkok-business-dates.test.js
+  the checks below really run on a UTC clock
+    ✓ the child process reads 16 Sep for an instant that is 17 Sep in Bangkok (52 ms)
+  CODE-01 — Thai document dates are the Bangkok date on a UTC server
+    ✓ utils/thai-format prints 17 Sep 2569, not 16 (2 ms)
+    ✓ utils/thai-numerals prints the DTAM date in Thai digits for the Bangkok day (1 ms)
+    ✓ the receipt/tax-invoice issue date (DTAM and PLATFORM) is the Bangkok day (2 ms)
+    ✓ a receipt issued at 01:30 on 1 Jan 2570 prints 2570 as both its date and its year (2 ms)
+    ✓ a credit note issued at 01:30 on 1 Jan 2570 prints 2570, and the original invoice keeps its Bangkok day (2 ms)
+    ✓ the certificate prints its issue, expiry and revision dates as Bangkok days (2 ms)
+    ✓ the lot label prints the Bangkok day, still zero-padded (2 ms)
+    ✓ the กทล.1 form prints the Bangkok filing day (2 ms)
+    ✓ the CAR and audit reports print Bangkok days (2 ms)
+  CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server
+    ✓ the over-cap error and the availability view count both audits on the same Bangkok day (2 ms)
+    ✓ "20 Sep, 09:00" is 09:00 in Bangkok (02:00Z), not 09:00 UTC (16:00 in Bangkok) (1 ms)
+    ✓ a time before 07:00 stays on the chosen Bangkok day (1 ms)
+    ✓ the auditor-busy check counts the Bangkok day of the appointment (2 ms)
+  DOMA-10 — the working-day calendar matches the announced holidays
+    ✓ Mon 7 Dec 2569 (substitute for Father's Day on a Saturday) is not a working day (18 ms)
+    ✓ five working days from Fri 4 Dec 2569 skip 7 Dec and 10 Dec and end on Tue 15 Dec (7 ms)
+    ✓ the same deadline comes out the same on a UTC server (97 ms)
+    ✓ 2569: the announced lunar and special days are holidays (3 ms)
+    ✓ 2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days (2 ms)
+    ✓ 2570: the days in ประกาศ ธปท. 37/2569 are holidays, and 19 Feb is not (3 ms)
+    ✓ 2568: substitutes, the special days and the real Asalha date are holidays; 14 Jul is not (3 ms)
+    ✓ a run of fixed-date holidays that touches a weekend gets one substitute, across the new year too (3 ms)
+    ✓ a substitute that is both announced and derived by the rule is one day off, not two (1 ms)
+    ✓ beyond the dated table, the weekend rule still moves fixed-date holidays (2 ms)
+  VAT period (ภ.พ.30) follows the Bangkok calendar month
+    ✓ September 2569 excludes an invoice issued 2026-09-30T20:00Z (1 Oct 03:00 in Bangkok) (52 ms)
+    ✓ October 2569 includes it (17 ms)
+    ✓ the e-Filing CSV dates that invoice 2026-10-01 (its Bangkok day) (25 ms)
+    ✓ December ends, and January starts, at midnight in Bangkok (16 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[33mwarn[39m: [vat-report] PurchaseInvoice delegate unavailable — returning empty Input VAT report. (Expected in CI before prisma generate; production deploys must have it.) {"service":"gacp-backend","timestamp":"2026-09-26T07:50:00.397Z"}
+PASS __tests__/unit/vat-report-service.test.js
+  [B19-C] vat-report-service — generateOutputVatReport
+    ✓ empty month → totals zero, no rows, inputVat TODO flagged (39 ms)
+    ✓ one PLATFORM payment in May 2026 → 1 row, VAT amount equals journal-line credit (25 ms)
+    ✓ multi-scope invoice (3 scopes) → VAT scales linearly to 105 / taxable 1,500 (30 ms)
+    ✓ corporate (JURISTIC) buyer tax ID is rendered; individual buyer shows dash (22 ms)
+    ✓ reversing entry (credit=0) is excluded from the report (33 ms)
+    ✓ C1 regression: JournalLine query selects scalar invoiceId, NOT a nested invoice relation (29 ms)
+    ✓ rejects invalid year / month (66 ms)
+  [B19-C] vat-report-service — CSV serialisation
+    ✓ UTF-8 BOM prefix present, RFC-4180 escaping, totals footer row (17 ms)
+    ✓ CSV handles empty month — header + empty totals footer only (24 ms)
+    ✓ CSV escapes double-quotes by doubling them per RFC 4180 (15 ms)
+    ✓ CSV serialises Date as YYYY-MM-DD and number as fixed-2 decimal (14 ms)
+  [B19-C] vat-report-service — checkPeriodClosable
+    ✓ returns closable=true when no pending invoices in window (20 ms)
+    ✓ returns closable=false when pending invoices exist in the period (16 ms)
+    ✓ rejects invalid year / month (18 ms)
+  [B19-C] vat-report-service — helpers
+    ✓ monthThai returns the Thai month name (13 ms)
+    ✓ toMonthBoundaries pins the Bangkok start/end of month (15 ms)
+    ✓ OUTPUT_VAT_ACCOUNT_CODES includes canonical 2131-001 plus legacy fallbacks (18 ms)
+    ✓ INPUT_VAT_ACCOUNT_CODES exposes the canonical 1310-001 (Iter 26) (16 ms)
+  [Iter26] vat-report-service — generateInputVatReport
+    ✓ returns empty totals when no APPROVED purchase invoices exist (30 ms)
+    ✓ aggregates per-row taxable + VAT across APPROVED rows (19 ms)
+    ✓ only scans APPROVED rows in the (start, end) window (19 ms)
+    ✓ returns source:unavailable when PurchaseInvoice delegate is missing (32 ms)
+  [Iter26] vat-report-service — generateOutputVatReport with Input side
+    ✓ inputVat block computes from APPROVED PurchaseInvoice rows (18 ms)
+    ✓ falls back to tracked:false marker when PurchaseInvoice missing (25 ms)
+    ✓ collectInputVatSummary helper rounds + aggregates (17 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/atomic-decision-letter.test.js
+  canonical workflow-transitions — letter atomic with decision (D-8)
+    ✓ REVISION_REQUESTED mints the OFFICIAL_LETTER through the SAME tx as the status write, with all four elements (86 ms)
+    ✓ CAR_PENDING mints the letter too (CAR branch had NO letter before) (26 ms)
+    ✓ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs (32 ms)
+    ✓ non-correction transition (DOC_APPROVED) mints NO letter (negative control) (13 ms)
+  auditor audit-decision — CAR letter atomic with decision (D-8)
+    ✓ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items) (17 ms)
+    ✓ ATOMIC: letter write failure fails the decision — deadline never seeded, 500 (12 ms)
+    ✓ PASS mints NO correction letter (negative control) (11 ms)
+  PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before)
+    ✓ DOC_REVISION mints the OFFICIAL_LETTER in the same tx as status write + deadline upsert (27 ms)
+    ✓ FIELD_CAR mints the letter too (19 ms)
+    ✓ ATOMIC: letter write failure fails the reject — RevisionDeadline never touched, 500 (20 ms)
+  letter template SSOT
+    ✓ the Thai letter copy is defined ONLY in shared/correction-letter-template.js (92 ms)
+    ✓ buildCorrectionLetter emits all five elements + structured metadata (M3: round number) (3 ms)
+    ✓ buildCorrectionLetter falls back to the decision message when no structured items exist (2 ms)
+    ✓ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition) (18 ms)
+    ✓ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:50:01.819Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:50:01.841Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:50:02.059Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:50:02.087Z"}
+PASS __tests__/unit/audit-scheduling-service.test.js
+  [Iter25] audit-scheduling-service — assignAuditor
+    ✓ happy path: AUDIT_FEE_PAID → AUDIT_CONFIRMED with auditSchedule (54 ms)
+    ✓ admin role can also assign (ADMIN_OVERRIDE) (19 ms)
+    ✓ rejects non-SCHEDULER actor (FORBIDDEN_ROLE) (22 ms)
+    ✓ tenant guard: rejects a cross-tenant application (APPLICATION_NOT_FOUND) — audit 2.5 (14 ms)
+    ✓ rejects past scheduledDate (VALIDATION_ERROR) (26 ms)
+    ✓ rejects weekend (NON_WORKING_DAY) (15 ms)
+    ✓ rejects when application not in AUDIT_FEE_PAID (INVALID_STATE) (16 ms)
+    ✓ rejects when auditor user not found (AUDITOR_NOT_FOUND) (27 ms)
+    ✓ rejects when auditor does NOT hold AUDITOR role (AUDITOR_INVALID_ROLE) (15 ms)
+    ✓ AUDITOR_OVER_CAP when auditor already has 2 audits that day (14 ms)
+    ✓ AUDITOR_BUSY surfaces overlapping window (26 ms)
+    ✓ returns APPLICATION_NOT_FOUND for unknown id (19 ms)
+    ✓ ONSITE assign find-or-creates one AuditChecklist (IN_PROGRESS, auditorId=assigned, org=app org) (24 ms)
+    ✓ ONSITE assign is idempotent: an existing active AuditChecklist is reused, not duplicated (27 ms)
+  [Iter25] audit-scheduling-service — requestReschedule
+    ✓ HEALTH applicant creates PENDING reschedule entry (14 ms)
+    ✓ rejects non-HEALTH actor (14 ms)
+    ✓ rejects when application state is not AUDIT_CONFIRMED (24 ms)
+    ✓ rejects reason that is too short (17 ms)
+    ✓ rejects ownership mismatch (different healthId) (14 ms)
+  [Iter25] audit-scheduling-service — approveReschedule
+    ✓ scheduler approves PENDING reschedule with new date (22 ms)
+    ✓ rejects when reschedule already APPROVED (RESCHEDULE_NOT_PENDING) (13 ms)
+    ✓ rejects when rescheduleId not found (13 ms)
+    ✓ rejects past date as newDate (23 ms)
+  [Iter25] audit-scheduling-service — getAuditorAvailability
+    ✓ returns busy slots + cap + overCapDays (15 ms)
+    ✓ rejects missing dateRange (13 ms)
+  [Iter25] audit-scheduling-service — getSchedulingQueue
+    ✓ returns AUDIT_FEE_PAID applications (22 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/working-days.test.js
+  working-days utility (ICT/Asia/Bangkok)
+    isWorkingDay
+      ✓ returns false for Saturday in ICT (3 ms)
+      ✓ returns false for Sunday in ICT (1 ms)
+      ✓ returns true for Monday in ICT (2 ms)
+      ✓ returns false for New Year (Jan 1) (10 ms)
+      ✓ returns false for Songkran (Apr 13) (1 ms)
+      ✓ returns false for Queen Suthida Birthday (Jun 3) (1 ms)
+    isHoliday
+      ✓ detects recurring holidays (1 ms)
+      ✓ detects extra Buddhist holidays for 2026 (1 ms)
+      ✓ returns false for normal working days
+    addWorkingDays
+      ✓ adds 5 working days correctly (simple case, no holidays) (4 ms)
+      ✓ skips weekends correctly (2 ms)
+      ✓ skips holidays correctly (5 ms)
+      ✓ returns end of business day (23:59 ICT) on the deadline date (2 ms)
+      ✓ throws for negative days (17 ms)
+      ✓ honors an explicit timezone parameter (2 ms)
+    ICT timezone edge cases (Bug 3)
+      ✓ Friday 23:00 ICT must still count as Friday for deadline math, even though it is Saturday in UTC (2 ms)
+      ✓ uses ICT calendar to detect Thai holidays even when UTC calendar disagrees (15 ms)
+      ✓ deadline math is invariant under host timezone (uses explicit ICT) (4 ms)
+    countWorkingDaysBetween
+      ✓ counts correctly for a simple week (2 ms)
+      ✓ returns 0 for same instant (1 ms)
+      ✓ returns negative for overdue (4 ms)
+    calculateRevisionDeadline
+      ✓ returns correct deadline with default 5 working days (7 ms)
+    getDeadlineStatus
+      ✓ returns overdue for past dates (4 ms)
+      ✓ returns normal for future dates (9 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/checkout-schedule-service.test.js
+  computeDueDate — config-driven business-day windows on the canonical calendar
+    ✓ M1: mint Tue 2026-12-01 lands 2026-12-14 (skips the 05-06 weekend, the 12-07 substitute AND วันรัฐธรรมนูญ 12-10) (6 ms)
+    ✓ M2: mint Fri 2026-12-18 crosses year end to 2027-01-12 (skips 4 weekends + 12-31 + 01-01) (9 ms)
+    ✓ delegates to the canonical addWorkingDays (same instant, end-of-business-day convention) (16 ms)
+    ✓ window lengths come from config, not literals baked into the service (10 ms)
+    ✓ an unknown milestone throws a coded error — never a silent default window (2 ms)
+  isInvoiceOverdue — DERIVED from unpaid status + dueDate, every branch
+    ✓ unpaid (pending) and past due → true (1 ms)
+    ✓ unpaid but not yet past due → false (1 ms)
+    ✓ exactly at the due instant → false (strictly past-due only) (1 ms)
+    ✓ paid → false no matter how late (settlement writes paid — see checkout-settlement-service) (1 ms)
+    ✓ cancelled → false
+    ✓ missing dueDate or missing invoice → false, never a throw
+  overdueInvoiceWhere — the derived-overdue query, no writer anywhere
+    ✓ builds the pending + strictly-past-due where clause with the given instant (1 ms)
+  computeReminderDates — three intended days, shifted onto working days
+    ✓ working-day due (Tue 2026-08-11): PRE_DUE 08-06, DUE_DATE 08-11, OVERDUE_NOTICE skips วันแม่ to 08-13 (5 ms)
+    ✓ weekend due (Sat 2026-08-08): DUE_DATE shifts forward to Mon 08-10 (4 ms)
+    ✓ PRE_DUE walks back across a holiday: due Mon 2026-12-14 → 2026-12-08 (skips 12-13 weekend + 12-10) (4 ms)
+  source pins — the service stays config-driven, derived-only, calendar-free
+    ✓ imports the config and the ONE canonical calendar (1 ms)
+    ✓ no bare due-window literals — the M1/M2 day counts live in config only (10 ms)
+    ✓ no stored-overdue write path: no quoted overdue literal, no prisma, no mutation call (1 ms)
+    ✓ no holiday data of its own — the calendar lives in utils/working-days.js alone (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/workflow-reject-deadline-holiday.test.js
+  Blocker F — canonical reject deadline is Thai-holiday-aware + Asia/Bangkok
+    ✓ deps barrel exports THE holiday-aware util (identity — not the holiday-blind service) (37 ms)
+    ✓ 5-working-day deadline spanning วันเฉลิมฯ ร.10 (2026-07-28) lands Wed 2026-08-05, not Fri 07-31 (25 ms)
+    ✓ the transitions handler no longer references loadHolidaySet (wiring pin) (1 ms)
+    ✓ the SECOND reject surface (PATCH /applications/:id/reject) uses the holiday-aware engine too (adversarial-verify MUST) (2 ms)
+    ✓ timezone: Friday 23:30 ICT reject still counts Friday as day zero (ICT, not UTC) (6 ms)
+    ✓ lunar-holiday coverage past the table (2028+) warns loudly instead of silently under-counting (5 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    ✓ QUOTATION_NOT_ISSUED is catalogued with status 409 (3 ms)
+    ✓ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_EXPIRED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (12 ms)
+    ✓ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (2 ms)
+    ✓ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_ISSUE_FAILED is catalogued with status 500 (2 ms)
+    ✓ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    ✓ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    ✓ SNAPSHOT_REQUIRED is catalogued with status 409 (1 ms)
+    ✓ the four gate codes point at the shared gate module, not at one rail (1 ms)
+    ✓ every gate code`s source line is the line that actually raises it (1 ms)
+    ✓ the two shared refusals name the line that actually raises them (1 ms)
+    ✓ the two not-priced refusals are separate rows pointing at their own door (2 ms)
+    ✓ neither not-priced copy sends the applicant to a staff door that does not exist (1 ms)
+    ✓ no applicant-facing row on this path promises a staff re-issue (2 ms)
+    ✓ the not-issued copy stops promising a refresh the window cannot honour (1 ms)
+    ✓ only QUOTATION_EXPIRED mentions a new document, and it mentions it as a condition (5 ms)
+    ✓ the snapshot refusal names the cause and an action staff can actually take (1 ms)
+    ✓ the expiry copy names the door that may replace the row, and what to do when it does not (2 ms)
+    ✓ the price-drift remediation names the step that unblocks the applicant (1 ms)
+    ✓ the payment-terms remediation no longer names the request body ruling 2 deleted (1 ms)
+    ✓ the two rail-specific messages no longer name only the slip (1 ms)
+    ✓ no Thai message uses an em dash (thai-ui-copy rule) (1 ms)
+    ✓ only the rows that actually alert staff say staff were alerted (2 ms)
+    ✓ the close-failure copy still tells the applicant their money and receipt stand (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:50:04.268Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:50:04.312Z"}
+PASS __tests__/unit/sc-ten-1-auditor-tenant-scope.test.js
+  [X3-FIX-D / SC-TEN-1] assignAuditor — tenant-scope auditor lookup
+    ✓ POSITIVE: SCHEDULER from tenant T1 assigning tenant T1 auditor → success (200 path) (27 ms)
+    ✓ NEGATIVE: SCHEDULER from tenant T1 attempting to assign tenant T2 auditor → AUDITOR_NOT_FOUND (404 anti-enumeration) (14 ms)
+    ✓ LEGACY FALLBACK: actor without organizationId still resolves (no regression for system callers) (28 ms)
+
+Test Suites: 9 passed, 9 total
+Tests:       172 passed, 172 total
+Snapshots:   0 total
+Time:        6.188 s, estimated 7 s
+Ran all test suites matching /__tests__\/unit\/bangkok-business-dates.test.js|__tests__\/unit\/working-days.test.js|__tests__\/unit\/checkout-schedule-service.test.js|__tests__\/unit\/workflow-reject-deadline-holiday.test.js|__tests__\/unit\/vat-report-service.test.js|__tests__\/unit\/audit-scheduling-service.test.js|__tests__\/unit\/sc-ten-1-auditor-tenant-scope.test.js|__tests__\/unit\/atomic-decision-letter.test.js|__tests__\/unit\/quotation-gate-error-codes.test.js/i.
+exit=0
+
+## web verify/[cert-number]
+## host TZ
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-status-reason.test.tsx
+  deriveVerifyView — statusReason
+    ✓ a status-valid certificate has no status reason to show (9 ms)
+    ✓ EXPIRED is told in Thai, not in the English the backend sends (2 ms)
+    ✓ SUSPENDED is told in Thai, not in the English the backend sends (1 ms)
+    ✓ REVOKED is told in Thai, not in the English the backend sends (15 ms)
+    ✓ RENEWED is told in Thai, not in the English the backend sends (3 ms)
+    ✓ NOT_FOUND is told in Thai, not in the English the backend sends (11 ms)
+    ✓ CODE_MISMATCH is told in Thai, not in the English the backend sends (6 ms)
+    ✓ RENEWED carries the successor number when the backend resolved one (1 ms)
+    ✓ RENEWED whose successor did not resolve still explains itself, without a number (9 ms)
+    ✓ an EXPIRED certificate that was also renewed keeps the pointer to its successor (1 ms)
+    ✓ an EXPIRED certificate with no successor keeps its plain expiry wording (6 ms)
+    ✓ no reasonCode but an English reason (backend not yet deployed): Thai first, English beside it (11 ms)
+    ✓ neither a code nor a reason: the citizen is still told something true (2 ms)
+    ✓ a reasonCode this build does not know falls back instead of printing the raw enum (1 ms)
+    ✓ the prototype-chain key constructor is not a reason code (6 ms)
+    ✓ the prototype-chain key toString is not a reason code (1 ms)
+    ✓ the prototype-chain key __proto__ is not a reason code
+    ✓ the prototype-chain key valueOf is not a reason code
+    ✓ a null result (fetch failed) does not crash the derivation (1 ms)
+  StatusReason (presentational)
+    ✓ renders nothing for a status-valid certificate (10 ms)
+    ✓ renders the Thai title and detail for an expired certificate (8 ms)
+    ✓ renders the Thai answer for NOT_FOUND, the commonest citizen failures (13 ms)
+    ✓ renders the Thai answer for CODE_MISMATCH, the commonest citizen failures (3 ms)
+    ✓ RENEWED with a successor links to the current certificate (3 ms)
+    ✓ an EXPIRED certificate with a successor renders the link too (C-F1) (1 ms)
+    ✓ percent-encodes the successor number in the link (1 ms)
+    ✓ RENEWED without a successor renders the explanation and NO dead link (1 ms)
+    ✓ the pre-deploy fallback shows the Thai first and the backend English as a third line (1 ms)
+    ✓ no English reason at all: no empty third line is rendered (1 ms)
+    ✓ renders the English third line at AA contrast, not faded 11px
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-crypto-verdict.test.tsx
+  deriveVerifyView (cert verify view-model)
+    ✓ status-valid + TAMPERED (hash mismatch) → danger tone, green hero overridden RED (3 ms)
+    ✓ status-valid + signatureValid:false (KEY ROTATION) → GREEN status hero + amber, NOT red (1 ms)
+    ✓ status-valid + VALID + signed → heroOk true, success tone, showVerifiedChip (3 ms)
+    ✓ status-valid + UNSIGNED → heroTone success (GREEN status hero), no verified chip (M2: legacy cert not red-flagged) (4 ms)
+    ✓ status-valid + VALID + signatureValid:null (DOWNGRADE) → no chip, warning crypto, GREEN status hero (M1) (3 ms)
+    ✓ status-valid + NO integrity field (FE deployed ahead of BE) → GREEN status hero, no crypto claim (M2 scenario B) (1 ms)
+    ✓ not-found / no integrity (verified:false) → no positive crypto claim, status hero not green (1 ms)
+    ✓ null result (fetch failed) → no crash, no positive claim (5 ms)
+  CryptoVerdict (presentational)
+    ✓ TAMPERED renders the tampered copy and NOT the green-valid hero copy (10 ms)
+    ✓ VALID + signed renders the verified chip + short fingerprint (8 ms)
+    ✓ UNSIGNED renders the amber legacy note and NOT the green crypto chip (1 ms)
+    ✓ VALID + signatureValid:null (downgrade) → amber caution, NOT the green verified chip (2 ms)
+    ✓ no integrity (status-valid, FE ahead of BE) → renders nothing (no positive claim, no false caution)
+    ✓ not-found → renders nothing positive (no verified chip) (1 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-revision-line.test.tsx
+  deriveVerifyView carries data.revision through unchanged
+    ✓ returns the revision block typed, exactly as the backend sent it (20 ms)
+    ✓ is null when the backend sent null, and null when the field is absent (backend not yet deployed) (1 ms)
+  public verify page — revision line under the hero
+    ✓ revision at r2 → one neutral line + link to the archived revision 1; hero stays green (397 ms)
+    ✓ revision null → no revision line, no link, hero unchanged (232 ms)
+  archived revision page — /verify/<no>/revision/<n>
+    ✓ fetches /api/v1/public/verify/<no>/revisions/<n> from the request host, like the verify page (5 ms)
+    ✓ VALID + signed archived snapshot → "valid when issued, superseded on <date>" + the snapshot fields (7 ms)
+    ✓ TAMPERED archived snapshot → the tampered verdict, never the "valid when issued" one (11 ms)
+    ✓ 404 (no such revision) → "not found" copy, no verdict, link back to the live document (3 ms)
+    ✓ backend unreachable → neutral "cannot verify now" copy, never a verdict (10 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx
+  public verify page — Bangkok dates on a UTC server
+    ✓ the simulated process really formats zone-less calls in UTC (31 ms)
+    ✓ prints the issue and expiry dates as the Bangkok day (340 ms)
+    ✓ prints the backend verification time in Bangkok time (216 ms)
+    ✓ prints the page's own clock in Bangkok time when the backend sends no time (241 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-holder-row.test.tsx
+  M1 — public verify page shows the certificate holder
+    ✓ renders the juristic holder name under the label ผู้ถือใบรับรอง (250 ms)
+    ✓ falls back to the masked applicantName for pre-backfill certificates (220 ms)
+    ✓ renders no holder row at all when neither name is present (145 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-real-qr.test.tsx
+  W3 — public verify page renders a REAL QR, not a decorative icon
+    ✓ renders QrImage with value = this certificate's own public verify URL (request-host based) (249 ms)
+    ✓ does not import lucide-react's decorative QrCode icon anywhere in page.tsx (35 ms)
+    ✓ still prints the certificate number as the human-readable fallback (219 ms)
+    ✓ pre-renders a real QR data URL server-side (fix-round 1, point 5 — SSR/no-JS/crawler sees a real code, not a blank box) (167 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       64 passed, 64 total
+Snapshots:   0 total
+Time:        4.506 s
+Ran all test suites matching src/app/\(public\)/verify/\[cert-number\].
+exit=0
+## TZ=UTC
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-status-reason.test.tsx
+  deriveVerifyView — statusReason
+    ✓ a status-valid certificate has no status reason to show (6 ms)
+    ✓ EXPIRED is told in Thai, not in the English the backend sends (2 ms)
+    ✓ SUSPENDED is told in Thai, not in the English the backend sends (1 ms)
+    ✓ REVOKED is told in Thai, not in the English the backend sends (1 ms)
+    ✓ RENEWED is told in Thai, not in the English the backend sends (3 ms)
+    ✓ NOT_FOUND is told in Thai, not in the English the backend sends (1 ms)
+    ✓ CODE_MISMATCH is told in Thai, not in the English the backend sends (4 ms)
+    ✓ RENEWED carries the successor number when the backend resolved one
+    ✓ RENEWED whose successor did not resolve still explains itself, without a number (3 ms)
+    ✓ an EXPIRED certificate that was also renewed keeps the pointer to its successor (1 ms)
+    ✓ an EXPIRED certificate with no successor keeps its plain expiry wording (4 ms)
+    ✓ no reasonCode but an English reason (backend not yet deployed): Thai first, English beside it (1 ms)
+    ✓ neither a code nor a reason: the citizen is still told something true (1 ms)
+    ✓ a reasonCode this build does not know falls back instead of printing the raw enum (5 ms)
+    ✓ the prototype-chain key constructor is not a reason code (9 ms)
+    ✓ the prototype-chain key toString is not a reason code (1 ms)
+    ✓ the prototype-chain key __proto__ is not a reason code (1 ms)
+    ✓ the prototype-chain key valueOf is not a reason code
+    ✓ a null result (fetch failed) does not crash the derivation (1 ms)
+  StatusReason (presentational)
+    ✓ renders nothing for a status-valid certificate (6 ms)
+    ✓ renders the Thai title and detail for an expired certificate (4 ms)
+    ✓ renders the Thai answer for NOT_FOUND, the commonest citizen failures (1 ms)
+    ✓ renders the Thai answer for CODE_MISMATCH, the commonest citizen failures (2 ms)
+    ✓ RENEWED with a successor links to the current certificate (4 ms)
+    ✓ an EXPIRED certificate with a successor renders the link too (C-F1) (2 ms)
+    ✓ percent-encodes the successor number in the link (1 ms)
+    ✓ RENEWED without a successor renders the explanation and NO dead link (1 ms)
+    ✓ the pre-deploy fallback shows the Thai first and the backend English as a third line (1 ms)
+    ✓ no English reason at all: no empty third line is rendered (1 ms)
+    ✓ renders the English third line at AA contrast, not faded 11px
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-revision-line.test.tsx
+  deriveVerifyView carries data.revision through unchanged
+    ✓ returns the revision block typed, exactly as the backend sent it (10 ms)
+    ✓ is null when the backend sent null, and null when the field is absent (backend not yet deployed) (1 ms)
+  public verify page — revision line under the hero
+    ✓ revision at r2 → one neutral line + link to the archived revision 1; hero stays green (294 ms)
+    ✓ revision null → no revision line, no link, hero unchanged (205 ms)
+  archived revision page — /verify/<no>/revision/<n>
+    ✓ fetches /api/v1/public/verify/<no>/revisions/<n> from the request host, like the verify page (7 ms)
+    ✓ VALID + signed archived snapshot → "valid when issued, superseded on <date>" + the snapshot fields (6 ms)
+    ✓ TAMPERED archived snapshot → the tampered verdict, never the "valid when issued" one (8 ms)
+    ✓ 404 (no such revision) → "not found" copy, no verdict, link back to the live document (2 ms)
+    ✓ backend unreachable → neutral "cannot verify now" copy, never a verdict (10 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx
+  public verify page — Bangkok dates on a UTC server
+    ✓ the simulated process really formats zone-less calls in UTC (24 ms)
+    ✓ prints the issue and expiry dates as the Bangkok day (333 ms)
+    ✓ prints the backend verification time in Bangkok time (217 ms)
+    ✓ prints the page's own clock in Bangkok time when the backend sends no time (182 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-crypto-verdict.test.tsx
+  deriveVerifyView (cert verify view-model)
+    ✓ status-valid + TAMPERED (hash mismatch) → danger tone, green hero overridden RED (3 ms)
+    ✓ status-valid + signatureValid:false (KEY ROTATION) → GREEN status hero + amber, NOT red (1 ms)
+    ✓ status-valid + VALID + signed → heroOk true, success tone, showVerifiedChip (1 ms)
+    ✓ status-valid + UNSIGNED → heroTone success (GREEN status hero), no verified chip (M2: legacy cert not red-flagged) (2 ms)
+    ✓ status-valid + VALID + signatureValid:null (DOWNGRADE) → no chip, warning crypto, GREEN status hero (M1) (1 ms)
+    ✓ status-valid + NO integrity field (FE deployed ahead of BE) → GREEN status hero, no crypto claim (M2 scenario B) (1 ms)
+    ✓ not-found / no integrity (verified:false) → no positive crypto claim, status hero not green (1 ms)
+    ✓ null result (fetch failed) → no crash, no positive claim (1 ms)
+  CryptoVerdict (presentational)
+    ✓ TAMPERED renders the tampered copy and NOT the green-valid hero copy (7 ms)
+    ✓ VALID + signed renders the verified chip + short fingerprint (2 ms)
+    ✓ UNSIGNED renders the amber legacy note and NOT the green crypto chip (16 ms)
+    ✓ VALID + signatureValid:null (downgrade) → amber caution, NOT the green verified chip (1 ms)
+    ✓ no integrity (status-valid, FE ahead of BE) → renders nothing (no positive claim, no false caution)
+    ✓ not-found → renders nothing positive (no verified chip) (1 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-real-qr.test.tsx
+  W3 — public verify page renders a REAL QR, not a decorative icon
+    ✓ renders QrImage with value = this certificate's own public verify URL (request-host based) (346 ms)
+    ✓ does not import lucide-react's decorative QrCode icon anywhere in page.tsx (1 ms)
+    ✓ still prints the certificate number as the human-readable fallback (189 ms)
+    ✓ pre-renders a real QR data URL server-side (fix-round 1, point 5 — SSR/no-JS/crawler sees a real code, not a blank box) (166 ms)
+
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-holder-row.test.tsx
+  M1 — public verify page shows the certificate holder
+    ✓ renders the juristic holder name under the label ผู้ถือใบรับรอง (241 ms)
+    ✓ falls back to the masked applicantName for pre-backfill certificates (170 ms)
+    ✓ renders no holder row at all when neither name is present (143 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       64 passed, 64 total
+Snapshots:   0 total
+Time:        3.471 s
+Ran all test suites matching src/app/\(public\)/verify/\[cert-number\].
+exit=0
+
+## web tsc --noEmit
+exit=0

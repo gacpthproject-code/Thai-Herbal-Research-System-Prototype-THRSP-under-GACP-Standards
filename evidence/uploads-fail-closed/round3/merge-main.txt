@@ -1,0 +1,57 @@
+# merge main 5f8dde8dd เข้า fix/uploads-fail-closed (2026-10-14)
+
+merge commit 81b962511 (พ่อแม่ a0b835fa8 และ 5f8dde8dd) ไม่ rebase
+ฐานร่วมก่อน merge a5d88227a · กิ่งนำ 42 commit · main นำ 234 commit
+
+## ข้อขัดแย้ง 8 ไฟล์ และวิธีแก้
+
+ส่วนลงทะเบียนของรอบ 3 ถึง main แล้วทาง hotfix/registration-allowlist
+(4b9f7ddec = 7010a1823 · b36a6cce8 = de7fa4d3a · 86dcf52ea = a0b835fa8 · แล้ว e7d15ef5f ตัดคอมเมนต์)
+ที่ไหนสองฝั่งมีกติกาเดียวกัน ใช้ข้อความของ main ซึ่งผ่านการตรวจและ deploy แล้ว
+
+| ไฟล์ | วิธีแก้ |
+|---|---|
+| __tests__/integration/registration-sets-no-protected-column-real-postgres.test.js | ข้อความของ main ทั้งไฟล์ (ต่างกันแค่คอมเมนต์หัวไฟล์ที่ main ตัด) |
+| __tests__/unit/register-consent-not-user-column.test.js | ข้อความของ main ทั้งไฟล์ (ต่างกันแค่คอมเมนต์) |
+| __tests__/unit/register-refuses-multipart.test.js | ข้อความของ main ทั้งไฟล์ (ต่างกันแค่คอมเมนต์) |
+| __tests__/unit/register-mass-assignment.test.js | ข้อความของ main ทั้งไฟล์ รวมถึงตัดเทสต์ privacySettings/notificationSettings ของ d360fff16 เพราะเทสต์กวาดคอลัมน์ของ main ครอบกติกาเดียวกัน (พิสูจน์ด้วย mutant ด้านล่าง) |
+| middleware/refuse-multipart.js | ข้อความของ main ทั้งไฟล์ (สองฝั่งแก้ bullet คอมเมนต์เดียวกัน main ตัดทิ้ง) |
+| middleware/uploads-access.js | โค้ด ACL ของกิ่ง (รอบ 1-3) + การตัดย่อหน้าเรื่องรูปบัตรประชาชนตอนลงทะเบียนตาม main (ต่างจาก a0b835fa8 แค่ 7 บรรทัดคอมเมนต์) |
+| services/prisma-auth-service.js | ข้อความของ main + การแก้ updateProfile ของกิ่ง (a34199d71 ไม่รับ privacySettings เพราะ avatar ในนั้นคือหลักฐานความเป็นเจ้าของไฟล์ที่ราก ที่ ACL ของ /uploads เชื่อ) · คอมเมนต์ "Named, never spread" ที่ git รวมให้เองโดยไม่ขึ้นเครื่องหมายขัดแย้ง ตัดออกตาม main |
+| HARNESS_LOG.md | ทุก entry ของทั้งสองฝั่ง เรียงตามวันที่ วันเดียวกันเรียงตามเวลาคอมมิตแรก (dd80766c8 02:21 ก่อน 8769cfd34 03:07) · บรรทัดที่ไม่ว่าง 67/67 อยู่ครบ ไม่มีบรรทัดหายหรือถูกแก้ |
+
+ตรวจหลังแก้
+- 6 ไฟล์ (5 ไฟล์ข้างบน + controllers/auth-controller/health-auth-profile-handlers.js ที่รวมเองได้) เท่ากับ main ทุกไบต์
+- ไม่มีไฟล์ที่ต่างจาก main นอกรายการไฟล์ที่กิ่งแตะ (comm ของสองรายการ: ว่าง)
+- node --check ผ่านทั้ง 7 ไฟล์ JS ที่แก้
+
+## ตัวชี้รหัสข้อผิดพลาด
+
+node apps/backend/scripts/extract-error-codes.js --validate: VALIDATION OK 463/463
+--markdown สร้าง docs/api/error-codes.md ใหม่แล้วไม่ต่างจากที่ commit ไว้ (ไม่มี drift)
+error-codes-catalog 12/12 · error-codes-source-pointers 5/5 · holder-copy-has-no-switch-wording (อ่าน docs/api/error-codes.md) 6/6
+
+## mutant: เทสต์ของ main จับ privacySettings/notificationSettings ได้เอง
+
+แก้ชั่วคราว: ประตู registerHealthUser ส่ง body.privacySettings และ body.notificationSettings ต่อให้ register()
+และ register() เขียนทั้งสองลง user.create (mutate-privacy.py) แล้วรัน register-mass-assignment.test.js
+
+ผล: 2 ล้ม 11 ผ่าน · ข้อที่ล้มคือการกวาดผ่านประตู และการกวาดแบบเรียก register() ตรง ผลต่างของทั้งสองข้อ
+
+    - Expected  - 1
+    + Received  + 4
+      Array [
+        201,
+    -   Array [],
+    +   Array [
+    +     "privacySettings",
+    +     "notificationSettings",
+    +   ],
+      ]
+
+คืนไฟล์ด้วยสำเนาที่เก็บไว้ก่อนแก้ sha256 ขึ้นต้น 580a7e0c0aea64e9 ก่อนและหลังเท่ากัน git diff ว่าง
+
+## เลขบัตรตัวอย่าง (ผลตรวจรอบ 3 ข้อ Info)
+
+register-mass-assignment.test.js ใช้เลขตัวอย่างที่ผ่านหลักตรวจสอบ Mod-11 เปลี่ยนเป็นเลขที่ไม่ผ่าน
+(validateThaiId: valid=false) ใน 52de83cd2 · เทสต์เรียก service ตรง ซึ่งตรวจแค่ 13 หลัก จึงยังตรวจสิ่งเดิม 13/13

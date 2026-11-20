@@ -1,0 +1,1229 @@
+# .gitleaksignore — fingerprints of findings that have been CLASSIFIED, one line each.
+#
+# WHAT THIS FILE IS
+# A fingerprint is commit:file:rule:line. It carries no secret material, and it
+# pins ONE finding in ONE commit. That is the point: this file cannot hide a
+# secret that has not been looked at, because a secret nobody looked at has no
+# line here.
+#
+# WHAT THIS FILE IS NOT
+# Not a path allowlist. Deliberately. A rule like "skip evidence/" would also
+# swallow the next real key that a test run prints into an evidence log, and
+# evidence/ is exactly where such a key would land. Every line below names one
+# finding somebody classified.
+#
+# ADDING A LINE IS GRANTING COVER
+# Under CLAUDE.md Law L6 that is operator-only, the same as a waiver or a ratchet
+# baseline going up. An agent may REMOVE lines (a finding that stopped existing)
+# and may regenerate the file after re-running the scan, but a new fingerprint
+# needs an operator signature on the PR that adds it.
+#
+# HOW TO REGENERATE / VERIFY
+#   gitleaks detect --no-banner --redact --report-format json --report-path <out>
+# is what scripts/ci/full-gate.sh runs (check `secret-scan-deep`). Any finding not
+# listed here shows up in that report and fails the gate.
+#
+# WHAT IS DELIBERATELY *NOT* COVERED
+# See the report on branch fix/secret-scan-honest: findings outside the classes
+# below were left uncovered on purpose so the gate keeps pointing at them.
+#
+# DAILY_API_KEY — CLOSED 2026-09-11, and the note that used to sit here was the
+# reason this gate stayed red for a month. It read "the answer to that one is
+# rotate-then-classify, and it belongs to the operator". The rotation had ALREADY
+# happened: HARNESS_LOG.md 2026-08-14 records the operator's written confirmation
+# "ยืนยัน revoke daily.co", and reports/design-cleanup-2026-08-21/05-BACKLOG.md:291
+# filed it as NOT-A-TASK the same week. Nobody came back to this file, so the
+# instruction outlived its subject and kept sending readers after a rotation that
+# was already done. Operator confirmed again 2026-09-11: the platform has no
+# Daily.co account and never used the service. The two fingerprints are covered
+# below under `revoked-dead-service`.
+#
+# The value itself stays in git history: rewriting it out was ruled out on
+# 2026-08-14 because it destroys every SHA the attestations bind to — and every
+# fingerprint in THIS file is keyed on a commit SHA, so a rewrite would void all
+# 972 classifications too. The repository is private, the credential is revoked,
+# and the account does not exist.
+#
+# Generated from a full-history scan with gitleaks 8.30.1 on 2026-08-08
+# (source commit c4822d60, 1983 commits scanned, 652 findings, 632 classified below).
+
+# ── private-key-fixture (2) ──
+# private-key — fake fixture, key body is literally '\nABC\n', in a test file that was deleted from the tree (verified per finding: the matched line contains -----BEGIN PRIVATE KEY-----\nABC\n)
+044e94b53565cb913f397f49666afef7ee408cc5:apps/backend/__tests__/unit/firebase-admin-service.test.js:private-key:110
+da662bbf1efaa46c0d10402726773b6171c94811:apps/backend/__tests__/unit/firebase-admin-service.test.js:private-key:110
+
+# ── expired-health-cookie (2) ──
+# jwt — real HS256 tokens for the health-check account, EXPIRED 2026-03-31 and 2026-04-06 (exp claim decoded in session). History only: the file is not in the tree. Rotating JWT_SECRET before pilot is a separate operator action, tracked in HARNESS_LOG.md — this line covers the scanner, not the risk.
+20b22615146e232ac7a9e65792b4b1f99dc67ec6:.codex-health-cookie.txt:jwt:6
+20b22615146e232ac7a9e65792b4b1f99dc67ec6:.codex-health-cookie.txt:jwt:7
+
+# ── deliberate-fake-jwt (6) ──
+# jwt — a JWT built on purpose to be rejected; its signature segment is the literal string 'invalid_signature' (verified per finding). Line number differs per commit (94 in older commits, 95 now) because the file shifted, not because there are two tokens.
+044e94b53565cb913f397f49666afef7ee408cc5:scripts/test/agent-security.js:jwt:94
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:scripts/test/agent-security.js:jwt:94
+a52f1ad495129b73b9209865ad3bab975cd9a43b:scripts/test/agent-security.js:jwt:94
+df498a29a9775625f0592797597ff3cee9d403f7:scripts/test/agent-security.js:jwt:94
+e071c724d1cd414c392419eee0944fbc852ef311:scripts/test/agent-security.js:jwt:94
+a8a6f18cd14ddf7b9c8ebb28df3af902b31f0416:scripts/test/agent-security.js:jwt:95
+
+# ── stripe-keys-ready-envvar (5) ──
+# curl-auth-user — the probe interpolates an env var that holds no value in the repo; there is no credential on the line (verified per finding: the line references ${...} and not a literal).
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:scripts/probes/stripe-keys-ready.sh:curl-auth-user:6
+a52f1ad495129b73b9209865ad3bab975cd9a43b:scripts/probes/stripe-keys-ready.sh:curl-auth-user:6
+c898fae7e773493acf44c101c462616cd2f5cec9:scripts/probes/stripe-keys-ready.sh:curl-auth-user:6
+df498a29a9775625f0592797597ff3cee9d403f7:scripts/probes/stripe-keys-ready.sh:curl-auth-user:6
+e071c724d1cd414c392419eee0944fbc852ef311:scripts/probes/stripe-keys-ready.sh:curl-auth-user:6
+
+# ── openapi-readme-example (7) ──
+# curl-auth-header — one documentation example line (openapi/README.md:310), counted once per commit that touched the file.
+044e94b53565cb913f397f49666afef7ee408cc5:openapi/README.md:curl-auth-header:310
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:openapi/README.md:curl-auth-header:310
+a52f1ad495129b73b9209865ad3bab975cd9a43b:openapi/README.md:curl-auth-header:310
+ace3a81fafdc1a1322ef11a7ed720daa9c858947:openapi/README.md:curl-auth-header:310
+df498a29a9775625f0592797597ff3cee9d403f7:openapi/README.md:curl-auth-header:310
+e071c724d1cd414c392419eee0944fbc852ef311:openapi/README.md:curl-auth-header:310
+e94759c11737f09a8e09286986f59f0c7bee59b3:openapi/README.md:curl-auth-header:310
+
+# ── committed-jest-output (517) ──
+# generic-api-key — fixture values inside jest run logs that were committed AS EVIDENCE under evidence/, docs/handoffs/ and ralph/evidence/. These are outputs of test runs, not configuration.
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R1/jest-backend.txt:generic-api-key:260
+f8359708218eff93692d4dcbf7417ef71dce46a7:docs/handoffs/iter-R1/jest-backend.txt:generic-api-key:260
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R1/jest-backend.txt:generic-api-key:1077
+f8359708218eff93692d4dcbf7417ef71dce46a7:docs/handoffs/iter-R1/jest-backend.txt:generic-api-key:1077
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R2/jest-backend.txt:generic-api-key:218
+85bfe970365dc60dbafe5a23bae77fbeb509e484:docs/handoffs/iter-R2/jest-backend.txt:generic-api-key:218
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R2/jest-backend.txt:generic-api-key:585
+85bfe970365dc60dbafe5a23bae77fbeb509e484:docs/handoffs/iter-R2/jest-backend.txt:generic-api-key:585
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R3/jest-backend.txt:generic-api-key:330
+23386243b7c42b501428b6a26522de88e59f22dd:docs/handoffs/iter-R3/jest-backend.txt:generic-api-key:330
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R3/jest-backend.txt:generic-api-key:532
+23386243b7c42b501428b6a26522de88e59f22dd:docs/handoffs/iter-R3/jest-backend.txt:generic-api-key:532
+008c998cf86ac63fb73f634ea51befe72f480e2a:docs/handoffs/iter-R4/jest-backend.txt:generic-api-key:106
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R4/jest-backend.txt:generic-api-key:106
+008c998cf86ac63fb73f634ea51befe72f480e2a:docs/handoffs/iter-R4/jest-backend.txt:generic-api-key:349
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R4/jest-backend.txt:generic-api-key:349
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:108
+3a887d16aa47deab9826465cdbbb8a4e6d9b3b3b:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:108
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:115
+3a887d16aa47deab9826465cdbbb8a4e6d9b3b3b:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:115
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:116
+3a887d16aa47deab9826465cdbbb8a4e6d9b3b3b:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:116
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:117
+3a887d16aa47deab9826465cdbbb8a4e6d9b3b3b:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:117
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:119
+3a887d16aa47deab9826465cdbbb8a4e6d9b3b3b:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:119
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:461
+3a887d16aa47deab9826465cdbbb8a4e6d9b3b3b:docs/handoffs/iter-R5/jest-backend.txt:generic-api-key:461
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:120
+d2d80234098c73c8f1c9d8347398f58ece292093:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:120
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:127
+d2d80234098c73c8f1c9d8347398f58ece292093:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:127
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:128
+d2d80234098c73c8f1c9d8347398f58ece292093:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:128
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:129
+d2d80234098c73c8f1c9d8347398f58ece292093:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:129
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:131
+d2d80234098c73c8f1c9d8347398f58ece292093:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:131
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:518
+d2d80234098c73c8f1c9d8347398f58ece292093:docs/handoffs/iter-R6/jest-backend.txt:generic-api-key:518
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:108
+a490cc18b71522df1e5068ee82b0e7378e27f2fe:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:108
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:115
+a490cc18b71522df1e5068ee82b0e7378e27f2fe:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:115
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:116
+a490cc18b71522df1e5068ee82b0e7378e27f2fe:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:116
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:117
+a490cc18b71522df1e5068ee82b0e7378e27f2fe:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:117
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:119
+a490cc18b71522df1e5068ee82b0e7378e27f2fe:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:119
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:319
+a490cc18b71522df1e5068ee82b0e7378e27f2fe:docs/handoffs/iter-R7/jest-backend.txt:generic-api-key:319
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:114
+80a49c33309a3eeac1059fe79e92044f35ee20ae:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:114
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:121
+80a49c33309a3eeac1059fe79e92044f35ee20ae:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:121
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:122
+80a49c33309a3eeac1059fe79e92044f35ee20ae:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:122
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:123
+80a49c33309a3eeac1059fe79e92044f35ee20ae:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:123
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:125
+80a49c33309a3eeac1059fe79e92044f35ee20ae:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:125
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:463
+80a49c33309a3eeac1059fe79e92044f35ee20ae:docs/handoffs/iter-V1/jest-backend.txt:generic-api-key:463
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:236
+0efd15d53540d38fc68dc97cd853a3045f090523:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:236
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:243
+0efd15d53540d38fc68dc97cd853a3045f090523:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:243
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:244
+0efd15d53540d38fc68dc97cd853a3045f090523:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:244
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:245
+0efd15d53540d38fc68dc97cd853a3045f090523:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:245
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:247
+0efd15d53540d38fc68dc97cd853a3045f090523:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:247
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:419
+0efd15d53540d38fc68dc97cd853a3045f090523:docs/handoffs/iter-V2/jest-backend.txt:generic-api-key:419
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:244
+adc8d04e0e12ebd9ffe3e616f75169752c1b30de:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:244
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:251
+adc8d04e0e12ebd9ffe3e616f75169752c1b30de:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:251
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:252
+adc8d04e0e12ebd9ffe3e616f75169752c1b30de:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:252
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:253
+adc8d04e0e12ebd9ffe3e616f75169752c1b30de:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:253
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:255
+adc8d04e0e12ebd9ffe3e616f75169752c1b30de:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:255
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:517
+adc8d04e0e12ebd9ffe3e616f75169752c1b30de:docs/handoffs/iter-V3/jest-backend.txt:generic-api-key:517
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:366
+360cdc4b3fd5fd5da9d59e5dcc0ddeb34dad5c2b:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:366
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:373
+360cdc4b3fd5fd5da9d59e5dcc0ddeb34dad5c2b:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:373
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:374
+360cdc4b3fd5fd5da9d59e5dcc0ddeb34dad5c2b:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:374
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:375
+360cdc4b3fd5fd5da9d59e5dcc0ddeb34dad5c2b:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:375
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:377
+360cdc4b3fd5fd5da9d59e5dcc0ddeb34dad5c2b:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:377
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:935
+360cdc4b3fd5fd5da9d59e5dcc0ddeb34dad5c2b:docs/handoffs/iter-V4/jest-backend.txt:generic-api-key:935
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:934
+fe7d148f7ab584cdd3b8aae6a4d28d31240d039d:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:934
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:941
+fe7d148f7ab584cdd3b8aae6a4d28d31240d039d:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:941
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:942
+fe7d148f7ab584cdd3b8aae6a4d28d31240d039d:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:942
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:943
+fe7d148f7ab584cdd3b8aae6a4d28d31240d039d:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:943
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:945
+fe7d148f7ab584cdd3b8aae6a4d28d31240d039d:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:945
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:1471
+fe7d148f7ab584cdd3b8aae6a4d28d31240d039d:docs/handoffs/iter-V5/jest-backend.txt:generic-api-key:1471
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:494
+1845ffb6283015b7ef407486dbd1459392698a79:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:494
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:501
+1845ffb6283015b7ef407486dbd1459392698a79:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:501
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:502
+1845ffb6283015b7ef407486dbd1459392698a79:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:502
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:503
+1845ffb6283015b7ef407486dbd1459392698a79:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:503
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:505
+1845ffb6283015b7ef407486dbd1459392698a79:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:505
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:1428
+1845ffb6283015b7ef407486dbd1459392698a79:docs/handoffs/iter-V6/jest-backend.txt:generic-api-key:1428
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:494
+683f0ed65a79b5e73e681d7d9d5320e6dee420b2:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:494
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:501
+683f0ed65a79b5e73e681d7d9d5320e6dee420b2:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:501
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:502
+683f0ed65a79b5e73e681d7d9d5320e6dee420b2:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:502
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:503
+683f0ed65a79b5e73e681d7d9d5320e6dee420b2:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:503
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:505
+683f0ed65a79b5e73e681d7d9d5320e6dee420b2:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:505
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:1567
+683f0ed65a79b5e73e681d7d9d5320e6dee420b2:docs/handoffs/iter-W1/jest-backend.txt:generic-api-key:1567
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:911
+4fe0be944f959d12e256dde3d4f1ad598d74e9b0:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:911
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:918
+4fe0be944f959d12e256dde3d4f1ad598d74e9b0:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:918
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:919
+4fe0be944f959d12e256dde3d4f1ad598d74e9b0:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:919
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:920
+4fe0be944f959d12e256dde3d4f1ad598d74e9b0:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:920
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:922
+4fe0be944f959d12e256dde3d4f1ad598d74e9b0:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:922
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:1797
+4fe0be944f959d12e256dde3d4f1ad598d74e9b0:docs/handoffs/iter-W2/jest-backend.txt:generic-api-key:1797
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:494
+e7598db1a24549c4f2b865ffc72c0d6b71f06d1d:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:494
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:501
+e7598db1a24549c4f2b865ffc72c0d6b71f06d1d:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:501
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:502
+e7598db1a24549c4f2b865ffc72c0d6b71f06d1d:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:502
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:503
+e7598db1a24549c4f2b865ffc72c0d6b71f06d1d:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:503
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:505
+e7598db1a24549c4f2b865ffc72c0d6b71f06d1d:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:505
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:1403
+e7598db1a24549c4f2b865ffc72c0d6b71f06d1d:docs/handoffs/iter-W3/jest-backend.txt:generic-api-key:1403
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:549
+23e6a18c97ba2a3d27384bc4689c09299c86798a:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:549
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:556
+23e6a18c97ba2a3d27384bc4689c09299c86798a:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:556
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:557
+23e6a18c97ba2a3d27384bc4689c09299c86798a:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:557
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:558
+23e6a18c97ba2a3d27384bc4689c09299c86798a:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:558
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:560
+23e6a18c97ba2a3d27384bc4689c09299c86798a:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:560
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:1572
+23e6a18c97ba2a3d27384bc4689c09299c86798a:docs/handoffs/iter-W4/jest-backend.txt:generic-api-key:1572
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:936
+6c50dad189a56598c01f60cfa3907cc339f32bec:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:936
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:943
+6c50dad189a56598c01f60cfa3907cc339f32bec:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:943
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:944
+6c50dad189a56598c01f60cfa3907cc339f32bec:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:944
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:945
+6c50dad189a56598c01f60cfa3907cc339f32bec:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:945
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:947
+6c50dad189a56598c01f60cfa3907cc339f32bec:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:947
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:1574
+6c50dad189a56598c01f60cfa3907cc339f32bec:docs/handoffs/iter-W5/jest-backend.txt:generic-api-key:1574
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:954
+acf5ff108d15a7a1feefb0acd477fe29a97d2115:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:954
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:961
+acf5ff108d15a7a1feefb0acd477fe29a97d2115:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:961
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:962
+acf5ff108d15a7a1feefb0acd477fe29a97d2115:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:962
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:963
+acf5ff108d15a7a1feefb0acd477fe29a97d2115:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:963
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:965
+acf5ff108d15a7a1feefb0acd477fe29a97d2115:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:965
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:2180
+acf5ff108d15a7a1feefb0acd477fe29a97d2115:docs/handoffs/iter-X1/phase-c/jest-backend.txt:generic-api-key:2180
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:744
+23b0d0330d4a9df075cbff2d92e3af8cbf153ec9:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:744
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:751
+23b0d0330d4a9df075cbff2d92e3af8cbf153ec9:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:751
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:752
+23b0d0330d4a9df075cbff2d92e3af8cbf153ec9:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:752
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:753
+23b0d0330d4a9df075cbff2d92e3af8cbf153ec9:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:753
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:755
+23b0d0330d4a9df075cbff2d92e3af8cbf153ec9:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:755
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:1498
+23b0d0330d4a9df075cbff2d92e3af8cbf153ec9:docs/handoffs/iter-X2/phase-c/jest-backend.txt:generic-api-key:1498
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:312
+86aa8e9c1ea2aa17b5e9d71f684e50c09e00cc8a:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:312
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:319
+86aa8e9c1ea2aa17b5e9d71f684e50c09e00cc8a:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:319
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:320
+86aa8e9c1ea2aa17b5e9d71f684e50c09e00cc8a:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:320
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:321
+86aa8e9c1ea2aa17b5e9d71f684e50c09e00cc8a:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:321
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:323
+86aa8e9c1ea2aa17b5e9d71f684e50c09e00cc8a:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:323
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:1300
+86aa8e9c1ea2aa17b5e9d71f684e50c09e00cc8a:docs/handoffs/iter-X3/phase-c/jest-backend.txt:generic-api-key:1300
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1324
+d152186942dc311329860ae4ef84fe26343e61c5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1324
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1331
+d152186942dc311329860ae4ef84fe26343e61c5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1331
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1332
+d152186942dc311329860ae4ef84fe26343e61c5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1332
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1333
+d152186942dc311329860ae4ef84fe26343e61c5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1333
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1335
+d152186942dc311329860ae4ef84fe26343e61c5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1335
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1417
+d152186942dc311329860ae4ef84fe26343e61c5:docs/handoffs/iter-X4/phase-c/jest-backend.txt:generic-api-key:1417
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:581
+b056182337c3e4690803fe29c98f42ed22fb378b:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:581
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:588
+b056182337c3e4690803fe29c98f42ed22fb378b:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:588
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:589
+b056182337c3e4690803fe29c98f42ed22fb378b:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:589
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:590
+b056182337c3e4690803fe29c98f42ed22fb378b:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:590
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:592
+b056182337c3e4690803fe29c98f42ed22fb378b:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:592
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:1639
+b056182337c3e4690803fe29c98f42ed22fb378b:docs/handoffs/iter-X5/phase-c/jest-backend.txt:generic-api-key:1639
+0210d89c515e2da9bea5e3a2e537c0607aa24ebb:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:581
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:581
+0210d89c515e2da9bea5e3a2e537c0607aa24ebb:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:588
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:588
+0210d89c515e2da9bea5e3a2e537c0607aa24ebb:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:589
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:589
+0210d89c515e2da9bea5e3a2e537c0607aa24ebb:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:590
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:590
+0210d89c515e2da9bea5e3a2e537c0607aa24ebb:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:592
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:592
+0210d89c515e2da9bea5e3a2e537c0607aa24ebb:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:1426
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-X6/phase-c/jest-backend.txt:generic-api-key:1426
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:798
+e52bda47bdb522b236ec6e28a2f27ad954d7df20:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:798
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:805
+e52bda47bdb522b236ec6e28a2f27ad954d7df20:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:805
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:806
+e52bda47bdb522b236ec6e28a2f27ad954d7df20:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:806
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:807
+e52bda47bdb522b236ec6e28a2f27ad954d7df20:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:807
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:809
+e52bda47bdb522b236ec6e28a2f27ad954d7df20:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:809
+044e94b53565cb913f397f49666afef7ee408cc5:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:1696
+e52bda47bdb522b236ec6e28a2f27ad954d7df20:docs/handoffs/iter-Y1/phase-c/jest-backend.txt:generic-api-key:1696
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:331
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:331
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:338
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:338
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:339
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:339
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:340
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:340
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:342
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:342
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:344
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:344
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:345
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:345
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:346
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:346
+4f2561f9803393f879036b65b498538d6bff5ae1:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:5875
+a01a9e83b77a5f7653196885cf59586c4e17cf6c:evidence/A0-AUDIT-EMISSION/PR1/full-suite-raw.txt:generic-api-key:5875
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1483
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1483
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1825
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1825
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1832
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1832
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1833
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1833
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1834
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1834
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1836
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1836
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1838
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1838
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1839
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1839
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1840
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt:generic-api-key:1840
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:1690
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:1690
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2063
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2063
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2070
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2070
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2071
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2071
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2072
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2072
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2074
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2074
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2076
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2076
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2077
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2077
+f50c89ee6e06c6c3ac4a011a42bad49e4781ad4d:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2078
+fff73256d7103ae9d0e55cd24479e786e528be41:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw-cycle2.txt:generic-api-key:2078
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1759
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1759
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1880
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1880
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1887
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1887
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1888
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1888
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1889
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1889
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1891
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1891
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1893
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1893
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1894
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1894
+5e45df4398e12f23d9e3a1e121908799491145f6:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1895
+60c99e8f6bfc3d19b6ab4e8c3ae82f0c8ad3ab20:evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt:generic-api-key:1895
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:319
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:326
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:327
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:328
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:330
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:332
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:333
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:334
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/baseline-clean-tree-raw.txt:generic-api-key:7009
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:983
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1699
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1706
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1707
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1708
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1710
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1712
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1713
+a749b0c1f6d500ae2b59b9e1a8cc2af17c9e824e:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r2.txt:generic-api-key:1714
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:728
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1519
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1526
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1527
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1528
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1530
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1532
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1533
+b254b77c0c73181b21e72b3228fd83c2e5e4b57a:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw-r3.txt:generic-api-key:1534
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:936
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1336
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1343
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1344
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1345
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1347
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1349
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1350
+188bd43813017ea4b04b09ec0d671ed08bbcab76:evidence/A0-AUDIT-EMISSION/PR2/full-suite-raw.txt:generic-api-key:1351
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:468
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:475
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:476
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:477
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:479
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:481
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:482
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:483
+f82a2067e561b06e9ceb26c9725546e72f6ab747:evidence/DATA-SOVEREIGNTY/full-suite.txt:generic-api-key:972
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:24
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:46
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:53
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:54
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:55
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:57
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:59
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:60
+0a0958ca3ed54740398e9ca326560d480be4e459:evidence/P1-7/test-output.txt:generic-api-key:61
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:885
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:885
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:885
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:885
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:885
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:892
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:892
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:892
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:892
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:892
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:893
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:893
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:893
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:893
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:893
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:894
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:894
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:894
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:894
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:894
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:896
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:896
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:896
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:896
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:896
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:898
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:898
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:898
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:898
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:898
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:899
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:899
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:899
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:899
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:899
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:900
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:900
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:900
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:900
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:900
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:1066
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:1066
+c898fae7e773493acf44c101c462616cd2f5cec9:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:1066
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:1066
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-01-adapter-seam/test-output.txt:generic-api-key:1066
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1033
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1033
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1033
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1033
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1033
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1040
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1040
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1040
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1040
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1040
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1041
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1041
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1041
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1041
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1041
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1042
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1042
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1042
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1042
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1042
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1044
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1044
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1044
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1044
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1044
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1046
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1046
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1046
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1046
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1046
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1047
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1047
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1047
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1047
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1047
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1048
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1048
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1048
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1048
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1048
+38416aa643a9645ac5ddcade9fdb2b2145304476:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1112
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1112
+a52f1ad495129b73b9209865ad3bab975cd9a43b:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1112
+df498a29a9775625f0592797597ff3cee9d403f7:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1112
+e071c724d1cd414c392419eee0944fbc852ef311:evidence/W2-02-money-invariants/test-output.txt:generic-api-key:1112
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:327
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:334
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:335
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:336
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:338
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:340
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:341
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:342
+8d7996e1d62ee81c24e4f2741607a4447e073ab9:evidence/l001/green-local-gate-full.txt:generic-api-key:4162
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:905
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1160
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1167
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1168
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1169
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1171
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1173
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1174
+0d1d205c3a99c2cec5067f8e7df5e4d22b4db093:evidence/l001/local-gate-full-result-fail.txt:generic-api-key:1175
+044e94b53565cb913f397f49666afef7ee408cc5:ralph/evidence/BE-AUTH-01/jest-output.txt:generic-api-key:41
+1220ecc701a64d21bafacbc80d436055799d350d:ralph/evidence/BE-AUTH-01/jest-output.txt:generic-api-key:41
+77d220b210f27eda818e03dc976a20515ea340e0:ralph/evidence/BE-AUTH-01/jest-output.txt:generic-api-key:41
+044e94b53565cb913f397f49666afef7ee408cc5:ralph/evidence/BE-AUTH-02/jest-output.txt:generic-api-key:41
+1220ecc701a64d21bafacbc80d436055799d350d:ralph/evidence/BE-AUTH-02/jest-output.txt:generic-api-key:41
+77d220b210f27eda818e03dc976a20515ea340e0:ralph/evidence/BE-AUTH-02/jest-output.txt:generic-api-key:41
+044e94b53565cb913f397f49666afef7ee408cc5:ralph/evidence/BE-AUTH-03/auth-service-audit-fixes.txt:generic-api-key:3
+1220ecc701a64d21bafacbc80d436055799d350d:ralph/evidence/BE-AUTH-03/auth-service-audit-fixes.txt:generic-api-key:3
+77d220b210f27eda818e03dc976a20515ea340e0:ralph/evidence/BE-AUTH-03/auth-service-audit-fixes.txt:generic-api-key:3
+044e94b53565cb913f397f49666afef7ee408cc5:ralph/evidence/BE-EDGE-04/jest-output.txt:generic-api-key:41
+1220ecc701a64d21bafacbc80d436055799d350d:ralph/evidence/BE-EDGE-04/jest-output.txt:generic-api-key:41
+77d220b210f27eda818e03dc976a20515ea340e0:ralph/evidence/BE-EDGE-04/jest-output.txt:generic-api-key:41
+044e94b53565cb913f397f49666afef7ee408cc5:ralph/evidence/auth-jest-output.txt:generic-api-key:41
+1220ecc701a64d21bafacbc80d436055799d350d:ralph/evidence/auth-jest-output.txt:generic-api-key:41
+77d220b210f27eda818e03dc976a20515ea340e0:ralph/evidence/auth-jest-output.txt:generic-api-key:41
+
+# ── test-fixture (54) ──
+# generic-api-key — fixture values inside __tests__/ suites.
+686ad2e006b515d173f3011443c14bed79ac31c0:apps/backend/__tests__/integration/interoperability-track.test.js:generic-api-key:78
+686ad2e006b515d173f3011443c14bed79ac31c0:apps/backend/__tests__/integration/interoperability-track.test.js:generic-api-key:364
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/backend/__tests__/unit/admin-gates-use-canonical-rbac.test.js:generic-api-key:135
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/backend/__tests__/unit/admin-gates-use-canonical-rbac.test.js:generic-api-key:135
+df498a29a9775625f0592797597ff3cee9d403f7:apps/backend/__tests__/unit/admin-gates-use-canonical-rbac.test.js:generic-api-key:135
+e071c724d1cd414c392419eee0944fbc852ef311:apps/backend/__tests__/unit/admin-gates-use-canonical-rbac.test.js:generic-api-key:135
+fb7e67ee03aa0e88635be72f6b72040a890c3f81:apps/backend/__tests__/unit/admin-gates-use-canonical-rbac.test.js:generic-api-key:135
+cbdb20d69e7fa65a86bb5623b70836d5c1de628f:apps/backend/__tests__/unit/deploy-prod-check-secrets.test.js:generic-api-key:70
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/backend/__tests__/unit/deploy-prod-check-secrets.test.js:generic-api-key:77
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/backend/__tests__/unit/deploy-prod-check-secrets.test.js:generic-api-key:77
+df498a29a9775625f0592797597ff3cee9d403f7:apps/backend/__tests__/unit/deploy-prod-check-secrets.test.js:generic-api-key:77
+e071c724d1cd414c392419eee0944fbc852ef311:apps/backend/__tests__/unit/deploy-prod-check-secrets.test.js:generic-api-key:77
+044e94b53565cb913f397f49666afef7ee408cc5:apps/backend/__tests__/unit/deploy-prod-check-secrets.test.js:generic-api-key:81
+6930150d2e6ed401202d418116e5611f01781ab7:apps/backend/__tests__/unit/pdpa-erasure-service.test.js:generic-api-key:503
+044e94b53565cb913f397f49666afef7ee408cc5:apps/backend/__tests__/unit/pdpa-erasure-service.test.js:generic-api-key:520
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/backend/__tests__/unit/pdpa-erasure-service.test.js:generic-api-key:523
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/backend/__tests__/unit/pdpa-erasure-service.test.js:generic-api-key:523
+df498a29a9775625f0592797597ff3cee9d403f7:apps/backend/__tests__/unit/pdpa-erasure-service.test.js:generic-api-key:523
+e071c724d1cd414c392419eee0944fbc852ef311:apps/backend/__tests__/unit/pdpa-erasure-service.test.js:generic-api-key:523
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:182
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:182
+df498a29a9775625f0592797597ff3cee9d403f7:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:182
+e071c724d1cd414c392419eee0944fbc852ef311:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:182
+044e94b53565cb913f397f49666afef7ee408cc5:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:183
+6930150d2e6ed401202d418116e5611f01781ab7:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:183
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:461
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:461
+df498a29a9775625f0592797597ff3cee9d403f7:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:461
+e071c724d1cd414c392419eee0944fbc852ef311:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:461
+044e94b53565cb913f397f49666afef7ee408cc5:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:463
+85bfe970365dc60dbafe5a23bae77fbeb509e484:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:463
+044e94b53565cb913f397f49666afef7ee408cc5:apps/backend/__tests__/unit/server-boot-secret-sentinel.test.js:generic-api-key:63
+4fe0be944f959d12e256dde3d4f1ad598d74e9b0:apps/backend/__tests__/unit/server-boot-secret-sentinel.test.js:generic-api-key:63
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/backend/__tests__/unit/server-boot-secret-sentinel.test.js:generic-api-key:63
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/backend/__tests__/unit/server-boot-secret-sentinel.test.js:generic-api-key:63
+df498a29a9775625f0592797597ff3cee9d403f7:apps/backend/__tests__/unit/server-boot-secret-sentinel.test.js:generic-api-key:63
+e071c724d1cd414c392419eee0944fbc852ef311:apps/backend/__tests__/unit/server-boot-secret-sentinel.test.js:generic-api-key:63
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/backend/__tests__/unit/user-lookup-service.test.js:generic-api-key:210
+a25840734ab7ca64b6a55c9902454a11fc6325cc:apps/backend/__tests__/unit/user-lookup-service.test.js:generic-api-key:210
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/backend/__tests__/unit/user-lookup-service.test.js:generic-api-key:210
+df498a29a9775625f0592797597ff3cee9d403f7:apps/backend/__tests__/unit/user-lookup-service.test.js:generic-api-key:210
+e071c724d1cd414c392419eee0944fbc852ef311:apps/backend/__tests__/unit/user-lookup-service.test.js:generic-api-key:210
+008c998cf86ac63fb73f634ea51befe72f480e2a:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:107
+044e94b53565cb913f397f49666afef7ee408cc5:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:107
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:107
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:107
+df498a29a9775625f0592797597ff3cee9d403f7:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:107
+e071c724d1cd414c392419eee0944fbc852ef311:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:107
+008c998cf86ac63fb73f634ea51befe72f480e2a:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:113
+044e94b53565cb913f397f49666afef7ee408cc5:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:113
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:113
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:113
+df498a29a9775625f0592797597ff3cee9d403f7:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:113
+e071c724d1cd414c392419eee0944fbc852ef311:apps/web-app/src/lib/services/__tests__/pdpa-erasure-service.test.ts:generic-api-key:113
+
+# ── openapi-example-field (21) ──
+# generic-api-key — `example:` values in the OpenAPI spec.
+044e94b53565cb913f397f49666afef7ee408cc5:openapi/authentication-service.yaml:generic-api-key:201
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:openapi/authentication-service.yaml:generic-api-key:201
+a52f1ad495129b73b9209865ad3bab975cd9a43b:openapi/authentication-service.yaml:generic-api-key:201
+ace3a81fafdc1a1322ef11a7ed720daa9c858947:openapi/authentication-service.yaml:generic-api-key:201
+df498a29a9775625f0592797597ff3cee9d403f7:openapi/authentication-service.yaml:generic-api-key:201
+e071c724d1cd414c392419eee0944fbc852ef311:openapi/authentication-service.yaml:generic-api-key:201
+e94759c11737f09a8e09286986f59f0c7bee59b3:openapi/authentication-service.yaml:generic-api-key:201
+044e94b53565cb913f397f49666afef7ee408cc5:openapi/authentication-service.yaml:generic-api-key:202
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:openapi/authentication-service.yaml:generic-api-key:202
+a52f1ad495129b73b9209865ad3bab975cd9a43b:openapi/authentication-service.yaml:generic-api-key:202
+ace3a81fafdc1a1322ef11a7ed720daa9c858947:openapi/authentication-service.yaml:generic-api-key:202
+df498a29a9775625f0592797597ff3cee9d403f7:openapi/authentication-service.yaml:generic-api-key:202
+e071c724d1cd414c392419eee0944fbc852ef311:openapi/authentication-service.yaml:generic-api-key:202
+e94759c11737f09a8e09286986f59f0c7bee59b3:openapi/authentication-service.yaml:generic-api-key:202
+044e94b53565cb913f397f49666afef7ee408cc5:openapi/authentication-service.yaml:generic-api-key:257
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:openapi/authentication-service.yaml:generic-api-key:257
+a52f1ad495129b73b9209865ad3bab975cd9a43b:openapi/authentication-service.yaml:generic-api-key:257
+ace3a81fafdc1a1322ef11a7ed720daa9c858947:openapi/authentication-service.yaml:generic-api-key:257
+df498a29a9775625f0592797597ff3cee9d403f7:openapi/authentication-service.yaml:generic-api-key:257
+e071c724d1cd414c392419eee0944fbc852ef311:openapi/authentication-service.yaml:generic-api-key:257
+e94759c11737f09a8e09286986f59f0c7bee59b3:openapi/authentication-service.yaml:generic-api-key:257
+
+# ── css-class-and-testid (18) ──
+# generic-api-key — CSS class names and test-ids that the generic entropy rule mistakes for keys.
+044e94b53565cb913f397f49666afef7ee408cc5:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:106
+0c8274238e45c3c114d682cedda409011894fe50:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:106
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:106
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:106
+df498a29a9775625f0592797597ff3cee9d403f7:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:106
+e071c724d1cd414c392419eee0944fbc852ef311:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:106
+044e94b53565cb913f397f49666afef7ee408cc5:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:193
+0c8274238e45c3c114d682cedda409011894fe50:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:193
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:193
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:193
+df498a29a9775625f0592797597ff3cee9d403f7:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:193
+e071c724d1cd414c392419eee0944fbc852ef311:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:193
+044e94b53565cb913f397f49666afef7ee408cc5:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:199
+0c8274238e45c3c114d682cedda409011894fe50:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:199
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:199
+a52f1ad495129b73b9209865ad3bab975cd9a43b:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:199
+df498a29a9775625f0592797597ff3cee9d403f7:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:199
+e071c724d1cd414c392419eee0944fbc852ef311:apps/web-app/src/components/payments/QuotationReviewSection.tsx:generic-api-key:199
+
+# ── 2026-08-14 ────────────────────────────────────────────────────────────────
+# The last 20 unaccepted findings. Classified in
+# evidence/SECRET-SCAN-HONEST/2026-08-13-remaining-20-classification.md.
+# Authorised by the operator in writing on 2026-08-14 (CLAUDE.md L6: covering a
+# finding is an operator act, not an agent one). Lifts HARNESS_LOG.md:201.
+
+# CLASS: run output that truncates a token to its first 16 characters.
+# scripts/test/agent-auth.js:88,194 writes substring(0, 16), so what lands in the
+# file is always eyJhbGciOiJIUzI1 — base64 of {"alg":"HS25, the public HS256
+# header that is byte-identical for every such token in existence. This is not
+# secret by construction, not by accident: change the real token and the bytes in
+# the file do not move.
+a52f1ad495129b73b9209865ad3bab975cd9a43b:scripts/test/agent-auth-results.txt:generic-api-key:6
+a52f1ad495129b73b9209865ad3bab975cd9a43b:scripts/test/agent-auth-results.txt:generic-api-key:17
+e071c724d1cd414c392419eee0944fbc852ef311:scripts/test/agent-auth-results.txt:generic-api-key:6
+e071c724d1cd414c392419eee0944fbc852ef311:scripts/test/agent-auth-results.txt:generic-api-key:17
+df498a29a9775625f0592797597ff3cee9d403f7:scripts/test/agent-auth-results.txt:generic-api-key:6
+df498a29a9775625f0592797597ff3cee9d403f7:scripts/test/agent-auth-results.txt:generic-api-key:17
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:scripts/test/agent-auth-results.txt:generic-api-key:6
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:scripts/test/agent-auth-results.txt:generic-api-key:17
+044e94b53565cb913f397f49666afef7ee408cc5:scripts/test/agent-auth-results.txt:generic-api-key:6
+044e94b53565cb913f397f49666afef7ee408cc5:scripts/test/agent-auth-results.txt:generic-api-key:17
+1205004966368141700868f9718c81570fe408f3:scripts/test/agent-auth-results.txt:generic-api-key:6
+1205004966368141700868f9718c81570fe408f3:scripts/test/agent-auth-results.txt:generic-api-key:17
+
+# CLASS: a JWT deliberately malformed to prove the API rejects it. The payload is
+# the word INVALID and the signature is the word SIGNATURE. Fixed at source in
+# 3637c7b0 (assembled with .join('.')), so no finding of this shape can appear
+# again; these six are the historical commits, which gitleaks scans whatever HEAD
+# says.
+a52f1ad495129b73b9209865ad3bab975cd9a43b:scripts/test/journey/agent-b2-backend-security.js:generic-api-key:82
+e071c724d1cd414c392419eee0944fbc852ef311:scripts/test/journey/agent-b2-backend-security.js:generic-api-key:82
+df498a29a9775625f0592797597ff3cee9d403f7:scripts/test/journey/agent-b2-backend-security.js:generic-api-key:82
+85143df5eb0838cc69b9c9671443cdae17d8f3bd:scripts/test/journey/agent-b2-backend-security.js:generic-api-key:82
+044e94b53565cb913f397f49666afef7ee408cc5:scripts/test/journey/agent-b2-backend-security.js:generic-api-key:82
+93b707705ff7e2ca8129583474445bf18451f2d1:scripts/test/journey/agent-b2-backend-security.js:generic-api-key:82
+
+# DAILY_API_KEY, from a 15-line hand-run script that created a Daily.co video
+# room — an abandoned attempt at remote farm inspection, superseded by Zoom. The
+# script and apps/backend/services/videoService are both gone from the tree, and
+# a repo-wide grep for daily.co / DAILY_API returns nothing, so no code path can
+# reach it.
+#
+# WHAT THESE TWO LINES DO NOT SAY: the value was a real 64-character hex
+# credential committed in plaintext, and history is not being rewritten (that
+# would break the SHAs every attestation is pinned to). Accepting the finding
+# silences the scanner. It does not make the key dead. Revoking it at
+# dashboard.daily.co is the only thing that does, and no agent can verify that
+# happened — see HARNESS_LOG.md.
+e94759c11737f09a8e09286986f59f0c7bee59b3:scripts/verify-video-service.js:generic-api-key:2
+ace3a81fafdc1a1322ef11a7ed720daa9c858947:scripts/verify-video-service.js:generic-api-key:2
+
+# ══════════════════════════════════════════════════════════════════════════
+# เพิ่ม 2026-09-11 — สแกนเต็มประวัติ 2,787 commit พบ 320 finding ที่ยังไม่จำแนก
+# (ของเดิม 652 รายการจาก 2026-08-08 ยังอยู่ครบด้านบน)
+#
+# **สองรายการจงใจไม่คุ้มครอง**: scripts/verify-video-service.js:2 (DAILY_API_KEY
+# 64-hex, commit b17561fe และ f15f3f2c) — หัวไฟล์นี้ระบุไว้ตั้งแต่ 2026-08-08 ว่า
+# คำตอบของมันคือ rotate-then-classify และเป็นของ operator · ยังไม่ได้หมุน จึงยัง
+# ไม่คุ้มครอง และด่านจะชี้มันต่อไปจนกว่าจะหมุน
+# ══════════════════════════════════════════════════════════════════════════
+
+# ── evidence-test-output (303) ──
+# ผลรันเทส/ผลรัน gate ที่ commit เป็นหลักฐาน — ค่าที่โดนแฟล็กคือสิ่งที่ jest หรือ service พิมพ์ออกมาระหว่างรัน (JWT ของบัญชี seed · ลิงก์รีเซ็ตรหัสของผู้ใช้ทดสอบ · ค่าที่ชื่อตัวแปรลงท้าย _KEY) ทั้งหมดเป็นข้อมูลชุดทดสอบบนฐานทดสอบ ไม่มีอันใดให้สิทธิ์เข้าถึงอะไรที่ยังมีอยู่ · **ต้นเหตุคือเรา commit log ดิบ** ไม่ใช่ค่าใดค่าหนึ่ง ดูตัวกรองปกปิดที่เพิ่มพร้อมใบนี้
+428e6149233d2a15d7aa3dd9230ec1d4993f8b3b:evidence/role-vocabulary-2026-09-10/backend-unit-suite.txt:generic-api-key:832
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:26
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:33
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:34
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:35
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:37
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:39
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:40
+ef64204b6994abdf19746aedb3f9db3ff0596737:evidence/f-g4-64-final-round/last-items/green-backend-4-suites.txt:generic-api-key:41
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:121
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:128
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:129
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:130
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:132
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:134
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:135
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix2.txt:generic-api-key:136
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:121
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:128
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:129
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:130
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:132
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:134
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:135
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites-fix1.txt:generic-api-key:136
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:224
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:231
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:232
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:233
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:235
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:237
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:238
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-be2-suites.txt:generic-api-key:239
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:386
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:393
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:394
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:395
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:397
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:399
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:400
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix1.txt:generic-api-key:401
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:386
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:393
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:394
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:395
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:397
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:399
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:400
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-fix2.txt:generic-api-key:401
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:233
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:240
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:241
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:242
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:244
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:246
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:247
+6936693bc5329e285c2f3036d5bd254ec3cdd3f4:evidence/f-g4-64-task-12/backend-gap-suites.txt:generic-api-key:248
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:528
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:535
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:536
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:537
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:539
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:541
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:542
+cb5a87810a0a331b4d9c6ef0b4d438e4f5866dab:evidence/f-g4-64-task-12/final-round-be2/green-collateral-suites.txt:generic-api-key:543
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:26
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:33
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:34
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:35
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:37
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:39
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:40
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output.txt:generic-api-key:41
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:186
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:193
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:194
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:195
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:197
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:199
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:200
+3ad311ed0c63d464e892c0078552094e89caf707:evidence/f-g4-64/task-7/fix-round-1/green-1-full-list.txt:generic-api-key:201
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:201
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:208
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:209
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:210
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:212
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:214
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:215
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-1-green-suite-output.txt:generic-api-key:216
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:164
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:171
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:172
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:173
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:175
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:177
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:178
+cc89a70340831d62ef0b27ce5e63aff87a89f19b:evidence/f-g4-64-task5-6-residual/test-output-wide.txt:generic-api-key:179
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:57
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:64
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:65
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:66
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:68
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:70
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:71
+7b89c372cf53af4ef845b92c96f1cd1e6d268828:evidence/f-g4-64-task5/fix-round-2-green-suite-output.txt:generic-api-key:72
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:26
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:33
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:34
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:35
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:37
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:39
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:40
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-2-siblings.txt:generic-api-key:41
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:26
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:33
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:34
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:35
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:37
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:39
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:40
+2a96e36f3b7ba46af19bb0398ca9c9ec3caef82e:evidence/f-g4-64/task-7/green-8-final.txt:generic-api-key:41
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1316
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1323
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1324
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1325
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1327
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1329
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1330
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1331
+7247c7a6fd8399448a081420b37bac752d8b08ba:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1513
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:4
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:11
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:12
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:13
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:15
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:17
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:18
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-combined-be-green-output.txt:generic-api-key:19
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:4
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:11
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:12
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:13
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:15
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:17
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:18
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-final-fix-1/fix1-fanout-green-output.txt:generic-api-key:19
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:4
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:11
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:12
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:13
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:15
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:17
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:18
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-output.txt:generic-api-key:19
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:4
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:11
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:12
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:13
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:15
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:17
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:18
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-green-output.txt:generic-api-key:19
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:4
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:11
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:12
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:13
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:15
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:17
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:18
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/be-fanout-red-output.txt:generic-api-key:19
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/red-output.txt:generic-api-key:4
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/red-output.txt:generic-api-key:10
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/red-output.txt:generic-api-key:11
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/red-output.txt:generic-api-key:12
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/red-output.txt:generic-api-key:14
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/red-output.txt:generic-api-key:16
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:4
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:11
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:12
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:13
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:15
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:17
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:18
+11d74b20a9d3fc4a38bf9ab00cc1def6803abaa7:evidence/external-services-cleanup-task2/test-output.txt:generic-api-key:19
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:593
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1725
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1732
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1733
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1734
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1736
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1738
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1739
+72e48fd98dd471cec627467fe029b2affec25c73:evidence/farm-areaunit-default-task2/full-unit-suite-output.txt:generic-api-key:1740
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1076
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1083
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1084
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1085
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1087
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1089
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1090
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1091
+2f625291ccfb211e5cc34e6dc7e655d236da030e:evidence/farm-areaunit-default-task3/full-unit-suite-output.txt:generic-api-key:1430
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1035
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1042
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1043
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1044
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1046
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1048
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1049
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1050
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/full-suite-output-1-pre-fix.txt:generic-api-key:1915
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1160
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1717
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1724
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1725
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1726
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1728
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1730
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1731
+18987d69d5677420ffad576b61cf16c296c88b3c:evidence/external-services-cleanup-t3/test-output.txt:generic-api-key:1732
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:546
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:953
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:956
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:957
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:958
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:959
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:960
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:961
+5ccde7b62dfc4a1620b8d18d909a521ea1b60a4a:evidence/external-services-cleanup-t4/full-suite-output.txt:generic-api-key:961
+a56465c6d056befe24db90cefe770c04a9163c28:evidence/phase0/s05/C11-assign-response.txt:generic-api-key:13
+a56465c6d056befe24db90cefe770c04a9163c28:evidence/phase0/walk1-blocked-specimen/s05/C11-assign-response.txt:generic-api-key:4
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:397
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:404
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:405
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:406
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:408
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:410
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:411
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:412
+41cb6cbb5ad4cb622e63114910b5640ff0760098:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:1668
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1066
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1073
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1074
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1075
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1077
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1079
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1080
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1081
+52b2648621c5df75a7963e65282af1f191b38c75:evidence/M1.5/gate-local-full.txt:generic-api-key:1958
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:868
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1247
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1254
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1255
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1256
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1258
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1260
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1261
+5dd1c3f437ad243ec253c3508b229d20f0373a6f:evidence/M2a/gate-local-full.txt:generic-api-key:1262
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1122
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1129
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1130
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1131
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1133
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1135
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1136
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1137
+8f62fbe194d601d431235f5adf38749985b2d5f0:evidence/M1/PR-C/c2-full-suite.txt:generic-api-key:1240
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1157
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1164
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1165
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1166
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1168
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1170
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1171
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1172
+d9104fa47451b3393a5f4d4ac55a9889ec6c184d:evidence/M1/PR-C/gate-local-full.txt:generic-api-key:1300
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:333
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:340
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:341
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:342
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:344
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:346
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:347
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:348
+4426934f663846049a847d9d1b4bdc9726e91ac4:evidence/M1/PR-A/a4-local-gate-full.txt:generic-api-key:4292
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1113
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1120
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1121
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1122
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1124
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1126
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1127
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1128
+a69cb6278a6eda24f10bbccf71c5e14e059a8dee:evidence/M1/PR-B/gate-local-full.txt:generic-api-key:1205
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1023
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1030
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1031
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1032
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1034
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1036
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1037
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1038
+fd58f516ea968018c4380cf49ed51d56d32d2552:evidence/remove-mock-idp/local-gate-full.txt:generic-api-key:1263
+
+# ── classifier-self-reference (1) ──
+# private-key — สคริปต์ที่ **สร้าง** ไฟล์นี้เอง ยกข้อความ -----BEGIN PRIVATE KEY-----\nABC\n มาเป็นเงื่อนไขจำแนก ⇒ ตัวจำแนกถูกแฟล็กเพราะบรรยายสิ่งที่มันจำแนก
+99e95d1d5ef8131ffb7cc561e3cf6eedbe20011b:evidence/SECRET-SCAN-HONEST/build-gitleaksignore.py:private-key:36
+
+# ── report-artifact (4) ──
+# JWT และ token ที่ติดมากับรายงาน/สถานะการเดินระบบ — บัญชีทดสอบ หมดอายุแล้ว · คลาสเดียวกับ evidence-test-output ต่างที่ปลายทางเป็น reports/
+48e8558ed20e40cd5f330d15e4441dfe47d617bb:reports/planting-audit/state.json:jwt:17
+48e8558ed20e40cd5f330d15e4441dfe47d617bb:reports/planting-audit/state.json:jwt:27
+48e8558ed20e40cd5f330d15e4441dfe47d617bb:reports/planting-audit/state.json:jwt:52
+256324e055c137567df2ce38a4b230977aade9ff:reports/design-cleanup-2026-08-21/W1-5-GREEN.txt:generic-api-key:473
+
+# ── openapi-placeholder (8) ──
+# ตัวอย่างใน API document — ค่าเป็น placeholder ตรง ๆ เช่น accessToken: '<ACCESS_TOKEN>' และ curl ตัวอย่างที่มีหัว Authorization
+b17561fe174aa9677854a7fae96e0b4458d64c22:openapi/README.md:curl-auth-header:310
+b17561fe174aa9677854a7fae96e0b4458d64c22:openapi/authentication-service.yaml:generic-api-key:201
+b17561fe174aa9677854a7fae96e0b4458d64c22:openapi/authentication-service.yaml:generic-api-key:202
+b17561fe174aa9677854a7fae96e0b4458d64c22:openapi/authentication-service.yaml:generic-api-key:257
+f15f3f2c2fcf4113a5e0a7f3dd31235686235df2:openapi/README.md:curl-auth-header:310
+f15f3f2c2fcf4113a5e0a7f3dd31235686235df2:openapi/authentication-service.yaml:generic-api-key:201
+f15f3f2c2fcf4113a5e0a7f3dd31235686235df2:openapi/authentication-service.yaml:generic-api-key:202
+f15f3f2c2fcf4113a5e0a7f3dd31235686235df2:openapi/authentication-service.yaml:generic-api-key:257
+
+# ── test-fixture-name (2) ──
+# ชื่อตัวแปรทำให้โดน ไม่ใช่ค่า — AVATAR_KEY ถือชื่อไฟล์ .png · HEALTH_JWT_SECRET ถือชื่อตัวแปร longValue
+9f6f0ecb32d82a14e88ce3581ca387d5f2636b93:apps/backend/__tests__/unit/uploads-signed-url.test.js:generic-api-key:21
+18987d69d5677420ffad576b61cf16c296c88b3c:apps/backend/__tests__/unit/secrets-catalog.test.js:generic-api-key:217
+
+# ── revoked-dead-service (2) ──
+# generic-api-key — DAILY_API_KEY 64-hex ใน scripts/verify-video-service.js (history อย่างเดียว
+# ไฟล์ถูกลบจาก tree แล้ว) · operator ยืนยันเป็นลายลักษณ์อักษรว่า revoke แล้ว (HARNESS_LOG
+# 2026-08-14 "ยืนยัน revoke daily.co") และยืนยันอีกครั้ง 2026-09-11 ว่าแพลตฟอร์มไม่มีบัญชี
+# Daily.co และไม่เคยใช้บริการนี้ ⇒ คีย์ของบัญชีที่ไม่มีอยู่ ใช้ทำอะไรไม่ได้
+b17561fe174aa9677854a7fae96e0b4458d64c22:scripts/verify-video-service.js:generic-api-key:2
+f15f3f2c2fcf4113a5e0a7f3dd31235686235df2:scripts/verify-video-service.js:generic-api-key:2
+
+# ── dedupe-key-in-test-output (28) ──
+# ค่า hex ของ dedupeKey ในผลเทสต์ที่คอมมิตไว้ใต้ evidence/ gitleaks จับเพราะชื่อช่อง ไม่ใช่ความลับ
+# จัดประเภท 2026-10-13: ไม่ตรงกับค่าลับปัจจุบันใด ๆ 2,417 ค่า (เทียบในหน่วยความจำ ไม่พิมพ์ค่า)
+# operator อนุมัติ 2026-10-14 ("เอาตามคุณแนะนำทั้งหมด") · บันทึกใน HARNESS_LOG.md วันเดียวกัน
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide-approver.txt:generic-api-key:318
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide-approver.txt:generic-api-key:319
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide-approver.txt:generic-api-key:328
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide-approver.txt:generic-api-key:329
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide.txt:generic-api-key:271
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide.txt:generic-api-key:272
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide.txt:generic-api-key:281
+1c3a183c8099bffd8051f4d925af6e6ccd3bb13a:evidence/dispatcher-r5/redgreen/65-1-wide.txt:generic-api-key:282
+457635f1edadae3971047e8aa4d603f312948cd5:evidence/dispatcher-r4/redgreen/L3-L4-L5-green-wide.txt:generic-api-key:318
+457635f1edadae3971047e8aa4d603f312948cd5:evidence/dispatcher-r4/redgreen/L3-L4-L5-green-wide.txt:generic-api-key:319
+457635f1edadae3971047e8aa4d603f312948cd5:evidence/dispatcher-r4/redgreen/L3-L4-L5-green-wide.txt:generic-api-key:328
+457635f1edadae3971047e8aa4d603f312948cd5:evidence/dispatcher-r4/redgreen/L3-L4-L5-green-wide.txt:generic-api-key:329
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:59
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:66
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:67
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:68
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:70
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:72
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:73
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/backend-targeted.txt:generic-api-key:74
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:27
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:34
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:35
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:36
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:38
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:40
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:41
+791873ed983eee5c974d83ae5a8b7e146ef54eac:evidence/payment-terms-v1.3/red-backend.txt:generic-api-key:42
+
+# ── mock-error-type-string (1) ──
+# สตริงชนิดข้อผิดพลาดที่ getter จำลองคืนในเทสต์ unit (ไฟล์ไม่อยู่ใน HEAD แล้ว) · จัดประเภท 2026-10-13 · operator อนุมัติ 2026-10-14
+4a5f73c3116858040adcc1ab34d8f1d8328a9add:apps/backend/__tests__/unit/probe-provider-shapes.test.js:generic-api-key:1038
+
+# ── empty-placeholder (1) ──
+# SURVEY_RESPONDENT_KEYS_RETIRED="" ใน .env.example ค่าว่าง gitleaks จับชื่อตัวแปร · จัดประเภท 2026-10-13 · operator อนุมัติ 2026-10-14
+faac987a52c0ae6a0e7a1c5b710a7ff3c7342e86:apps/backend/.env.example:generic-api-key:231
+
+# ── forged-test-key-in-evidence (1) ──
+# idempotencyKey "FORGED-..." ในผล mutant ของหลักฐาน submit-door-truth เป็นคีย์ทดสอบปลอมที่เทสต์สร้างเอง ไม่ใช่ความลับ
+# จัดประเภท 2026-10-14 (ผลตรวจอิสระของกิ่ง ข้อ F1) · operator อนุมัติ 2026-10-14 (คำสั่ง 83) · บรรทัดในไฟล์ปัจจุบันเปลี่ยนถ้อยคำแล้ว
+c3582d6a6480795ae689d3b59231198e5102910c:evidence/submit-door-truth/runs/mutant-M67d.txt:generic-api-key:30
+
+# ── notification-dedupe-hash-in-test-logs (68) ──
+# dedupeKey ใน log ผลเทสต์ใต้ evidence/ เป็น sha256 ของ userId|type|applicationId|invoiceId|certNumber|period
+# จาก notification-fanout-service.js _makeDedupeKey ใช้กันแจ้งเตือนซ้ำ ไม่ใช่ credential
+# จัดประเภท 2026-11-07 จากการสแกน gitleaks 8.30.1 ที่ aaa6b80f6 · operator อนุมัติ 2026-11-07
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green-backend.txt:generic-api-key:418
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green-backend.txt:generic-api-key:419
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green-backend.txt:generic-api-key:433
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green-backend.txt:generic-api-key:434
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green2-backend.txt:generic-api-key:498
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green2-backend.txt:generic-api-key:499
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green2-backend.txt:generic-api-key:513
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/green2-backend.txt:generic-api-key:514
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/red-backend.txt:generic-api-key:418
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/red-backend.txt:generic-api-key:419
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/red-backend.txt:generic-api-key:433
+212943a3e4789e067dbeb4d8673ea73ae1f6cbac:evidence/launch-guards-1/item1-4/runs/red-backend.txt:generic-api-key:434
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:536
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:543
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:544
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:545
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:547
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:549
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:550
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green-2.log:generic-api-key:551
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:17
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:24
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:25
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:26
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:28
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:30
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:31
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-green.log:generic-api-key:32
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9046
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9053
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9054
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9055
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9057
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9059
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9060
+226b1274126f9696abc4d223550c8092078779cc:evidence/payment-trial-marking/runs/r2-backend-affected-red.log:generic-api-key:9061
+66b89466492f2c681e8e8d5861bfeb25316573ef:evidence/issuance-holder-complete/green-after-fix.txt:generic-api-key:2717
+66b89466492f2c681e8e8d5861bfeb25316573ef:evidence/issuance-holder-complete/green-after-fix.txt:generic-api-key:2718
+66b89466492f2c681e8e8d5861bfeb25316573ef:evidence/issuance-holder-complete/green-after-fix.txt:generic-api-key:2732
+66b89466492f2c681e8e8d5861bfeb25316573ef:evidence/issuance-holder-complete/green-after-fix.txt:generic-api-key:2733
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/green-related-backend.txt:generic-api-key:395
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/green-related-backend.txt:generic-api-key:396
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/green-related-backend.txt:generic-api-key:410
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/green-related-backend.txt:generic-api-key:411
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/main-approver-decision-tools.txt:generic-api-key:393
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/main-approver-decision-tools.txt:generic-api-key:394
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/main-approver-decision-tools.txt:generic-api-key:408
+6c58114eb96e37513faa6b835d969488ca83986a:evidence/a8-walk-findings-3/main-approver-decision-tools.txt:generic-api-key:409
+8c324699678d2ded2b58eba5e3d33564a8be0231:evidence/renewal-keeps-farm/logs/affected-96999f75b.log:generic-api-key:655
+8c324699678d2ded2b58eba5e3d33564a8be0231:evidence/renewal-keeps-farm/logs/affected-96999f75b.log:generic-api-key:656
+8c324699678d2ded2b58eba5e3d33564a8be0231:evidence/renewal-keeps-farm/logs/affected-96999f75b.log:generic-api-key:670
+8c324699678d2ded2b58eba5e3d33564a8be0231:evidence/renewal-keeps-farm/logs/affected-96999f75b.log:generic-api-key:671
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3267
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3274
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3275
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3276
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3278
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3280
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3281
+d22fc2ab652f0fca7078aa212d319cc634a07004:evidence/payment-trial-marking/runs/r3-i2-affected.log:generic-api-key:3282
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3379
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3386
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3387
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3388
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3390
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3392
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3393
+de3bf6082b99458f11e102ba8f2956e40f403199:evidence/payment-trial-marking/runs/r4-affected.log:generic-api-key:3394

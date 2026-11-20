@@ -1,0 +1,38 @@
+B0 round 2 full suites at 21dd415e3 (code final; later commits are evidence and docs only)
+Run 2026-10-09 13:47-14:03 UTC through ~/work/state/heavy.sh, NODE_OPTIONS=--max-old-space-size=3072,
+a private SIGNING_KEY_DIR and the scratch Postgres 17 (finleaks-pg). Backend unit and web jest with
+--maxWorkers=2; backend integration on a freshly migrated database, serially, as the full gate runs it.
+evidence/payer-block restored after the run (git checkout -- evidence/payer-block).
+
+  backend unit:        suites 903/904 passed, 0 failed · tests 12313 passed, 0 failed, 39 skipped, 12352 total
+    failed names: 0
+  backend integration: suites 164/172 passed, 7 failed · tests 1742 passed, 23 failed, 13 skipped, 1778 total
+    failed names: 23 · baseline 23
+    new (on this branch, not in the baseline):
+    fixed (in the baseline, passing here):
+  web jest:            suites 485/485 passed, 0 failed · tests 3944 passed, 0 failed, 0 skipped, 3944 total
+  web tsc:             0 error(s) · log lines 0
+
+Integration failures compared BY NAME with evidence/b0-finance-read-leaks/integration-failures-main-2b2dbfd4.txt
+(the 23 baseline names; the full gate of 1b554df0c had the same 23): 0 new, 0 fixed.
+This round adds 28 unit tests (12,285 -> 12,313) and 17 integration tests (1,725 -> 1,742).
+No PDF suite timed out in this run, so none was rerun alone.
+
+Earlier targeted runs while fixing (logs in the round's scratch folder, not committed): real-Postgres
+finance-read-leaks 25/25 (also in green.txt) · 10 related integration suites 224/224 after the L2 fix ·
+12 unit suites around notes and books access 498/498 after the I6 fix · 13 uploads and signed-URL suites
+151/152 after the M2 fix, the one failure a drifted error-code pointer, re-pointed in the same commit
+(pointer test 5/5 after). The full run above covers all of them at the final code.
+
+CI probes (node scripts/ci/probe-gate.js, PROBE_OUT_DIR in scratch) at 21dd415e3 compared with the probe-ci log
+of the full gate on 1b554df0c, whose statuses equal main's: identical, 23 probes. Statuses on both:
+  dependency-audit FAIL		  main-attestation-audit FAIL	  schema-arg-resolves PASS
+  deploy-drift FAIL		  nginx-config-drift FAIL	  settle-webhook-only PASS
+  deps-health FAIL		  no-public-financial-pdfs PASS	  status-vocab FAIL
+  dockerignore-secrets PASS	  no-secret FAIL		  stripe-sdk-isolated PASS
+  fee-single-source PASS	  no-skip PASS			  themed-surface-tokens PASS
+  gate-attestation FAIL		  ratchet PASS			  tier-check PASS
+  holder-read-scope PASS	  report-integrity PENDING	  webhook-idempotent PASS
+  holiday-single-source PASS	  retired-words PASS
+gate-attestation fails in both runs because a head's attestation is written by its own full gate (the coordinator queues it).
+Ratchet counters (hardcode/todo/env-direct/dup-source): 26/51/99/0, the same as round 1.

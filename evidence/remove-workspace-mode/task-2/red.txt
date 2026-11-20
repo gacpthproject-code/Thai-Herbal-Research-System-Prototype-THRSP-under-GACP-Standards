@@ -1,0 +1,157 @@
+# Task 2 RED — read witness (2026-09-30, Node 24.21.0, Prisma 5.22.0)
+
+## RED 1 (no modules yet)
+cmd: cd apps/backend && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/unit/holder-read-witness.test.js
+result: Test suite failed to run — Cannot find module '../../services/holder-read-witness' (test file line 45). Tests: 0 total.
+
+## RED 2 (interface stubs only: checkHolderScoped() no-op, holderReadWitnessMode() returns 'shadow')
+cmd: same
+Tests:       33 failed, 34 passed, 67 total
+
+Failing tests and their assertion lines:
+- holderReadWitnessMode › reads 'off' from HOLDER_READ_WITNESS
+          Expected: "off"
+          Received: "shadow"
+- holderReadWitnessMode › reads 'throw' from HOLDER_READ_WITNESS
+          Expected: "throw"
+          Received: "shadow"
+- health + watched model + no marker (shadow) › findMany → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: 1
+          Received: 0
+- health + watched model + no marker (shadow) › findFirst → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: 1
+          Received: 0
+- health + watched model + no marker (shadow) › findUnique → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: 1
+          Received: 0
+- health + watched model + no marker (shadow) › findFirstOrThrow → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: "function"
+          Received: "undefined"
+- health + watched model + no marker (shadow) › findUniqueOrThrow → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: "function"
+          Received: "undefined"
+- health + watched model + no marker (shadow) › count → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: 1
+          Received: 0
+- health + watched model + no marker (shadow) › aggregate → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: 1
+          Received: 0
+- health + watched model + no marker (shadow) › groupBy → counter +1 {model,op}, warn log with signal and caller stack, read proceeds
+          Expected: 1
+          Received: 0
+- health + watched model + no marker (shadow) › a spread-then-override where is unscoped (value-bound marker)
+          Expected: 1
+          Received: 0
+- throw mode › findMany rejects with HEALTH_READ_UNSCOPED before the query runs
+          Received promise resolved instead of rejected
+- throw mode › findFirst rejects with HEALTH_READ_UNSCOPED before the query runs
+          Received promise resolved instead of rejected
+- throw mode › findUnique rejects with HEALTH_READ_UNSCOPED before the query runs
+          Received promise resolved instead of rejected
+- throw mode › findFirstOrThrow rejects with HEALTH_READ_UNSCOPED before the query runs
+          TypeError: hooks[op] is not a function
+- throw mode › findUniqueOrThrow rejects with HEALTH_READ_UNSCOPED before the query runs
+          TypeError: hooks[op] is not a function
+- throw mode › count rejects with HEALTH_READ_UNSCOPED before the query runs
+          Received promise resolved instead of rejected
+- throw mode › aggregate rejects with HEALTH_READ_UNSCOPED before the query runs
+          Received promise resolved instead of rejected
+- throw mode › groupBy rejects with HEALTH_READ_UNSCOPED before the query runs
+          Received promise resolved instead of rejected
+- throw mode › checkHolderScoped throws synchronously with the model and op
+          Received value: undefined
+- throw mode › args with no where at all is unscoped
+          Received function did not throw
+- silent cases › mode shadow › marker present → nothing (findFirstOrThrow)
+          TypeError: hooks[op] is not a function
+- silent cases › mode shadow › marker present → nothing (findUniqueOrThrow)
+          TypeError: hooks[op] is not a function
+- silent cases › mode throw › marker present → nothing (findFirstOrThrow)
+          TypeError: hooks[op] is not a function
+- silent cases › mode throw › marker present → nothing (findUniqueOrThrow)
+          TypeError: hooks[op] is not a function
+- tenant-context middleware sets the principal › canonicalRole document_reviewer → principal 'staff'
+          Expected: "staff"
+          Received: undefined
+- tenant-context middleware sets the principal › canonicalRole system_admin_platform → principal 'staff'
+          Expected: "staff"
+          Received: undefined
+- tenant-context middleware sets the principal › canonicalRole undefined → principal 'staff'
+          Expected: "staff"
+          Received: undefined
+- tenant-context middleware sets the principal › a legacy role string 'health' without canonicalRole is not trusted as health
+          Expected: "staff"
+          Received: undefined
+- holder fragments are deep-frozen (a vouched value cannot be widened in place) › holderReadWhere(Application).entityId.in.push throws
+          Received function did not throw
+- holder fragments are deep-frozen (a vouched value cannot be widened in place) › a relation fragment (Invoice) is frozen at every level
+          Expected: true
+          Received: false
+- holder fragments are deep-frozen (a vouched value cannot be widened in place) › the Farm fragment (built and marked by farm-access) is frozen, OR branches included
+          Received function did not throw
+
+Note: the 'marker present', silent-case and ALS-ordering tests pass vacuously against the no-op stub; the ordering test is made non-vacuous by the mutation check recorded in green.txt.
+
+## RED 3 — option D (value registration), real Postgres, full prisma-database chain
+setup: postgres:17 on 127.0.0.1:5447, prisma migrate deploy; code = symbol-marker witness (before option D)
+cmd: cd apps/backend && DATABASE_URL=TEST_DATABASE_URL=<local 5447> SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs -i __tests__/integration/holder-read-witness-real-postgres.test.js __tests__/integration/holder-marker-prisma-real-postgres.test.js
+Tests:       9 failed, 16 passed, 25 total
+[annotation, written by hand, not jest output: 0 skipped. The Tests: line above carries no "skipped" count and the run printed no ○ lines.]
+
+Failing tests and their assertion lines:
+- (a) mode shadow: a registered Application fragment is scoped › findMany / findUniqueOrThrow / findFirstOrThrow / count run, nothing counted or logged
+          Expected: 0
+          Received: 1
+- (a) mode shadow: a registered Application fragment is scoped › the entity ALS rewrite really runs after the witness: entity W hides the X row, no witness hit
+          - Expected  - 1
+          + Received  + 5
+- (a) mode shadow: a registered Application fragment is scoped › a registered Farm fragment (holderReadWhere and farmAccessWhere) is scoped
+          - Expected  -  1
+          + Received  + 26
+- (a) mode throw: a registered Application fragment is scoped › findMany / findUniqueOrThrow / findFirstOrThrow / count run, nothing counted or logged
+          HEALTH_READ_UNSCOPED: health read Application.findMany has no holder scope (spread holderReadWhere into where)
+- (a) mode throw: a registered Application fragment is scoped › the entity ALS rewrite really runs after the witness: entity W hides the X row, no witness hit
+          HEALTH_READ_UNSCOPED: health read Application.findMany has no holder scope (spread holderReadWhere into where)
+- (a) mode throw: a registered Application fragment is scoped › a registered Farm fragment (holderReadWhere and farmAccessWhere) is scoped
+          HEALTH_READ_UNSCOPED: health read Farm.count has no holder scope (spread holderReadWhere into where)
+- (b) entityId overridden after the spread › shadow: the read runs, counted +1, logged with model/op/route/principal
+          - Expected  - 3
+          + Received  + 8
+- (d) Invoice relation fragment › a registered application.entityId fragment is scoped
+          Received promise rejected instead of resolved
+          Rejected to value: [Error: HEALTH_READ_UNSCOPED: health read Invoice.count has no holder scope (spread holderReadWhere into where)]
+- (e) OR › every branch registered → scoped
+          HEALTH_READ_UNSCOPED: health read Application.findMany has no holder scope (spread holderReadWhere into where)
+
+Passing at RED (unscoped cases, vacuous before D): (b) throw, (b) deleted key, (c), (d) hand-written, (e) one unregistered branch, (f) x2.
+Correction: the shadow-mode 'entity W hides the X row' failure above was partly my own wrong expectation (rows [] ). The ALS rewrite REPLACES entityId, so the read returns the W row. The test now expects [{id: appW}], which proves the rewrite ran after the witness passed the read.
+
+## RED 4 — reviewer minors M1/M4/M5 (unit, before the fix)
+cmd: cd apps/backend && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/unit/holder-read-witness.test.js
+Tests:       9 failed, 79 passed, 88 total
+Failing tests and their assertion lines:
+- tenant-context middleware sets the principal › route: a string snapshot "METHOD baseUrl+path" taken at bind time; no getter, not enumerable
+          Received: [Function get]
+- a failing check never changes a read in shadow/off, and fails closed in throw (M1) › BigInt in a registered key: shadow reads on, counted once (unscoped, not a crash)
+          Received promise rejected instead of resolved
+          Rejected to value: [TypeError: Do not know how to serialize a BigInt]
+- a failing check never changes a read in shadow/off, and fails closed in throw (M1) › canonical form accepts BigInt and keeps it distinct from the number
+          Error name:    "TypeError"
+          Error message: "Do not know how to serialize a BigInt"
+- a failing check never changes a read in shadow/off, and fails closed in throw (M1) › shadow: a check that throws → no throw, counted once and logged once with the error
+          Error name:    "Error"
+          Error message: "boom in where"
+- a failing check never changes a read in shadow/off, and fails closed in throw (M1) › throw: a check that throws fails closed with HEALTH_READ_UNSCOPED
+          Received message: "boom in where"
+- off mode is near-free (M4) › the mode is read once and cached: a later env change has no effect until reset
+          Expected: "throw"
+          Received: "off"
+- off mode is near-free (M4) › an unwatched model never reads the mode (isWatchedModel is checked first)
+          Received number of calls:    0
+- off mode is near-free (M4) › mode off: holderReadWhere registers nothing (still deep-frozen)
+          Expected: false
+          Received: true
+- off mode is near-free (M4) › a staff principal registers nothing
+          Expected: false
+          Received: true
+M2/M3 real-PG cases are pins of existing behaviour (they passed on first run); their non-vacuity is the key-only mutation in green.txt.

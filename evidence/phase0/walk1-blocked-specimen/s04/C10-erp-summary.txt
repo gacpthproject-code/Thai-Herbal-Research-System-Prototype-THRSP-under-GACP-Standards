@@ -1,0 +1,25 @@
+C10 ERP summary — POST-HOC (เขียนโดย orchestrator หลัง spec crash — ไม่ใช่ output ของ spec)
+เวลา verify: 2026-08-19 00:50 (Asia/Bangkok) · app f866374a-8f6b-4c7a-b850-bd09491db042 · order e0276505 (M2) · PI pi_3U5qy4Q4HsQ2Gmd52X87Ekem
+
+ทำไมไฟล์นี้เป็น post-hoc: spec s04 รันจนตัวจ่ายเงินจบจริง (C10-settle.txt: SETTLED · AUDIT_FEE_PAID · settled=true
+เขียนโดย spec เอง) แล้ว crash ที่ query เก็บหลักฐานบรรทัด 252 — `metadata LIKE` บนคอลัมน์ jsonb (Postgres 42883)
+query นี้ไม่เคยถูก exercise มาก่อนเพราะรอบก่อน s04 ตายที่ C09 ก่อนถึงบรรทัดนี้ (F-CHECKOUT-M2-INVOICE-UNIQUE)
+การ re-run spec ทำไม่ได้เพราะ precondition (M2-payable) ไม่จริงแล้ว — แถวจ่ายไปแล้วจริง จึง verify แบบ read-only
+บนแถวเดิมด้วย query ชุดเดียวกับ spec (แก้ cast แล้ว) — assertion ครบทุกข้อของ money-shot:
+
+1. settled: checkout_orders(M2)=SETTLED AND application=AUDIT_FEE_PAID ............ PASS (spec เขียนเอง C10-settle.txt)
+2. webhook payment_intent.succeeded evt_3U5qy4Q4HsQ2Gmd52LpuGr2l
+   status=PROCESSED processed=true error='' ...................................... PASS
+3. canonical APPLICATION_STATUS_TRANSITION →AUDIT_FEE_PAID:
+   actorRole=SYSTEM reason=CHECKOUT_M2_SETTLED timestamp=2026-08-18T17:39:04.651Z . PASS (≥1 แถว)
+   หมายเหตุ: spec query เดิมพลาดเพราะ metadata เก็บเป็น JSON string ซ้อนใน jsonb
+   (text form มี \" escape) — แก้ pattern ใน spec แล้ว (s04:254) + FINDING F-AUDIT-META-DOUBLE-ENCODED
+4. journal entry ของ INV-CO-E0276505-M2: totalDebit=totalCredit=27675 entry_balanced=true
+   lines 27675=27675 ............................................................. PASS (C10-erp-journal.txt)
+5. money equation: 27675 = 25000 + 2500 + 175 (eq_total) · 2675 = 2500+175 (eq_gross) PASS (C10-erp-checkout-eq.txt)
+6. receipt documents ของ order M2: DTAM_DISBURSAL_RECEIPT RCP-DTAM-๒๕๖๙-๐๐๐๐๑๑ +
+   PLATFORM_TAX_INVOICE TAX-PRD-2026-000011 (2 ใบครบ) ............................ PASS
+7. M2 checkout invoice INV-CO-E0276505-M2 status=paid ............................. PASS (C10-erp-invoices.txt)
+8. dtam_remittance_status=PENDING settledAt=2026-08-18T17:39:00.639Z .............. RECORDED (liability ตั้งแล้ว รอ remit)
+
+VERDICT: C09+C10 PASS — เส้นเงินงวด 2 เดินจริงจบจริงบน Stripe rail (fix F-CHECKOUT-M2-INVOICE-UNIQUE พิสูจน์บน DB จริงแล้ว)

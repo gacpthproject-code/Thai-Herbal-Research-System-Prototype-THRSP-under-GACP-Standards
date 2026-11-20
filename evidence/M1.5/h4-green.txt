@@ -1,0 +1,337 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (65 ms)
+    √ MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (12 ms)
+    √ MANAGER holding a GRANT, with the active-entity header sent → 200 (13 ms)
+    √ ADMIN can submit (11 ms)
+    √ OWNER can submit (11 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (21 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (11 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (11 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (12 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (12 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (11 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (11 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (21 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (11 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (11 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (11 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (11 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        2.872 s, estimated 5 s
+Ran all test suites matching /__tests__\\unit\\applications-submit-capability-gate.test.js/i.
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (72 ms)
+    √ MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (21 ms)
+    √ MANAGER holding a GRANT, with the active-entity header sent → 200 (13 ms)
+    √ ADMIN can submit (11 ms)
+    √ OWNER can submit (11 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (11 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (11 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (10 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (12 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (22 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (11 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (11 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (11 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (11 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (11 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (12 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (11 ms)
+
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+  M1 — POST /bundles/:id/submit asks the guard about EVERY linked case
+    √ a linked case with no entityId (nothing to heal) → 400 VALIDATION_ERROR, no transaction opened (60 ms)
+    √ a linked case the caller may not act for → 403 ENTITY_PERMISSION_DENIED + audit FAILURE, nothing written (17 ms)
+    √ every allowed case is asked about by its OWN entityId, then submitted (15 ms)
+    √ heals a pre-Phase-66 linked case from the personal entity instead of refusing it (25 ms)
+  M1 — PUT /revision-deadline/:id/submit
+    √ health user who may not act for the application entity → 403, deadline row untouched (45 ms)
+    √ health user who may act → submits, and the row records in whose name (13 ms)
+    √ provider bypass survives, but ALWAYS writes an actorType PROVIDER row naming the entity (13 ms)
+  M1 — POST /applications/:id/car
+    √ refuses with 403 when the caller may not act for the application entity — nothing written (44 ms)
+    √ refuses with 400 when the row names no entity and nothing can be healed (12 ms)
+    √ allows the owner through, asking about the application row entity (14 ms)
+  M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too
+    √ no entityId and nothing to heal → 400 VALIDATION_ERROR, submitRevision never runs (61 ms)
+    √ caller who may not act for the entity → 403 + audit FAILURE, submitRevision never runs (13 ms)
+    √ allowed → asks about the row entity, submits, and records the accepted act (AC3) (12 ms)
+    √ heals a pre-Phase-66 row from the personal entity before deciding (9 ms)
+  M1 — POST /applications/renewals seeds entityId or refuses
+    √ carried an entityId from the source application → 201 (55 ms)
+    √ source had none → heals from the personal entity → 201 (16 ms)
+    √ nothing to seed and nothing to heal → 400 VALIDATION_ERROR (never a draft that can never be submitted) (16 ms)
+
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (39 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (12 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (12 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (25 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (11 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (12 ms)
+
+  console.error
+    [submit-guard] denial audit write failed {
+      applicationId: 'a1',
+      code: 'ENTITY_PERMISSION_DENIED',
+      error: 'audit chain down'
+    }
+
+    [0m [90m 109 |[39m         [90m// auditLogger.log() already console-falls-back internally; this catch[39m
+     [90m 110 |[39m         [90m// only covers a failure of the call itself (e.g. the module missing).[39m
+    [31m[1m>[22m[39m[90m 111 |[39m         console[33m.[39merror([32m'[submit-guard] denial audit write failed'[39m[33m,[39m {
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 112 |[39m             applicationId[33m:[39m application[33m?[39m[33m.[39mid [33m||[39m [36mnull[39m[33m,[39m
+     [90m 113 |[39m             code[33m,[39m
+     [90m 114 |[39m             error[33m:[39m auditErr[33m?[39m[33m.[39mmessage[33m,[39m[0m
+
+      at error (services/application-submit-guard.js:111:17)
+      at assertSubmitAllowed (services/application-submit-guard.js:165:9)
+      at Object.<anonymous> (__tests__/unit/application-submit-guard.test.js:133:9)
+
+PASS __tests__/unit/application-submit-guard.test.js
+  M1 assertSubmitAllowed
+    √ exports the SUBMIT_APPLICATION permission string it gates on (2 ms)
+    √ 400 VALIDATION_ERROR when application has no entityId (2 ms)
+    √ 403 ENTITY_PERMISSION_DENIED + audit FAILURE when neither ACTIVE member nor grant-holder (2 ms)
+    √ passes when the engine allows (role default / GRANT row — REVOKE-wins lives in the engine) (1 ms)
+    √ keys off the APPLICATION row entityId — an x-active-entity header for another entity changes nothing (2 ms)
+    √ fails CLOSED when the engine throws something that is not the canonical denial (1 ms)
+    √ a missing userId is a denial, not a pass (1 ms)
+    √ the audit write is best-effort — a failing auditLogger never converts a 403 into a 500 (72 ms)
+    √ carries the denial through as an http-shaped error (statusCode/httpStatus) for sendServiceError (2 ms)
+    √ the FAILURE row is insertable when the caller passes no auditContext (no null NOT-NULL column) (1 ms)
+    √ the FAILURE row is insertable for an actor-less attempt (actorId still a string) (1 ms)
+    √ works without an auditContext at all (guard must not depend on the caller remembering it) (1 ms)
+
+PASS __tests__/unit/entity-farm-operation-capabilities.test.js
+  Wave B chunk 2 — farm-operation CAPABILITIES
+    √ defines every farm-operation code as its own stable string (4 ms)
+    √ reuses EDIT_FARM for farm edit — no FARM_EDIT duplicate synonym (2 ms)
+    √ BINDING: no FARM_DELETE or draft-delete code in the taxonomy (2 ms)
+    √ FARM_OPERATION_CAPABILITIES = the 14 new codes + EDIT_FARM + SUBMIT_APPLICATION, frozen (2 ms)
+    √ keeps the 10 pre-existing workspace-management codes intact (3 ms)
+  Wave B chunk 2 — role defaults for farm-operation codes
+    √ OWNER holds every farm-operation code (3 ms)
+    √ ADMIN holds every farm-operation code (1 ms)
+    √ MANAGER holds every farm-operation code EXCEPT FARM_CREATE + EDIT_FARM + SUBMIT_APPLICATION (2 ms)
+    √ VIEWER default stays empty (read-only) (1 ms)
+    √ workspace-management bundles unchanged: ADMIN still lacks TRANSFER_OWNERSHIP/DELETE_ENTITY, MANAGER still lacks INVITE_MEMBER (1 ms)
+  M1 D6 — SUBMIT_APPLICATION is grantable, never a MANAGER default
+    √ (a) MANAGER default bundle does NOT contain SUBMIT_APPLICATION (no silent escalation) (1 ms)
+    √ (b) the grantable set contains SUBMIT_APPLICATION, so an OWNER can GRANT it per member (1 ms)
+    √ OWNER and ADMIN still hold SUBMIT_APPLICATION exactly once (no duplicate from the spread) (1 ms)
+
+Test Suites: 5 passed, 5 total
+Tests:       65 passed, 65 total
+Snapshots:   0 total
+Time:        6.473 s
+Ran all test suites matching /applications-submit|submit-guard|entity-farm-operation-capabilities/i.
+
+=== POST-MUTATION REVERT — gate removed again, suite must be green ===
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (72 ms)
+    √ MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (21 ms)
+    √ MANAGER holding a GRANT, with the active-entity header sent → 200 (12 ms)
+    √ ADMIN can submit (10 ms)
+    √ OWNER can submit (12 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (15 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (11 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (11 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (11 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (23 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (14 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (11 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (12 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (11 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (12 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (14 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (12 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        2.732 s, estimated 3 s
+Ran all test suites matching /__tests__\\unit\\applications-submit-capability-gate.test.js/i.
+
+=== every suite that requires routes/api/applications/applications (require entityService removed) ===
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (73 ms)
+    √ MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (13 ms)
+    √ MANAGER holding a GRANT, with the active-entity header sent → 200 (14 ms)
+    √ ADMIN can submit (21 ms)
+    √ OWNER can submit (11 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (12 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (11 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (10 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (12 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (12 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (12 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (10 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (26 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (29 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (11 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (11 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (12 ms)
+
+PASS __tests__/unit/applications-prepare-active-entity.test.js
+  Wave C PR-5 — /prepare uses req.activeEntity
+    √ uses req.activeEntity.entityId as Application.entityId (55 ms)
+    √ does NOT materialise from legacy applicantData — entityId stays the application's own (10 ms)
+    √ does not re-materialise when activeEntity is set even with applicantData=JURISTIC (12 ms)
+    √ keeps existing application.entityId when neither activeEntity nor applicantData present (10 ms)
+
+  console.error
+    [audit-logger] Cannot read properties of undefined (reading 'findUnique')
+
+    [0m [90m 486 |[39m             resolvedOrgId [33m=[39m [36mawait[39m [36mthis[39m[33m.[39m_resolveOrganizationId(organizationId)[33m;[39m
+     [90m 487 |[39m         } [36mcatch[39m (resolveErr) {
+    [31m[1m>[22m[39m[90m 488 |[39m             console[33m.[39merror([32m'[audit-logger]'[39m[33m,[39m resolveErr[33m.[39mmessage)[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 489 |[39m             [36mreturn[39m [36mnull[39m[33m;[39m
+     [90m 490 |[39m         }
+     [90m 491 |[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:488:21)
+      at writeDenialAudit (services/application-submit-guard.js:74:9)
+      at assertSubmitAllowed (services/application-submit-guard.js:137:9)
+      at routes/api/applications/applications.js:620:49
+
+PASS __tests__/unit/applications-route-rbac.test.js
+  V1-D D2 — HEALTH role gate on applicant-only routes
+    POST /draft
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (33 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (13 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (20 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+    POST /submit
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (36 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+    POST /prepare
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (20 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (12 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+    POST /draft-documents
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (12 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+    DELETE /draft/:id
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (12 ms)
+    positive cases — HEALTH role is allowed through
+      √ POST /draft permits role=health (10 ms)
+      √ POST /submit permits role=health (38 ms)
+      √ POST /prepare permits role=health (10 ms)
+      √ POST /draft-documents permits role=health (11 ms)
+      √ DELETE /draft/:id permits role=health (11 ms)
+    anonymous (no token) — auth middleware rejects before the role gate
+      √ POST /draft returns 401 without a token (9 ms)
+      √ POST /submit returns 401 without a token (10 ms)
+      √ POST /prepare returns 401 without a token (9 ms)
+      √ POST /draft-documents returns 401 without a token (10 ms)
+      √ DELETE /draft/:id returns 401 without a token (11 ms)
+
+PASS __tests__/integration/prepare-non-draft-guard.test.js
+  Bug 2.3 — /prepare + /draft cannot overwrite a non-editable owned application
+    non-editable status → 409, no write
+      √ POST /prepare with an ASSIGNED_FOR_REVIEW id is rejected 409 APPLICATION_NOT_EDITABLE (69 ms)
+      √ POST /draft with an ASSIGNED_FOR_REVIEW id is rejected 409 APPLICATION_NOT_EDITABLE (10 ms)
+      √ POST /prepare with a DOC_APPROVED id (another non-editable state) is rejected 409 (10 ms)
+    editable status → still works (guard does not over-block)
+      √ POST /prepare with a DRAFT id proceeds (200, update called) (25 ms)
+      √ POST /draft with a REVISION_REQUESTED id proceeds (200, update called) (10 ms)
+
+PASS __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js
+  PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction
+    √ hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission (95 ms)
+    √ hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission (10 ms)
+    √ exactly ONE transaction is opened for the pair (not one per hop) (12 ms)
+    √ WF-F5 regression pin: the illegal DRAFT→PENDING_DOC_FEE edge is still never written (10 ms)
+    √ hop 2 rejecting aborts the whole request — no success response (11 ms)
+    √ hop 2 rejecting propagates OUT of the caller transaction (so Prisma rolls it back) (10 ms)
+    √ hop 1 rejecting never attempts hop 2 (10 ms)
+  PR-A0-2 #10 — correction resubmit already ran in a tx (PIN, not a fix)
+    √ the resubmit hop and its append-only snapshot share one tx, default emission (11 ms)
+  PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction
+    √ every linked case is written through the caller tx with default emission (22 ms)
+    √ the bundle status flip is in the SAME transaction as the case writes (10 ms)
+    √ a rejected case aborts the whole bundle submit — no success response (F5) (11 ms)
+    √ R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened (11 ms)
+
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (28 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (12 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (10 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (16 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (10 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (11 ms)
+
+PASS __tests__/unit/applications-prepare-server-owned-fields.test.js
+  SEC — /prepare rejects server-owned formData keys
+    √ does not persist a forged audit-pass record (32 ms)
+    √ does not let the applicant set their own CAR / revision SLA deadlines (10 ms)
+    √ does not let the applicant assign their own auditor or override admin settings (10 ms)
+    √ preserves what the server already recorded, rather than the applicant payload (10 ms)
+    √ still persists the applicant own wizard answers (10 ms)
+
+PASS __tests__/unit/applications-draft-contract.test.js
+  Applications draft API contract
+    √ POST /draft returns canonical draftId and backward-compatible _id (28 ms)
+    √ POST /draft does NOT wipe saved certificationPurposes when the request sends an empty array (Bug 8.2) (10 ms)
+    √ POST /draft DOES apply a non-empty certificationPurposes from the request (17 ms)
+    √ GET /draft returns canonical draftId and backward-compatible _id for latest draft (10 ms)
+    √ GET /draft returns success with null data when no draft exists (10 ms)
+    √ DELETE /draft/:id delegates to health-scoped soft delete and reports deletion (10 ms)
+    √ DELETE /draft/:id reports deleted false when draft is missing or not owned (9 ms)
+
+Test Suites: 1 skipped, 8 passed, 8 of 9 total
+Tests:       18 skipped, 101 passed, 119 total
+Snapshots:   0 total
+Time:        8.671 s, estimated 10 s
+Ran all test suites matching /applications-submit-capability-gate|applications-prepare-active-entity|applications-prepare-server-owned-fields|applications-route-rbac|a0-pr2-submit-hops-audit-emission|applications-submit-canonical-validation|applications-draft-contract|prepare-non-draft-guard|a0-pr2-per-hop-invariant/i.

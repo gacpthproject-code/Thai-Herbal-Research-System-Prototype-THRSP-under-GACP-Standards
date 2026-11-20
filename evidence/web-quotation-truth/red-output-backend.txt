@@ -1,0 +1,110 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+FAIL __tests__/unit/web-quotation-truth.test.js
+  issuer block — the company, from config/invoice-issuers.js
+    ✕ buildQuotationIssuer: name, taxId, address, email, branch of the company (33 ms)
+  copy — the intro and the payment note, one wording for PDF and web
+    ✕ a ginger application: the intro names ขิง, never กัญชา, and the issuer once (2 ms)
+    ✕ no plant on the application: no plant is printed, not a default one (1 ms)
+    ✕ the quotation PDF prints the same intro and note (the template carries no wording copy) (262 ms)
+  GET /api/applications/:id/quotations — issuer + copy from the server
+    ✕ a ginger application: issuer is the company, the intro names ขิง (212 ms)
+    ✓ the door is not widened: a non-finance staff role still gets 403 and no issuer/copy (13 ms)
+
+  ● issuer block — the company, from config/invoice-issuers.js › buildQuotationIssuer: name, taxId, address, email, branch of the company
+
+    TypeError: tpl.buildQuotationIssuer is not a function
+
+      83 |                 const tpl = require('../../services/pdf/invoice-template-service');
+      84 |                 const { getInvoiceIssuer } = require('../../config/invoice-issuers');
+    > 85 |                 const issuer = tpl.buildQuotationIssuer();
+         |                                    ^
+      86 |                 const config = getInvoiceIssuer('PHASE_1_PLATFORM_FEE');
+      87 |                 expect(Object.keys(issuer).sort()).toEqual(['address', 'branch', 'email', 'name', 'taxId']);
+      88 |                 expect(issuer.email).toBe('finance@gacpth.com');
+
+      at buildQuotationIssuer (__tests__/unit/web-quotation-truth.test.js:85:36)
+      at Object.isolateModules (__tests__/unit/web-quotation-truth.test.js:82:18)
+
+  ● copy — the intro and the payment note, one wording for PDF and web › a ginger application: the intro names ขิง, never กัญชา, and the issuer once
+
+    TypeError: tpl.buildQuotationCopy is not a function
+
+      103 |
+      104 |     test('a ginger application: the intro names ขิง, never กัญชา, and the issuer once', () => {
+    > 105 |         const { intro, note } = tpl.buildQuotationCopy(GINGER_APP);
+          |                                     ^
+      106 |         const issuer = tpl.buildQuotationIssuer();
+      107 |         expect(intro).toContain('ขิง');
+      108 |         expect(intro).not.toContain('กัญชา');
+
+      at Object.buildQuotationCopy (__tests__/unit/web-quotation-truth.test.js:105:37)
+
+  ● copy — the intro and the payment note, one wording for PDF and web › no plant on the application: no plant is printed, not a default one
+
+    TypeError: tpl.buildQuotationCopy is not a function
+
+      114 |
+      115 |     test('no plant on the application: no plant is printed, not a default one', () => {
+    > 116 |         const { intro } = tpl.buildQuotationCopy({ formData: {} });
+          |                               ^
+      117 |         expect(intro).not.toContain('กัญชา');
+      118 |         expect(intro).not.toMatch(/ของพืช\s/);
+      119 |     });
+
+      at Object.buildQuotationCopy (__tests__/unit/web-quotation-truth.test.js:116:31)
+
+  ● copy — the intro and the payment note, one wording for PDF and web › the quotation PDF prints the same intro and note (the template carries no wording copy)
+
+    TypeError: tpl.buildQuotationCopy is not a function
+
+      124 |             application: GINGER_APP, issuerSide: 'PLATFORM', phase: 1, quotationRow: ROW,
+      125 |         });
+    > 126 |         const { intro, note } = tpl.buildQuotationCopy(GINGER_APP);
+          |                                     ^
+      127 |         expect(mockCapture.html).toContain(intro);
+      128 |         expect(mockCapture.html).toContain(note);
+      129 |         expect(mockCapture.html).not.toContain('กัญชา');
+
+      at Object.buildQuotationCopy (__tests__/unit/web-quotation-truth.test.js:126:37)
+
+  ● GET /api/applications/:id/quotations — issuer + copy from the server › a ginger application: issuer is the company, the intro names ขิง
+
+    TypeError: tpl.buildQuotationIssuer is not a function
+
+      169 |         expect(res.status).toBe(200);
+      170 |         const tpl = require('../../services/pdf/invoice-template-service');
+    > 171 |         expect(res.body.data.issuer).toEqual(tpl.buildQuotationIssuer());
+          |                                                  ^
+      172 |         expect(res.body.data.copy).toEqual(tpl.buildQuotationCopy({ formData: { plantId: 'ginger' } }));
+      173 |         expect(res.body.data.copy.intro).toContain('ขิง');
+      174 |         expect(JSON.stringify(res.body)).not.toContain('กัญชา');
+
+      at Object.buildQuotationIssuer (__tests__/unit/web-quotation-truth.test.js:171:50)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 1 passed, 6 total
+Snapshots:   0 total
+Time:        2.491 s
+Ran all test suites matching __tests__/unit/web-quotation-truth.test.js.

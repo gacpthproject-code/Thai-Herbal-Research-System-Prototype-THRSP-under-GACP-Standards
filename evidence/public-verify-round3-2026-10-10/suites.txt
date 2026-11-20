@@ -1,0 +1,39 @@
+Suites at e94a88420 (round-3 head before this evidence commit), scratch Postgres, private SIGNING_KEY_DIR,
+NODE_OPTIONS=--max-old-space-size=3072, through ~/work/state/heavy.sh. evidence/payer-block restored after the run.
+
+  backend related unit: suites 194/198 passed, 4 failed · tests 2740 passed, 13 failed, 0 skipped, 2753 total
+  backend related integration: suites 69/75 passed, 5 failed · tests 979 passed, 14 failed, 13 skipped, 1006 total
+    failed names 14 · round-2 failures at 1fde0d67d inside this set 16 · same 14 · new 0 · fixed 2
+    FIXED __tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) Q3 checkout gate (real Postgres; the mock adapter is the only stub) checkout by A (OWNER, holds SUBMIT_APPLICATION) → 200, one order minted through the gateway
+    FIXED __tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) Q3 checkout gate (real Postgres; the mock adapter is the only stub) checkout by O2 (OWNER of C, not the filer) → 200, one order minted; V on the same filing → 403, nothing written
+    same  __tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #13 — POST /applications/:id/car — late CAR evidence expires the case (1) the hop commits ⇒ exactly one canonical row per edge it walks
+    same  __tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING (1) the hop commits ⇒ exactly one canonical row per edge it walks
+    same  __tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #7 — PATCH /admin/applications/:id/status — admin override (1) the hop commits ⇒ exactly one canonical row per edge it walks
+    same  __tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE (1) the hop commits ⇒ exactly one canonical row per edge it walks
+    same  __tests__/integration/m1-erasure-holder-survives.test.js :: M1: erasing a member never kills the farm certificate (AC4) LEGACY_PERSON and INDIVIDUAL certs (past retention): holder name IS wiped to sentinel (person data duty wins)
+    same  __tests__/integration/m1-erasure-holder-survives.test.js :: M1: erasing a member never kills the farm certificate (AC4) juristic-held cert (past retention): valid + verifiable + holder name unchanged after member erasure
+    same  __tests__/integration/m1-erasure-holder-survives.test.js :: M1: erasing a member never kills the farm certificate (AC4) schema-default (live) cert: retention active, so erasure retains it — applicantName + holder name untouched, row listed in summary.retained
+    same  __tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) AC2 — a REVOKE row wins over the grant (fail closed), still audited
+    same  __tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) AC2 — a non-member is refused 403 ENTITY_PERMISSION_DENIED and the refusal is on the record
+    same  __tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) AC2 — an application naming no entity is 400 VALIDATION_ERROR, audited with a null holder
+    same  __tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) AC3 — an ACTIVE membership carrying a SUBMIT_APPLICATION GRANT is allowed, and names the entity
+    same  __tests__/integration/onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+    same  __tests__/integration/onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+    same  __tests__/integration/status-writer-audit-default-invariant.test.js :: A0 PR-1 — writer emits the canonical transition row by default, in the same tx (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+    all 14 failed names are also in the 23-name baseline of main (integration-failures-main-2b2dbfd4): 14 of 14
+  web jest (whole suite): suites 493/493 passed, 0 failed · tests 4028 passed, 0 failed, 0 skipped, 4028 total
+  web tsc: 1 error(s)
+    .next/types/validator.ts(1466,39): error TS2307: Cannot find module '../../src/app/verify-identity/page.js' or its corresponding type declarations.
+
+The related unit run exported PAYMENT_ADAPTER=mock, which the brief asks for integration runs only.
+Its 13 failures sit in 4 checkout suites and follow the variable, not the code:
+  4 checkout suites at e94a88420, PAYMENT_ADAPTER unset: 66 passed, 66 total
+  4 checkout suites at e94a88420, PAYMENT_ADAPTER=mock: 13 failed, 53 passed, 66 total
+  all 37 related unit suites that touch payment, PAYMENT_ADAPTER unset: 511 passed, 511 total
+
+web tsc, first run: the one error is .next/types/validator.ts:1466, a gitignored file that round 2's next dev
+generated on 2026-10-09 23:20 with one block per route, including the deleted /verify-identity page.
+That generated folder (.next/types) was removed and tsc ran again:
+  [pv3] web tsc rerun at e94a88420 started 2026-10-13T09:45:42Z
+  [pv3] web tsc exit 0 2026-10-13T09:46:11Z
+  error TS lines: 0

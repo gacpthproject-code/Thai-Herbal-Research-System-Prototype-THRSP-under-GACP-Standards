@@ -1,0 +1,28 @@
+fix/fee-line-descriptions — round 4 (item 11 + mobile)
+
+Item 11 — health payloads carrying a per-application fee figure (grep of routes/api/{applications,helpers,preview}):
+  GET /applications/my `fees` {phase1, phase2} (priced as a new filing for every app)  -> REMOVED (no web/mobile reader)
+  list items `estimatedFee` (stored column)                                             -> REMOVED (no reader)
+  GET /applications/:id `phase1Amount`/`phase2Amount` (stored columns)                  -> REMOVED (no reader);
+     `renewalPriceEstimate` added (engine renewal price for billable types; null for new filings)
+  GET /applications/:id/preview payment.* (phase1/phase2/breakdown/totals/totalEstimated) -> renewal-aware:
+     invoice -> quotation -> engine (services/billing/renewal-amount.js); no instalment 1; isRenewal flag;
+     nextRequiredAction no longer PAY_PHASE_1 for a renewal. New filings unchanged.
+  official snapshot applicationMeta.phase{1,2}Amount                                     -> REMOVED (no reader)
+  Readers: web detail page fallback now also uses renewalPriceEstimate; preview page shows one renewal row.
+RED: red-output-backend.txt (module missing -> suite fails), red-output-web.txt (1 failed: server estimate case).
+
+Mobile (Flutter 3.47.6 / Dart 3.13.5, ~/tools/flutter): flutter test 97 passed, 2 skipped, 0 failed
+  (flutter-test.txt); flutter analyze: 0 errors, the 2 warnings are in lib/generated/api (untouched); the only
+  issue in a changed file is an info at step_0_intro.dart:364 (prefer_const, untouched line) (flutter-analyze.txt).
+  7 pre-existing failures (health_dashboard_stage_test.dart): the TEST was wrong in all 7 — it pinned the old
+  8-stage model (no PENDING_AUDIT_SCHEDULE/CLOSED, 7-step timeline) and the retired slip-review statuses as
+  payable; the code already matched the backend and the slip retirement. Test rewritten to the current model.
+  87 -> 84: round 3 replaced payment_models_test (13 tests on MoneySide/two-quotation/slip models) with 10 on
+  the new model; the removed ones pinned only deleted slip/side code. The two still-live behaviours
+  (ACCEPTED/INVOICED = accepted; nested application.id fallback) are restored. New: payment_screen_one_fee_test
+  (3 widget tests: fee/VAT/total/name/coverage, renewal, invoice). pubspec.lock / analysis_options.yaml left
+  unchanged (pub get rewrote them; reverted).
+Amounts: amounts-before-after.txt — 4 documents + 3 notes IDENTICAL to base 31dd3196.
+Backend full suite on scratch postgres:17 :55444: same 11 failing suites / 33 tests as base, 0 new; container removed.
+Web 451 suites / 3725 tests, 0 skipped; tsc 0. Probes 7 PASS. Signing key mtime unchanged.

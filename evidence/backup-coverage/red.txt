@@ -1,0 +1,27 @@
+# RED — selftest ชุดขยาย รันกับ scripts/ops/gacp-backup.sh เวอร์ชันบน main
+# (git show main:scripts/ops/gacp-backup.sh)
+
+=== gacp-backup.sh selftest ===
+  FAIL  อ่านรายชื่อ volume จากสคริปต์ได้
+        parse VOLUMES= จาก /tmp/tmp.Oi1UDKNPjy/gacp-backup.sh ไม่ได้ — assertion อื่นเชื่อถือไม่ได้
+  FAIL  สคริปต์ต้องครอบ volume ที่ห้ามหาย
+        ขาด: gacp-uploads-data gacp-storage-data gacp-signing-keys gacp-minio-data — gacp-signing-keys คือกุญแจที่เซ็นใบรับรองทุกใบ หายแล้วสร้างใหม่ไม่ได้
+  PASS  รันปกติแล้วออกด้วย 0
+  PASS  ดัมป์ฐาน gacp_db
+  PASS  ดัมป์ฐาน gacp_staging
+  SKIP  ไฟล์ดัมป์เป็น mode 600
+        filesystem นี้ไม่รองรับ POSIX mode (git-bash/NTFS noacl — chmod ไม่มีผล) ⇒ ต้องรันบน Linux
+  PASS  สำรอง volume ครบทุกตัวที่ตั้งไว้ (0 ตัว)
+  FAIL  volume ที่ไม่มีอยู่จริงต้องทำให้ล้ม
+        exit 0 — ชื่อพิมพ์ผิดจะได้ tarball เปล่าแล้วรายงานว่าสำเร็จ · log: 
+  FAIL  ดัมป์ที่อ่านไม่ออกต้องล้มพร้อมเหตุผลที่ถูกต้อง
+        exit 0 · log: 
+  FAIL  ไฟล์เกินอายุต้องถูกลบแม้ขั้นตอนหลังล้ม
+        เหลือ 1 ไฟล์อายุ 40 วัน — คืนที่ tar ล้ม ดิสก์จะโตขึ้นโดยไม่มีอะไรถูกลบ
+  FAIL  GACP_BACKUP_DIR แบบ relative ต้องถูกปฏิเสธ
+        exit 0 — docker จะตีความว่าเป็นชื่อ named volume แล้ว tarball จะหายเข้าไปข้างใน
+
+=== ผล: PASS=4 FAIL=6 SKIP=1 ===
+!!! มี 1 ข้อที่ยังไม่ถูกพิสูจน์บนเครื่องนี้ — ผลนี้ยังไม่ใช่หลักฐานครบ
+!!! ต้องรันซ้ำบนเซิร์ฟเวอร์ Linux แล้วแนบ output ที่ SKIP=0
+exit=1

@@ -1,0 +1,19 @@
+Negative controls: each mutant applied to a copy of head cb08aeb0e, then the tests that guard it run against the copy.
+A guard is real when its test goes red on the nearest wrong code. Scripts: /tmp/uploads-fc/m3-mutants.sh, /tmp/uploads-fc/m4-mutants.sh.
+
+=== M3 (classifier, certificate renderer) — unit tests, plus the no-public-financial-pdfs probe on the same copy
+  K1 default kind back to public (fail-open) :: Tests:       18 failed, 12 passed, 30 total :: npfp: PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host
+  K2 gacp-certificates mapped public :: Tests:       8 failed, 22 passed, 30 total :: npfp: PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host
+  K3 gacp-pdfs mapped public :: Tests:       8 failed, 8 passed, 16 total :: npfp: FAIL: classified public: gacp-pdfs/receipts-TAX-PRD-2569-000001.pdf gacp-pdfs/receipts-nul
+  K4 unknown folders granted by the ACL :: Tests:       30 passed, 30 total :: npfp: PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host
+  K5 renderer stores a copy again :: Tests:       2 failed, 32 passed, 34 total :: npfp: PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host
+  K6 certificate ID back to 8 of 13 :: Tests:       4 failed, 30 passed, 34 total :: npfp: PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host
+  K4 stays green on purpose: an unknown folder is refused twice, by its NEVER_SERVED entry and by having no owner rule (APPLICATION_FILES has no 'unknown').
+  The probe reads only gacp-pdfs/ samples, so it stays PASS on K1, K2, K5, K6; the unit tests carry those.
+
+=== M4 (object ACL) — the real-Postgres matrix test (witness shadow, as in production)
+  N0 no mutation (control) :: Tests:       8 passed, 8 total :: failing: 
+  N1 health lookup unscoped (identity-free) :: Tests:       5 failed, 3 passed, 8 total :: failing: a link minted for a current co-member opens without a session; a former filer gets no link|GET /uploads/<file> with a session: every actor gets exactly its read model|POST /api/files/signed-url: the mint grants exactly what the session door grants|GET /uploads/<file> with a session: every actor gets
+  N2 staff skip isApplicationVisibleTo :: Tests:       5 failed, 3 passed, 8 total :: failing: a staff caller whose organization is unknown reads nothing, even its own assignment|GET /uploads/<file> with a session: every actor gets exactly its read model|POST /api/files/signed-url: the mint grants exactly what the session door grants|GET /uploads/<file> with a session: every actor gets exactl
+  N3 applicants read inspection photos :: Tests:       4 failed, 4 passed, 8 total :: failing: GET /uploads/<file> with a session: every actor gets exactly its read model|POST /api/files/signed-url: the mint grants exactly what the session door grants|GET /uploads/<file> with a session: every actor gets exactly its read model|POST /api/files/signed-url: the mint grants exactly what the sessio
+  N4 finance back in (old same-org rule for staff) :: Tests:       4 failed, 4 passed, 8 total :: failing: GET /uploads/<file> with a session: every actor gets exactly its read model|POST /api/files/signed-url: the mint grants exactly what the session door grants|GET /uploads/<file> with a session: every actor gets exactly its read model|POST /api/files/signed-url: the mint grants exactly what the sessio

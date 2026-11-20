@@ -1,0 +1,1940 @@
+summary of neighbours.txt (raw log removed; jest lines only)
+
+PASS __tests__/unit/waiver-reopen-service.test.js
+  ✓ assigned reviewer opens a request on a revision-expired app (origin snapshot server-derived)
+  ✓ CAR-expired app: only the ASSIGNED auditor may open (newStatus/previousStatus shape normalized)
+  ✓ non-EXPIRED app → 409 WAIVER_NOT_EXPIRED
+  ✓ unassigned reviewer → 403 WAIVER_NOT_ASSIGNED
+  ✓ wrong role for origin (auditor on revision-expiry) → 403
+  ✓ ADMIN cannot open (เท่านั้น — inspector path only)
+  ✓ once-only: APPROVED LENIENCY request already exists → 409 WAIVER_ALREADY_USED
+  ✓ Q1 lane separation: a WRONGFUL_EXPIRY reinstate does NOT consume the leniency once-only
+  ✓ open PENDING already exists → 409 WAIVER_ALREADY_PENDING
+  ✓ reason too short → 400 (contact evidence is mandatory)
+  ✓ expired from a non-reopenable state → 409 WAIVER_ORIGIN_UNKNOWN
+  ✓ DTAM-side accountant approves: atomic tx wires every leg
+  ✓ reinstate clears the checker-lane _autoExpired marker + guard-lane expiredAt/expiredReason residue (hardening batch)
+  ✓ CAR-expired approval targets CAR_PENDING and asserts PHASE_2 settlement
+  ✓ fee not settled (HELD/FORFEITED/unpaid) → 409, nothing written
+  ✓ PLATFORM-side accountant approves too — approverSide records PLATFORM truthfully
+  ✓ ADMIN → 403 WAIVER_APPROVER_ROLE (mirror AUDIT-001)
+  ✓ AUDITOR → 403 WAIVER_APPROVER_ROLE (role allow-list — finance roles only)
+  ✓ requester cannot approve their own request → 403 WAIVER_SELF_APPROVAL
+  ✓ application no longer EXPIRED (race with break-glass) → 409 WAIVER_STATE_DRIFT
+  ✓ already-decided request → 409 WAIVER_ALREADY_DECIDED
+  ✓ DTAM-side accountant denies with a mandatory note (masked)
+  ✓ deny without a note → 400
+  ✓ PLATFORM-side can deny too (same gate) — approverSide PLATFORM
+  ✓ listPendingReopenRequests without organizationId throws NO_ORGANIZATION (was: returned ALL orgs)
+  ✓ approve by an approver with NO organizationId → 404 (org wall no longer short-circuits)
+  ✓ deny by an approver with NO organizationId → 404 (mirror)
+  ✓ approve rejects WAIVER_FEE_NOT_SETTLED when the origin phase is refunded
+  ✓ a paid, unrefunded origin phase may be reused
+  ✓ T1 approve: JWT claims account_dtam but the live User row is missing/suspended → 403 WAIVER_APPROVER_NOT_ACTIVE, no reopen leg runs
+  ✓ T2 deny: suspended approver cannot kill a petition either → 403, request not flipped
+  ✓ T3 petition: requester whose live User row is missing/suspended → 403 WAIVER_REQUESTER_NOT_ACTIVE, no request created
+  ✓ T4 approve happy path: the live-row query is fail-closed on DB role + org + ACTIVE + not-deleted
+  ✓ reinstates a batch: WRONGFUL_EXPIRY rows created+APPROVED, SYSTEM transitions, batch audit trail
+  ✓ L6: approver of org-1 cannot reinstate an org-2 application — skipped, nothing written
+  ✓ L6: approver with no organizationId → skipped (fail closed)
+  ✓ batch lane clears _autoExpired/expiredAt/expiredReason residue too (shared executor)
+  ✓ skips (does not throw batch-wide) non-EXPIRED and unsettled apps, with reasons
+  ✓ requires an accountable approver + bugRef (audit-trail mandate)
+  ✓ MUST-1: createReopenRequest rejects caller-supplied WRONGFUL_EXPIRY (petition lane is LENIENCY-only)
+  ✓ S2: batch rejects an approver who is not an ACTIVE finance officer (truthful approverSide)
+  ✓ S2-wiring: รูปแบบ approver ดิบที่ ops CLI ส่งมา ({id, role, status, organizationId}) ถูกรับ
+  ✓ S1: a failed reopen leg cleans up its own PENDING row (no orphan wedging the app)
+  ✓ S3: same bugRef already remediated for an application → skipped WAIVER_BUGREF_ALREADY_REMEDIATED (idempotent re-run)
+  ✓ S7: a bound tenant context walls the application lookup (org mismatch → skipped NOT_FOUND)
+  ✓ dryRun: runs the SAME gates but writes NOTHING (ops preview)
+PASS __tests__/integration/unpaid-milestone-clock-real-postgres.test.js
+  ✓ งวด 1: ไม่เคยกดจ่าย (ไม่มีใบแจ้งหนี้) → เตือนสามครั้งถึงผู้ยื่นและผู้ถือ แล้วปิดเมื่อเลยกำหนด
+  ✓ งวด 1: เตือนไม่ครบสามครั้ง → ไม่ปิดแม้เลยกำหนด
+  ✓ งวด 2: นับจากวันที่เอกสารผ่าน ไม่ใช่วันออกใบเสนอราคา
+  ✓ ปิดเป็น EXPIRED พร้อมยกเลิก QR ที่ gateway และปลดคำสั่งชำระกับใบแจ้งหนี้ที่ค้างอยู่ (security review M3)
+  ✓ เงินกำลังเข้า (PaymentIntent processing) → ไม่ปิด · คำสั่งชำระไม่ถูกแตะ
+  ✓ เงินกำลังเข้า (PaymentIntent succeeded) → ไม่ปิด · คำสั่งชำระไม่ถูกแตะ
+  ✓ มีใบแจ้งหนี้แล้ว: ข้อความเตือนและการปิดใช้วันครบกำหนดบนใบ (L2: ไม่ให้สองวันที่ขัดกัน)
+  ✓ มีแถวเตือนครบสามแต่ส่งไม่ถึงใคร (sentAt ว่าง) → ไม่ปิด
+  ✓ N1: เตือนครั้งแรกไม่ถึงใคร → รอบถัดไปที่มีผู้รับแล้วส่งซ้ำบนแถวเดิมและประทับ sentAt · ปิดได้หลังช่วงรอ
+  ✓ ตัวเตือนไม่ได้รันในวันกำหนด → รอบถัดไปตามส่งทีละฉบับตามลำดับ ข้อความบอกสถานะจริงของวันนั้น
+  ✓ งวด 2 ไม่มี docApprovedAt → นับจากเหตุการณ์ DOC_APPROVED ใน workflowHistory
+  ✓ dry-run นับอย่างเดียว: ไม่เขียนสมุดเตือน ไม่ส่ง ไม่ปิด
+  ✓ เตือนครั้งที่ 3 ส่งไปเมื่อ 6 วันก่อน → ไม่ปิด
+  ✓ เตือนครั้งที่ 3 ส่งไปเมื่อ 7 วันก่อน → ปิด
+  ✓ เตือนครั้งที่ 3 มีแถวแต่ sentAt ว่าง (ไม่ถึงผู้รับ) → ไม่ปิด แม้ผ่านไปนานแล้ว
+  ✓ dry-run นับเฉพาะแถวที่พ้นช่วงรอ 7 วัน
+PASS __tests__/integration/without-tenant-scope-lazy.int.test.js
+  ✓ service: the last-admin guard refuses to remove org B's only admin, and the row stays ACTIVE
+  ✓ real door: PATCH finds org B's only admin across tenants, refuses it as the other side, and the row stays ACTIVE
+  ✓ control: the platform admin disables a company account in org C across tenants
+  ✓ POST /api/platform-admin/organizations/:orgB/users answers 201 and the row lands in org B
+  ✓ :92 PATCH on org B's staff answers 404 and org B's row is unchanged
+  ✓ :92 DELETE on org B's staff answers 404 and org B's row is unchanged
+  ✓ :705 unlock on org B's staff answers 404 and the account stays locked
+  ✓ control: the same admin unlocks a staff member of its own org A
+  ✓ tenant admin of org A → 403 AUTHORIZATION_ERROR, no user created in org B
+  ✓ the fixture really is a default MANAGER permission
+  ✓ effective permissions honour the REVOKE
+  ✓ revoking the member removes its grant rows (no resurrect on re-invite)
+  ✓ an expired deadline in org B notifies org B's dispatcher and not org C's
+  ✓ stale PENDING_PAYMENT orders from every org reach the gateway question
+PASS __tests__/unit/canonical-contract-verification.test.js
+  ✓ exports exactly the 19 documented states in canonical order
+  ✓ every state is also a key in APPLICATION_STATUSES (identity map)
+  ✓ ALLOWED_TRANSITIONS keys match the canonical state set
+  ✓ from DRAFT accepts exactly: [SUBMITTED]
+  ✓ from SUBMITTED accepts exactly: [PENDING_DOC_FEE, DOC_FEE_PAID]
+  ✓ from PENDING_DOC_FEE accepts exactly: [DOC_FEE_PAID, EXPIRED, CANCELLED]
+  ✓ from DOC_FEE_PAID accepts exactly: [ASSIGNED_FOR_REVIEW, CANCELLED]
+  ✓ from ASSIGNED_FOR_REVIEW accepts exactly: [DOC_APPROVED, REVISION_REQUESTED]
+  ✓ from REVISION_REQUESTED accepts exactly: [ASSIGNED_FOR_REVIEW, EXPIRED]
+  ✓ from DOC_APPROVED accepts exactly: [PENDING_AUDIT_FEE]
+  ✓ from PENDING_AUDIT_FEE accepts exactly: [AUDIT_FEE_PAID, EXPIRED]
+  ✓ from AUDIT_FEE_PAID accepts exactly: [AUDIT_CONFIRMED, CANCELLED]
+  ✓ from AUDIT_CONFIRMED accepts exactly: [AUDIT_PASSED, AUDIT_NOT_PASSED, CAR_PENDING, CANCELLED]
+  ✓ from CAR_PENDING accepts exactly: [CAR_REVIEWING, EXPIRED]
+  ✓ from CAR_REVIEWING accepts exactly: [AUDIT_PASSED, CAR_PENDING, AUDIT_CONFIRMED]
+  ✓ from AUDIT_PASSED accepts exactly: [APPROVED, CAR_REVIEWING, REJECTED]
+  ✓ from AUDIT_NOT_PASSED accepts exactly: [REJECTED, CAR_PENDING]
+  ✓ from APPROVED accepts exactly: [CERTIFIED]
+  ✓ from CERTIFIED accepts exactly: [(terminal)]
+  ✓ from REJECTED accepts exactly: [(terminal)]
+  ✓ from EXPIRED accepts exactly: [CAR_PENDING, REVISION_REQUESTED]
+  ✓ from CANCELLED accepts exactly: [(terminal)]
+  ✓ canTransition rejects unknown transitions and accepts documented ones
+  ✓ WF-F4: canTransition stays edge-only when no actorRole is passed (backward compatible)
+  ✓ WF-F4: canTransition also enforces RBAC when an actorRole is supplied
+  ✓ health owns exactly the documented transitions (5 pairs)
+  ✓ finance_officer_dtam owns exactly the documented transitions (0 pairs)
+  ✓ finance_officer_platform owns exactly the documented transitions (0 pairs)
+  ✓ document_reviewer owns exactly the documented transitions (2 pairs)
+  ✓ dispatcher owns exactly the documented transitions (3 pairs)
+  ✓ field_inspector owns exactly the documented transitions (6 pairs)
+  ✓ certificate_approver owns exactly the documented transitions (6 pairs)
+  ✓ system owns exactly the documented transitions (14 pairs)
+  ✓ แม้ขาตัดเงินก็ไม่ใช่ของคน — webhook เท่านั้นที่เดินได้
+  ✓ …and are DENIED scheduler/auditor edges (no more lenient fall-through)
+  ✓ ผู้ตรวจประเมินแปลง เดินขาอนุมัติและออกใบไม่ได้อีกต่อไป
+  ✓ ผู้อนุมัติใบรับรอง เดินได้ทั้งสองขา
+  ✓ ไม่มีบทบาทอื่นถือขา APPROVED->CERTIFIED
+  ✓ REQUIRES_COMMENT_TARGETS = { REVISION_REQUESTED, CAR_PENDING, REJECTED }
+  ✓ EDITABLE_STATUSES = { DRAFT, REVISION_REQUESTED, CAR_PENDING }
+  ✓ isApplicationEditable matches EDITABLE_STATUSES
+  ✓ the alias dictionaries are no longer exported
+  ✓ normalizeWorkflowStateInput accepts canonical in any case, and nothing else
+  ✓ CANONICAL_ROLES มีสิบค่า ไม่มีคำนอกรายการ
+  ✓ ไม่มีคีย์ deprecated เหลืออยู่
+  ✓ ทุกคำแปลเป็นตัวมันเอง
+  ✓ คำที่ปลดระวางแล้วแปลไม่ออก
+  ✓ webhook/cron ยังเป็น system — ชื่อเรียกผู้กระทำที่ไม่ใช่คน
+  ✓ ค่าว่าง/ไม่รู้จัก คืน null
+  ✓ health อยู่ฝั่ง public
+  ✓ document_reviewer อยู่ฝั่ง certification_body
+  ✓ dispatcher อยู่ฝั่ง certification_body
+  ✓ field_inspector อยู่ฝั่ง certification_body
+  ✓ certificate_approver อยู่ฝั่ง certification_body
+  ✓ finance_officer_dtam อยู่ฝั่ง certification_body
+  ✓ system_admin_dtam อยู่ฝั่ง certification_body
+  ✓ finance_officer_platform อยู่ฝั่ง platform_operator
+  ✓ system_admin_platform อยู่ฝั่ง platform_operator
+  ✓ system อยู่ฝั่ง system
+  ✓ เจ้าหน้าที่แปดบทบาท — ผู้ขอรับรองและ system ไม่ใช่
+  ✓ canonicalToLegacyRole ถูกลบทิ้งแล้ว
+PASS __tests__/unit/payment-reminder-job.test.js
+  ✓ a milestone whose clock start is not on record is skipped and logged, never guessed
+  ✓ run on 2026-08-06 dispatches PRE_DUE for the milestone due Tue 2026-08-11
+  ✓ run on 2026-08-11 dispatches DUE_DATE for the milestone due Tue 2026-08-11
+  ✓ run on 2026-08-13 dispatches OVERDUE_NOTICE for the milestone due Tue 2026-08-11
+  ✓ a day that is no reminder day sends nothing (Fri 2026-08-07)
+  ✓ catch-up: no sweep ran on any reminder day → the earliest goes out now, worded as overdue
+  ✓ a type already on the ledger under another intended day is not sent again
+  ✓ same-day re-run: P2002 on the insert → skip silently, no second send
+  ✓ an unsent PRE_DUE row exists → no insert, the locked row is dispatched and stamped
+  ✓ another sweep holds the unsent row (SKIP LOCKED returns nothing) → deduped, no send
+  ✓ due Sat 2026-08-08: both fall on Mon 08-10 → one per sweep, DUE_DATE first, both worded as overdue
+  ✓ intended OVERDUE_NOTICE lands on วันแม่ (Wed 2026-08-12): holiday run sends nothing, next working day does
+  ✓ non-P2002 insert failure on application 1 is logged; application 2 still gets its reminder
+  ✓ a reminder that reached nobody leaves sentAt unstamped and is not counted as sent
+  ✓ no stored-overdue literal, no invoice mutation call in the job source
+  ✓ no calendar or reminder-window data of its own — schedule service + config own those
+  ✓ real notification-service defines PAYMENT_REMINDER + template (static)
+  ✓ registers the payment-reminder block: 12 blocks total, last 0 9 * * * Asia/Bangkok drives the sweep
+  ✓ sweep failure is swallowed and logged — the cron never throws
+PASS __tests__/unit/provider-admin-shim-rbac.test.js
+  ✓ dispatcher role gets 403 (requireRole(adminRoles))
+  ✓ document_reviewer role gets 403 (requireRole(adminRoles))
+  ✓ field_inspector role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_dtam role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ dispatcher role gets 403 (requireRole(adminRoles))
+  ✓ document_reviewer role gets 403 (requireRole(adminRoles))
+  ✓ field_inspector role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_dtam role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ dispatcher role gets 403 (requireRole(adminRoles))
+  ✓ document_reviewer role gets 403 (requireRole(adminRoles))
+  ✓ field_inspector role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_dtam role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ dispatcher role gets 403 (requireRole(adminRoles))
+  ✓ document_reviewer role gets 403 (requireRole(adminRoles))
+  ✓ field_inspector role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_dtam role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ dispatcher role gets 403 (requireRole(adminRoles))
+  ✓ document_reviewer role gets 403 (requireRole(adminRoles))
+  ✓ field_inspector role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_dtam role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ dispatcher role gets 403 (requireRole(adminRoles))
+  ✓ document_reviewer role gets 403 (requireRole(adminRoles))
+  ✓ field_inspector role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_dtam role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ dispatcher role gets 403 (requireRole(adminRoles))
+  ✓ document_reviewer role gets 403 (requireRole(adminRoles))
+  ✓ field_inspector role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_dtam role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ finance_officer_platform role gets 403 (requireRole(adminRoles))
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ POST /api/provider/admin/batch-actions returns 401 without a token
+  ✓ GET /api/provider/admin/dashboard returns 401 without a token
+  ✓ POST /api/provider/admin/status-override returns 401 without a token
+  ✓ POST /api/provider/admin/broadcast returns 401 without a token
+  ✓ GET /api/provider/admin/communication-log returns 401 without a token
+  ✓ GET /api/provider/admin/audit-log returns 401 without a token
+  ✓ GET /api/provider/admin/audit-log/export.csv returns 401 without a token
+  ✓ POST /api/provider/admin/revision-reminder-runs answers 404 and reads nothing
+PASS __tests__/integration/closing-an-application-locks-it-before-reading-its-orders-real-postgres.test.js
+  ✓ V1 ถอน: การชำระล็อกคำขอและใส่คำสั่งชำระไว้ยังไม่ commit → ถอนรอแล้วปลดคำสั่งนั้น · การชำระไม่ได้ QR
+  ✓ V1 ปิดเพราะไม่ชำระ: เช่นเดียวกัน → EXPIRED พร้อมปลดคำสั่งชำระใหม่ · การชำระไม่ได้ QR
+  ✓ V2 ถอน: กลับเข้าหน้าชำระเปลี่ยน intent ระหว่างถอน → ไม่มีคำสั่งชำระค้างบนคำขอที่ปิด
+  ✓ V2 ปิดเพราะไม่ชำระ: กลับเข้าหน้าชำระเปลี่ยน intent ระหว่างปิด → ไม่มีคำสั่งชำระค้างบนคำขอที่ปิด
+  ✓ V2 ถอน: คำสั่งชำระถูกเปลี่ยน intent ก่อนปลดได้ (ปลดไม่สำเร็จ) → 409 WITHDRAW_PAYMENT_IN_FLIGHT · ไม่ปิดคำขอ
+  ✓ V2 ปิดเพราะไม่ชำระ: คำสั่งชำระถูกเปลี่ยน intent ก่อนปลดได้ → ข้ามคำขอนี้รอบนี้ ไม่ปิด
+  ✓ ตัวควบคุม: ไม่มีการแข่งกัน → ชำระได้ QR แล้วถอนปลดคำสั่งชำระนั้น
+PASS __tests__/unit/payment-closure-toctou-lock.test.js
+  ✓ a milestone not yet past due + the threshold is skipped without opening a transaction
+  ✓ a milestone with no clock start on record is never closed
+  ✓ order 39: third reminder sent 6 days ago is inside the grace — no close
+  ✓ order 39: a third reminder with no sentAt is not a sent reminder — no close
+  ✓ reminders are read for that application and milestone
+  ✓ in-tx re-read shows the app already DOC_FEE_PAID → SKIP, no EXPIRED write, no throw
+  ✓ writeApplicationStatus throwing CONCURRENCY_CONFLICT is a SKIP, not an error
+  ✓ fresh re-read confirms the gate → EXPIRED write with the FRESH expectedVersion, applicant side told
+  ✓ order PI already succeeded at Stripe -> SKIP before the close tx even opens, alert logged
+  ✓ fail-SAFE: gateway unreachable -> SKIP (do not close), warning logged, no throw
+  ✓ a checkout opened after the gateway check (intent not asked) → SKIP inside the tx, no write
+  ✓ veto V1: the application row lock is the first statement, before the re-read and the order read
+  ✓ veto V2: an order that changed before it could be retired → SKIP, rolled back, no EXPIRED write
+PASS __tests__/unit/a0-pr2-hop-emission-contract.test.js
+  ✓ #8/#9 routes/api/applications/applications.js[0] — initial submit hop 1 (DRAFT→SUBMITTED) — shares one tx with hop 2
+  ✓ #9 routes/api/applications/applications.js[1] — initial submit hop 2 (SUBMITTED→PENDING_DOC_FEE) — same tx as hop 1
+  ✓ #7 routes/api/admin/applications.js[0] — admin override — caller emits the canonical + ADMIN rows fail-closed
+  ✓ #10 routes/api/applications/applications.js[2] — correction resubmit — tx shared with the append-only snapshot (R2 M7)
+  ✓ #13 services/application-service/correction-deadline-guard.js[0] — correction deadline expiry (revision and CAR) — tx shared with the RevisionDeadline fail
+  ✓ #14 routes/api/applications/applications-car.js[0] — CAR evidence resubmit — tx shared with the append-only snapshot
+  ✓ #15 jobs/correction-deadline-sweep.js[0] — auto-expire sweep — tx shared with the RevisionDeadline fail
+  ✓ #24 services/audit-scheduling-service.js[0] — scheduler assign — Serializable tx shared with the slot re-assert
+  ✓ #18 routes/api/provider/handlers/workflow-transitions-handler.js[0] — forced expire — its sibling write cannot join a caller tx (see below)
+  ✓ #19 routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js[0] — schedule →AUDIT_CONFIRMED — Serializable slot tx shared with the evidence arming (fix round 1)
+  ✓ #20 routes/api/provider/handlers/workflow-side-effects.js[0] — DOC_APPROVED auto-chain — sibling writes cannot join a caller tx
+  ✓ #21 routes/api/provider/handlers/workflow-revision-expirations-handler.js[0] — forced expire route — sibling writes cannot join a caller tx
+  ✓ #22 routes/api/provider/handlers/workflow-side-effects.js[1] — DOC_APPROVED auto-chain, shared by both approval doors — same sibling-write constraint as #20
+  ✓ #4 routes/api/provider/handlers/workflow-transitions-handler.js[1] — cert-voiding reversal — caller-owned emitter in its own tx
+  ✓ #5 routes/api/provider/handlers/workflow-transitions-handler.js[2] — revision/CAR decision — caller-owned emitter in its own tx
+  ✓ the inventory covers every writeApplicationStatus call in the PR-A0-2 files
+  ✓ #18 / #21 fail the RevisionDeadline rows through the service singleton
+  ✓ #20 closes its deadline rows through the same singleton service
+  ✓ #19 has no DB sibling write — only best-effort notifications and its own audit row
+PASS __tests__/integration/answer-doors-stop-the-revision-clock-real-postgres.test.js
+  ✓ POST /:id/revision-resubmit: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น
+  ✓ POST /submit from REVISION_REQUESTED: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น
+  ✓ POST /:id/car: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น
+  ✓ POST /:id/revision-resubmit: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง
+  ✓ POST /submit from REVISION_REQUESTED: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง
+  ✓ POST /:id/car: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง
+  ✓ POST /submit จาก CAR_PENDING ไม่ใช่ประตูแล้ว (หลักฐานการแก้ไขยื่นที่ /:id/car): 409 สถานะไม่ขยับ และนาฬิกายังเดิน
+  ✓ PUT /:id/revision ไม่ใช่ประตูแล้ว: 404 สถานะไม่ขยับ และนาฬิกายังเดิน
+  ✓ POST /:id/revision-resubmit: ตอบหลังเลยกำหนด = ถูกปฏิเสธอย่างที่ /submit ปฏิเสธ คำขอถูกยกเลิก และนาฬิกาบันทึกว่าพลาด (คำสั่ง 28)
+  ✓ คำตอบกับ cron หมดเวลาแก้ไขชนกันที่คำขอเดียว: cron รอแถวคำขอโดยยังไม่จับแถวนาฬิกา คำตอบจึงหยุดนาฬิกาได้ทันที ไม่ deadlock
+PASS __tests__/unit/audit-chain-periodic-verify.test.js
+  ✓ verifies every tenant chain and reports a clean summary (no alert)
+  ✓ detects a break and emits an [AUDIT_CHAIN_ALERT] with forensic detail
+  ✓ scopes each verify to a bounded recent window (tail - windowSize + 1, floored at 1)
+  ✓ a verify that throws for one tenant does not abort the whole sweep
+  ✓ a pre-existing benign break BELOW the baseline is NOT alerted
+  ✓ a break AT/ABOVE the baseline STILL alerts (real tamper not masked)
+  ✓ fromSequence unset/0 → unchanged full recent-window behavior (legacy break IS seen)
+  ✓ reads the baseline from env AUDIT_CHAIN_VERIFY_FROM_SEQ when no explicit fromSequence
+  ✓ a malformed env value (NaN) falls back to baseline 0 (no accidental suppression)
+PASS __tests__/unit/notification-expiry-blockers.test.js
+  ✓ NotifyType.APPLICATION_EXPIRED is defined (callers currently pass undefined)
+  ✓ NotifyType.REVISION_DEADLINE_EXPIRED is defined (callers currently pass undefined)
+  ✓ NotifyType.CAR_REVIEWING is defined (callers currently pass undefined)
+  ✓ NotifyType.DEADLINE_REMINDER is defined (callers currently pass undefined)
+  ✓ NotifyType.NEW_APPLICATION is defined (callers currently pass undefined)
+  ✓ NotifyTemplates resolves a non-generic Thai template for APPLICATION_EXPIRED
+  ✓ NotifyTemplates resolves a non-generic Thai template for REVISION_DEADLINE_EXPIRED
+  ✓ NotifyTemplates resolves a non-generic Thai template for CAR_REVIEWING
+  ✓ NotifyTemplates resolves a non-generic Thai template for DEADLINE_REMINDER
+  ✓ NotifyTemplates resolves a non-generic Thai template for NEW_APPLICATION
+  ✓ APPLICATION_EXPIRED template states the consequence (ยื่นใหม่ + ชำระใหม่)
+  ✓ unit:'hours' → message says ชั่วโมง, NOT '24 วัน' (I-2)
+  ✓ default (days) copy is unchanged
+  ✓ returns truthy on delivered, null on failure — so cron can stamp only on success (I-3)
+  ✓ EXPIRED branch notifies the applicant with APPLICATION_EXPIRED (I-4)
+PASS __tests__/unit/dtam-remittance-pipeline-removed.test.js
+  ✓ require(services/checkout/dtam-remittance-service) โยน MODULE_NOT_FOUND
+  ✓ require(routes/api/finance/dtam-remittance) โยน MODULE_NOT_FOUND
+  ✓ require(jobs/dtam-remittance-batch-job) โยน MODULE_NOT_FOUND
+  ✓ require(shared/dtam-remittance-status) โยน MODULE_NOT_FOUND
+  ✓ get /api/finance/dtam-remittance → 404
+  ✓ post /api/finance/dtam-remittance/batches → 404
+  ✓ post /api/finance/dtam-remittance/batches/b-1/remit → 404
+  ✓ post /api/finance/dtam-remittance/batches/b-1/reconcile → 404
+  ✓ delete /api/finance/dtam-remittance/batches/b-1 → 404
+  ✓ ไม่มี cron 0 2 1 * * และไม่มี callback ไหนเรียก dtam-remittance-batch-job
+  ✓ payload ของ checkoutOrder.update ตอน settle มีแค่ status + settledAt
+PASS __tests__/unit/waiver-reopen-dual-engine.test.js
+  ✓ REAL cron /auto-cancel neither expires nor (yet) reminds the reopened app
+  ✓ REAL revision-deadline-checker does not expire the re-seeded deadline
+PASS __tests__/unit/document-request-more-creates-revision-deadline.test.js
+  ✓ stamps revisionDueAt = 5 working days from now into the same status write, keeping the rest of formData
+  ✓ creates the RevisionDeadline row the cron reads: same due date, PENDING, count 1
+  ✓ the farmer notice states the deadline the system enforces (revisionDueAt), not the officer-chosen slot date
+  ✓ a second round bumps revisionCount (same rule as the generic door)
+  ✓ the deadline is written AFTER the status write (never for a refused decision)
+  ✓ a refused decision (wrong state) creates no deadline
+  ✓ if the deadline row cannot be written the officer is told, not shown a silent success
+  ✓ no deadline is created
+  ✓ the generic transition door requests no revision of its own: it refuses the document edges
+  ✓ the per-slot door uses the shared builder and the shared row writer
+PASS __tests__/unit/audit-chain-per-tenant-baseline.test.js
+  ✓ A1: map present — org-NEW (no entry) gets floor 0 and IS swept from seq 1
+  ✓ A2: map present — org-LEGACY keeps its mapped floor 485
+  ✓ A3: object-shape value (future Json column) still tolerated
+  ✓ B: no SystemConfig row — legacy global env floor applies to BOTH orgs (unchanged)
+  ✓ C: malformed SystemConfig value — falls back to the env floor (fail-open to legacy)
+  ✓ D: SystemConfig read failure — sweep still runs on the env floor (never blocks the control)
+  ✓ E: explicit fromSequence (forensic call) still wins when no map row exists
+  ✓ F: explicit fromSequence OVERRIDES the map (forensic caller intent wins) — MUST-3
+PASS __tests__/unit/no-membership-fee.test.js
+  ✓ หลังบ้าน services/subscription/entitlements-service.js ไม่มีอยู่แล้ว
+  ✓ หลังบ้าน services/subscription/subscription-order-service.js ไม่มีอยู่แล้ว
+  ✓ หลังบ้าน routes/api/system/subscription.js ไม่มีอยู่แล้ว
+  ✓ หลังบ้าน routes/api/system/subscription-orders.js ไม่มีอยู่แล้ว
+  ✓ หน้าบ้าน lib/services/subscription-service.ts ไม่มีอยู่แล้ว
+  ✓ หน้าบ้าน hooks/use-entitlements.ts ไม่มีอยู่แล้ว
+  ✓ หน้าบ้าน lib/capabilities.ts ไม่มีอยู่แล้ว
+  ✓ หน้าบ้าน app/provider/accounting/subscription-cancel-modal.tsx ไม่มีอยู่แล้ว
+  ✓ หน้าบ้าน app/health/subscription/page.tsx ไม่มีอยู่แล้ว
+  ✓ หน้าบ้าน app/health/subscription/client-view.tsx ไม่มีอยู่แล้ว
+  ✓ ไม่มี router ไหน mount /subscription
+  ✓ ไม่มีตัวเลขราคาแผนสมาชิกหลงเหลือในโค้ดฝั่งหลังบ้าน
+  ✓ ไม่มี cron ต่ออายุแพ็กเกจ (ซึ่งคือการเรียกเก็บซ้ำ)
+  ✓ ไม่มีประตูแพ็กเกจกั้นการสร้างล็อตอีก
+  ✓ ยังตรวจว่ารุ่นที่จะบรรจุเป็นของผู้เรียก
+PASS __tests__/unit/privacy-notice-section7-no-automatic-deletion.test.js
+  ✓ the scan reaches the real scheduler, the queue and the retention sweep
+  ✓ the rules do catch a deletion when one is there
+  ✓ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays
+  ✓ the one file deletion allowed on a timer reaches only a file at the root of the uploads folder
+PASS __tests__/unit/closing-jobs-script-host-bound.test.js
+  ✓ the host table names staging alone, on this host, in gacp-backend-staging that declares GACP_DEPLOY_SLOT=staging
+  ✓ demo, an unknown slot, no slot, and a foreign host are refused before docker, each logged as refused in a 0600 file
+  ✓ a stopped container, a container outside the staging slot, or an image without the entry is refused before the jobs run
+  ✓ on staging it checks the slot, then runs the entry inside the image once with no arguments, and logs the job names and counts only
+  ✓ a failed job run is logged as failed with the counts it printed
+  ✓ a summary line that is not names and counts never reaches the log
+  ✓ a state directory it cannot write stops the run before docker
+PASS __tests__/integration/correction-deadline-expired-be.test.js
+  ✓ marker specificity: expired row → EXACTLY CORRECTION_DEADLINE_EXPIRED; not-overdue sibling stays NULL
+  ✓ over-close guard: a not-overdue deadline is never closed and never marked
+  ✓ audit presence: a real close writes exactly one canonical audit row
+  ✓ idempotency: running the cron twice leaves round-2 deltas at zero
+PASS __tests__/unit/application-audit-fixes.test.js
+  ✓ AC3: trace/lots.js no longer writes raw req.user.healthId into workflowHistory metadata
+  ✓ AC4: applications.js does not echo raw error.message in 5xx responses
+  ✓ AC4: application-workflow-handlers.js PDF + reject use safeErrorMessage
+  ✓ AC5: applications.js readiness endpoint queries healthId, not phantom userId
+  ✓ AM2: CAR upload uses strict MIME allowlist (not regex substring)
+  ✓ AH2: revision-deadline-checker routes the EXPIRED transition through canonical
+  ✓ blocks files with mimetype image/jpeg-exploit (substring of jpeg)
+  ✓ extension allowlist is exact-match
+PASS __tests__/unit/document-approval-opens-the-audit-fee.test.js
+  ✓ the side-effects module exports them
+  ✓ the per-slot decision door calls that shared function
+  ✓ it advances DOC_APPROVED to PENDING_AUDIT_FEE
+  ✓ it closes the revision deadlines the approval settles
+  ✓ it issues the quotation, so the audit fee it just opened can actually be paid
+  ✓ it does NOT issue when the status write failed — no price for a transition that did not happen
+  ✓ an issuance failure never un-does the approval
+  ✓ a failure to open the fee does not throw at the caller
+PASS __tests__/integration/closing-jobs-real-clock-real-postgres.test.js
+  ✓ in process: the entry calls the scheduler's three closing jobs once each with no clock argument, no other job, and closes only what is overdue
+  ✓ the command line closes what is overdue on the real clock, exits 0, and prints a summary of names and counts
+PASS __tests__/unit/scheduler-renewal-job.test.js
+  ✓ registers exactly one renewal-reminder block with 0 9 * * * Asia/Bangkok
+  ✓ callback awaits renewalReminderCron.run() and logs the summary
+  ✓ failure path is swallowed and routed through logger.error
+PASS __tests__/integration/correction-deadline-sweep-real-postgres.test.js
+  ✓ a second revision round gets its own 48 and 24 hour reminders, though the first round's record is still on the filing
+  ✓ run by hand, a round whose deadline is new is reminded even with the earlier round's reminder recorded
+  ✓ a reminder that reached nobody leaves no record, and the next run sends it
+  ✓ a filing that is not an object is skipped; the run goes on and the others are reminded (I3)
+  ✓ an expiry read before the applicant's resubmission committed does not cancel the resubmission
+PASS __tests__/unit/revision-deadline-cron-preserves-data.test.js
+  ✓ does NOT wipe applicant/plot formData on the EXPIRED write
+  ✓ APPENDS to workflowHistory (length 4), does NOT reset it to 1
+  ✓ findMany select now includes formData + workflowHistory
+PASS __tests__/integration/draft-save-honours-the-version-real-postgres.test.js
+  ✓ สองคนเปิดร่างเวอร์ชันเดียวกัน: คนแรกบันทึกได้ คนหลังได้ 409 และร่างยังเป็นของคนแรก · โหลดใหม่แล้วบันทึกได้
+  ✓ การแจ้งเตือนก่อนครบกำหนดแก้ไขที่ระบบบันทึกระหว่างผู้ยื่นแก้ไข ไม่ทำให้การบันทึกครั้งถัดไปได้ 409
+  ✓ ผู้ส่งที่ไม่ส่ง expectedVersion ไม่ถูกเทียบ (ตัวควบคุม)
+PASS __tests__/unit/closing-jobs-run-the-scheduler-jobs.test.js
+  ✓ the entry runs exactly the revision-deadline, correction-deadline and unpaid-closure blocks of the scheduler, with the same arguments, and no other job
+  ✓ the summary carries job names and integer counts only, and one failing job fails the run without stopping the next
+PASS __tests__/unit/closed-reason-reserved-slots.test.js
+  ✓ CANCELLED_BY_ADMIN is written by the status writer alone
+  ✓ no backend writer sets closedReason = REJECTED_DOC_REVIEW (reserved)
+  ✓ no backend writer sets closedReason = REJECTED_AUDIT (reserved)
+  ✓ no backend writer sets closedReason = LEGACY_AUTO_CANCEL (reserved)
+  ✓ this guard's vocab matches the migration CHECK set exactly (no drift)
+PASS __tests__/unit/visit-reminder-scheduled.test.js
+  ✓ no block runs the visit reminder while the applicant cannot ask for another date (order 65(3))
+  ✓ nobody can mute it
+PASS __tests__/unit/scheduler-precheck-stale-sweep.test.js
+  ✓ one block, every 5 minutes, Asia/Bangkok, drives the sweep
+  ✓ a failing sweep is logged, not thrown
+PASS __tests__/unit/payment-closure-alerts-when-threshold-missing.test.js
+  ✓ ไม่มีจำนวนวันก่อนปิด → throw ไม่สแกน และแจ้งเจ้าหน้าที่หนึ่งครั้งพร้อมสาเหตุ
+  ✓ dry run ไม่แจ้งเจ้าหน้าที่ (ไม่เขียนอะไร) แต่ยังไม่สแกน
+PASS __tests__/unit/correction-deadline-sweep-scheduled.test.js
+  ✓ an hourly block runs the correction-deadline sweep on the Bangkok clock
+PASS __tests__/unit/payment-closure-alerts-when-grace-missing.test.js
+  ✓ ไม่มีช่วงรอที่มีผล → throw ไม่สแกน และแจ้งเจ้าหน้าที่หนึ่งครั้งพร้อมสาเหตุ
+PASS __tests__/integration/refund-kinds-real-postgres.test.js
+  ✓ only the excess is credited, the status does not move, M2 stays paid and the inspection gates still pass
+  ✓ an M1 paid twice: exactly the second payment is refundable, DOC_FEE_PAID and M1 paid stay
+  ✓ a M1 paid once has no excess: any duplicate-charge refund is refused and nothing is written
+  ✓ a M2 paid once has no excess: any duplicate-charge refund is refused and nothing is written
+  ✓ an invalid amount (zero) is refused and nothing is written
+  ✓ an invalid amount (negative) is refused and nothing is written
+  ✓ an invalid amount (not a number) is refused and nothing is written
+  ✓ an invalid amount (a numeric string) is refused and nothing is written
+  ✓ an invalid amount (missing) is refused and nothing is written
+  ✓ an invalid amount (a fraction of a satang) is refused and nothing is written
+  ✓ a refund beyond the excess not yet refunded is refused
+  ✓ the same request twice records one refund; two concurrent requests with one key record one refund
+  ✓ a request with no idempotency key is refused
+  ✓ the full-invoice refund door is gone
+  ✓ provider cancellation before document review: the whole M1 is credited, M1 is unpaid, the application is CANCELLED
+  ✓ provider cancellation at AUDIT_CONFIRMED before the inspection starts: M2 is unpaid, scheduling refuses, a second call is the same record
+  ✓ provider cancellation is refused once the milestone service started (§7.1), and nothing is written
+  ✓ provider cancellation needs a reason from the list and a note
+  ✓ the late payment issued its own tax invoice; the duplicate refund credits it and leaves the milestone invoice whole
+  ✓ paid 2X, refund the duplicate X and cancel X: 2X is credited in total (duplicate first)
+  ✓ paid 2X, refund the duplicate X and cancel X: 2X is credited in total (cancellation first)
+  ✓ one satang over the extra payment is refused before the cancellation, and nothing is written
+  ✓ one satang over the extra payment is refused after the cancellation, and nothing is written
+  ✓ system_admin_dtam (own organization) cannot record any refund
+  ✓ system_admin_dtam (other organization) cannot record any refund
+  ✓ finance_officer_dtam (own organization) cannot record any refund
+  ✓ system_admin_platform (other organization) cannot record any refund
+  ✓ finance_officer_platform (other organization) cannot record any refund
+  ✓ finance_officer_platform (none organization) cannot record any refund
+  ✓ system_admin_dtam reads refund status in the other organization: 404
+  ✓ finance_officer_dtam reads refund status in the other organization: 404
+  ✓ finance_officer_platform reads refund status in the other organization: 404
+  ✓ system_admin_dtam reads refund status in the own organization: 200
+  ✓ finance_officer_dtam reads refund status in the own organization: 200
+  ✓ finance_officer_platform reads refund status in the none organization: 403
+  ✓ system_admin_platform reads refund status in the other organization: 403
+  ✓ system_admin_dtam (own organization) cannot write a credit note, and nothing is written
+  ✓ system_admin_dtam (other organization) cannot write a credit note, and nothing is written
+  ✓ finance_officer_platform (none organization) cannot write a credit note, and nothing is written
+  ✓ finance_officer_platform (other organization) cannot write a credit note, and nothing is written
+  ✓ the note belongs to the invoice's organization whatever organizationId the body sends
+  ✓ a CANCELLATION note is refused here: a cancellation is a refund kind, and the milestone stays paid
+  ✓ a note crediting everything left is refused at create, and two drafts that together would are refused at issue
+  ✓ a manual note waits for a refund holding the invoice, then counts what the refund credited
+  ✓ revert-last-transition and force-status both refuse, and the status stays CANCELLED
+  ✓ revert refuses a target force-status refuses (a paid state the gateway alone writes)
+  ✓ an inspection start that commits while the cancellation waits wins: the cancellation is refused
+  ✓ a cancellation that commits while the inspection start waits wins: the start is refused
+  ✓ the dispatcher's assign-reviewer answers 409 and the application stays CANCELLED with no reviewer
+  ✓ the application assign answers 409 and the application stays CANCELLED with no reviewer
+  ✓ the admin batch ASSIGN answers 409 and the application stays CANCELLED with no reviewer
+  ✓ a GPS check-in that read the inspection before the cancellation committed writes nothing
+  ✓ session checkin on a CANCELLED application is refused and writes nothing
+  ✓ session evidence on a CANCELLED application is refused and writes nothing
+  ✓ session notes on a CANCELLED application is refused and writes nothing
+  ✓ on M2 the record carries the deadline the payment set: 60 Bangkok working days under v1.3
+  ✓ an M2 paid under v1.2 is cancelled for this reason with no window printed, recorded or told
+  ✓ an M2 stamped with a version the terms table does not know is refused, and nothing is written
+  ✓ on M1 the reason does not apply and nothing is written
+  ✓ the cancellation refund of M2 is refused: nothing is credited and the application stays booked
+  ✓ a decided on-site checklist counts too, whatever the status says
+  ✓ N1: the field app's GPS check-in on the inspection counts, though nothing else was recorded yet
+  ✓ N1: an audit result recorded in the filing (auditResult and auditedAt) counts, whatever the status says
+  ✓ N1 control: a checklist the applicant could have written into the filing does not count
+  ✓ LOW: once the refund closed the application, the field app records no evidence on its inspection
+  ✓ LOW control: at the visit the same three doors record their evidence
+  ✓ control: a first visit booked and armed, nobody on site yet: the refund is recorded
+PASS __tests__/integration/dispatcher-tools-real-postgres.test.js
+  ✓ ชำระงวด 1 แล้วเกิดงานจัดคิว กำหนดเวลา = วันทำการตามค่าที่มีผล (สิ้นวันทำการกรุงเทพฯ ไม่ใช่ +24 ชั่วโมง)
+  ✓ มอบหมายผู้ตรวจเอกสาร → งานจัดคิวของขั้นที่รอมอบหมายปิด โดยผู้จัดคิวคนนั้น
+  ✓ นัดตรวจจากหน้าปฏิทิน → งานจัดคิวของขั้นที่รอนัดปิด
+  ✓ นัดตรวจจากคิวจัดตาราง → งานจัดคิวปิดเหมือนกัน
+  ✓ เฝ้าระวังงานค้าง: นับวันทำการที่รอ ไม่ใช่ชั่วโมง และระดับมาจากเกณฑ์ที่มีวันที่กำกับ
+  ✓ งานจัดคิวในกล่องงานบอกจำนวนวันทำการที่เหลือจากกำหนดเวลา
+  ✓ คำขอที่ไม่มีผู้ถือ ไม่มีแปลง ไม่มีใบแจ้งหนี้ และมีรูปแบบนัดออนไลน์ค้าง: ทุกประตูตอบ 200
+  ✓ ผู้ตรวจเอกสารที่ถืองานอยู่ นับเป็นภาระงาน · เพดานมาจากค่ามีวันที่กำกับ ไม่ใช่ตัวแปรสภาพแวดล้อม
+  ✓ ชำระแล้ว ผู้จัดคิวขององค์กรได้รับแจ้งว่ามีงานเข้าคิว · ผู้จัดคิวองค์กรอื่นไม่ได้
+  ✓ แจ้งผู้จัดคิวไม่ใช้เลขคำสั่งชำระ ซึ่งเป็นเครื่องหมายว่าแจ้งผู้ยื่นแล้ว (L1)
+  ✓ มอบหมายผู้ตรวจเอกสาร: แจ้งทั้งผู้ยื่นและผู้ถือ
+  ✓ แจ้งเตือนด้วยมือจากผู้จัดคิว: ถึงทั้งผู้ยื่นและผู้ถือ
+  ✓ งานตรวจเอกสารและข้อมูลมอบหมายย้ายไปผู้ตรวจคนใหม่ และแจ้งผู้ยื่นกับผู้ถือ
+  ✓ สลับผู้ตรวจที่อ่านคำขอก่อนผู้ตรวจเดิมตัดสินเอกสาร ไม่เปลี่ยนผู้ตรวจของแฟ้มที่ตัดสินแล้ว
+  ✓ ผู้จัดคิวสองคนสลับพร้อมกัน: คนหลังถูกปฏิเสธ การสลับของคนแรกคงอยู่
+  ✓ ตัวควบคุม: สลับผู้ตรวจพื้นที่ได้ ผู้ตรวจคนใหม่อยู่ทั้งบนคำขอและแบบบันทึกการตรวจ
+  ✓ สลับที่อ่านคำขอก่อนผู้ตรวจขอลงพื้นที่ซ้ำ ไม่ลบคำขอลงพื้นที่ซ้ำและไม่เปลี่ยนผู้ตรวจ
+  ✓ สลับที่อ่านคำขอก่อนผู้จัดคิวอีกคนเลื่อนนัด ไม่ทับวันนัดใหม่และไม่เปลี่ยนผู้ตรวจ
+  ✓ คำขอที่ยังไม่ชำระงวด 2 ไม่อยู่ในคิวไหนเลย · คำขอที่ชำระแล้วอยู่ทุกคิวเท่ากัน
+  ✓ ผู้จัดคิวเห็นผู้ถือ ที่อยู่แปลง พิกัด สถานะชำระ โดยไม่มีข้อมูลฟอร์มทั้งก้อน
+  ✓ องค์กรอื่นได้ 404 · บทบาทการเงินได้ 403
+  ✓ คำขอที่กำลังพิจารณาหลักฐานแก้ไข ผู้จัดคิวเปิดได้เฉพาะเมื่อผู้ตรวจขอลงพื้นที่ซ้ำ
+  ✓ รายละเอียดคำขอส่งเลขบัตรประชาชนของผู้ยื่นแบบปิดบางส่วนเท่านั้น (คำสั่ง 10)
+  ✓ ทุกประตูอ่านและเขียนของเจ้าหน้าที่ไม่ส่งเลขบัตรเต็มออกไป · ตัวคำขอที่เก็บไว้ยังเป็นเลขเต็ม
+  ✓ แบบแก้ไขข้อมูลที่สร้างจากรายละเอียดแบบปิดเลข ส่งเลขที่ปิดไว้กลับมา ไม่ทับเลขจริง · เลขใหม่ที่พิมพ์เต็มยังบันทึกได้
+  ✓ เลขที่ปิดไว้ถูกพิมพ์แก้บางส่วน ไม่ถูกบันทึกแทนเลขจริง: ตอบ 400 ให้พิมพ์เลขเต็ม และไม่มีอะไรเปลี่ยน
+  ✓ ผู้ตรวจพื้นที่ระบุว่าต้องลงพื้นที่ซ้ำ → คำขอรอนัดที่ผู้จัดคิว ผู้จัดคิวได้แจ้ง และมีงานจัดคิว
+  ✓ ผู้จัดคิวนัดลงพื้นที่ซ้ำจากสถานะนั้น ด้วยผู้ตรวจพื้นที่คนเดิม → AUDIT_CONFIRMED งานจัดคิวปิด
+  ✓ ผู้ตรวจไม่ได้ระบุให้ลงพื้นที่ซ้ำ ผู้จัดคิวนัดจาก CAR_REVIEWING ไม่ได้
+  ✓ ประตูเปลี่ยนสถานะทั่วไปนัดลงพื้นที่ซ้ำไม่ได้ แม้ผู้ตรวจขอแล้ว: ต้องนัดจากหน้าปฏิทิน (F1)
+  ✓ ประตูนัดตรวจเดิมถูกลบทั้งสองประตู: นัดหรือเปลี่ยนผู้ตรวจจาก CAR_REVIEWING ไม่ได้ (F1)
+  ✓ ตัวเขียนสถานะ: จาก CAR_REVIEWING ไป AUDIT_CONFIRMED ต้องมีคำขอลงพื้นที่ซ้ำของผู้ตรวจคนปัจจุบัน และผู้ตรวจคนเดิม ไม่ว่าเข้ามาทางประตูไหน (F1)
+  ✓ ระบุลงพื้นที่ซ้ำได้เฉพาะตอนพิจารณาหลักฐานแก้ไข และต้องบอกเหตุผล
+  ✓ ผู้ตรวจตัดสินผลอื่นแทนการลงพื้นที่ซ้ำ: คำขอลงพื้นที่ซ้ำปิด ไม่ค้างไปให้นัดในรอบแก้ไขถัดไป (F5)
+  ✓ ผู้ดูแลกู้คำขอที่ค้างไป AUDIT_CONFIRMED: คำขอลงพื้นที่ซ้ำที่ยังไม่ได้นัดปิด ไม่ค้างไปให้นัดในรอบแก้ไขถัดไป (R2)
+  ✓ ตัวเขียนสถานะ: การนัดที่เริ่มจากสถานะที่อ่านไว้ก่อน ไม่ทับผลผ่านหรือนัดของผู้จัดคิวอีกคนที่บันทึกไปแล้ว (F4)
+  ✓ นัดลงพื้นที่ซ้ำที่อ่านคำขอก่อนผู้ตรวจบันทึกผ่าน ไม่เขียนทับผลผ่าน (F4)
+  ✓ ผู้จัดคิวสองคนนัดครั้งแรกพร้อมกัน: คนหลังถูกปฏิเสธ นัดของคนแรกคงอยู่ (F4)
+  ✓ เลื่อนนัดที่อ่านคำขอก่อนผู้ตรวจบันทึกผล ไม่เขียนทับผลและสถานะ (F4)
+  ✓ ผู้ตรวจกดขอลงพื้นที่ซ้ำซ้อนกัน: ครั้งหลังถูกปฏิเสธ บันทึกของครั้งแรกไม่หาย (J1)
+  ✓ ประตูเปลี่ยนสถานะทั่วไปมอบผู้ตรวจเอกสารหรือนัดตรวจครั้งแรกไม่ได้ ทั้งผู้จัดคิวและผู้ดูแลที่ใช้ force
+  ✓ ตัวควบคุม: ประตูของผู้จัดคิวยังมอบหมายและนัดได้ และบันทึกผู้ตรวจกับวันนัด
+  ✓ หน้าปฏิทิน: ขอนัดแบบออนไลน์ถูกปฏิเสธ ไม่มีอะไรเปลี่ยน
+  ✓ คิวจัดตาราง: ขอนัดแบบออนไลน์ถูกปฏิเสธ
+  ✓ หน้าศูนย์จัดคิวไม่มีตัวชี้วัดออนไลน์/หน้างาน
+  ✓ ผู้ตรวจพื้นที่รับงานตรวจเอกสารไม่ได้
+  ✓ ผู้ตรวจเอกสารรับงานตรวจพื้นที่ไม่ได้
+  ✓ ผู้ดูแลฝั่งกรมรับงานตรวจเอกสารไม่ได้ ทั้งมอบหมาย สลับ และมอบหมายเป็นชุด (L5 · คำสั่ง 27)
+  ✓ นำเข้าค่าตั้งงานสร้างแถวเวลาของงานผู้จัดคิวกลับมาไม่ได้ เพราะเป็นค่ามีวันที่กำกับในระบบ (L3)
+  ✓ รายละเอียดแบบอ่านอย่างเดียว: ผู้ดูแลแพลตฟอร์มไม่เห็นสถานะชำระเงิน (L6 · คำสั่ง 47)
+  ✓ รายชื่อให้เลือก: ตรวจเอกสาร = ผู้ตรวจเอกสารเท่านั้น · ตรวจพื้นที่ = ผู้ตรวจพื้นที่เท่านั้น
+PASS __tests__/integration/phase2-pay-and-inspect-real-postgres.test.js
+  ✓ D7: checkout without a milestone at DOC_APPROVED opens M2, and the webhook settles it
+  ✓ D7: an explicit milestone is still validated against the state
+  ✓ D7: with nothing payable and no milestone, the refusal is 409 and nothing is minted
+  ✓ D8: after M2 settles on the checkout rail, inspection-starts answers 200
+  ✓ D8: before the receipt exists, inspection-starts still refuses
+  ✓ refund: a refunded M2 refuses inspection-starts
+  ✓ refund: a refunded M2 refuses the phase-2 schedule gate, a settled one passes
+  ✓ refund: a CANCELLED refund leaves the receipt standing
+  ✓ F-1: a refunded M2 cannot be reused to reopen an application expired from CAR_PENDING
+  ✓ F-1: a settled M2 with no refund may be reused for the reopen
+  ✓ refund: a fully refunded M2 reads as unpaid in the settlement source
+  ✓ double payment: a settled M2 cannot be charged again, even if the state were walked back
+  ✓ double payment: two concurrent checkouts for one milestone leave one open order
+  ✓ control: a press that loses the race to record the SAME intent (one idempotency key) does not cancel it
+  ✓ control: the losing press keeps the winner's intent even when its own holder scope no longer reads the order
+  ✓ a press whose record write fails for a reason other than a refusal does not cancel the intent another press records
+  ✓ an intent minted for a checkout that then answers 409 is cancelled, not left payable
+  ✓ order 20: the paid-state fence refuses AUDIT_FEE_PAID when the settled M2 was fully refunded
+  ✓ order 20: the paid-state fence still lets a correction land on AUDIT_FEE_PAID when the M2 payment stands
+  ✓ order 20: a refunded M2 is unpaid, so it is not waiting in the scheduling queue (one queue, order 27)
+  ✓ N1: once M1 is fully refunded, the M2 checkout refuses before minting anything
+  ✓ N1: an M2 payment that lands after M1 was refunded is recorded, the status stays, and staff are alerted
+  ✓ A: a late M2 settlement on an application now LATE-AC records the money, keeps the status, and alerts
+  ✓ A: a late M2 settlement on an application now LATE-CX records the money, keeps the status, and alerts
+PASS __tests__/integration/staff-access-2-real-postgres.test.js
+  ✓ the admin door that extended a correction deadline is gone (orders 28, 32)
+  ✓ the writer takes the row lock on a bare client with its own audit off
+  ✓ a correction letter with a deadline already past is refused and nothing is written
+  ✓ creating a staff user answers with the providerId masked
+  ✓ POST force-status to DOC_APPROVED is refused and the status stays
+  ✓ POST force-status to REVISION_REQUESTED is refused and the status stays
+  ✓ POST force-status to AUDIT_PASSED is refused and the status stays
+  ✓ POST force-status to CAR_PENDING is refused and the status stays
+  ✓ POST force-status to REJECTED is refused and the status stays
+  ✓ POST force-status to APPROVED is refused and the status stays
+  ✓ POST force-status to CERTIFIED is refused and the status stays
+  ✓ PATCH status to DOC_APPROVED is refused
+  ✓ PATCH status to REVISION_REQUESTED is refused
+  ✓ PATCH status to AUDIT_PASSED is refused
+  ✓ PATCH status to CAR_PENDING is refused
+  ✓ PATCH status to REJECTED is refused
+  ✓ PATCH status to APPROVED is refused
+  ✓ PATCH status to CERTIFIED is refused
+  ✓ provider status-override to DOC_APPROVED is refused
+  ✓ provider status-override to REVISION_REQUESTED is refused
+  ✓ provider status-override to AUDIT_PASSED is refused
+  ✓ provider status-override to CAR_PENDING is refused
+  ✓ provider status-override to REJECTED is refused
+  ✓ provider status-override to APPROVED is refused
+  ✓ provider status-override to CERTIFIED is refused
+  ✓ workflow-transitions force to DOC_APPROVED is refused from a state other than review
+  ✓ workflow-transitions force to REVISION_REQUESTED is refused from a state other than review
+  ✓ workflow-transitions force to AUDIT_PASSED is refused from a state other than review
+  ✓ workflow-transitions force to CAR_PENDING is refused from a state other than review
+  ✓ workflow-transitions force to REJECTED is refused from a state other than review
+  ✓ workflow-transitions force to APPROVED is refused from a state other than review
+  ✓ workflow-transitions force to CERTIFIED is refused from a state other than review
+  ✓ batch has no "request documents": the revision request stays the reviewer's
+  ✓ revert onto a decision state is refused
+  ✓ control: the recovery door still sends a file waiting for the approver back to the visit
+  ✓ a file waiting for the approver is not walked past the decision by the recovery door (order 31)
+  ✓ the writer refuses an admin decision whatever door calls it
+  ✓ SYSTEM writes a decision only along its own edges: the e2e shortcut to APPROVED is refused
+  ✓ control: SYSTEM still walks its waiver-reopen edge EXPIRED -> REVISION_REQUESTED
+  ✓ force-status: CANCELLED with no closure reason is refused
+  ✓ PATCH status: CANCELLED with no closure reason is refused
+  ✓ status-override: CANCELLED with no closure reason is refused
+  ✓ workflow-transitions force: CANCELLED with no closure reason is refused
+  ✓ force-status: free text is not a closure reason
+  ✓ PATCH status: free text is not a closure reason
+  ✓ status-override: free text is not a closure reason
+  ✓ workflow-transitions force: free text is not a closure reason
+  ✓ force-status: a listed reason closes the application and records the code
+  ✓ PATCH status: a listed reason closes the application and records the code
+  ✓ status-override: a listed reason closes the application and records the code
+  ✓ workflow-transitions force: a listed reason closes the application and records the code
+  ✓ break-glass is gone: BREAK_GLASS_REOPEN is not a reason code and EXPIRED stays shut
+  ✓ the writer has no break-glass flag: an admin cannot leave EXPIRED through it
+  ✓ force-status: the applicant and the submitter each get one notice with the reason label and no note
+  ✓ PATCH status: the applicant and the submitter each get one notice with the reason label and no note
+  ✓ status-override: the applicant and the submitter each get one notice with the reason label and no note
+  ✓ workflow-transitions force: the applicant and the submitter each get one notice with the reason label and no note
+  ✓ telling twice writes nothing new
+  ✓ control: a refused closure tells nobody
+  ✓ force-status: closing a CERTIFIED application is refused and points to the approver
+  ✓ PATCH status: closing a CERTIFIED application is refused and points to the approver
+  ✓ status-override: closing a CERTIFIED application is refused and points to the approver
+  ✓ workflow-transitions force: closing a CERTIFIED application is refused and points to the approver
+  ✓ force-status: closing from AUDIT_PASSED is refused
+  ✓ force-status: closing from APPROVED is refused
+  ✓ force-status: moving a CERTIFIED application back is refused too
+  ✓ PATCH status: moving a CERTIFIED application back is refused too
+  ✓ status-override: moving a CERTIFIED application back is refused too
+  ✓ workflow-transitions force: moving a CERTIFIED application back is refused too
+  ✓ control, force-status: an unpaid filing still closes with a listed reason
+  ✓ control, PATCH status: an unpaid filing still closes with a listed reason
+  ✓ control, status-override: an unpaid filing still closes with a listed reason
+  ✓ control, workflow-transitions force: an unpaid filing still closes with a listed reason
+  ✓ force-status: a CANCELLED application stays cancelled, no refund needed
+  ✓ PATCH status: a CANCELLED application stays cancelled, no refund needed
+  ✓ status-override: a CANCELLED application stays cancelled, no refund needed
+  ✓ workflow-transitions force: a CANCELLED application stays cancelled, no refund needed
+  ✓ revert out of CANCELLED is refused
+  ✓ the applicant withdrawing keeps its own closedReason and needs no admin reason
+  ✓ control: SYSTEM still writes out of CANCELLED (a repair, order 22)
+  ✓ status-override cannot close a passed file as EXPIRED, which would end it with no order and no letter
+  ✓ force-status refuses DRAFT as a target
+  ✓ PATCH status refuses DRAFT as a target
+  ✓ status-override refuses DRAFT as a target
+  ✓ force-status refuses EXPIRED as a target
+  ✓ PATCH status refuses EXPIRED as a target
+  ✓ status-override refuses EXPIRED as a target
+  ✓ force-status refuses DOC_FEE_PAID as a target
+  ✓ PATCH status refuses DOC_FEE_PAID as a target
+  ✓ status-override refuses DOC_FEE_PAID as a target
+  ✓ force-status refuses AUDIT_FEE_PAID as a target
+  ✓ PATCH status refuses AUDIT_FEE_PAID as a target
+  ✓ status-override refuses AUDIT_FEE_PAID as a target
+  ✓ force-status: closing while an inspector commits AUDIT_PASSED is refused
+  ✓ PATCH status: closing while an inspector commits AUDIT_PASSED is refused
+  ✓ status-override: closing while an inspector commits AUDIT_PASSED is refused
+  ✓ workflow-transitions force: closing while an inspector commits AUDIT_PASSED is refused
+  ✓ force-status: a stale move over a just-committed CANCELLED is refused
+  ✓ PATCH status: a stale move over a just-committed CANCELLED is refused
+  ✓ status-override: a stale move over a just-committed CANCELLED is refused
+  ✓ workflow-transitions force: a stale move over a just-committed CANCELLED is refused
+  ✓ control, force-status: with nothing racing the admin closes AUDIT_CONFIRMED
+  ✓ control, PATCH status: with nothing racing the admin closes AUDIT_CONFIRMED
+  ✓ control, status-override: with nothing racing the admin closes AUDIT_CONFIRMED
+  ✓ control, workflow-transitions force: with nothing racing the admin closes AUDIT_CONFIRMED
+  ✓ an applicant removed from the holder is not told; a current submitter is
+  ✓ a suspended or deleted account is not told
+  ✓ a suspended applicant is not told
+  ✓ a deleted holder tells nobody
+  ✓ control: with no holder the applicant is told
+  ✓ force-status on another organization's application answers not found
+  ✓ status-override on another organization's application answers not found
+  ✓ PATCH status on another organization's application answers not found
+  ✓ an unassigned filing opens for no reviewer, read or write
+  ✓ control: the assigned reviewer opens it; an admin reads it but records nothing
+  ✓ an inspector's queue holds only its assigned applications
+  ✓ another inspector's item cannot be opened or claimed
+  ✓ the detail carries no applicant email
+  ✓ a caller with no organization is denied on every door
+  ✓ control: the assigned inspector claims its own item
+  ✓ no organization: denied
+  ✓ the open count is the organization's own
+  ✓ headAuditorId is not an inspector's door in
+  ✓ control: the assigned inspector creates one
+  ✓ dry run counts, apply rewrites, a second run changes nothing
+PASS __tests__/unit/admin-routes-rbac.test.js
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ document_reviewer role gets 403 (require-admin gate)
+  ✓ dispatcher role gets 403 (require-admin gate)
+  ✓ field_inspector role gets 403 (require-admin gate)
+  ✓ finance_officer_dtam role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ finance_officer_platform role gets 403 (require-admin gate)
+  ✓ health role gets 403 (require-admin gate)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ system_admin_dtam role bypasses the gate (positive)
+  ✓ GET /api/admin/users returns 401 without a token
+  ✓ POST /api/admin/users/provider returns 401 without a token
+  ✓ PATCH /api/admin/users/:id/role returns 401 without a token
+  ✓ PATCH /api/admin/users/:id/enable returns 401 without a token
+  ✓ PATCH /api/admin/users/:id/change-role returns 401 without a token
+  ✓ PATCH /api/admin/users/:id/disable returns 401 without a token
+  ✓ GET /api/admin/user-permissions/:userId returns 401 without a token
+  ✓ PUT /api/admin/user-permissions/:userId/:permission returns 401 without a token
+  ✓ DELETE /api/admin/user-permissions/:userId/:permission returns 401 without a token
+  ✓ GET /api/admin/applications returns 401 without a token
+  ✓ PATCH /api/admin/applications/:id/status returns 401 without a token
+  ✓ POST /api/admin/applications/:id/force-status returns 401 without a token
+  ✓ POST /api/admin/applications/:id/revert-last-transition returns 401 without a token
+  ✓ GET /api/admin/audit-log returns 401 without a token
+  ✓ GET /api/admin/audit-log/export.csv returns 401 without a token
+  ✓ GET /api/admin/config returns 401 without a token
+  ✓ PATCH /api/admin/config/:key returns 401 without a token
+  ✓ GET /api/admin/plants returns 401 without a token
+  ✓ POST /api/admin/plants returns 401 without a token
+  ✓ PATCH /api/admin/plants/:id returns 401 without a token
+  ✓ DELETE /api/admin/plants/:id returns 401 without a token
+  ✓ GET /api/admin/certificates/:id/revise-location/preview returns 401 without a token
+  ✓ POST /api/admin/certificates/:id/revise-location returns 401 without a token
+PASS __tests__/unit/quotation-api-renders-the-row.test.js
+  ✓ line items come from the stored installments, at the row scopeCount
+  ✓ a row written under the retired VAT base renders THAT row, not the current formula
+  ✓ a 3-scope row splits the stored totals across the three methods, summing back exactly
+  ✓ an accepted row renders its FROZEN snapshot, even if the installments were later touched
+  ✓ each pre-W14 card shows ITS OWN money, and its lines sum to its own total
+  ✓ the VAT column no longer branches on the issuer — no side is exempt
+  ✓ a pre-GAP-5 row falls back to its `amount`, never to a row of zeros
+  ✓ a frozen snapshot of a pre-W14 side renders the frozen `amount`, not the full-phase split
+  ✓ serves only the company row — the ministry card is gone from the response
+  ✓ renders the FROZEN snapshot of an accepted row, not the row installments that followed it
+  ✓ carries the applicationNumber the select already reads — no second source
+  ✓ stores the snapshot built from THAT row, with its hash
+  ✓ REFUSES a pre-GAP-5 row with the catalogued SNAPSHOT_REQUIRED copy, and writes nothing
+  ✓ answers the snapshot refusal as a 409, not a 500
+  ✓ REFUSES a lapsed offer with the catalogued QUOTATION_EXPIRED copy, and writes nothing
+  ✓ PDF prints both instalments and the full 35,310, whatever ?phase asks
+  ✓ PDF?phase=1 prints both instalments and the full 35,310, whatever ?phase asks
+  ✓ PDF?phase=2 prints both instalments and the full 35,310, whatever ?phase asks
+  ✓ one quotation number gives one document: the three queries render the same HTML
+  ✓ a renewal quotation prints its one instalment, even when ?phase=1 is asked
+  ✓ REFUSES a row that prices no instalment with the catalogued QUOTATION_NOT_PRICED, and prints nothing
+  ✓ accepted at 3 methods, revised to 1: three lines summing to the row total
+  ✓ accepted at 1 method, revised to 3: one line summing to the row total
+  ✓ flags the row priced for three methods under an application now naming one
+  ✓ flags the row priced for one method under an application now naming three
+  ✓ no mismatch when the counts agree: per-method labels, flag false
+  ✓ prints the ROW`s three scopes and its 105,930 when the application names one method
+  ✓ prints the ROW`s ONE scope and its 35,310 when the application names three
+PASS __tests__/integration/research-data-privacy-real-postgres.test.js
+  ✓ ส่งออก CSV: ผู้ดูแลกรมองค์กร A ได้ไฟล์ · ทุกบทบาทอื่น 403 · ผู้ดูแลองค์กร B ไม่เห็นแบบสำรวจของ A
+  ✓ สถิติ: บทบาทอื่นยังไม่เห็นตัวเลขขณะเปิดรับคำตอบ ไม่มีคำที่ระบุตัวคน · ผู้ดูแลกรมเห็นครบ
+  ✓ สถิติข้ามองค์กร: เจ้าหน้าที่องค์กร B ไม่เห็นแบบสำรวจของ A · ไม่รู้องค์กร = ปฏิเสธ
+  ✓ รายการสัมภาษณ์: เฉพาะผู้ดูแลกรมขององค์กรนั้น
+  ✓ สร้าง/เปิด/ปิดแบบสำรวจยังเป็นของ system_admin_dtam เท่านั้น
+  ✓ ข้อความแจ้งเป็นภาษาไทยพร้อมรุ่น
+  ✓ ไม่ยินยอม = ส่งไม่ได้ (403) และไม่มีแถวถูกบันทึก · รุ่นเก่า = 409 · ยินยอม = บันทึกรุ่นและเวลา
+  ✓ บันทึกสัมภาษณ์ต้องมีความยินยอมของผู้ให้สัมภาษณ์และวันที่
+  ✓ ลบบัญชี: คำตอบไม่ผูกตัวคน ข้อความที่พิมพ์เองถูกลบ คะแนนและตัวเลือกยังอยู่ · คนอื่นไม่ถูกแตะ
+  ✓ ผู้ตอบถอนความยินยอมเอง: คำตอบไม่ผูกตัวคน ข้อความถูกลบ และไม่ถูกส่งออก
+  ✓ ผู้ดูแลกรมทำบทสัมภาษณ์ให้ระบุตัวไม่ได้เมื่อผู้ให้สัมภาษณ์ถอนความยินยอม · บทบาทอื่นทำไม่ได้
+  ✓ คำตอบแบบสำรวจ: ไม่มีรหัสบัญชี ชื่อ หรือรหัสคำตอบจริง · เฉพาะคำตอบที่ยินยอมและยังไม่ถอน
+  ✓ รหัสฟาร์มเป็นรหัสแฝง: คงที่ภายในการส่งออก ต่างกันเมื่อกุญแจต่างกัน
+  ✓ ผู้ดูแลกรมองค์กร B ส่งออกได้เฉพาะข้อมูลขององค์กร B
+PASS __tests__/integration/applicant-contact-withheld-real-postgres.test.js
+  ✓ the dispatcher reads the filing without any contact of the applicant or of the site
+  ✓ the field inspector assigned to the visit reads it the same way
+  ✓ an older filing's contact keys, and keys no screen knows, never reach the dispatcher or the inspector (L-A)
+  ✓ the document reviewer still reads the applicant's contact
+  ✓ a reviewer's correction of contact fields reaches the dispatcher and the inspector as the field's name only
+  ✓ starting the inspection and recording the decision answer the number and status only
+  ✓ the dispatcher's queues say whether the filing names someone on site, and carry no contact
+  ✓ the dispatcher reads the name and phone of the person on site while booking, and every view is logged
+  ✓ the field inspector assigned to the visit reads it on its audit pages; an inspector not assigned does not
+  ✓ outside the booking stages, in another organization, or for another role, nothing is read and nothing is logged
+  ✓ a view that cannot be logged shows nothing
+  ✓ a filing that names no one on site says so
+PASS __tests__/integration/final-approval-audit-fail-closed-real-postgres.test.js
+  ✓ จ่ายครบสองงวด หลักฐานครบ: อนุมัติแล้วได้ CERTIFIED พร้อมใบรับรอง และแถวบันทึกหนึ่งแถว
+  ✓ เขียนแถวบันทึกไม่ได้: ทั้งธุรกรรมถอย ไม่มี APPROVED และไม่มีใบรับรอง
+PASS __tests__/unit/quotation-pdf-renders-the-row.test.js
+  ✓ prints both instalments of the accepted row and their sum as the total
+  ✓ prints the row BEFORE acceptance the same way, from its instalments
+  ✓ each instalment shows its service fee per type, then its VAT, then its total
+  ✓ numbers the lines through the whole document: three types, two instalments, six lines
+  ✓ states VAT once per instalment, in the catalogue words, and never the seller`s internal split
+  ✓ every line says what the money is for and which type
+  ✓ a single-scope row prints one line per instalment and 35,310
+  ✓ the ministry-side document is refused outright, not printed
+  ✓ the platform document prints each instalment`s own money and their sum, 9,630
+  ✓ prints no VAT line: the row`s service fee and VAT do not add up to the money it holds
+  ✓ and there is no ministry caption left to print
+  ✓ renders the frozen rate, never the live rate table
+  ✓ prints the row`s own quotation number
+  ✓ with NO quotation row there is nothing to print, and the refusal is catalogued
+  ✓ still rejects a missing/invalid issuerSide (ม.86 guard preserved)
+  ✓ prints the one instalment it prices, and that is the total
+  ✓ prints it before acceptance too
+  ✓ REFUSES a row that prices no instalment instead of printing a numbered 0.00 document
+  ✓ a 3-scope row under a 1-method application still prints three scopes per instalment and 105,930
+  ✓ names the lines it can no longer attribute generically, and never by a method
+  ✓ a 1-scope row under a 3-method application prints ONE scope per instalment and 35,310
+  ✓ keeps the per-method wording while the counts agree
+PASS __tests__/integration/onsite-car-window-real-postgres.test.js
+  ✓ a defect recorded through the field app decision is due 30 calendar days later, at the end of that Bangkok day
+  ✓ a defect recorded through the inspector's decision page is due 30 calendar days later, at the end of that Bangkok day
+  ✓ a defect recorded through the workflow transition door is due 30 calendar days later, at the end of that Bangkok day
+  ✓ the applicant and the holder are told the 30-day window when an overdue correction is closed
+PASS __tests__/integration/dispatcher-reasons-reach-applicant-and-approver-real-postgres.test.js
+  ✓ a visit booked after the date the company must inspect by: the applicant reads why, and whose side the delay is
+  ✓ an inspector moved for conflict of interest during a correction: the applicant reads why, and the approver's file is flagged
+  ✓ a move for any other reason flags nothing, and an "อื่น ๆ" reason reads as the dispatcher's words, not yet assigned to a side
+  ✓ the applicant cannot rewrite the reassignment record the flag and the reason are read from
+PASS __tests__/integration/inspector-not-passed-waits-for-the-approver-real-postgres.test.js
+  ✓ ประตูใบงาน: การลงพื้นที่ซ้ำที่ไม่ผ่าน ได้ผลเดียวกัน
+  ✓ ประตูภาคสนาม: ไม่ผ่าน = AUDIT_NOT_PASSED ไม่ใช่ CAR_PENDING
+  ✓ ผลข้อบกพร่องสำคัญหลังการลงพื้นที่ที่เคยผ่าน ล้างตราผ่าน
+  ✓ คำขอไปรอผู้อนุมัติที่ AUDIT_NOT_PASSED ไม่ปิด และไม่มีหนังสือแจ้งคำสั่ง
+  ✓ ตราผ่านที่ค้างถูกล้าง: auditResult เป็น FAIL ทั้งคอลัมน์และในแฟ้ม และไม่มี auditedAt
+  ✓ ผู้อนุมัติทุกคนขององค์กรได้แจ้งเตือนว่ามีแฟ้มที่ไม่ผ่านรอตัดสิน
+  ✓ ผู้ยื่นและสมาชิกผู้ถือได้แจ้งผลไม่ผ่านพร้อมข้อบกพร่อง และรู้ว่าจะได้แจ้งผล โดยไม่บอกว่าใครเป็นผู้ตัดสิน (คำสั่ง 91)
+  ✓ คิวของผู้อนุมัติแสดงแฟ้มที่ไม่ผ่าน และแฟ้มเปิดอ่านได้
+  ✓ ใบงาน: ไม่ผ่านโดยไม่มีข้อบกพร่อง = 400 FINDINGS_REQUIRED สถานะไม่เปลี่ยน
+  ✓ ภาคสนาม: ไม่ผ่านโดยไม่มีข้อบกพร่อง = 400 FINDINGS_REQUIRED สถานะไม่เปลี่ยน
+  ✓ F-A8-04: ภาคสนาม: ผ่านโดยหลักฐานยังไม่ครบ = 422 พร้อมข้อความไทยจากแคตตาล็อก ไม่ใช่ข้อความภายในภาษาอังกฤษ
+  ✓ ใบงาน: คำว่า REJECT เลิกใช้แล้ว = 400 สถานะไม่เปลี่ยน
+  ✓ ดูหลักฐานแก้ไขบนโต๊ะ (CAR_REVIEWING) ให้ไม่ผ่านไม่ได้ = 400 CAR_REVIEW_CANNOT_FAIL
+  ✓ F-A8-05: ยอมรับหลักฐานแก้ไข (ผ่าน) ทั้งที่ผู้ยื่นยังไม่ส่งหลักฐานในรอบนี้ = 422 CAR_EVIDENCE_MISSING
+  ✓ F-A8-05: ประตูเปลี่ยนสถานะทั่วไป CAR_REVIEWING → AUDIT_PASSED โดยไม่มีหลักฐานรอบนี้ = 422 CAR_EVIDENCE_MISSING
+  ✓ F-A8-05: แฟ้มผ่านที่ผู้อนุมัติส่งกลับโดยไม่เคยมีรอบแก้ไข ไม่ถูกปฏิเสธว่าไม่มีหลักฐาน
+  ✓ F-A8-05: หลักฐานที่ส่งหลังคำสั่งแก้ไขผ่านด่านนี้ไปถึงด่านหลักฐานภาคสนาม
+  ✓ ผู้ตรวจพื้นที่ส่ง REJECTED = 422 (ขานี้ไม่มีแล้ว)
+  ✓ ผู้ตรวจพื้นที่ส่ง AUDIT_NOT_PASSED = 409 INSPECTION_RESULT_USE_RESULT_DOOR (ต้องมีข้อบกพร่อง)
+  ✓ ผู้อนุมัติส่ง AUDIT_NOT_PASSED ไป REJECTED = 409 CERTIFICATION_DECISION_USE_FILE
+  ✓ ผู้อนุมัติส่ง AUDIT_NOT_PASSED ไป CAR_PENDING = 409 CERTIFICATION_DECISION_USE_FILE
+PASS __tests__/integration/status-doors-honor-paid-milestones-real-postgres.test.js
+  ✓ งวดแรกคืนเงินแล้ว: มอบหมายไม่ได้ สถานะไม่เปลี่ยน
+  ✓ ผู้จัดคิวที่ไม่มีองค์กร ถูกปฏิเสธ (ไม่รู้องค์กร = ไม่ให้)
+  ✓ ผู้จัดคิวองค์กรอื่น เห็นเหมือนไม่มีคำขอ
+  ✓ จ่ายงวดแรกแล้ว: มอบหมายได้ และผู้ตรวจอยู่ในคอลัมน์ reviewerId
+  ✓ งวดที่สองคืนเงินแล้ว: นัดไม่ได้ สถานะและผู้ตรวจไม่เปลี่ยน
+  ✓ ผู้จัดคิวองค์กรอื่น เห็นเหมือนไม่มีคำขอ
+  ✓ จ่ายครบสองงวด: นัดได้
+  ✓ อนุมัติไม่ได้เมื่องวดที่สองคืนเงินแล้ว และไม่มีใบรับรองเกิด
+  ✓ ส่งกลับไปทบทวนไม่ได้เมื่องวดแรกคืนเงินแล้ว
+  ✓ จ่ายครบสองงวด: ส่งกลับไปทบทวนได้ และมีแถวบันทึกการเปลี่ยนสถานะ
+PASS __tests__/integration/applicant-notices-reach-the-holder-real-postgres.test.js
+  ✓ REVISION_REQUESTED → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่น ได้คนละหนึ่งแถว
+  ✓ PENDING_AUDIT_FEE → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่น ได้คนละหนึ่งแถว
+  ✓ CERTIFIED → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่น ได้คนละหนึ่งแถว
+  ✓ ผลตรวจแปลงผ่าน (ตัวเขียนสถานะ AUDIT_PASSED) → ผู้ยื่นและผู้ถือ
+  ✓ ออกใบรับรอง (ผู้อนุมัติตัดสิน → CERTIFIED) → ผู้ยื่นและผู้ถือได้เลขใบรับรอง
+  ✓ cron เตือนต่ออายุรันซ้ำในวันเดียว → ผู้ยื่นและผู้ถือได้คนละหนึ่งแถวต่อรอบ 30 วัน
+  ✓ งานเที่ยงคืนที่ส่ง CERTIFICATE_EXPIRING ทุกวันไม่มีแล้ว
+  ✓ notifyRevisionRequired → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น
+  ✓ notifyDocumentApproved → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น
+  ✓ notifyRevisionDeadlineApproaching → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น
+  ✓ notifyAuditScheduled → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น
+  ✓ ค้างจ่ายจนถูกปิด: ไม่ชวนขออนุโลม (เปิดต่อไม่ได้)
+  ✓ เลยกำหนดแก้ไข: บอกทางขอเปิดต่อเป็นรายกรณี
+PASS __tests__/unit/prisma-select-field-guard.test.js
+  ✓ blanks a `//` line comment but keeps line count (so line numbers stay correct)
+  ✓ blanks a `/* */` block comment across multiple lines
+  ✓ blanks string CONTENTS but keeps the quote characters — so a real value still reads as a scalar
+  ✓ blanks a template literal, including its `${...}` interpolation
+  ✓ same length as the input (so every absolute index / line number still lines up)
+  ✓ `applicant` names exactly one target model (User) — unambiguous, so it is checked
+  ✓ User has `phoneNumber`, not `phone`
+  ✓ `user` (the client-property name) maps to model `User`
+  ✓ a multi-word model maps via first-letter-lowercase, e.g. `invoiceLineItem` -> `InvoiceLineItem`
+  ✓ skips (does not map) a client-property name two different models would both produce
+  ✓ flags `applicant: { select: { phone: true } }` (the exact bug, commit 83157701)
+  ✓ flags the same shape under `auditor` (also a User relation)
+  ✓ does NOT flag the fixed form (`phoneNumber: true`)
+  ✓ does NOT descend into a nested relation select — that is its own match
+  ✓ skips an AMBIGUOUS relation name rather than guessing (no false positive)
+  ✓ flags a wrong key in a TOP-LEVEL select with no relation wrapper — `prisma.user.findFirst({ select: { phone: true } })`
+  ✓ does NOT flag the fixed top-level select (`phoneNumber: true`)
+  ✓ flags a wrong key in a TOP-LEVEL omit — `prisma.user.findMany({ omit: { phone: true } })`
+  ✓ flags a wrong key in a TOP-LEVEL scalar where — `prisma.user.findFirst({ where: { phone: "x" } })`
+  ✓ does NOT flag the fixed scalar where (`phoneNumber: "x"`)
+  ✓ does NOT flag a legitimate top-level where scalar (`email`, `id`)
+  ✓ the same literal-call check also matches `tx.<model>.<op>(...)` (the $transaction(async (tx) => ...) convention)
+  ✓ DOES NOT CATCH #2: a wrong key hidden inside a where OPERATOR object is skipped, not flagged
+  ✓ DOES NOT CATCH #3-4: an array-valued where key (`OR`/`AND`) and its nested objects are skipped, not flagged
+  ✓ DOES NOT CATCH #1: select passed as a variable is not evaluated, so it is not flagged even when wrong
+  ✓ DOES NOT CATCH #5: a non-literal receiver (`db.user.findFirst`) is not resolved, so it is not flagged
+  ✓ a relation-nested select inside a direct call is still caught by the RELATION check, not double-counted by the direct-call check
+  ✓ zero User-target violations across the whole backend (relation-select + direct-call select/omit/where)
+  ✓ zero NEW invalid fields across the backend — only the named, logged baseline entry may remain (general sweep)
+  ✓ the baseline names only violations that still actually exist (no stale/over-claimed entry)
+  ✓ the sweep finds EXACTLY the known baseline and nothing else — the honest current count
+PASS __tests__/unit/auth-idp-routes.test.js
+  ✓ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed
+  ✓ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง)
+  ✓ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น)
+  ✓ thaid enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที
+  ✓ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน
+  ✓ tombstone: 'mock' ไม่อยู่ใน registry แล้ว → 503 และแยกไม่ออกจาก key ที่ไม่เคยมี (operator 2026-08-14)
+  ✓ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE
+  ✓ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID
+  ✓ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use)
+  ✓ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID
+  ✓ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID
+  ✓ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID
+  ✓ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR + audit reason CODE_MISSING จากการ์ดของ route
+  ✓ code ไม่ใช่สตริง (number) → 400 VALIDATION_ERROR ก่อนถึง adapter (ไม่ยิง IdP)
+  ✓ happy → 200: mint ผ่าน issueTokensForAuthenticatedUser + provider_token httpOnly cookie
+  ✓ happy (HEALTH role) → 200: mint ผ่าน issueTokensForAuthenticatedUser + auth_token httpOnly cookie (Item 1)
+  ✓ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4)
+  ✓ ทะเบียนปฏิเสธ fail-closed (auto-provision ปิด) → catalog status + ไม่มี create/upsert/mint + audit FAILURE
+  ✓ บัญชีที่ผูกเลข 13 หลักเป็นเจ้าหน้าที่ → 403 ไม่ auto-link ไม่ create/upsert/mint + audit FAILURE
+  ✓ บัญชี status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session
+  ✓ ผู้ใช้กดปฏิเสธที่ IdP → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE
+  ✓ code ถูก IdP ปฏิเสธ → 401 AUTH_IDP_CODE_INVALID (ใช้ไม่ได้ = ปฏิเสธก่อน mint)
+  ✓ id_token ไม่มี subject → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE
+  ✓ (a) id_token carries pid/name INSIDE (no top-level pid) → nationalId/name resolved from id_token claims
+  ✓ (b) REGRESSION PIN: top-level pid/name only (id_token carries just sub) → still resolves via top-level fallback
+  ✓ id_token claims win over top-level when BOTH are present (precedence pin)
+  ✓ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ
+  ✓ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE
+  ✓ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session
+  ✓ ไม่มี state ใน body → 400 AUTH_STATE_INVALID (single-use/anti-CSRF ครอบ thaid ด้วย)
+  ✓ thaid happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = thaidSubjectKey(subject) (keyed, R-D Task 3) ไม่ใช่ sha256 ธรรมดา ไม่มีค่าดิบใน metadata
+  ✓ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ
+  ✓ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp
+  ✓ routes/api/index.js mount /auth/idp
+  ✓ server.js ครอบ /auth/idp ด้วย idp-rate-limit factory ที่รับ authLimiter จริง
+PASS __tests__/unit/error-codes-catalog.test.js
+  ✓ exports a frozen object with at least 80 entries (RFC W4-B floor)
+  ✓ every entry has all 6 required fields with the right types
+  ✓ every source path points at a file that exists
+  ✓ every httpStatus is a 4xx or 5xx HTTP status code
+  ✓ catalog codes are unique (no duplicate keys across the object)
+  ✓ contains every code listed in shared/api-response.js DEFAULT_ERROR_MESSAGES
+  ✓ contains every code thrown by shared/errors.js AppError + JWT branches
+  ✓ exposes getMessage() that returns localised strings with fallback
+  ✓ exposes lookup() that returns the full row or undefined
+  ✓ extract-error-codes script runs and discovers ≥ catalog floor codes
+  ✓ extractor loadCatalog returns same module as direct require
+  ✓ every discovered code is catalogued (no drift between code and catalog)
+PASS __tests__/unit/terminal-decision-letter.test.js
+  ✓ title, issuer, facts, reason with the rule, consideration, the order, the appeal setting and the new-application right
+  ✓ a file the inspector passed states that result, with no findings list
+  ✓ no status label, no official named, no platform email, no time limit but the setting's (orders 78(4), 83(3), 118(1))
+  ✓ a missing reason THROWS: an order without it is not served (D-8)
+  ✓ a missing consideration THROWS: an order without it is not served (D-8)
+  ✓ a missing consideration THROWS: an order without it is not served (D-8)
+  ✓ a missing stage THROWS: an order without it is not served (D-8)
+  ✓ a missing facts THROWS: an order without it is not served (D-8)
+  ✓ a missing appeal setting THROWS: an order without it is not served (D-8)
+  ✓ NO deadline: no dueAt in metadata and no กำหนดส่ง wording
+  ✓ the template file re-spells no phone, email or URL
+  ✓ writes one letter per party through the caller tx, each with the same refusalId, and NEVER a CorrectionRound row
+  ✓ no party to serve REJECTS before any row is written (no letter, no order)
+  ✓ a party without an account or a tenant REJECTS the whole order
+  ✓ an order missing its consideration REJECTS before any row is written
+  ✓ REJECT = 400, no status write, no letter
+  ✓ the override mints no letter: REJECTED is not an admin's to write (order 35; the writer refuses it, staff-access-2-real-postgres)
+  ✓ a non-terminal override (CAR_REVIEWING) mints NO letter (negative control)
+  ✓ the terminal Thai copy is defined ONLY in shared/terminal-letter-template.js
+  ✓ the refusal letter is minted by the approver's decision alone; the inspector's doors and the generic door mint none (order 56(2))
+  ✓ the terminal template never reaches for the correction template deadline copy
+  ✓ the terminal mint never writes a correction round (grep pin, both directions)
+PASS __tests__/unit/auditor-routes-rbac.test.js
+  ✓ document_reviewer role gets 403 (perm-gate)
+  ✓ dispatcher role gets 403 (perm-gate)
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ document_reviewer role gets 403 (perm-gate)
+  ✓ dispatcher role gets 403 (perm-gate)
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ document_reviewer role gets 403 (perm-gate)
+  ✓ dispatcher role gets 403 (perm-gate)
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ GET /api/provider/auditor/dashboard returns 401 without a token
+  ✓ POST /api/provider/auditor/applications/:id/inspection-starts returns 401 without a token
+  ✓ POST /api/provider/auditor/applications/:id/audit-decisions returns 401 without a token
+  ✓ document_reviewer role gets 403 (perm-gate)
+  ✓ dispatcher role gets 403 (perm-gate)
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ document_reviewer role gets 403 (perm-gate)
+  ✓ dispatcher role gets 403 (perm-gate)
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ document_reviewer role gets 403 (perm-gate)
+  ✓ dispatcher role gets 403 (perm-gate)
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ POST /api/provider/auditor/applications/:id/session/checkin returns 401 without a token
+  ✓ POST /api/provider/auditor/applications/:id/session/evidence returns 401 without a token
+  ✓ POST /api/provider/auditor/applications/:id/session/notes returns 401 without a token
+  ✓ field_inspector role reaches the handler
+  ✓ system_admin_dtam role reaches the handler
+  ✓ dispatcher role reaches the handler
+  ✓ document_reviewer role reaches the handler
+  ✓ finance_officer_dtam role reaches the handler
+  ✓ finance_officer_platform role reaches the handler
+  ✓ finance_officer_platform role reaches the handler
+  ✓ anonymous request returns 401
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ dispatcher role bypasses the perm gate
+  ✓ document_reviewer role bypasses the perm gate
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ dispatcher role bypasses the perm gate
+  ✓ document_reviewer role bypasses the perm gate
+  ✓ finance_officer_dtam role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ finance_officer_platform role gets 403 (perm-gate)
+  ✓ health role gets 403 (perm-gate)
+  ✓ field_inspector role bypasses the perm gate
+  ✓ system_admin_dtam role bypasses the perm gate
+  ✓ dispatcher role bypasses the perm gate
+  ✓ document_reviewer role bypasses the perm gate
+  ✓ GET /api/provider/auditor/final-approval-queue returns 401 without a token
+  ✓ POST /api/provider/auditor/applications/:id/final-approvals returns 401 without a token
+  ✓ POST /api/provider/auditor/applications/:id/reject-to-auditor returns 401 without a token
+  ✓ POST reject-to-auditor logs APPLICATION_STATUS_TRANSITION (→CAR_REVIEWING) in the tx
+PASS __tests__/unit/account-side-cross-boundary.test.js
+  ✓ POST /api/provider/applications/:id/workflow-transitions DOC_APPROVED → 403
+  ✓ POST /api/provider/applications/:id/workflow-transitions REVISION_REQUESTED → 403
+  ✓ POST /api/audit/scheduling/assign → 403 (FORBIDDEN_ROLE)
+  ✓ GET /api/audit/scheduling/queue → 403
+  ✓ POST /api/audit/scheduling/:id/approve → 403
+  ✓ GET /api/provider/auditor/dashboard → 403
+  ✓ POST /api/provider/auditor/applications/:id/audit-decisions → 403
+  ✓ POST /api/provider/auditor/applications/:id/final-approvals → 403
+  ✓ POST /api/finance/refunds/:id/duplicate-charge → 403 FORBIDDEN_ROLE
+  ✓ POST /api/finance/credit-notes → 403 FORBIDDEN_ROLE
+  ✓ POST /api/finance/period-close (close) → 403 PERIOD_CLOSE_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries → 403 MANUAL_JE_CREATE_FORBIDDEN
+  ✓ POST /api/finance/purchase-invoices/:id/approve → 403 FORBIDDEN_ROLE
+  ✓ POST /api/finance/wht/certificate → 403 FORBIDDEN_ROLE
+  ✓ GET /api/finance/refunds/:id/status → 200 (READ_ROLES มีการเงินทั้งสองบทบาท)
+  ✓ GET /api/finance/wht/certificates → 200 (READ_ROLES มีการเงินทั้งสองบทบาท)
+  ✓ GET /api/finance/purchase-invoices → 200 (READ_ROLES มีการเงินทั้งสองบทบาท)
+  ✓ POST /api/finance/period-close/:id/reopen → 403 PERIOD_REOPEN_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries/:id/approve → 403 MANUAL_JE_APPROVE_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries/:id/post → 403 MANUAL_JE_POST_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries/:id/reject → 403 MANUAL_JE_REJECT_FORBIDDEN
+  ✓ POST /api/provider/applications/:id/workflow-transitions DOC_APPROVED → 403
+  ✓ POST /api/provider/applications/:id/workflow-transitions REVISION_REQUESTED → 403
+  ✓ POST /api/audit/scheduling/assign → 403 (FORBIDDEN_ROLE)
+  ✓ POST /api/audit/scheduling/:id/approve → 403
+  ✓ GET /api/audit/scheduling/queue → 403
+  ✓ GET /api/provider/auditor/dashboard → 403
+  ✓ POST /api/provider/auditor/applications/:id/audit-decisions → 403
+  ✓ POST /api/provider/auditor/applications/:id/final-approvals → 403
+  ✓ POST /api/finance/period-close/:id/reopen → passes the gate and reopenPeriod runs
+  ✓ POST /api/finance/manual-journal-entries/:id/approve → passes the gate and approveManualEntry runs
+  ✓ POST /api/finance/manual-journal-entries/:id/post → passes the gate and postManualEntry runs
+  ✓ POST /api/finance/period-close/:id/reopen of another organization → 403 CROSS_TENANT_ACCESS_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries/:id/approve of another organization → 403 CROSS_TENANT_ACCESS_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries/:id/post of another organization → 403 CROSS_TENANT_ACCESS_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries/:id/reject of another organization → 403 CROSS_TENANT_ACCESS_FORBIDDEN
+  ✓ POST /api/finance/refunds/:id/duplicate-charge → non-403 (positive)
+  ✓ POST /api/finance/period-close → non-403 (positive)
+  ✓ POST /api/finance/manual-journal-entries → non-403 (positive)
+  ✓ POST /api/finance/purchase-invoices/:id/approve → non-403 (positive)
+  ✓ POST /api/finance/wht/certificate → non-403 (positive)
+  ✓ POST /api/finance/period-close/:id/reopen → 403 PERIOD_REOPEN_FORBIDDEN
+  ✓ POST /api/finance/manual-journal-entries/:id/approve → 403 MANUAL_JE_APPROVE_FORBIDDEN
+PASS __tests__/unit/admin-positive-bypass.test.js
+  ✓ ADMIN role bypasses the gate and the service-layer mutation IS called
+  ✓ ADMIN role bypasses the gate and the service-layer mutation IS called
+  ✓ ADMIN role bypasses the gate and the service-layer mutation IS called
+  ✓ ADMIN role bypasses the gate and the service-layer mutation IS called
+  ✓ alias system_admin_dtam reaches scheduler assign through the ADMIN bypass
+  ✓ alias system_admin_dtam reaches scheduler assign through the ADMIN bypass
+  ✓ alias system_admin_dtam reaches scheduler assign through the ADMIN bypass
+  ✓ alias system_admin_dtam reaches scheduler assign through the ADMIN bypass
+  ✓ ADMIN role gets 403 with the gate code and the service-layer mutation is NOT called
+  ✓ ADMIN role gets 403 with the gate code and the service-layer mutation is NOT called
+  ✓ ADMIN role gets 403 with the gate code and the service-layer mutation is NOT called
+  ✓ document_reviewer gets 403 + assignAuditor spy NOT called
+  ✓ admin gets through + assignAuditor spy called
+  ✓ account_dtam gets 403 + dashboard spy NOT called
+  ✓ admin gets through + dashboard spy called
+  ✓ account_platform gets through + reopenPeriod spy called
+  ✓ admin gets 403 + reopenPeriod spy NOT called
+PASS __tests__/unit/request-limit-refusals-reach-the-client-honestly.test.js
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code FILE_TOO_LARGE
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code TOO_MANY_FILES
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code FORM_LIMIT_EXCEEDED
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code FORM_LIMIT_EXCEEDED
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code FORM_LIMIT_EXCEEDED
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code FORM_LIMIT_EXCEEDED
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 400, not 500
+  ✓ answers with the catalogued code MALFORMED_FORM_DATA
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 400, not 500
+  ✓ answers with the catalogued code UNEXPECTED_FILE_FIELD
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code REQUEST_BODY_TOO_LARGE
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code REQUEST_BODY_TOO_LARGE
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ answers 413, not 500
+  ✓ answers with the catalogued code REQUEST_BODY_TOO_LARGE
+  ✓ speaks Thai where the web client reads it, in the catalogue's words
+  ✓ carries no stack trace
+  ✓ is logged once at warn level, naming the cause, without a stack
+  ✓ an oversize JSON body reports the byte limit it went past
+  ✓ the log line keeps the query string out (tokens travel there)
+  ✓ finds the codes (guards the scan itself)
+  ✓ INVALID_FIELD_NAME is answered as a client error, not a 500
+  ✓ LIMIT_FIELD_ARRAY_INDEX is answered as a client error, not a 500
+  ✓ LIMIT_FIELD_COUNT is answered as a client error, not a 500
+  ✓ LIMIT_FIELD_KEY is answered as a client error, not a 500
+  ✓ LIMIT_FIELD_NESTING is answered as a client error, not a 500
+  ✓ LIMIT_FIELD_VALUE is answered as a client error, not a 500
+  ✓ LIMIT_FILE_COUNT is answered as a client error, not a 500
+  ✓ LIMIT_FILE_SIZE is answered as a client error, not a 500
+  ✓ LIMIT_PART_COUNT is answered as a client error, not a 500
+  ✓ LIMIT_UNEXPECTED_FILE is answered as a client error, not a 500
+  ✓ MISSING_FIELD_NAME is answered as a client error, not a 500
+  ✓ an unexpected server error is still a 500, logged at error level with its stack
+  ✓ an error that states its own status keeps it
+  ✓ a code that merely looks like a multer code is not taken for one
+  ✓ uploads and bodies inside the limits still go through
+  ✓ a developer machine still gets no stack on a limit refusal (it is not a server fault)
+  ✓ the doors that catch multer refusals themselves are the three known ones
+PASS __tests__/unit/applicant-billing-doors.test.js
+  ✓ hands the service the request's holder scope and nothing else (no workspace, no filer)
+  ✓ every invoice of the caller's holders: the fragment, nothing else
+  ✓ the status filter is added beside the scope
+  ✓ no holder scope (undefined): fail closed, no query
+  ✓ no holder scope (null): fail closed, no query
+  ✓ no holder scope ({"userId": "u"}): fail closed, no query
+  ✓ reads by id through the holder fragment (findFirst, never findUnique) and returns the row
+  ✓ not readable (live or not): 404 after the one read, never a 403 existence probe
+  ✓ no holder scope: 404 with no query (fail closed)
+  ✓ the receipt door passes the scope to the gate and to the renderer
+  ✓ the invoice PDF door: outside the scope (404) never renders
+  ✓ the invoice PDF door renders through the scoped read
+  ✓ a soft-deleted or missing invoice is 404 on both owner doors, and nothing renders
+  ✓ getForDocument with a scope adds the holder where; without one (staff, worker) it keeps { id }
+  ✓ serves the receipt PDF to the owner of a paid invoice that carries a receipt number
+  ✓ accepts the lower-case "paid" status the demo register stores
+  ✓ refuses someone else's invoice with 404 (R2 Task 12: never told apart from a missing one) and never renders it
+  ✓ answers 404 for an invoice that does not exist
+  ✓ refuses an invoice that is unpaid with 409 RECEIPT_NOT_ISSUED
+  ✓ refuses an invoice that is paid but no receipt number yet with 409 RECEIPT_NOT_ISSUED
+  ✓ refuses an invoice that is cancelled after a receipt with 409 RECEIPT_NOT_ISSUED
+  ✓ leaves the staff receipt door behind INVOICE_VIEW_ALL (an applicant is still 403 there)
+  ✓ RECEIPT_NOT_ISSUED is a 409 in the register, as both doors answer it
+PASS __tests__/unit/x2-fix-d-rbac-defense-in-depth.test.js
+  ✓ DOCUMENT_REVIEWER receives public projection (no PII)
+  ✓ ADMIN receives full projection (PII + lifecycle metadata)
+  ✓ AUDITOR (non-privileged for directory) gets public projection
+  ✓ SCHEDULER (privileged for assignment) gets full projection
+  ✓ GET /:id mirrors the projection policy
+  ✓ DOCUMENT_REVIEWER receives 403 (was 200 pre-fix)
+  ✓ SCHEDULER receives 403 — also blocked by AUDITORS group
+  ✓ ผู้ตรวจประเมินแปลงได้ 403 — คิวตัดสินไม่ใช่ของเขาอีกต่อไป
+  ✓ ผู้อนุมัติใบรับรองได้ 200
+  ✓ ADMIN receives 403 (AUDIT-001 — และ CERT_DECIDERS ก็ไม่รับ admin ด้วยเหตุผลเดียวกัน)
+  ✓ SOW POST: non-assigned provider receives 403
+  ✓ SOW POST: assigned reviewer receives 2xx
+  ✓ SOW POST: ADMIN bypasses owner gate
+  ✓ Checklist POST: non-assigned auditor receives 403
+  ✓ Checklist POST: assigned auditor receives 2xx
+  ✓ PATCH /:id — tenant ADMIN cannot assign PLATFORM_ADMIN (canonical, 403, no write)
+  ✓ PATCH /:id — legacy/uppercase PLATFORM_ADMIN also rejected (403, no write)
+  ✓ PATCH /:id — admin cannot change their OWN role (403, no write)
+  ✓ PATCH /:id — assigning a normal provider role still works (2xx, writes)
+  ✓ PUT /:id — tenant ADMIN cannot assign PLATFORM_ADMIN (canonical, 403, no write)
+  ✓ PUT /:id — legacy/uppercase PLATFORM_ADMIN also rejected (403, no write)
+  ✓ PUT /:id — admin cannot change their OWN role (403, no write)
+  ✓ PUT /:id — assigning a normal provider role still works (2xx, writes)
+PASS __tests__/unit/reviewer-inspector-separation.test.js
+  ✓ same person on both sides is refused, each way, with its own code
+  ✓ different people, or an empty side, pass
+  ✓ errors carry a Thai message, and the three codes are in the catalogue with Thai text
+  ✓ assign-reviewer: the person already assigned as this application's inspector is refused, nothing written
+  ✓ assign-reviewer: a field inspector who is NOT this application's inspector is still a valid reviewer
+  ✓ reviewer reassign: same refusal
+  ✓ 409 INSPECTOR_IS_APPLICATION_REVIEWER, no transaction opened
+  ✓ document-decision: the reviewer who is also the application's inspector may not decide (403, nothing moves)
+  ✓ audit-decision (PASS/MINOR/MAJOR/REJECT): the inspector who is also the application's document reviewer may not decide
+  ✓ onsite decision (submitDecision): same refusal on the field-app door
+PASS __tests__/unit/public-verify-revision.test.js
+  ✓ (a) is null for a certificate at revision 1 and asks for no history
+  ✓ (a2) a row issued before the expand migration (revisionNo absent) reads as revision 1
+  ✓ (b) at revision 2 carries no/revisedAt/reasonLabel/history and never the reasonText
+  ✓ (b4) a cropType-only revision (F-G4-58) is published under a label that states no farm-location correction
+  ✓ (b2) history keeps ascending order across several revisions
+  ✓ (b3) a revised certificate that later expired still reports its revision
+  ✓ (c) an intact archived revision reads superseded:true, integrity VALID, signatureValid true
+  ✓ (c2) an archived snapshot edited after archival reads TAMPERED
+  ✓ (c3) an archived signature that does not verify against the pinned key reads signatureValid false
+  ✓ (f) live row revoked: no archived facts, certificateStatus carried, main door withholds the same
+  ✓ (f) live row suspended: no archived facts, certificateStatus carried, main door withholds the same
+  ✓ (f) live row date-expired: no archived facts, certificateStatus carried, main door withholds the same
+  ✓ (f2) a revocation MARKER left on an otherwise active row (isDeleted) reads REVOKED with no archived facts
+  ✓ (f3) an active live row still answers the archived facts, with certificateStatus active
+  ✓ (d) answers 404 REVISION_NOT_FOUND when no such revision is archived
+  ✓ (d2) revision "0" is not a revision number: 404 without a lookup
+  ✓ (d2) revision "-1" is not a revision number: 404 without a lookup
+  ✓ (d2) revision "abc" is not a revision number: 404 without a lookup
+  ✓ (d2) revision "1.5" is not a revision number: 404 without a lookup
+  ✓ (d3) an unknown certificate number is 404 without a revision lookup
+  ✓ (d4) REVISION_NOT_FOUND is a catalogued 404
+  ✓ (e) sits behind the same rate limiter as /verify/:no
+  ✓ listRevisionSummaries maps rows to { no, signedAt, supersededAt } ISO strings and nothing else
+  ✓ verifyArchivedRevision answers { found:false } for a missing row and the full verdict for an archived one
+PASS __tests__/integration/provider-cms-workflow.test.js
+  ✓ blocks unauthorized canonical role from workflow transition
+  ✓ refuses a revision request on the generic door: the per-document check owns it
+  ✓ marks overdue revision as EXPIRED via manual trigger endpoint
+  ✓ returns reviewer dashboard queues and KPI snapshot
+  ✓ blocks unauthorized role from scheduling endpoint
+  ✓ detects auditor schedule collision on scheduling
+  ✓ returns scheduler dashboard queues and KPI snapshot
+  ✓ returns auditor dashboard queues and KPI snapshot
+  ✓ blocks auditor start-inspection when receipt is not issued
+  ✓ records MAJOR auditor decision and marks application for rescheduling
+  ✓ the word REJECT is retired: the inspector records "not passed" and the approver decides (order 56(2))
+  ✓ returns deprecation headers on legacy provider-cms alias
+  ✓ does not return deprecation headers on canonical provider namespace
+  ✓ returns deprecation headers on legacy action-style path under canonical namespace
+PASS __tests__/unit/atomic-decision-letter.test.js
+  ✓ CAR_PENDING mints the letter too (CAR branch had NO letter before)
+  ✓ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs
+  ✓ REVISION_REQUESTED is refused here (per-document check is the door) and mints NO letter
+  ✓ DOC_APPROVED is refused here (per-document check is the door) and mints NO letter
+  ✓ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items)
+  ✓ ATOMIC: letter write failure fails the decision — deadline never seeded, 500
+  ✓ PASS mints NO correction letter (negative control)
+  ✓ the Thai letter copy is defined ONLY in shared/correction-letter-template.js
+  ✓ buildCorrectionLetter emits all five elements + structured metadata (M3: round number)
+  ✓ buildCorrectionLetter falls back to the decision message when no structured items exist
+  ✓ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition)
+  ✓ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service
+PASS __tests__/integration/approver-sees-the-file-decision-file.test.js
+  ✓ approver receives application, documents, checklist per item, photos with provenance, GPS, summary, CAR history
+  ✓ says plainly whether the evidence would pass the issuance gate
+  ✓ a file outside the decision queue (not AUDIT_PASSED) is not served -> 404
+  ✓ field_inspector is refused (403) — the file is the decider's door
+  ✓ document_reviewer is refused (403) — the file is the decider's door
+  ✓ dispatcher is refused (403) — the file is the decider's door
+  ✓ finance_officer_platform is refused (403) — the file is the decider's door
+  ✓ system_admin_dtam is refused (403) — the file is the decider's door
+  ✓ the approver still cannot WRITE audit results
+  ✓ the approver still cannot reach the inspector onsite reads or the disclosure switch
+  ✓ approver with no organisation is refused 403 on the file, nothing queried
+  ✓ file of another organisation -> 404 (the query carries the caller org)
+  ✓ decision queue: no organisation -> 403, nothing queried
+  ✓ decision queue lists only the caller organisation (the files they can open)
+PASS __tests__/unit/no-self-service-password-reset.test.js
+  ✓ the backend mounts no reset route, neither the request nor the token redemption
+  ✓ no router or server mount names a password-reset or recovery path
+  ✓ no controller, service or schema can start or complete a reset any more
+  ✓ no backend code mints or looks up a password-reset token
+  ✓ no error-code remediation sends anyone to a forgot-password endpoint or a reset token
+  ✓ the web app has no forgot-password or reset page, route, link, call, sitemap entry or copy
+  ✓ the mobile app has no forgot-password screen, route or button
+  ✓ the API contract documents no reset path and no email verification
+  ✓ nodemailer is not a dependency
+  ✓ the secrets catalog has no SMTP, email or SMS row
+  ✓ no env template, generator or compose file configures a mail or SMS relay
+  ✓ the email template engine that rendered for the deleted email service is gone
+  ✓ no error code documents the deleted email/SMS notification providers
+PASS __tests__/unit/correction-round.test.js
+  ✓ roundNo = prior rounds of (application, stage) + 1, counted through the SAME tx
+  ✓ DOC_REVIEW round 3 does NOT bleed into FIELD_AUDIT round 1 (independent counters)
+  ✓ วนไม่จำกัดครั้ง — round 42 is minted without any cap (D-2: เพดาน 3 ครั้ง ถูกยกเลิก)
+  ✓ round record carries decidedAt + dueAt of the decision
+  ✓ P2002 on the round key rejects with a CLEAR error (no swallow, no silent skip)
+  ✓ non-P2002 round-write failure propagates as-is (atomic — tx ทั้งก้อนล้ม)
+  ✓ buildCorrectionLetter emits "การแก้ไขครั้งที่ N ของขั้นตอน..." + metadata.roundNo
+  ✓ a letter WITHOUT its round number is REFUSED (throw — D-8: no letter, no transition)
+  ✓ mintCorrectionLetter always sends the round number into the letter
+  ✓ the round-line Thai copy is defined ONLY in the letter template SSOT (Law 3.5/3.6)
+  ✓ exports the frozen DOC_REVIEW/FIELD_AUDIT vocabulary
+  ✓ maps the M2 letter stages: DOC_REVIEW→DOC_REVIEW, FIELD_AUDIT_CAR→FIELD_AUDIT; unknown → throw
+  ✓ no backend .js file mutates correctionRound (update/upsert/delete are forbidden)
+  ✓ the ONLY correctionRound writer is decision-letter-service (the M2 mint point)
+  ✓ CorrectionRound is registered tenant-scoped (services/tenant-prisma-extension.js)
+  ✓ correction-round.prisma declares the append ledger with the per-stage unique key
+  ✓ RevisionDeadline stays untouched (EXPAND, not contract — Law 3.10)
+  ✓ exactly one add_correction_rounds migration exists, EXPAND-only, timestamp not colliding
+  ✓ canonical value unchanged: PAYMENT.REVISION_DEADLINE_BUSINESS_DAYS === 5
+  ✓ workflow-handler-deps reads config — no REVISION_SLA_DAYS = 5 literal
+  ✓ workflow-transitions-handler: the CAR due date comes from computeCarDueDate in the one opener, not a day count
+  ✓ car-deadline-service reads the dated on-site window — no day count of its own
+  ✓ SLA_LITERAL flags every prefixed spelling and no bare day count
+  ✓ grep-pin: no revision-SLA day literal in services/routes/jobs/scripts/utils outside the waiver family (L4)
+  ✓ the L4 waiver exception is the ONLY thing the pin skips, and it is still there
+  ✓ ops scripts read config — restamp/identify-cohort no longer own an SLA constant
+  ✓ utils/working-days calculateRevisionDeadline defaults FROM config, not from a literal
+  ✓ dueAt a day before now is refused (CORRECTION_DUE_DATE_PASSED): no round, no letter
+  ✓ dueAt exactly now is refused (CORRECTION_DUE_DATE_PASSED): no round, no letter
+PASS __tests__/unit/admin-certificates-revise-route.test.js
+  ✓ anonymous POST → 401, services untouched
+  ✓ anonymous GET preview → 401, services untouched
+  ✓ auditor provider POST → 403, services untouched
+  ✓ document_reviewer provider POST → 403, services untouched
+  ✓ scheduler provider POST → 403, services untouched
+  ✓ account provider POST → 403, services untouched
+  ✓ health provider POST → 403, services untouched
+  ✓ auditor provider GET preview → 403, services untouched
+  ✓ document_reviewer provider GET preview → 403, services untouched
+  ✓ scheduler provider GET preview → 403, services untouched
+  ✓ account provider GET preview → 403, services untouched
+  ✓ health provider GET preview → 403, services untouched
+  ✓ missing reason → 400 REVISION_REASON_REQUIRED from the catalog, service untouched
+  ✓ empty string reason → 400 REVISION_REASON_REQUIRED from the catalog, service untouched
+  ✓ whitespace only reason → 400 REVISION_REASON_REQUIRED from the catalog, service untouched
+  ✓ non-string reason → 400 REVISION_REASON_REQUIRED from the catalog, service untouched
+  ✓ reason over 500 chars → 400 REVISION_REASON_TOO_LONG from the catalog, service untouched
+  ✓ a 500-char reason is still accepted
+  ✓ service code CERTIFICATE_NOT_REVISABLE → 409 with the catalog Thai message, no admin audit
+  ✓ service code CERTIFICATE_REVISION_NO_CHANGE → 409 with the catalog Thai message, no admin audit
+  ✓ service code CERTIFICATE_REVISION_CONFLICT → 409 with the catalog Thai message, no admin audit
+  ✓ service code CERT_SIGNING_UNAVAILABLE → 503 with the catalog Thai message, no admin audit
+  ✓ CERTIFICATE_FARM_LOCATION_MISSING (422) → 422 carrying missingFields
+  ✓ statusCode 404 (missing OR another tenant) → 404 CERTIFICATE_NOT_FOUND with Thai copy
+  ✓ anything else → 500 CERTIFICATE_REVISE_FAILED through safeErrorMessage (no internals leak)
+  ✓ an unknown code with a statusCode still does not leak internals
+  ✓ → 200, service called with the caller tenant and crossTenant:false, data shape, admin audit
+  ✓ an audit-log outage does not turn the committed revision into a 500
+  ✓ a caller with no organizationId passes null (service fail-closes with 404)
+  ✓ → 200 { current, corrected, changed }, called with the caller tenant, revise never called
+  ✓ a no-change preview is 200 with changed: [] (never a 409)
+  ✓ service 404 → 404 CERTIFICATE_NOT_FOUND
+  ✓ service CERTIFICATE_NOT_REVISABLE → 409 with the catalog Thai message
+  ✓ service CERTIFICATE_FARM_LOCATION_MISSING → 422 carrying missingFields
+PASS __tests__/unit/workflow-transitions-cert-integrity.test.js
+  ✓ force -> AUDIT_PASSED passes autoIssueCertificate:false to the writer
+  ✓ legitimate (non-force) auditor AUDIT_PASSED still auto-issues (autoIssueCertificate !== false)
+  ✓ the approver's decisions are refused here: they belong to the decision file (order 29)
+  ✓ force -> APPROVED does NOT mint (no cert resurrection)
+  ✓ voids the cert in the same transaction as the status write
+  ✓ a non-reversal transition does NOT open a tx or void a cert
+  ✓ force AUDIT_PASSED -> CANCELLED never revokes a certificate
+  ✓ force APPROVED -> CANCELLED never revokes a certificate
+  ✓ force CERTIFIED -> CANCELLED never revokes a certificate
+  ✓ force -> APPROVED from REJECTED mints no certificate
+  ✓ an inspector's CAR_PENDING runs in the tx and wires statusTransitionAuditHook({tx})
+  ✓ ADMIN force -> AUDIT_PASSED also writes the audit row in the tx (force path)
+PASS __tests__/unit/refusal-wording-names-no-official-or-channel.test.js
+  ✓ the refusal letter states the appeal setting and names no official, body, deadline or channel of its own
+  ✓ the notice of a failed visit tells the applicant the result will be announced without naming who decides
+PASS __tests__/unit/phase1-payment-requires-accepted-quotation.test.js
+  ✓ asks the ONE gate, in the phase vocabulary, for this application
+  ✓ a refusal answers with the catalogued code and status, and NOTHING is minted
+  ✓ an application with no quotation at all is refused, not billed (application A2`s shape)
+  ✓ a gate lookup failure is a 503, never a pass
+  ✓ DRAFT is not phase-1 payable here either, and the gate is not even asked
+  ✓ an accepted quotation still mints exactly as before
+  ✓ an application that is not the caller`s is 404, and the gate is not asked
+  ✓ asks the ONE gate, in the phase vocabulary, for this application
+  ✓ a refusal answers with the catalogued code and status, and NOTHING is minted
+  ✓ an application with no quotation at all is refused, not billed (application A2`s shape)
+  ✓ a gate lookup failure is a 503, never a pass
+  ✓ DRAFT is not phase-1 payable here either, and the gate is not even asked
+  ✓ an accepted quotation still mints exactly as before
+  ✓ an application that is not the caller`s is 404, and the gate is not asked
+PASS __tests__/unit/provider-me-epoch-status-guard.test.js
+  ✓ active user, no epoch → 200
+  ✓ token minted BEFORE sessionsRevokedAt → 401 (epoch eviction)
+  ✓ INACTIVE user → 401 (disabled staffer)
+  ✓ soft-deleted user → 401
+  ✓ INACTIVE user → 401 ACCOUNT_INACTIVE with the catalogue sentence
+  ✓ soft-deleted user → 401 ACCOUNT_INACTIVE with the catalogue sentence
+  ✓ token minted AFTER sessionsRevokedAt (fresh re-login) → 200
+  ✓ blocklisted jti (logged-out token) → 401 TOKEN_REVOKED
+  ✓ blocklist read failure → fail-open 200 (matches middleware policy)
+PASS __tests__/unit/survey-routes.test.js
+  ✓ POST /templates without token → 401
+  ✓ POST /templates as non-admin provider → 403 (no service call)
+  ✓ POST /templates as ADMIN → 201 + audit stamp
+  ✓ POST /templates/:id/activate — ADMIN 200; service 409 propagates
+  ✓ invalid template id (not UUID) → 400 without service call
+  ✓ GET /templates as any provider role → 200
+  ✓ GET /active as HEALTH → 200 with ACTIVE templates
+  ✓ POST /templates/:id/responses as HEALTH → 201; actor forwarded
+  ✓ service validation error (400 MISSING_REQUIRED_ANSWERS) propagates
+  ✓ GET /templates/:id/stats: a reviewer gets aggregates only, the ADMIN full cells, both in their organization
+  ✓ GET /templates/:id/export as a reviewer → 403 without a service call
+  ✓ a staff account with no organization is refused (NO_ORGANIZATION)
+  ✓ GET /templates/:id/export → text/csv + attachment headers
+  ✓ POST /interviews as ADMIN → 201; non-admin → 403
+  ✓ GET /interviews: ADMIN → 200 in its organization; a reviewer → 403
+PASS __tests__/unit/auditor-scope-correctness.test.js
+  ✓ AUDITOR B → 403 with "not assigned" message (writeApplicationStatus NOT called)
+  ✓ AUDITOR A → NOT 403 (owns the audit, gate lets through)
+  ✓ ADMIN → 403 (excluded; no ownership bypass — AUDIT-001)
+  ✓ AUDITOR B → 403 with "not assigned" (writeInspectionStart NOT called)
+  ✓ AUDITOR A → NOT 403 (owns the audit)
+  ✓ ADMIN → 403 (excluded; no ownership bypass — SoD, matches audit-decisions)
+  ✓ AUDITOR A → 403 (decision on B's audit blocked)
+  ✓ AUDITOR B → NOT 403 (owns the audit)
+  ✓ ADMIN → 403 (excluded regardless of owner — AUDIT-001)
+PASS __tests__/unit/dispatcher-edges-have-their-own-doors.test.js
+  ✓ every dispatcher edge
+  ✓ every certificate-approver decision
+  ✓ the inspector's "ไม่ผ่าน", which carries its findings
+  ✓ each refusal is a catalogued 409 with a Thai message
+PASS __tests__/unit/workflow-transitions-sod-writer.test.js
+  ✓ DOC_APPROVED refused 403 without force
+  ✓ REVISION_REQUESTED refused 403 without force
+  ✓ AUDIT_PASSED refused 403 without force
+  ✓ DOC_APPROVED refused 409 to an admin WITH force (order 31: not the admin's verdict)
+  ✓ REVISION_REQUESTED refused 409 to an admin WITH force (order 31: not the admin's verdict)
+  ✓ AUDIT_PASSED refused 409 to an admin WITH force (order 31: not the admin's verdict)
+  ✓ a different person on one side is not blocked (pin)
+PASS __tests__/unit/pricing-fail-closed.test.js
+  ✓ PRICING_UNAVAILABLE is in the canonical error catalog
+  ✓ an internal error returns an error, never success:true with invented numbers
+  ✓ the Thai message states the cause AND the next action
+  ✓ the happy path serves the engine (no stored override since 2026-10-03)
+  ✓ an internal error returns an error, never success:true with invented numbers
+  ✓ the Thai message states the cause AND the next action
+  ✓ the happy path serves the engine (no stored override since 2026-10-03)
+PASS __tests__/unit/entity-permission-denied-copy.test.js
+  ✓ the catalogue carries the ruled Thai copy
+  ✓ the copy follows thai-ui-copy: no em dash, no emoji
+  ✓ routes/api/cultivation/farms.js reads the catalogue copy instead of a literal
+  ✓ routes/api/cultivation/plots.js reads the catalogue copy instead of a literal
+  ✓ routes/api/cultivation/seed-sources.js reads the catalogue copy instead of a literal
+  ✓ routes/api/cultivation/controlled-environments.js reads the catalogue copy instead of a literal
+  ✓ routes/api/cultivation/fertilizer-records.js reads the catalogue copy instead of a literal
+  ✓ routes/api/cultivation/water-sources.js reads the catalogue copy instead of a literal
+  ✓ routes/api/cultivation/harvest-batches.js reads the catalogue copy instead of a literal
+  ✓ routes/api/cultivation/planting-cycles.js reads the catalogue copy instead of a literal
+  ✓ services/planting-cycle-service.js reads the catalogue copy instead of a literal
+  ✓ middleware/farm-ownership.js reads the catalogue copy instead of a literal
+  ✓ controllers/cultivation-log-controller.js reads the catalogue copy instead of a literal
+  ✓ no runtime backend file builds an ENTITY_PERMISSION_DENIED answer with its own message
+  ✓ the guard flags a door that writes its own text: literal code body
+  ✓ the guard flags a door that writes its own text: literal code in error
+  ✓ the guard flags a door that writes its own text: constant code + literal error
+  ✓ the guard flags a door that writes its own text: constant code + literal messageTh
+  ✓ the guard flags a door that writes its own text: local const code + literal message
+  ✓ the guard flags a door that writes its own text: local const code + literal message (multi-line body)
+  ✓ the guard flags a door that writes its own text: literal message argument
+  ✓ the guard flags a door that writes its own text: constant code + literal message argument
+  ✓ the guard flags a door that writes its own text: local const + literal message argument
+  ✓ the guard flags a door that writes its own text: literal Error then code
+  ✓ the guard lets the single-source shapes through: the helper
+  ✓ the guard lets the single-source shapes through: catalogue constants
+  ✓ the guard lets the single-source shapes through: a local const with catalogue text
+  ✓ the guard lets the single-source shapes through: reading the code
+  ✓ the one body shape: code, the catalogue copy as error and messageTh, a generic English message
+  ✓ sendErrorResponse answers ENTITY_PERMISSION_DENIED with the catalogue copy whatever the thrower wrote
+  ✓ no runtime backend file carries the retired workspace wording
+PASS __tests__/unit/locked-price-refusal-reaches-the-applicant.test.js
+  ✓ answers the locked-price read failure as QUOTATION_GATE_UNAVAILABLE 503 with the catalogued Thai sentence
+  ✓ an uncoded fault still gets the old generic answer (unchanged)
+  ✓ answers the locked-price read failure as QUOTATION_GATE_UNAVAILABLE 503 with the catalogued Thai sentence
+  ✓ an uncoded fault still gets the old generic answer (unchanged)
+PASS __tests__/unit/holder-copy-has-no-switch-wording.test.js
+  ✓ entity-service claim-refusal messages carry no workspace or สลับ wording
+  ✓ pre-submit holderMismatchIssue says the spec §3.7 sentence
+  ✓ issuance refusal throws CERTIFICATE_HOLDER_MISMATCH with the catalogue sentence
+  ✓ ACTIVE_ENTITY_MISMATCH is not in the catalogue
+  ✓ no catalogue entry tells anyone to switch workspace or act under an active entity
+  ✓ the generated docs/api/error-codes.md carries no ACTIVE_ENTITY_MISMATCH or active-entity wording
+PASS __tests__/unit/consent-route-payment-terms-code.test.js
+  ✓ DELETE /PAYMENT_TERMS → 400 with the specific code + curated Thai message
+  ✓ POST / {PAYMENT_TERMS, granted:false} → same code
+  ✓ POST /bulk carrying a PAYMENT_TERMS withdraw → same code
+  ✓ no-regression: withdrawing an optional consent still succeeds (200)
+  ✓ no-regression: required-consent withdraw keeps the existing generic path (400, no code)
+PASS __tests__/unit/a-company-holds-its-own-certificate.test.js
+  ✓ บุคคลธรรมดา: ผู้ถือคือคน — ไม่เปลี่ยน
+  ✓ นิติบุคคลที่ยื่นในนามบริษัท: ผู้ถือคือบริษัท
+  ✓ นิติบุคคลที่ยื่นในนามบุคคล: ปฏิเสธ ไม่ออกใบให้คน
+  ✓ วิสาหกิจชุมชนที่ยื่นในนามบุคคล: ปฏิเสธเหมือนกัน
+  ✓ ปฏิเสธด้วยเมื่อ entity มีอยู่ แต่เป็นคนละชนิดกับที่คำขอประกาศ
+  ✓ ประเภทผู้ถือไม่ตรงกับที่ประกาศ (นิติบุคคล vs บุคคลธรรมดา): ข้อความบอกว่าประเภทไม่ตรง
+  ✓ การปฏิเสธบอกเป็นภาษาไทยว่าต้องทำอะไรต่อ
+  ✓ นิติบุคคลที่ยื่นในนามบุคคล → blockingIssue ที่อ่านรู้เรื่อง
+  ✓ วิสาหกิจชุมชนก็เหมือนกัน
+  ✓ ไม่มีตัวตนเลย ก็ยังปฏิเสธ — เงียบไม่ใช่คำอนุญาต
+  ✓ ยื่นในนามผู้ถือที่ถูกต้อง → ไม่มีการปฏิเสธข้อนี้
+  ✓ บุคคลธรรมดาไม่ถูกแตะ
+  ✓ เลนส์เรียกใช้ตัวนี้จริง ไม่ใช่มีไว้เฉย ๆ
+PASS __tests__/unit/admin-mutation-audit-cluster.test.js
+  ✓ upsert uses req.user.id (not the hardcoded "ADMIN") + audit row emitted
+  ✓ batch-actions writes inside a tx and passes an onAudit hook
+  ✓ batch REQUEST_DOCUMENTS no longer exists (order 31: a revision request is the reviewer's decision) → 400, nothing written
+  ✓ broadcast emits ADMIN_BROADCAST_SENT with recipient count (not the message body)
+PASS __tests__/unit/error-codes-source-pointers.test.js
+  ✓ the source format is uniform enough to check mechanically (report if not)
+  ✓ no NEW pointer has drifted beyond the known 2026-09-26 baseline (catches the INVALID_ISSUER_SIDE class of regression)
+  ✓ the baseline names only codes that actually still need fixing (no over- or under-claim)
+  ✓ INVALID_ISSUER_SIDE is fixed by this round and is not in the baseline
+  ✓ every parseable source file exists for baseline entries too (so a MISSING file is never silently swallowed)
+PASS __tests__/unit/idp-adapter.test.js
+  ✓ unknown key → AUTH_PROVIDER_UNKNOWN
+  ✓ providerid default (coming_soon) → AUTH_PROVIDER_DISABLED
+  ✓ providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED
+  ✓ providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method
+  ✓ local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER
+  ✓ สร้าง URL ครบ 4 param: client_id, redirect_uri, response_type=code, state
+  ✓ state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR
+  ✓ ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract
+  ✓ ขา 1 ใช้คู่ Health ID · ขา 2 + header profile ใช้ pidClientId ของระบบ Provider ID ไม่ใช่ clientId
+  ✓ 422 "Access grant has denied" → AUTH_IDP_ACCESS_DENIED
+  ✓ 422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED
+  ✓ 422 "Code is invalid" → AUTH_IDP_CODE_INVALID
+  ✓ 401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED
+  ✓ 500 → AUTH_IDP_UNAVAILABLE
+  ✓ network ล่ม/timeout → AUTH_IDP_UNAVAILABLE
+  ✓ 400 "This user has not provider id" → AUTH_PROVIDERID_NOT_FOUND (แยกเป็น error ของตัวเอง)
+  ✓ 400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED
+  ✓ 401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED
+  ✓ 500 → AUTH_IDP_UNAVAILABLE (audit F3 pin — [P-OAUTH] หน้า 8 "500")
+  ✓ ขา 1 envelope ไม่มี data.access_token → AUTH_IDP_EXCHANGE_FAILED
+  ✓ ขา 2 response ไม่มี access_token → AUTH_IDP_EXCHANGE_FAILED
+  ✓ GET + headers Authorization Bearer / client-id / secret-key แล้วคืน raw profile เท่านั้น
+  ✓ 401 "access_token is invalid" → AUTH_IDP_TOKEN_INVALID
+  ✓ 404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND
+  ✓ 401 client ผิด (non-token message) → AUTH_IDP_CLIENT_AUTH_FAILED (audit F3 pin — หน้า 12)
+  ✓ 400 param ขาด → AUTH_IDP_EXCHANGE_FAILED (audit F3 pin — หน้า 12)
+  ✓ 503 → AUTH_IDP_UNAVAILABLE
+  ✓ AUTH_IDP_CLIENT_AUTH_FAILED ชี้ env ถูกขา: leg-1 = คู่ Health ID · leg-2/profile = คู่ระบบ Provider ID
+PASS __tests__/unit/second-factor-is-totp-only.test.js
+  ✓ the email OTP service and the SMTP email service are gone
+  ✓ no backend source requires them any more (a lazy require is a bomb, not a dependency)
+  ✓ the MFA router has no email enrolment routes and no EMAIL branch
+  ✓ identity-service can no longer enrol the EMAIL method
+  ✓ a legacy EMAIL-method row counts as NOT enrolled — it never had a TOTP seed, so a challenge would be a lockout
+  ✓ every login surface decides MFA through that one helper
+  ✓ a challenge token can only name TOTP
+  ✓ a migration retires every EMAIL-method row instead of leaving it enabled with no seed
+  ✓ no MFA source still narrates the email OTP path it lost (review 2026-09-16)
+  ✓ the error catalog documents only MFA failures that can still happen, at the line that raises them
+  ✓ the web app offers no email 2FA anywhere
+PASS __tests__/unit/certificate-signing-fail-closed.test.js
+  ✓ signer throws → no Certificate row is created and CERT_SIGNING_UNAVAILABLE is raised
+  ✓ signer returns an empty signature → still fails closed, no row
+  ✓ signature does not verify against the key about to be pinned → fails closed
+  ✓ the raised error carries the operator-facing HTTP intent (503) so the UI can explain the outage
+  ✓ CERT_SIGNING_UNAVAILABLE is catalogued (Thai + English) so the UI never shows a bare code
+  ✓ happy path still mints, and pins the verifying public key on the row
+PASS __tests__/unit/dtam-remittance-schema-dropped.test.js
+  ✓ ไม่มี model DtamRemittanceBatch และไม่มีตาราง dtam_remittance_batches
+  ✓ CheckoutOrder ไม่มีคอลัมน์ส่วนของกรมฯ / สถานะนำส่ง / batch
+  ✓ Organization ไม่มี relation dtamRemittanceBatches
+  ✓ TENANT_SCOPED_MODELS ไม่มี DtamRemittanceBatch
+  ✓ stripe-checkout-service ไม่เขียน dtamPayableAmount และไม่มีตัวปลด order ที่มีส่วนของกรมฯ
+  ✓ checkout-settlement-service ไม่อ่านส่วนของกรมฯ และไม่มีการปฏิเสธ CHECKOUT_ORDER_HAS_DTAM_PORTION
+  ✓ ไม่มีรหัส CHECKOUT_ORDER_HAS_DTAM_PORTION และไม่มีเหตุผล DTAM_PORTION_RETIRED
+  ✓ ไม่มีไฟล์ใน services/routes/jobs/shared/scripts ที่ยังอ้างคอลัมน์หรือตารางที่ดรอป
+  ✓ มี migration ดรอปอยู่ใบเดียว และอยู่หลัง migration ที่สร้างตาราง
+  ✓ หัวไฟล์ติดป้าย DESTRUCTIVE และมี rollback SQL ในคอมเมนต์
+  ✓ ปฏิเสธ (RAISE EXCEPTION) ก่อนดรอปเมื่อมี order ที่มีส่วนของกรมฯ และยังไม่ CANCELLED
+  ✓ CHECK ยอดรวมใหม่: total = platform gross (ยกเว้นแถว CANCELLED) และคง CHECK ค่าไม่ติดลบของค่าบริการ
+  ✓ ตัวตรวจก่อน deploy (อ่านอย่างเดียว) อยู่ที่ scripts/ops
+  ✓ ไม่มี dtamRemittanceBatch ในรายการล้าง
+PASS __tests__/unit/submit-requires-declarations.test.js
+  ✓ a payload that accepts them is stamped with the SERVER's time
+  ✓ a payload that does not is refused, and the refusal is catalogued
+  ✓ only a real boolean true counts — false does not
+  ✓ only a real boolean true counts — a string does not
+  ✓ only a real boolean true counts — a number does not
+  ✓ only a real boolean true counts — missing does not
+  ✓ only a real boolean true counts — null does not
+  ✓ a client-supplied timestamp is IGNORED — the platform stamps its own
+  ✓ a draft that already carries a client-written stamp does not satisfy the gate
+  ✓ an acceptance already recorded by the server stands
+  ✓ a resubmit of a filing that somehow has none is still refused
+  ✓ re-accepting on a resubmit does not move the original time
+  ✓ it carries Thai copy naming what to do
+  ✓ it is in shared/error-codes.js — a code no catalogue knows cannot be explained
+  ✓ applications.js runs the filing gate list, and the list runs the declarations gate
+  ✓ and writes the server stamp into formData, not the payload's
+  ✓ declarationsAcceptedAt is server-owned, so /prepare cannot write it
+PASS __tests__/unit/audit-onsite-car-deadline.test.js
+  ✓ MAJOR → seeds the RevisionDeadline in the transaction + stamps formData.carDueAt + transitions CAR_PENDING
+  ✓ FAIL → AUDIT_NOT_PASSED for the approver: no deadline, no carDueAt, the visit pinned
+  ✓ FAIL without a finding is refused with FINDINGS_REQUIRED and writes nothing
+  ✓ PASS → does NOT seed a CAR deadline; formData is preserved and pinned with onsiteAuditId (Task 3), not clobbered
+PASS __tests__/unit/quotation-expiry-binds-at-acceptance.test.js
+  ✓ a PENDING row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written
+  ✓ a SENT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written
+  ✓ a DRAFT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written
+  ✓ a row still inside its window is accepted normally
+  ✓ a row with no validUntil at all is accepted (a legacy row is not a lapsed one)
+  ✓ an ALREADY-ACCEPTED lapsed row is still the idempotent no-op, not an expiry refusal
+  ✓ the refusal carries the catalogued code, so both rails read one vocabulary
+  ✓ soft-deletes the lapsed row and issues the replacement inside ONE transaction
+  ✓ prices the replacement from the fee calculator, never from the retired row
+  ✓ passes the replacement row and hands back its snapshot
+PASS __tests__/unit/onsite-correction-has-one-opener.test.js
+  ✓ only services/onsite-correction.js mints the FIELD_AUDIT_CAR letter
+  ✓ no door seeds the correction deadline after its commit
+  ✓ the inspector, the generic door and the approver open the round through it
+  ✓ status, letter and deadline go through the one tx, the deadline counted from the decision
+  ✓ a deadline that cannot be written fails the decision (the caller's tx rolls back)
+PASS __tests__/unit/audit-checklist-controller-refuses-non-onsite.test.js
+  ✓ an ONLINE_MEET inspection creates nothing
+  ✓ the ONLINE alias the scheduler UI still sends creates nothing
+  ✓ a legacy row that stored only a meeting link creates nothing
+  ✓ an application with no audit booked at all creates nothing
+  ✓ an application with no formData at all creates nothing
+  ✓ a mode nobody recognises creates nothing
+  ✓ the refusal names the cause and the next action, in Thai
+  ✓ the code is catalogued, so the caller never sees a bare string
+  ✓ an ONSITE inspection booked on the schedule still opens the audit, so the refusal is not blanket
+  ✓ the mode recorded at the top level of formData still opens the audit, so the refusal is not blanket
+  ✓ a legacy row that stored only a map link still opens the audit, so the refusal is not blanket
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+  ✓ QUOTATION_NOT_ISSUED is catalogued with status 409
+  ✓ QUOTATION_NOT_ACCEPTED is catalogued with status 409
+  ✓ QUOTATION_EXPIRED is catalogued with status 409
+  ✓ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503
+  ✓ CHECKOUT_PRICE_DRIFT is catalogued with status 409
+  ✓ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409
+  ✓ QUOTATION_ISSUE_FAILED is catalogued with status 500
+  ✓ QUOTATION_NOT_PRICED is catalogued with status 409
+  ✓ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409
+  ✓ SNAPSHOT_REQUIRED is catalogued with status 409
+  ✓ the four gate codes point at the shared gate module, not at one rail
+  ✓ every gate code`s source line is the line that actually raises it
+  ✓ the two shared refusals name the line that actually raises them
+  ✓ the two not-priced refusals are separate rows pointing at their own door
+  ✓ neither not-priced copy sends the applicant to a staff door that does not exist
+  ✓ no applicant-facing row on this path promises a staff re-issue
+  ✓ the not-issued copy stops promising a refresh the window cannot honour
+  ✓ only QUOTATION_EXPIRED mentions a new document, and it mentions it as a condition
+  ✓ the snapshot refusal names the cause and an action staff can actually take
+  ✓ the expiry copy names the door that may replace the row, and what to do when it does not
+  ✓ the price-drift remediation names the step that unblocks the applicant
+  ✓ the payment-terms remediation no longer names the request body ruling 2 deleted
+  ✓ the two rail-specific messages no longer name only the slip
+  ✓ no Thai message uses an em dash (thai-ui-copy rule)
+  ✓ only the rows that actually alert staff say staff were alerted
+  ✓ the close-failure copy still tells the applicant their money and receipt stand
+PASS __tests__/unit/require-admin-middleware.test.js
+  ✓ blocks requests with no user (401)
+  ✓ blocks non-admin provider role (403)
+  ✓ blocks auditor role (403)
+  ✓ allows admin role
+  ✓ allows super_admin role (alias)
+  ✓ blocks health/Applicant role (403)
+PASS __tests__/unit/wizard-blocked-by-missing-personal-entity.test.js
+  ✓ no `role:` literal in the seed is a legacy spelling
+  ✓ the applicant rows are seeded as the canonical HEALTH role
+  ✓ re-running the seed repairs an already-dirty role column — through the guard
+  ✓ each seeded applicant gets their personal INDIVIDUAL entity
+  ✓ findOrCreateApplicationForHealth throws a specific code, not bare VALIDATION_ERROR
+  ✓ the code carries the spec §3.6 Thai copy as its default message (not the internal-error fallback)
+  ✓ the code is catalogued (400, same copy); the personal-entity code is retired
+PASS __tests__/unit/settlement-refuses-a-cancelled-legacy-total.test.js
+  ✓ refused with a named code BEFORE a receipt number is drawn or a transaction opened
+  ✓ settleEvent records it FAILED with the code, and the last attempt dead-letters it (never PROCESSED)
+  ✓ the code is catalogued with a Thai message and a source pointer at the throw
+  ✓ pin: a CANCELLED order whose total equals its gross is not caught by this refusal
+PASS __tests__/unit/gov-remittance-export-is-refused.test.js
+  ✓ type=gov_remittance → 400 EXPORT_REPORT_TYPE_RETIRED, no file
+  ✓ the code is catalogued as a 400
+  ✓ type=monthly still exports
+  ✓ type=tax still exports
+PASS __tests__/unit/certificate-revision-error-codes.test.js
+  ✓ CERTIFICATE_NOT_REVISABLE is catalogued at 409 with Thai cause + next action
+  ✓ CERTIFICATE_REVISION_NO_CHANGE is catalogued at 409 with Thai cause + next action
+  ✓ CERTIFICATE_REVISION_CONFLICT is catalogued at 409 with Thai cause + next action
+  ✓ REVISION_REASON_REQUIRED is catalogued at 400 with Thai cause + next action
+  ✓ REVISION_REASON_TOO_LONG is catalogued at 400 with Thai cause + next action
+PASS __tests__/unit/planting-requires-certificate.test.js
+  ✓ รหัสถูกลงทะเบียนไว้ พร้อมข้อความไทยและทางออก
+  ✓ เป็น 409 ไม่ใช่ 500 — สถานะที่ผู้ยื่นแก้ได้เอง ไม่ใช่ความผิดพลาดของเซิร์ฟเวอร์
+  ✓ บริการโยนข้อผิดพลาดที่ "มีรหัส" ไม่ใช่ Error เปล่า ๆ
+  ✓ route ส่งรหัสนั้นออกไปจริง ไม่ได้กลืนเป็น 500
+PASS __tests__/unit/the-freeze-refusal-reaches-the-farmer.test.js
+  ✓ บริการยังปฏิเสธด้วยรหัสและสถานะของมันเอง
+  ✓ ประตูส่งสถานะและรหัสของบริการต่อ ไม่กลืนเป็น 500
+  ✓ ข้อความที่เกษตรกรได้อ่านเป็นภาษาไทย และบอกว่าต้องทำอะไรต่อ
+  ✓ รหัสนี้อยู่ในสารบบข้อผิดพลาด พร้อมวิธีแก้
+PASS __tests__/unit/frozen-cycle-refusal-keeps-its-shape.test.js
+  ✓ CYCLE_FROZEN ลงทะเบียนไว้เป็น 409 พร้อมข้อความไทย
+  ✓ route ส่ง code และสถานะที่บริการตั้งไว้ออกไป ไม่ได้ยุบเหลือ 400
+Test Suites: 101 passed, 101 total
+Tests:       1834 passed, 1834 total
+Snapshots:   0 total

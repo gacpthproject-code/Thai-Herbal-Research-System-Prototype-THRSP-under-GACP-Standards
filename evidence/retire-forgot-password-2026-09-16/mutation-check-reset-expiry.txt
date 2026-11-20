@@ -1,0 +1,92 @@
+# MUTATION CHECK — proves the new staff-token assertions are not vacuous · 2026-09-16T00:09:39Z
+# worktree of origin/main with ONE mutation: passwordResetExpiry removed from the resetPasswordWithToken where-clause
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: [Password] Reset successful for user: user-1 {"service":"auth-password","timestamp":"2026-09-16T00:09:41.624Z"}
+[32minfo[39m: [Password] Reset successful for user: user-1 {"service":"auth-password","timestamp":"2026-09-16T00:09:41.974Z"}
+[32minfo[39m: [Password] Reset successful for user: user-1 {"service":"auth-password","timestamp":"2026-09-16T00:09:42.340Z"}
+[32minfo[39m: [Password] Reset successful for user: user-1 {"service":"auth-password","timestamp":"2026-09-16T00:09:42.686Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-16T00:09:42.720Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-16T00:09:43.064Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0129","service":"auth-service","timestamp":"2026-09-16T00:09:43.410Z"}
+FAIL __tests__/unit/auth-service-audit-fixes.test.js
+  B-01: Password Reset
+    ✕ the service exposes no way to request a reset (4 ms)
+    resetPasswordWithToken
+      ✓ should reset password when token is valid and not expired (356 ms)
+      ✕ looks the token up hashed AND unexpired, never by token alone (349 ms)
+      ✓ stamps the session epoch and revokes live tokens, so the old password cannot keep a session (365 ms)
+      ✓ is single use: the same token cannot be redeemed twice (348 ms)
+      ✓ should reject expired or invalid token (2 ms)
+      ✓ should reject missing token (11 ms)
+      ✓ should reject a password that fails the strong-password policy (3 ms)
+  H-05: updateProfile Whitelist
+    ✓ should allow whitelisted fields (1 ms)
+    ✓ should BLOCK role escalation attempt (2 ms)
+    ✓ should BLOCK status manipulation (2 ms)
+    ✓ should BLOCK password change via profile update (2 ms)
+    ✓ should throw when no valid fields provided (4 ms)
+  H-04: OCR Bypass Toggle (ENABLE_OCR_BYPASS)
+    ✓ should default to PENDING_VERIFICATION when bypass is off (345 ms)
+    ✓ should auto-approve when ENABLE_OCR_BYPASS=true (env bypass) (346 ms)
+    ✓ should auto-approve ALL IDs when bypass is on (no ID-ending-in-9 exception) (343 ms)
+
+  ● B-01: Password Reset › the service exposes no way to request a reset
+
+    expect(received).toBeUndefined()
+
+    Received: [Function requestPasswordReset]
+
+      80 |     // only way in — no-self-service-password-reset.test.js pins the absence.
+      81 |     it('the service exposes no way to request a reset', () => {
+    > 82 |         expect(authService.requestPasswordReset).toBeUndefined();
+         |                                                  ^
+      83 |     });
+      84 |
+      85 |     describe('resetPasswordWithToken', () => {
+
+      at Object.toBeUndefined (__tests__/unit/auth-service-audit-fixes.test.js:82:50)
+
+  ● B-01: Password Reset › resetPasswordWithToken › looks the token up hashed AND unexpired, never by token alone
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"gte": Any<Date>}
+    Received: undefined
+
+      127 |             expect(where.passwordResetToken).toBe(hashedToken);
+      128 |             expect(where.passwordResetToken).not.toBe(plainToken);
+    > 129 |             expect(where.passwordResetExpiry).toEqual({ gte: expect.any(Date) });
+          |                                               ^
+      130 |         });
+      131 |
+      132 |         it('stamps the session epoch and revokes live tokens, so the old password cannot keep a session', async () => {
+
+      at Object.toEqual (__tests__/unit/auth-service-audit-fixes.test.js:129:47)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 14 passed, 16 total
+Snapshots:   0 total
+Time:        3.598 s
+Ran all test suites matching /__tests__\/unit\/auth-service-audit-fixes.test.js/i.
+EXIT=1

@@ -1,0 +1,63 @@
+# L1 RED at a441a45d0 (tests only, before the fix)
+## backend rule (apps/backend/__tests__/unit/admin-side-rule.test.js)
+    ✕ a "dispatcher" caller is refused even when the request names no account and no role (6 ms)
+    ✕ a "finance_officer_platform" caller is refused even when the request names no account and no role (2 ms)
+    ✕ a "health" caller is refused even when the request names no account and no role (2 ms)
+    ✕ a "system" caller is refused even when the request names no account and no role (2 ms)
+    ✕ a "auditor" caller is refused even when the request names no account and no role (2 ms)
+    ✕ a null caller is refused even when the request names no account and no role (2 ms)
+    ✕ the rule itself never gives system_admin_platform: the platform admin creating one (2 ms)
+    ✕ the rule itself never gives system_admin_platform: the platform admin promoting company staff (2 ms)
+    ✓ the rule itself never gives system_admin_platform: the DTAM admin creating one (1 ms)
+    ✕ a system_admin_dtam call that names neither an account nor a role is a door bug, not a pass (2 ms)
+    ✕ a system_admin_platform call that names neither an account nor a role is a door bug, not a pass (2 ms)
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected: "CROSS_SIDE_USER_CHANGE_FORBIDDEN"
+    Received: undefined
+    Expected constructor: TypeError
+    Received value: null
+    Expected constructor: TypeError
+    Received value: null
+Tests:       10 failed, 47 skipped, 1 passed, 58 total
+## backend create-door pins (real Postgres; green before the fix: the retired default made it 400 by accident)
+      ✓ the DTAM admin creating staff without a role through /api/admin/users/provider gets 400 and no account (66 ms)
+      ✓ the DTAM admin creating staff without a role through /api/provider/directory gets 400 and no account (53 ms)
+      ✓ the platform admin creating staff without a role through /api/provider/directory gets 400 and no account (12 ms)
+Tests:       46 skipped, 3 passed, 49 total
+## web
+    ✓ valid input → ok payload carrying providerId and NO username key (5 ms)
+    ✓ providerId missing → refused in Thai naming the 13-digit requirement (1 ms)
+    ✓ providerId with 12 digits or non-digits → refused (1 ms)
+    ✓ the operator's actual input — password '123456' → refused BEFORE the network, message names min 10 (1 ms)
+    ✓ blank names or email → refused (backend requires them; fail before the network) (1 ms)
+    ✕ a role that is not a current role word ("") → refused before the network, asking for a position (2 ms)
+    ✕ a role that is not a current role word ("reviewer") → refused before the network, asking for a position
+    ✕ a role that is not a current role word ("REVIEWER_AUDITOR") → refused before the network, asking for a position (1 ms)
+    ✓ carries profile fields only — never password, providerId or username (3 ms)
+    ✓ page.tsx imports the builder and the create path no longer posts raw formData (1 ms)
+    Expected: false
+    Received: true
+    Expected: false
+    Received: true
+    Expected: false
+    Received: true
+    ✕ system_admin_dtam: the request carries document_reviewer, a role it may give (341 ms)
+    ✕ system_admin_platform: the request carries finance_officer_platform, a role it may give (152 ms)
+    Expected: "document_reviewer"
+    Received: "reviewer"
+    Expected: "finance_officer_platform"
+    Received: "reviewer"
+Tests:       5 failed, 7 passed, 12 total

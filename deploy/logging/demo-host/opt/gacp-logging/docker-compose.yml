@@ -1,0 +1,110 @@
+# Central log collection on the demo host (119.59.105.140): Loki + Promtail + Grafana.
+# Installed at /opt/gacp-logging by ~/work/state/infra/demo-logging-install.sh, which is
+# the only supported way to start or stop it. Same images as the staging host's
+# gacp-loki / gacp-promtail / gacp-grafana (staging runs grafana:latest = 13.0.2).
+#
+# Its own compose project on purpose: /opt/gacp-platform/deploy.sh recreates
+# backend-demo and frontend-demo in project gacp-platform and never touches this one,
+# so an app redeploy cannot take the log store with it.
+name: gacp-logging
+
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "3"
+    compress: "true"
+
+services:
+  loki:
+    image: grafana/loki:2.9.6
+    container_name: gacp-loki
+    restart: unless-stopped
+    logging: *default-logging
+    mem_limit: 256m
+    cpus: 0.25
+    command: -config.file=/etc/loki/loki.yml
+    volumes:
+      - ./loki/loki.yml:/etc/loki/loki.yml:ro
+      - loki_data:/loki
+    ports:
+      - "127.0.0.1:3100:3100"
+    networks: [logging]
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3100/ready || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  promtail:
+    image: grafana/promtail:2.9.6
+    container_name: gacp-promtail
+    restart: unless-stopped
+    logging: *default-logging
+    mem_limit: 128m
+    cpus: 0.15
+    command: -config.file=/etc/promtail/promtail.yml
+    # Reads container logs through the Docker API (docker_sd_configs), which is what
+    # gives each line its container and service name. No port is published.
+    volumes:
+      - ./promtail/promtail.yml:/etc/promtail/promtail.yml:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - promtail_positions:/promtail
+    # dockerd on this host runs without SELinux support today; if that is ever switched
+    # on, the socket mount needs this to stay readable.
+    security_opt: ["label=disable"]
+    networks: [logging]
+    depends_on:
+      loki:
+        condition: service_healthy
+
+  grafana:
+    image: grafana/grafana:13.0.2
+    container_name: gacp-grafana
+    restart: unless-stopped
+    logging: *default-logging
+    mem_limit: 512m
+    cpus: 0.5
+    environment:
+      - GF_SECURITY_ADMIN_USER=admin
+      - GF_SECURITY_ADMIN_PASSWORD__FILE=/run/gacp/grafana-admin-password
+      - GF_SERVER_ROOT_URL=http://localhost:3200
+      - GF_USERS_ALLOW_SIGN_UP=false
+      - GF_AUTH_ANONYMOUS_ENABLED=false
+      - GF_ANALYTICS_REPORTING_ENABLED=false
+      - GF_ANALYTICS_CHECK_FOR_UPDATES=false
+      - GF_ANALYTICS_CHECK_FOR_PLUGIN_UPDATES=false
+      - GF_NEWS_NEWS_FEED_ENABLED=false
+      - GF_PLUGINS_PREINSTALL_DISABLED=true
+      - GF_DATE_FORMATS_DEFAULT_TIMEZONE=Asia/Bangkok
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # root:root 0640 on the host, created by the installer; the grafana process
+      # runs as uid 472 gid 0, so it can read it and no host user but root can.
+      - ./secrets/grafana-admin-password:/run/gacp/grafana-admin-password:ro
+    ports:
+      - "127.0.0.1:3200:3000"
+    networks: [logging]
+    depends_on:
+      loki:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+networks:
+  logging:
+    name: gacp-logging-network
+
+volumes:
+  loki_data:
+    name: gacp-logging-loki-data
+  grafana_data:
+    name: gacp-logging-grafana-data
+  promtail_positions:
+    name: gacp-logging-promtail-positions

@@ -1,0 +1,242 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js
+  PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction
+    ✕ hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission (56 ms)
+    ✕ hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission (12 ms)
+    ✕ exactly ONE transaction is opened for the pair (not one per hop) (15 ms)
+    ✓ WF-F5 regression pin: the illegal DRAFT→PENDING_DOC_FEE edge is still never written (10 ms)
+    ✕ hop 2 rejecting aborts the whole request — no success response (16 ms)
+    ✕ hop 2 rejecting propagates OUT of the caller transaction (so Prisma rolls it back) (8 ms)
+    ✓ hop 1 rejecting never attempts hop 2 (9 ms)
+  PR-A0-2 #10 — correction resubmit already ran in a tx (PIN, not a fix)
+    ✓ the resubmit hop and its append-only snapshot share one tx, default emission (9 ms)
+  PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction
+    ✕ every linked case is written through the caller tx with default emission (13 ms)
+    ✕ the bundle status flip is in the SAME transaction as the case writes (9 ms)
+    ✕ a rejected case aborts the whole bundle submit — no success response (F5) (8 ms)
+    ✓ R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened (7 ms)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    - Expected  -  1
+    + Received  + 14
+
+      Object {
+    -   "__tx": "submit-tx",
+    +   "$transaction": [Function $transaction],
+    +   "application": Object {
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +     "updateMany": [Function mockConstructor],
+    +   },
+    +   "applicationBundle": Object {
+    +     "create": [Function mockConstructor],
+    +     "delete": [Function mockConstructor],
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +   },
+      }
+
+      114 | function expectDefaultEmissionInCallerTx(call, txHandle) {
+      115 |     // (a) the writer runs inside the caller's transaction …
+    > 116 |     expect(call.prisma).toBe(txHandle);
+          |                         ^
+      117 |     // … which is the shape the writer treats as "somebody else's tx"
+      118 |     expect(typeof call.prisma.$transaction).not.toBe('function');
+      119 |     // (b) … and the canonical row still comes from the writer's DEFAULT emitter:
+
+      at toBe (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:116:25)
+      at Object.expectDefaultEmissionInCallerTx (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:256:9)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    - Expected  -  1
+    + Received  + 14
+
+      Object {
+    -   "__tx": "submit-tx",
+    +   "$transaction": [Function $transaction],
+    +   "application": Object {
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +     "updateMany": [Function mockConstructor],
+    +   },
+    +   "applicationBundle": Object {
+    +     "create": [Function mockConstructor],
+    +     "delete": [Function mockConstructor],
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +   },
+      }
+
+      114 | function expectDefaultEmissionInCallerTx(call, txHandle) {
+      115 |     // (a) the writer runs inside the caller's transaction …
+    > 116 |     expect(call.prisma).toBe(txHandle);
+          |                         ^
+      117 |     // … which is the shape the writer treats as "somebody else's tx"
+      118 |     expect(typeof call.prisma.$transaction).not.toBe('function');
+      119 |     // (b) … and the canonical row still comes from the writer's DEFAULT emitter:
+
+      at toBe (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:116:25)
+      at Object.expectDefaultEmissionInCallerTx (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:264:9)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › exactly ONE transaction is opened for the pair (not one per hop)
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      268 |         await submit();
+      269 |
+    > 270 |         expect(mockTransaction).toHaveBeenCalledTimes(1);
+          |                                 ^
+      271 |         expect(writerCalls()).toHaveLength(2);
+      272 |     });
+      273 |
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:270:33)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › hop 2 rejecting aborts the whole request — no success response
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      300 |         // both hops were attempted, and both were attempted in the caller tx
+      301 |         expect(writerCalls()).toHaveLength(2);
+    > 302 |         expect(mockTransaction).toHaveBeenCalledTimes(1);
+          |                                 ^
+      303 |     });
+      304 |
+      305 |     test('hop 2 rejecting propagates OUT of the caller transaction (so Prisma rolls it back)', async () => {
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:302:33)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › hop 2 rejecting propagates OUT of the caller transaction (so Prisma rolls it back)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   "rolled-back",
+    - ]
+    + Array []
+
+      324 |         await submit();
+      325 |
+    > 326 |         expect(txOutcomes).toEqual(['rolled-back']);
+          |                            ^
+      327 |     });
+      328 |
+      329 |     test('hop 1 rejecting never attempts hop 2', async () => {
+
+      at Object.toEqual (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:326:28)
+
+  ● PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction › every linked case is written through the caller tx with default emission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    - Expected  -  1
+    + Received  + 11
+
+      Object {
+    -   "__tx": "submit-tx",
+    +   "$transaction": [Function $transaction],
+    +   "application": Object {
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +     "updateMany": [Function mockConstructor],
+    +   },
+        "applicationBundle": Object {
+    +     "create": [Function mockConstructor],
+    +     "delete": [Function mockConstructor],
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+          "update": [Function mockConstructor],
+        },
+      }
+
+      114 | function expectDefaultEmissionInCallerTx(call, txHandle) {
+      115 |     // (a) the writer runs inside the caller's transaction …
+    > 116 |     expect(call.prisma).toBe(txHandle);
+          |                         ^
+      117 |     // … which is the shape the writer treats as "somebody else's tx"
+      118 |     expect(typeof call.prisma.$transaction).not.toBe('function');
+      119 |     // (b) … and the canonical row still comes from the writer's DEFAULT emitter:
+
+      at toBe (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:116:25)
+      at Object.expectDefaultEmissionInCallerTx (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:419:13)
+
+  ● PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction › the bundle status flip is in the SAME transaction as the case writes
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      424 |         await submitBundle();
+      425 |
+    > 426 |         expect(mockTransaction).toHaveBeenCalledTimes(1);
+          |                                 ^
+      427 |         expect(TX.applicationBundle.update).toHaveBeenCalledTimes(1);
+      428 |         // and NOT through the bare client any more
+      429 |         expect(prismaMock.applicationBundle.update).not.toHaveBeenCalled();
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:426:33)
+
+  ● PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction › a rejected case aborts the whole bundle submit — no success response (F5)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   "rolled-back",
+    - ]
+    + Array []
+
+      451 |         expect(res.body.success).not.toBe(true);
+      452 |         // the rejection escaped the callback, so Prisma rolls the flip back too
+    > 453 |         expect(txOutcomes).toEqual(['rolled-back']);
+          |                            ^
+      454 |     });
+      455 |
+      456 |     test('R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened', async () => {
+
+      at Object.toEqual (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:453:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       8 failed, 4 passed, 12 total
+Snapshots:   0 total
+Time:        1.325 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/a0-pr2-submit-hops-audit-emission.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

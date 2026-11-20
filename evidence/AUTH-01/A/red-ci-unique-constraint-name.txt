@@ -1,0 +1,58 @@
+RED — CI run 30869301075 job "Test" (job id 91868030616), HEAD a52f1ad4, PR #744
+https://github.com/jonmaxmore/GACP-Certification-Application/actions/runs/30869301075/job/91868030616
+
+บริบท: suite integration/identity-links รันบน Postgres จริงใน CI เป็นครั้งแรก
+(เครื่อง dev รันไม่ได้ — proxy บล็อก binaries.prisma.sh 403) 5 จาก 6 เทสต์ผ่าน
+เทสต์ (2) ตกด้วยเหตุผลที่เป็นข้อสมมติผิดของ "วิธีตรึง" ไม่ใช่ของ schema
+
+--- jest ---
+Summary of all failing tests
+FAIL __tests__/integration/identity-links.test.js
+  ● [AUTH-01-A] identity_links against a real Postgres › (2) UNIQUE (provider,subject) กัน identity เดียวถูกผูกสองครั้ง — ฐานข้อมูลปฏิเสธเอง
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected pattern: /identity_links_provider_subject_key/
+    Received message: "
+    Invalid `prisma.$executeRawUnsafe()` invocation:··
+    Raw query failed. Code: `23505`. Message: `Key (provider, subject)=(healthid, shared-subject-1785807616434) already exists.`"
+
+      at Object.<anonymous> (__tests__/integration/identity-links.test.js:179:9)
+      at Object.toThrow (__tests__/integration/identity-links.test.js:182:20)
+
+Test Suites: 1 failed, 28 passed, 29 total
+Tests:       1 failed, 603 passed, 604 total
+
+--- postgres service log (พิสูจน์ว่า constraint ทำงานถูกต้อง ชื่อก็ถูก) ---
+2026-08-04 01:40:16.459 UTC [118] ERROR:  duplicate key value violates unique constraint "identity_links_provider_subject_key"
+2026-08-04 01:40:16.459 UTC [118] DETAIL:  Key (provider, subject)=(healthid, shared-subject-1785807616434) already exists.
+2026-08-04 01:40:16.459 UTC [118] STATEMENT:  INSERT INTO "identity_links" ("id","userId","provider","subject") VALUES ($1,$2,'healthid',$3)
+
+--- วินิจฉัย ---
+Postgres รายงานสองบรรทัด: บรรทัดหลักมีชื่อ constraint, บรรทัด DETAIL มีคู่คีย์
+บน SQLSTATE 23505 Prisma 5.22.0 หยิบ **DETAIL** มาเป็น message แล้วทิ้งบรรทัดหลัก
+⇒ ชื่อ constraint ไม่เคยไปถึง error object เลย การ assert ชื่อจากข้อความจึงเป็นไปไม่ได้
+
+ต่างจาก 23514 (CHECK) ที่ message หลักคือ
+  new row for relation "identity_links" violates check constraint "identity_links_provider_ck"
+ซึ่งมีชื่ออยู่ในตัว — เทสต์ (3) จึง assert ชื่อจาก error ได้และผ่านใน CI รันเดียวกัน
+(เห็นใน postgres log บรรทัด 23514 ทั้งสี่ค่า: bogus / mock / LOCAL / '')
+
+--- การแก้ (ไม่ลด assertion — Law 3.7) ---
+แยกของเดิมหนึ่งข้อเป็นสองข้อที่รวมกันแล้วแน่นกว่า:
+  (ก) DB ปฏิเสธจริงด้วย 23505 บนคู่คอลัมน์ที่ถูกต้อง — /23505[\s\S]*\(provider, subject\)/
+  (ข) ชื่อ index อ่านจาก pg_index/pg_class ตรง ๆ + ยืนยัน indisunique + ครอบ (provider, subject)
+ของเดิมตรึงได้แค่ "ข้อความ error มีชื่อนี้" ของใหม่ตรึง "index ชื่อนี้มีอยู่จริง เป็น UNIQUE
+และครอบคอลัมน์คู่นี้" ซึ่งเป็นสิ่งที่จำเป็นจริง เพราะถ้าชื่อเพี้ยนจากที่ Prisma generate เอง
+`migrate diff` จะเห็น drift
+
+--- ยืนยันรูปแบบ output ของ catalog query บน Postgres จริงก่อนเขียน assertion ---
+(orchestrator รันเอง 2026-08-04 บน PostgreSQL 16.13 ในเครื่อง sandbox:
+ สร้าง DB ชั่วคราว idxprobe → users(id) ขั้นต่ำ → รันไฟล์ migration จริง → query → DROP DATABASE)
+
+-[ RECORD 1 ]---------------------------------------------------------------
+name      | identity_links_provider_subject_key
+is_unique | t
+def       | CREATE UNIQUE INDEX identity_links_provider_subject_key ON public.identity_links USING btree (provider, subject)
+
+⇒ regex /\(\s*provider\s*,\s*subject\s*\)/ ตรงกับ def จริง และ indisunique เป็น bool

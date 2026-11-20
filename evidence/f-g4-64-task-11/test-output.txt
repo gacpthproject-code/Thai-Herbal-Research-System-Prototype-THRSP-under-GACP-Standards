@@ -1,0 +1,33 @@
+# T11 GREEN — the three walk specs parse, type-check and lint
+# captured 2026-08-29T00:32:15Z
+
+NOTE ON WHAT THIS FILE IS AND IS NOT.
+T11 is a walk-spec change. A Playwright walk needs backend :8000, frontend :3000 and
+'stripe listen' forwarding a signed webhook; none of that is up in this session and the
+implementer is not the one who presses it (CLAUDE.md §5 — work that must be proved on a
+real Postgres and cannot be run in the session is PENDING, never claimed). So the RUN is
+PENDING. What is proved below is everything that can be proved without the stack:
+the specs are discovered by the runner, they add no type error, and they lint clean.
+
+== 1. playwright --list — c07 is discovered, 27 -> 28 tests, 15 -> 16 files ==
+$ cd apps/web-app && npx playwright test --config=playwright.g4.config.ts --list
+  [chromium] › e2e-g4\a03-pay-phase1.spec.ts:27:7 › G4 A03 — งวด 1: press, pay, settle › A03 mint the M1 checkout from the payments screen, settle via the webhook, verify the money
+  [chromium] › e2e-g4\a05-pay-phase2.spec.ts:27:7 › G4 A03 — งวด 2: press, pay, settle › A03 mint the M1 checkout from the payments screen, settle via the webhook, verify the money
+  [chromium] › e2e-g4\c07-quotation-gate.spec.ts:71:5 › C07 the pay door is shut until the quotation is accepted, then it opens
+Total: 28 tests in 16 files
+
+== 2. tsc --noEmit — byte-identical to the pre-change baseline (66 pre-existing errors, 0 new) ==
+$ cd apps/web-app && npx tsc --noEmit   # before edits -> tsc-baseline.txt ; after edits -> tsc-after.txt
+$ diff evidence/f-g4-64-task-11/tsc-baseline.txt evidence/f-g4-64-task-11/tsc-after.txt
+(no output — identical)
+errors in baseline: 66
+errors after     : 66
+errors naming the three files touched by T11:
+2
+  (the two that remain are the pre-existing g4Login(id: string|undefined) lines, present in the baseline:)
+e2e-g4/a03-pay-phase1.spec.ts(61,43): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+e2e-g4/a05-pay-phase2.spec.ts(56,43): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+
+== 3. eslint — clean on all three ==
+$ npx eslint e2e-g4/a03-pay-phase1.spec.ts e2e-g4/a05-pay-phase2.spec.ts e2e-g4/c07-quotation-gate.spec.ts
+exit=0  (no output, exit 0 = clean)

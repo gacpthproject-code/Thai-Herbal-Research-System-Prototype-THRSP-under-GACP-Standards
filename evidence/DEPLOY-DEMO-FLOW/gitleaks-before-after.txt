@@ -1,0 +1,35 @@
+# gitleaks โหมด git ด้วยคำสั่งเดียวกับ scripts/ci/full-gate.sh do_secret_scan_deep · gitleaks 8.30.1
+# คลัง WSL ~/work/GACP-Certification-Application (คลังเดียวที่ full gate ใช้) · gitleaks สแกนทุก ref
+# คำสั่ง: gitleaks detect --no-banner --redact --report-format json --report-path <file>
+# ผลก่อนและหลังคัดจากผลรันจริงใน session 2026-11-08 (ไฟล์ /tmp ของสองรอบนี้หายไปเมื่อ WSL เริ่มใหม่)
+
+## ก่อน (14:04 เวลาไทย · ยังมี ref ops/deploy-demo-flow และ origin/ops/deploy-demo-flow ไปถึง 41834ed2d)
+INF 5026 commits scanned.
+INF scanned ~380710174 bytes (380.71 MB) in 30.5s
+WRN leaks found: 1
+exit=1
+finding: generic-api-key scripts/deploy/demo-deploy.selftest.sh:14
+fingerprint 41834ed2d26a11a344086289c774747f9222bbbe:scripts/deploy/demo-deploy.selftest.sh:generic-api-key:14
+
+## fixture ที่แก้แล้ว (93b3abceb ซึ่งอยู่ในต้นไม้ของ efd2e1733)
+ค่ารหัสผ่านปลอมของ selftest เดิมเขียนเป็นสตริงเดียวในซอร์ส (SECRET_PW='...')
+93b3abceb เปลี่ยนเป็นประกอบตอนรันด้วย printf จากสามชิ้น ค่าที่ได้เป็นสตริงเดิมทุกตัวอักษร selftest จึงยังจับการรั่วได้เหมือนเดิม
+ปลายทางของ branch เดิมสะอาดแล้ว แต่ 41834ed2d ยังอยู่ในประวัติ จึงต้อง squash แล้วลบ branch เดิม (operator 2026-11-08 "squash แล้วลบ branch เก่า")
+
+## ลบ ref
+git push origin --delete ops/deploy-demo-flow
+git worktree remove ~/work/wt-deploydemo · git branch -D ops/deploy-demo-flow · git fetch --prune origin
+Windows checkout: git fetch --prune origin (ไม่มี branch ชื่อนี้ในเครื่อง)
+git for-each-ref --contains 41834ed2d ในทั้งสองคลัง: ว่าง · stash ว่าง · notes ไม่มี · HEAD ของทุก worktree ไม่ไปถึง 41834ed2d
+
+## หลัง (14:06 เวลาไทย)
+INF 5013 commits scanned.
+INF scanned ~380545663 bytes (380.55 MB) in 33.1s
+INF no leaks found
+exit=0 · report: []
+
+## ใน full gate ของ efd2e1733169f2e45a2def544ab3bb557b96792d
+secret-scan-deep pass · artifacts/gitleaks-report.json = []
+INF 5013 commits scanned.
+INF scanned ~380545663 bytes (380.55 MB) in 30.9s
+INF no leaks found

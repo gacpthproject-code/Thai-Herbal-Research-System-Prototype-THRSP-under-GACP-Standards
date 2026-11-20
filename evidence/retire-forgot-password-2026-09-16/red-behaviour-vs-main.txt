@@ -1,0 +1,90 @@
+# RED — behavioural route test (final) run against origin/main 00bb27b8, where the request endpoint still exists · 2026-09-16T01:14:20Z
+# worktree: git worktree add --detach <tmp> origin/main; node_modules symlinked; only this test file copied in
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/password-reset-routes-behaviour.test.js
+  the mounted auth-health router has no self-service password reset
+    ✕ POST /reset-password (the request endpoint) reaches no route at all (4 ms)
+    ✓ no other self-service reset path is mounted either (2 ms)
+    ✕ the route table names exactly one password-reset path, the staff-issued one (4 ms)
+  the staff-issued token can still be redeemed
+    ✓ POST /reset-password/:token hands the token and the new password to the service (4 ms)
+    ✓ a weak new password is refused by the schema before the service is reached (3 ms)
+    ✓ a rejected token answers 400 and says nothing about why (2 ms)
+
+  ● the mounted auth-health router has no self-service password reset › POST /reset-password (the request endpoint) reaches no route at all
+
+    TypeError: AuthController.requestPasswordReset is not a function
+
+      114 |
+      115 | // POST /auth/health/reset-password - Request password reset
+    > 116 | router.post('/reset-password', validate(resetPasswordSchema), (req, res) => AuthController.requestPasswordReset(req, res));
+          |                                                                                            ^
+      117 |
+      118 | // POST /auth/health/reset-password/:token - Complete password reset with token
+      119 | router.post('/reset-password/:token', validate(resetPasswordWithTokenSchema), async (req, res) => {
+
+      at requestPasswordReset (routes/api/auth/auth-health.js:116:92)
+      at Layer.handle [as handle_request] (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at next (middleware/validate.js:44:9)
+      at Layer.handle [as handle_request] (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at ../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:284:15
+      at Function.process_params (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at Function.handle (../../../../../../../../home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:175:3)
+      at handle (__tests__/unit/password-reset-routes-behaviour.test.js:82:26)
+      at callRouter (__tests__/unit/password-reset-routes-behaviour.test.js:55:12)
+      at Object.callRouter (__tests__/unit/password-reset-routes-behaviour.test.js:96:27)
+
+  ● the mounted auth-health router has no self-service password reset › the route table names exactly one password-reset path, the staff-issued one
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+    +   "POST /reset-password",
+        "POST /reset-password/:token",
+      ]
+
+      112 |             .map((layer) => `${Object.keys(layer.route.methods).join(',').toUpperCase()} ${layer.route.path}`);
+      113 |
+    > 114 |         expect(mounted.filter((row) => /reset/i.test(row))).toEqual(['POST /reset-password/:token']);
+          |                                                             ^
+      115 |     });
+      116 | });
+      117 |
+
+      at Object.toEqual (__tests__/unit/password-reset-routes-behaviour.test.js:114:61)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 4 passed, 6 total
+Snapshots:   0 total
+Time:        0.893 s, estimated 1 s
+Ran all test suites matching /__tests__\/unit\/password-reset-routes-behaviour.test.js/i.
+EXIT=1

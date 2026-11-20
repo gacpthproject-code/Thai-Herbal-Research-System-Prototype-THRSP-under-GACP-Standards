@@ -1,0 +1,45 @@
+Task 7 Step 1 — integrity probe fail-loud proof
+scripts/system-integrity-check.js, section "8b. Navigation SSOT Integrity (nav-config.ts — getNavForRole)"
+
+Method: temporarily pointed AUDITOR_NAV['audits'].path at a path with no
+page.tsx, ran the probe, captured the FAIL line + exit code, then reverted
+the file and confirmed byte-identical to the pre-test version (git diff /
+file diff clean).
+
+=== BEFORE (baseline green run) ===
+$ node scripts/system-integrity-check.js
+...
+Results: 67 passed, 0 failed, 0 warnings
+ALL CHECKS PASSED — System is consistent
+
+=== BREAK: nav-config.ts AUDITOR_NAV['audits'].path changed to
+    '/provider/audits-DOES-NOT-EXIST-PROBE-TEST' ===
+
+$ node scripts/system-integrity-check.js 2>&1 | grep -A2 "FAIL: nav-config"
+FAIL: nav-config.ts: AUDITOR_NAV['audits'] (role 'auditor') -> /provider/audits-DOES-NOT-EXIST-PROBE-TEST -> page exists
+     -> getNavForRole('auditor') item 'audits' points to /provider/audits-DOES-NOT-EXIST-PROBE-TEST but no page.tsx/page.ts was found under src/app (checked top-level route groups too: (auth), (marketing), (public))
+nav-config.ts: AUDITOR_NAV has at least one {key, path} item to check
+
+$ node scripts/system-integrity-check.js >/dev/null 2>&1; echo "exit=$?"
+exit=1
+
+=== REVERT ===
+$ diff apps/web-app/src/lib/navigation/nav-config.ts <pre-test-backup>
+(no output — files identical)
+
+=== AFTER (post-revert green run, full output — see also tsc-output.txt for
+    the separate TypeScript check) ===
+Results: 67 passed, 0 failed, 0 warnings
+ALL CHECKS PASSED — System is consistent
+
+Conclusion: the probe iterates getNavForRole() for every role (health,
+auditor, document_reviewer, scheduler, account/account_dtam/account_platform,
+admin, platform_admin — 9 roles / arrays), resolves each item's `path`
+against apps/web-app/src/app (including top-level route groups), and fails
+the whole pre-commit run (non-zero exit) the moment any path has no
+page.tsx/page.ts. This is the same mechanism that caught and forced the
+fix of 5 real dead-end nav paths during this task:
+  /provider/appointments, /provider/audit-history (AUDITOR_NAV)
+  /provider/review (REVIEWER_NAV)
+  /provider/transactions (ACCOUNT_NAV)
+  /admin/reports (ADMIN_NAV)

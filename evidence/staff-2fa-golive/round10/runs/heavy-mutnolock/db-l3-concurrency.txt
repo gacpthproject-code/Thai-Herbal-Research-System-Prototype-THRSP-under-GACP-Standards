@@ -1,0 +1,122 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-21T09:38:04.368Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-21T09:38:04.371Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-21T09:38:04.372Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-21T09:38:06.571Z"}
+FAIL __tests__/integration/staff-2fa-sessions-revoked-real-postgres.test.js
+  order 93: a 2FA clear or move leaves no old sign-in alive (real Postgres, real HTTP)
+    path ข (order 93 items 1-3)
+      ○ skipped after the script, both devices, the pending challenge, a refresh token and the re-bind slot are dead; the audit row records it; the next sign-in enrols and the same-side admins are told
+      ○ skipped the script refuses an admin who names itself as the target (L2) and changes nothing
+      ○ skipped control: a staff member's first enrolment with no clear before it tells no admin
+    path ก (order 93 item 4)
+      ○ skipped device A moves the factor; B, the pending challenge and a refresh token die; A keeps a session no longer than the one it had; the audit row and the admin notices record it
+      ○ skipped a company-side move is told to the platform admins, not to the DTAM admins
+    order 94 item 2: the flag-on run revokes every staff and admin session
+      ○ skipped a staff session and an admin session issued before the run are refused after it; one audit row carries the count; applicants are untouched; the flag off refuses the run
+      ○ skipped order 105 item 4: a second run on the same database is refused, stamps nothing and writes no second audit row
+      order 108(1): every flag-on revokes, a rollback is the cause of the next one
+        ✕ review L3: three flag-on runs started together revoke once, five times over: one exit 0, two refused, one revoke row (276 ms)
+        ○ skipped (a) on → rollback → on revokes twice: a session issued during the rollback dies at the second flag-on, two revoke rows with the rollback row between
+        ○ skipped (b) on → on refuses the second without stamping or writing a row
+        ○ skipped (c) on → rollback → on → on refuses the last; a second rollback in a row records nothing
+    order 94 item 5: the first-sign-in report reads the audit trail
+      ○ skipped an account that enrolled before its first session passes, one that held a session before enrolling fails, one that never signed in is listed as such
+    order 94 item 5 (review L2): sign-ins before the report starts counting are unknown, not passed
+      ○ skipped the report prints its start date, and an account created before it is "ไม่ทราบ" even with an enrolment and a recorded session
+    order 94 item 5 (review round 7 L1): an account that existed before the count started is unknown, however recent its last sign-in
+      ○ skipped enrolled and signed in after the start date, but created before it: "ไม่ทราบ", because its earlier password-only sessions left no record
+    order 95 item 2: the roster counts the active DTAM admins of each organization (go-live gate row 7)
+      ○ skipped an organization with one DTAM admin, a platform admin and a disabled DTAM admin is marked below the threshold; organization A is not
+    order 95 item 2 (review L1): only an organization that holds DTAM-side staff accounts is counted
+      ○ skipped a company-side organization prints no line; one with only a DTAM dispatcher prints 0 below the threshold
+    refresh door (I4)
+      ○ skipped a refresh token naming a staff account is refused by the role the database holds, even with no epoch
+  ● order 93: a 2FA clear or move leaves no old sign-in alive (real Postgres, real HTTP) › order 94 item 2: the flag-on run revokes every staff and admin session › order 108(1): every flag-on revokes, a rollback is the cause of the next one › review L3: three flag-on runs started together revoke once, five times over: one exit 0, two refused, one revoke row
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 10
+    + Received  + 20
+      Array [
+        Object {
+          "exits": Array [
+            0,
+    -       2,
+    -       2,
+    +       0,
+    +       0,
+          ],
+          "trail": Array [
+            "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+          ],
+        },
+        Object {
+          "exits": Array [
+    +       0,
+            0,
+    -       2,
+    -       2,
+    +       0,
+          ],
+          "trail": Array [
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+            "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+          ],
+        },
+        Object {
+          "exits": Array [
+            0,
+    -       2,
+    -       2,
+    +       0,
+    +       0,
+          ],
+          "trail": Array [
+            "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+          ],
+        },
+        Object {
+          "exits": Array [
+    +       0,
+            0,
+    -       2,
+    -       2,
+    +       0,
+          ],
+          "trail": Array [
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+            "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+          ],
+        },
+        Object {
+          "exits": Array [
+            0,
+    -       2,
+    -       2,
+    +       0,
+    +       0,
+          ],
+          "trail": Array [
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+    +       "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+            "STAFF_SESSIONS_REVOKED_AT_FLAG_ON",
+          ],
+        },
+      ]
+      532 |                     trials.push({ exits, trail: await trail() });
+      533 |                 }
+    > 534 |                 expect(trials).toEqual(Array(5).fill({ exits: [0, 2, 2], trail: [ON] }));
+          |                                ^
+      535 |             });
+      536 |
+      537 |             test('(c) on → rollback → on → on refuses the last; a second rollback in a row records nothing', async () => {
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 16 skipped, 17 total
+Snapshots:   0 total
+Time:        3.638 s
+Ran all test suites matching __tests__/integration/staff-2fa-sessions-revoked-real-postgres.test.js with tests matching "review L3".
+jest exit 1

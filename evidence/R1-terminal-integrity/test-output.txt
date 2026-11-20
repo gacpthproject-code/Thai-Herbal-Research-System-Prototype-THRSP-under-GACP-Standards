@@ -1,0 +1,186 @@
+## R1 GREEN — terminal-integrity hotfix (post-fix)
+# date: 2026-08-03T03:40:37Z  branch: fix/terminal-integrity-hotfix
+# provenance (corrected in fix cycle 1 — auditor F4): the old header read "HEAD: 8825df3",
+#   which was wrong in substance: 8825df3 is the pre-fix R1 bootstrap commit and contains
+#   none of the code that produced these GREEN results. HEAD was still pointing at 8825df3
+#   at run time only because the fix was uncommitted in the worktree; it was committed
+#   ~3.5 min later as 0bc63b6. Code under test in this section == 0bc63b6.
+#   Superseded in part: the R1b ESLint-rule half of 0bc63b6 was reworked in fix cycle 1
+#   (see "## Fix cycle 1 GREEN" at the end of this file). The R1a results below stand.
+======================================================================
+
+### [1] Full backend suite — cd apps/backend && npx jest
+# Only permitted failure is dataset-export-service.test.js (env-blocked: Prisma DMMF
+#  not generated in this env -> Prisma.dmmf.datamodel undefined). No other failures.
+FAIL __tests__/unit/dataset-export-service.test.js
+Snapshots:   0 total
+Test Suites: 1 failed, 5 skipped, 516 passed, 517 of 522 total
+Tests:       1 failed, 63 skipped, 6870 passed, 6934 total
+--- the single allowed env-blocked failure (detail) ---
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+  dataset-export-service.exportDomain
+  dataset-export-service.listDomains
+
+### [2] R1a target suite GREEN — npx jest __tests__/integration/bundle-terminal-integrity.test.js
+PASS __tests__/integration/bundle-terminal-integrity.test.js
+      ✓ linked REJECTED case is rejected, not pushed to SUBMITTED (77 ms)
+      ✓ linked EXPIRED case is rejected, not pushed to SUBMITTED (14 ms)
+      ✓ linked CANCEL_EXPIRED case is rejected, not pushed to SUBMITTED (16 ms)
+      ✓ linked CERTIFIED case is rejected, not pushed to SUBMITTED (11 ms)
+      ✓ non-terminal (DRAFT) linked case still submits (regression pin) (13 ms)
+      ✓ creating a bundle around a REJECTED case is rejected, no DB write (9 ms)
+      ✓ creating a bundle around a EXPIRED case is rejected, no DB write (11 ms)
+      ✓ creating a bundle around a CANCEL_EXPIRED case is rejected, no DB write (11 ms)
+      ✓ creating a bundle around a CERTIFIED case is rejected, no DB write (12 ms)
+      ✓ adding a REJECTED case to a bundle is rejected, no link write (12 ms)
+      ✓ adding a EXPIRED case to a bundle is rejected, no link write (11 ms)
+      ✓ adding a CANCEL_EXPIRED case to a bundle is rejected, no link write (10 ms)
+      ✓ adding a CERTIFIED case to a bundle is rejected, no link write (11 ms)
+Test Suites: 1 passed, 1 total
+Tests:       13 passed, 13 total
+
+### [3] ESLint rule unit harness GREEN — node eslint-rules/no-direct-application-status-write.test.js
+writer file itself is exempt for upsert/create too
+
+Total: 19 passed, 0 failed
+
+### [4] ESLint on every touched file — expect exit 0 (clean)
+# files: application-bundles.js, error-codes.js, no-direct-application-status-write.js, seed-gacp.js, bundle-terminal-integrity.test.js
+eslint-all-touched exit=0 (0 = clean)
+
+### [5] seed-gacp.js — rule now enforced; seed passes via line-scoped disable+justification
+seed eslint exit=0 ; rule occurrences=0
+
+### [6] Error-code catalog drift — node scripts/extract-error-codes.js --validate
+Node.js v22.22.2
+VALIDATION OK - catalog has 274 entries; 274 codes reconciled.
+
+### [7] Hardcode guard (scripts/check-done.sh ABSENT in this checkout — see report)
+# node scripts/ci/check-hardcoded-tax-ids.js (closest available hardcode probe)
+[check-hardcoded-tax-ids] OK — no hardcoded tax IDs in issuer blocks
+
+
+======================================================================
+## Fix cycle 1 GREEN
+# date: 2026-08-03T04:05:11Z  branch: fix/terminal-integrity-hotfix
+# provenance: HEAD 46bda16 + UNCOMMITTED worktree changes of fix cycle 1
+#   (eslint-rules/no-direct-application-status-write.js, its .test.js, .github/workflows/ci.yml).
+#   The orchestrator commits these; this header must be re-checked if the tree moved.
+# Fix: rule narrowed from "any status write" to MUTATE-EXISTING-ROW ONLY —
+#   flagged = update / updateMany / upsert.update ; not flagged = create / upsert.create.
+#   Rationale: writeApplicationStatus() is a from->to transition on an existing row and
+#   cannot create one, so every application must be born from some create; flagging
+#   creation flagged the normal birth path (10 sites) while closing no hole.
+======================================================================
+
+### [1] repo-wide ESLint — cd apps/backend && npx eslint .  (same command the required CI gate runs: ci.yml:97-104 -> npm run lint -> package.json:16 "eslint .")
+# eslint exit code: 0
+# 0 errors (was 10 at RED). 5 warnings — identical set to base main 376b36b, none from this rule.
+----------------------------------------------------------------------
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/unit/application-review-revision-methods.test.js
+  14:9   warning  'addWorkingDays' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  15:9   warning  'PAYMENT' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  41:10  warning  'buildPrismaMock' is defined but never used. Allowed unused vars must match /^_/u          no-unused-vars
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/unit/invoice-quote-pii-overfetch.test.js
+   67:9  warning  Unused eslint-disable directive (no problems were reported from 'global-require')
+  103:9  warning  Unused eslint-disable directive (no problems were reported from 'global-require')
+
+✖ 5 problems (0 errors, 5 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+
+--- end [1] ---
+
+### [2] rule harness — cd apps/backend && node eslint-rules/no-direct-application-status-write.test.js
+# exit code: 0. 20/20 (was 19 cases; update/updateMany coverage unchanged, 3 create-shape
+#   cases re-pointed to the new boundary, 2 new cases added for tx.create + upsert.create-only).
+----------------------------------------------------------------------
+update without status field is OK
+updateMany without status is OK
+unrelated prisma model update is OK
+writer file itself is exempt (status write OK there)
+writer test file is exempt
+direct update with status in services
+direct update with status in routes
+direct updateMany with status flagged
+tx.application.update with status flagged (different binding name)
+upsert without status in either branch is OK
+create without status is OK
+unrelated model upsert with status is OK
+unrelated model create with status is OK
+application.upsert with status in update branch flagged
+application.upsert with status ONLY in create branch is OK (creates a row, does not transition one)
+application.upsert with status in BOTH branches reports exactly once (via update branch)
+application.create with status is OK (row birth, not a transition)
+tx.application.create with status is OK (row birth, different binding name)
+tx.application.upsert with status flagged (different binding name)
+writer file itself is exempt for upsert too
+
+Total: 20 passed, 0 failed
+--- end [2] ---
+
+### [3] prisma/seed-gacp.js disable line is STILL load-bearing (spec item 5)
+# The eslint-disable-next-line + justification at prisma/seed-gacp.js:322-329 must remain
+# necessary under the narrowed rule. Proof by removal: the upsert there carries
+# `update: { status: app.status, ... }` = a real transition on an existing row.
+----------------------------------------------------------------------
+--- [3a] disable line (seed-gacp.js:329) DELETED -> npx eslint prisma/seed-gacp.js ; exit=1 ---
+
+/home/user/GACP-Certification-Application/apps/backend/prisma/seed-gacp.js
+  329:15  error  Direct status write detected: prisma.application.upsert with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+✖ 1 problem (1 error, 0 warnings)
+
+--- [3b] disable line RESTORED -> npx eslint prisma/seed-gacp.js ; exit=0, no output (clean) ---
+(empty above = clean)
+# seed-gacp.js restored byte-for-byte: `git status --porcelain apps/backend/prisma/seed-gacp.js` = empty.
+--- end [3] ---
+
+### [4a] guard suite — cd apps/backend && npx jest __tests__/integration/bundle-terminal-integrity.test.js
+# exit code: 0
+----------------------------------------------------------------------
+PASS __tests__/integration/bundle-terminal-integrity.test.js
+      ✓ linked REJECTED case is rejected, not pushed to SUBMITTED (69 ms)
+      ✓ linked EXPIRED case is rejected, not pushed to SUBMITTED (12 ms)
+      ✓ linked CANCEL_EXPIRED case is rejected, not pushed to SUBMITTED (15 ms)
+      ✓ linked CERTIFIED case is rejected, not pushed to SUBMITTED (10 ms)
+      ✓ non-terminal (DRAFT) linked case still submits (regression pin) (13 ms)
+      ✓ creating a bundle around a REJECTED case is rejected, no DB write (9 ms)
+      ✓ creating a bundle around a EXPIRED case is rejected, no DB write (9 ms)
+      ✓ creating a bundle around a CANCEL_EXPIRED case is rejected, no DB write (11 ms)
+      ✓ creating a bundle around a CERTIFIED case is rejected, no DB write (11 ms)
+      ✓ adding a REJECTED case to a bundle is rejected, no link write (10 ms)
+      ✓ adding a EXPIRED case to a bundle is rejected, no link write (11 ms)
+      ✓ adding a CANCEL_EXPIRED case to a bundle is rejected, no link write (8 ms)
+      ✓ adding a CERTIFIED case to a bundle is rejected, no link write (7 ms)
+Test Suites: 1 passed, 1 total
+Tests:       13 passed, 13 total
+--- end [4a] ---
+
+### [4b] full backend suite — cd apps/backend && npx jest
+# exit code: 1 — the single failure is the permitted env-blocked one.
+----------------------------------------------------------------------
+Test Suites: 1 failed, 5 skipped, 516 passed, 517 of 522 total
+Tests:       1 failed, 63 skipped, 6870 passed, 6934 total
+Snapshots:   0 total
+--- the single allowed env-blocked failure (detail) ---
+FAIL __tests__/unit/dataset-export-service.test.js
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+# Same failure, same counts as the pre-fix-cycle run in this file (516 passed / 6870 passed).
+--- end [4b] ---
+
+### [5] F3 — CI pin for the guard test (.github/workflows/ci.yml:470)
+# Allowlist-only edit: appended |integration/bundle-terminal-integrity to --testPathPattern.
+# git diff --stat .github/workflows/ci.yml -> 1 file changed, 1 insertion(+), 1 deletion(-)
+# YAML still parses (python3 yaml.safe_load: OK). No job/threshold/logic touched.
+----------------------------------------------------------------------
+--- curated gate now selects 25 suites (was 24); the guard test is among them ---
+__tests__/integration/bundle-terminal-integrity.test.js
+--- curated gate executed with the new pattern ---
+Test Suites: 25 passed, 25 total
+Tests:       588 passed, 588 total
+# exit code: 0
+--- end [5] ---

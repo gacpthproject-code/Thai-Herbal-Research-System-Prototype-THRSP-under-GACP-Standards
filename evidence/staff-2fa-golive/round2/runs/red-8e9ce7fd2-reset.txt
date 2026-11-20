@@ -1,0 +1,171 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-20T12:42:54.069Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-20T12:42:54.073Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-20T12:42:54.075Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-20T12:42:55.187Z"}
+FAIL __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js
+  order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres)
+    ✕ a DTAM admin of the same organization resets a reviewer whose codes are used up: only the three second-factor columns change, one audit row names requester, approver and confirmation, and the next sign-in yields the setup ticket only (100 ms)
+    ✕ the platform admin resets a company finance officer of another organization (that admin crosses organizations, order 17) (61 ms)
+    every refusal leaves the row byte-for-byte as it was and writes no audit row
+      ✕ refuses when the flag is off (62 ms)
+      ✕ refuses when the target is an applicant account (61 ms)
+      ✕ refuses when the requester is not an admin (58 ms)
+      ✕ refuses when the admin of the other side asks (64 ms)
+      ✕ refuses when the DTAM admin of another organization asks (59 ms)
+      ✕ refuses when the target still has an unused backup code (63 ms)
+      ✕ refuses when the target never enrolled (58 ms)
+      ✕ a missing input is refused with the usage line before the database is touched (59 ms)
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › a DTAM admin of the same organization resets a reviewer whose codes are used up: only the three second-factor columns change, one audit row names requester, approver and confirmation, and the next sign-in yields the setup ticket only
+    expect(received).toEqual(expected) // deep equality
+    - Expected  -  2
+    + Received  + 15
+      Object {
+    -   "status": 0,
+    -   "stderr": "",
+    +   "status": 1,
+    +   "stderr": "node:internal/modules/cjs/loader:1210
+    +   throw err;
+    +   ^
+    +
+    + Error: Cannot find module '/home/ubuntu/work/wt-2fa-r2-red/apps/backend/scripts/ops/staff-2fa-emergency-reset.js'
+    +     at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    +     at Module._load (node:internal/modules/cjs/loader:1038:27)
+    +     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    +     at node:internal/main/run_main_module:28:49 {
+    +   code: 'MODULE_NOT_FOUND',
+    +   requireStack: []
+    + }
+    +
+    + Node.js v20.20.2",
+      }
+      141 |
+      142 |         const run = runScript(resetArgs(target, admin));
+    > 143 |         expect({ status: run.status, stderr: run.stderr }).toEqual({ status: 0, stderr: '' });
+          |                                                            ^
+      144 |         const resultLines = run.stdout.split('\n').filter((line) => line.includes('ล้างการยืนยันตัวตนสองชั้น'));
+      145 |         expect(resultLines).toHaveLength(1);
+      146 |         expect(resultLines[0]).toContain(target.id);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › the platform admin resets a company finance officer of another organization (that admin crosses organizations, order 17)
+    expect(received).toEqual(expected) // deep equality
+    - Expected  -  2
+    + Received  + 15
+      Object {
+    -   "status": 0,
+    -   "stderr": "",
+    +   "status": 1,
+    +   "stderr": "node:internal/modules/cjs/loader:1210
+    +   throw err;
+    +   ^
+    +
+    + Error: Cannot find module '/home/ubuntu/work/wt-2fa-r2-red/apps/backend/scripts/ops/staff-2fa-emergency-reset.js'
+    +     at Module._resolveFilename (node:internal/modules/cjs/loader:1207:15)
+    +     at Module._load (node:internal/modules/cjs/loader:1038:27)
+    +     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:164:12)
+    +     at node:internal/main/run_main_module:28:49 {
+    +   code: 'MODULE_NOT_FOUND',
+    +   requireStack: []
+    + }
+    +
+    + Node.js v20.20.2",
+      }
+      188 |         const target = await account(CANONICAL_ROLES.FINANCE_OFFICER_PLATFORM, orgs.a, { secret: mfaService.generateSecret() });
+      189 |         const run = runScript(resetArgs(target, who.platformAdmin));
+    > 190 |         expect({ status: run.status, stderr: run.stderr }).toEqual({ status: 0, stderr: '' });
+          |                                                            ^
+      191 |         const after = await fullRow(target.id);
+      192 |         expect(after.twoFactorEnabled).toBe(false);
+      193 |         expect(after.twoFactorSecret).toBeNull();
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the flag is off
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).toBe('');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the target is an applicant account
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).toBe('');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the requester is not an admin
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).toBe('');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the admin of the other side asks
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).toBe('');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the DTAM admin of another organization asks
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).toBe('');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the target still has an unused backup code
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).toBe('');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the target never enrolled
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).toBe('');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › a missing input is refused with the usage line before the database is touched
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 1
+      217 |         test('a missing input is refused with the usage line before the database is touched', () => {
+      218 |             const run = runScript(['--target', who.reviewerA.id]);
+    > 219 |             expect(run.status).toBe(2);
+          |                                ^
+      220 |             expect(run.stderr).toMatch(/--requester --confirmation --approval/);
+      221 |             expect(run.stderr).toContain('วิธีใช้');
+      222 |         });
+Test Suites: 1 failed, 1 total
+Tests:       10 failed, 10 total
+Snapshots:   0 total
+Time:        1.967 s
+Ran all test suites matching __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js.
+jest exit 1

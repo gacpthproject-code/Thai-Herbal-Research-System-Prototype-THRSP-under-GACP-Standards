@@ -1,0 +1,49 @@
+I2 — RED (summary; raw log not committed). Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d), TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5438 (migrate deploy).
+Sources: HEAD 5a91d6a0 (no retireForDocument) + the new tests.
+command (apps/backend): npx jest --config jest.config.cjs __tests__/integration/document-precheck-flow.test.js __tests__/unit/draft-document-delete-removes-bytes.test.js
+
+    ✓ a land_deed upload creates a PENDING row; the processor gives DONE with exactly the checks CATALOG defines (4) (235 ms)
+    ✓ a scanned (PNG) land_deed goes through real tesseract: DONE, OCR method, a real confidence (342 ms)
+    ✓ a slot outside scope (sop_cultivation) creates no row (7 ms)
+    ✓ precheck-supersede-race: upload A → upload B (same slot) → A's job runs after B exists: A's flags are not written, A is SUPERSEDED (183 ms)
+    ✓ precheck-supersede-race, in flight: B lands while A is extracting → A ends SUPERSEDED with no flags (192 ms)
+    ✓ two concurrent uploads into one slot → exactly one PENDING row, the other SUPERSEDED (75 ms)
+    ✓ a processor exception yields FAILED plus the flag after the retry; nothing is left PENDING (27 ms)
+    ✓ enqueue-failure-still-uploads: the queue add throws → POST /draft-documents still returns 200 and the row is FAILED with the failure flag (410 ms)
+      ✕ delete a checked file → its pre-check is SUPERSEDED, text and snippets null, and the requirements door shows precheck null (295 ms)
+      ✕ delete while the job is still queued → the late job writes nothing: SUPERSEDED, no text, no flags (243 ms)
+  ● document-precheck flow (real Postgres + real extract + real tesseract) › deleting the file retires its pre-check (final review I2) › delete a checked file → its pre-check is SUPERSEDED, text and snippets null, and the requirements door shows precheck null
+    Expected: "SUPERSEDED"
+    Received: "DONE"
+    > 464 |             expect(retired.status).toBe('SUPERSEDED');
+  ● document-precheck flow (real Postgres + real extract + real tesseract) › deleting the file retires its pre-check (final review I2) › delete while the job is still queued → the late job writes nothing: SUPERSEDED, no text, no flags
+    Expected: "SUPERSEDED"
+    Received: "DONE"
+    > 481 |             expect(row.status).toBe('SUPERSEDED');
+    ✓ unlinks the stored file inside the uploads root (11 ms)
+    ✓ still removes the mirrored application_documents row (8 ms)
+    ✓ a fileUrl pointing outside the uploads root is REFUSED, not unlinked (8 ms)
+    ✓ a documentId that matches nothing unlinks nothing (7 ms)
+    ✓ an unlink failure does not fail the delete (the record is already gone) (6 ms)
+    ✕ the deleted document's pre-check is retired, bound to this application and its organisation (2 ms)
+    ✕ a retire that throws leaves the delete's response exactly as it was (2 ms)
+    ✕ a documentId that matches nothing retires nothing (1 ms)
+  ● DELETE /draft-documents/:id retires the document's pre-check › the deleted document's pre-check is retired, bound to this application and its organisation
+    > 248 |         const retire = jest.spyOn(documentPrecheck, 'retireForDocument').mockResolvedValue(1);
+  ● DELETE /draft-documents/:id retires the document's pre-check › a retire that throws leaves the delete's response exactly as it was
+    > 260 |         jest.spyOn(documentPrecheck, 'retireForDocument').mockResolvedValue(1);
+  ● DELETE /draft-documents/:id retires the document's pre-check › a documentId that matches nothing retires nothing
+    > 274 |         const retire = jest.spyOn(documentPrecheck, 'retireForDocument').mockResolvedValue(0);
+Tests:       5 failed, 13 passed, 18 total
+
+--- unit: retireForDocument refusal (service.js at HEAD via git show) — npx jest --config jest.config.cjs __tests__/unit/document-precheck/service.test.js -t retireForDocument
+    ✕ no organizationId → refused before any write (19 ms)
+    ✕ no applicationId → refused before any write (2 ms)
+    ✕ no owner at all → refused before any write (1 ms)
+  ● retireForDocument › no organizationId → refused before any write
+    TypeError: service.retireForDocument is not a function
+  ● retireForDocument › no applicationId → refused before any write
+    TypeError: service.retireForDocument is not a function
+  ● retireForDocument › no owner at all → refused before any write
+    TypeError: service.retireForDocument is not a function
+Tests:       3 failed, 33 skipped, 36 total

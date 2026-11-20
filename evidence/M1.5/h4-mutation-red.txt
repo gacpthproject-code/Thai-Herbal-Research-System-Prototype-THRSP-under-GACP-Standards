@@ -1,0 +1,88 @@
+=== MUTATION: the old role gate is put back verbatim-in-effect at applications.js:613 ===
+=== expectation: the GRANT case (MANAGER + header) must die ===
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    × VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (81 ms)
+    × MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (15 ms)
+    × MANAGER holding a GRANT, with the active-entity header sent → 200 (11 ms)
+    √ ADMIN can submit (12 ms)
+    √ OWNER can submit (11 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (25 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (12 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (10 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (11 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (12 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (12 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (10 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (24 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (11 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (11 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (12 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (11 ms)
+
+  ● Wave C PR-6 — POST /submit capability gate › VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses)
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "code": "ENTITY_PERMISSION_DENIED",
+    +   "code": "CAPABILITY_DENIED",
+        "success": false,
+      }
+
+    [0m [90m 209 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/applications/submit'[39m)[33m.[39msend({})[33m;[39m
+     [90m 210 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m403[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 211 |[39m         expect(r[33m.[39mbody)[33m.[39mtoMatchObject({ success[33m:[39m [36mfalse[39m[33m,[39m code[33m:[39m [32m'ENTITY_PERMISSION_DENIED'[39m })[33m;[39m
+     [90m     |[39m                        [31m[1m^[22m[39m
+     [90m 212 |[39m         expect(require([32m'../../services/application-status-writer'[39m)[33m.[39mwriteApplicationStatus)
+     [90m 213 |[39m             [33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 214 |[39m     })[33m;[39m[0m
+
+      at Object.toMatchObject (__tests__/unit/applications-submit-capability-gate.test.js:211:24)
+
+  ● Wave C PR-6 — POST /submit capability gate › MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ENTITY_PERMISSION_DENIED"
+    Received: "CAPABILITY_DENIED"
+
+    [0m [90m 219 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/applications/submit'[39m)[33m.[39msend({})[33m;[39m
+     [90m 220 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m403[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 221 |[39m         expect(r[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'ENTITY_PERMISSION_DENIED'[39m)[33m;[39m
+     [90m     |[39m                             [31m[1m^[22m[39m
+     [90m 222 |[39m     })[33m;[39m
+     [90m 223 |[39m
+     [90m 224 |[39m     [90m// AC2 of spec §H4 — the case that is broken on the real web client today:[39m[0m
+
+      at Object.toBe (__tests__/unit/applications-submit-capability-gate.test.js:221:29)
+
+  ● Wave C PR-6 — POST /submit capability gate › MANAGER holding a GRANT, with the active-entity header sent → 200
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 403
+
+    [0m [90m 233 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/applications/submit'[39m)[33m.[39msend({})[33m;[39m
+     [90m 234 |[39m
+    [31m[1m>[22m[39m[90m 235 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 236 |[39m         expect(assertEntityActionPermission)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mobjectContaining({
+     [90m 237 |[39m             entityId[33m:[39m [32m'ent-juristic'[39m[33m,[39m userId[33m:[39m [32m'user-1'[39m[33m,[39m permission[33m:[39m [32m'SUBMIT_APPLICATION'[39m[33m,[39m
+     [90m 238 |[39m         }))[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/applications-submit-capability-gate.test.js:235:26)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 14 passed, 17 total
+Snapshots:   0 total
+Time:        3.094 s
+Ran all test suites matching /__tests__\\unit\\applications-submit-capability-gate.test.js/i.

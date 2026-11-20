@@ -1,0 +1,39 @@
+money-equation probe on real Postgres 17.11 scratch (127.0.0.1:5443). DATABASE_URL not printed.
+
+== RED: the OLD probe (main 07a3aa60) against a database AFTER the drop migration
+BLOCKED: query failed — /tmp/claude-1000/-home-ubuntu-work-GACP-Certification-Application/f90a55be-547c-4b12-8251-b8809c3ab2e1/scratchpad/ev/money-equation.err
+exit=2
+stderr: ERROR:  column "dtam_fee_amount" does not exist
+LINE 1: ...ROM checkout_orders WHERE total_payable_amount <> dtam_fee_a...
+                                                             ^
+
+== GREEN: the NEW probe against the same post-drop database
+PASS: 0 rows violate the money equation (gross = net + vat; total = gross unless CANCELLED)
+exit=0
+
+== the NEW probe against a PRE-drop database holding 1 legacy SETTLED + 1 legacy CANCELLED order (dtam 5000 / gross 885 / total 5885) — the SETTLED one violates, the CANCELLED one is exempt
+FAIL: 1 checkout_orders rows violate gross = net + vat or total = gross (non-CANCELLED)
+exit=1
+
+== selftest
+--- selftest A -> exit 0 (expected 0)
+PASS: 0 rows violate the money equation (gross = net + vat; total = gross unless CANCELLED)
+
+--- selftest B -> exit 1 (expected 1)
+FAIL: 2 checkout_orders rows violate gross = net + vat or total = gross (non-CANCELLED)
+
+--- selftest C -> exit 2 (expected 2)
+BLOCKED: needs DATABASE_URL + psql against the real DB — no vacuous pass
+
+--- selftest D -> exit 2 (expected 2)
+BLOCKED: needs DATABASE_URL + psql against the real DB — no vacuous pass
+
+--- selftest E -> exit 2 (expected 2)
+BLOCKED: query failed — /tmp/tmp.PV6UxPv1Cn/ev/money-equation.err
+
+--- selftest F -> exit 2 (expected 2)
+BLOCKED: psql answered 'ERROR:columndtam_fee_amountdoesnotexist', which is not a count — refusing to read that as either a pass or a fail
+
+==================================================
+money-equation --selftest: 6/6 cases PASS
+exit=0

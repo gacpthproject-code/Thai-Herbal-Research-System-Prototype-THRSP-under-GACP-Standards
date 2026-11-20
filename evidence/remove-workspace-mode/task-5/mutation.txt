@@ -1,0 +1,54 @@
+# Task 5 mutation — is the R1 matrix able to see a change? (summary only)
+Mutant: in services/invoice-service.js the R1 legacy OR branch and AND pin were replaced by the Task 12 target, holderReadWhere(scope, 'Invoice') alone, in both listForHolders and the by-id owner where (r1LiveInvoiceExists kept, so refusals stay 403).
+Run: r1-billing-doors-neutral-real-postgres on 127.0.0.1:5447 -> Tests:       1 failed, 1 total
+Results that differ from EXPECTED (9616ccdf): 47 of 576 — every one a narrowing (200/409 -> 403, or rows lost), none a widening:
+  A|C|GET /invoices/:id/pdf|aN | pre-R1: 200 | mutant: 403
+  A|C|GET /invoices/:id/pdf|aP | pre-R1: 200 | mutant: 403
+  A|C|GET /invoices/:id/pdf|uP | pre-R1: 200 | mutant: 403
+  A|C|GET /invoices/:id/pdf|wP | pre-R1: 200 | mutant: 403
+  A|C|GET /invoices/my/:id/receipt/pdf|aN | pre-R1: 200 | mutant: 403
+  A|C|GET /invoices/my/:id/receipt/pdf|aP | pre-R1: 200 | mutant: 403
+  A|C|GET /invoices/my/:id/receipt/pdf|uP | pre-R1: 409 RECEIPT_NOT_ISSUED | mutant: 403
+  A|C|GET /invoices/my/:id/receipt/pdf|wP | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/:id/pdf|aC | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/:id/pdf|aN | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/:id/pdf|fC | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/:id/pdf|mC | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/my | pre-R1: 200 aN,aP,uP,wP | mutant: 200 aP,uP,wP
+  A|P|GET /invoices/my/:id/receipt/pdf|aC | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/my/:id/receipt/pdf|aN | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/my/:id/receipt/pdf|fC | pre-R1: 200 | mutant: 403
+  A|P|GET /invoices/my/:id/receipt/pdf|mC | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/:id/pdf|aC | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/:id/pdf|aN | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/:id/pdf|fC | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/:id/pdf|mC | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/my | pre-R1: 200 aN,aP,uP,wP | mutant: 200 aP,uP,wP
+  A|none|GET /invoices/my/:id/receipt/pdf|aC | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/my/:id/receipt/pdf|aN | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/my/:id/receipt/pdf|fC | pre-R1: 200 | mutant: 403
+  A|none|GET /invoices/my/:id/receipt/pdf|mC | pre-R1: 200 | mutant: 403
+  G|none|GET /invoices/:id/pdf|gN | pre-R1: 200 | mutant: 403
+  G|none|GET /invoices/my | pre-R1: 200 gN,gP | mutant: 200 
+  G|none|GET /invoices/my/:id/receipt/pdf|gN | pre-R1: 200 | mutant: 403
+  M|none|GET /invoices/:id/pdf|aC | pre-R1: 200 | mutant: 403
+  M|none|GET /invoices/:id/pdf|fC | pre-R1: 200 | mutant: 403
+  M|none|GET /invoices/:id/pdf|mC | pre-R1: 200 | mutant: 403
+  M|none|GET /invoices/my/:id/receipt/pdf|aC | pre-R1: 200 | mutant: 403
+  M|none|GET /invoices/my/:id/receipt/pdf|fC | pre-R1: 200 | mutant: 403
+  M|none|GET /invoices/my/:id/receipt/pdf|mC | pre-R1: 200 | mutant: 403
+  V|none|GET /invoices/:id/pdf|aC | pre-R1: 200 | mutant: 403
+  V|none|GET /invoices/:id/pdf|fC | pre-R1: 200 | mutant: 403
+  V|none|GET /invoices/:id/pdf|mC | pre-R1: 200 | mutant: 403
+  V|none|GET /invoices/my/:id/receipt/pdf|aC | pre-R1: 200 | mutant: 403
+  V|none|GET /invoices/my/:id/receipt/pdf|fC | pre-R1: 200 | mutant: 403
+  V|none|GET /invoices/my/:id/receipt/pdf|mC | pre-R1: 200 | mutant: 403
+  W|none|GET /invoices/:id/pdf|aP | pre-R1: 200 | mutant: 403
+  W|none|GET /invoices/:id/pdf|uP | pre-R1: 200 | mutant: 403
+  W|none|GET /invoices/:id/pdf|wP | pre-R1: 200 | mutant: 403
+  W|none|GET /invoices/my/:id/receipt/pdf|aP | pre-R1: 200 | mutant: 403
+  W|none|GET /invoices/my/:id/receipt/pdf|uP | pre-R1: 409 RECEIPT_NOT_ISSUED | mutant: 403
+  W|none|GET /invoices/my/:id/receipt/pdf|wP | pre-R1: 200 | mutant: 403
+Reverted with git checkout of the committed file afterwards; the matrix is green again on 22a9e0a0 (green.txt).
+
+What the mutant shows for Task 12: with the R1 header intersection still in holderScope, the target where alone narrows by the active workspace, drops null-entity invoices, and gives G (personal entity with no membership row) nothing. Task 12 must remove the intersection together with the legacy branch, and D0/D1 must run first.

@@ -1,0 +1,70 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:11.933Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:12.012Z"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"3318f04db10956940bf47f6d997fb54b7a864d0879e8065ffb0e4bc2396f6ca2","service":"gacp-backend","timestamp":"2026-08-19T08:30:12.013Z","type":"REFUND_INITIATED","userId":"user-1"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:12.069Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:12.116Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:12.163Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:12.222Z"}
+[33mwarn[39m: [fanout] user user-nonexistent not found; skipping {"service":"gacp-backend","timestamp":"2026-08-19T08:30:12.223Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:12.266Z"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"280c83ef75f17cf27181738f4a815a989bc20e60fe1a3617403e378f2e8146ee","service":"gacp-backend","timestamp":"2026-08-19T08:30:13.425Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED (lost NX race) {"dedupeKey":"ddbf4acb598a48baa70ac0b213271419daf87d580e826ffec42c298e49840d8f","service":"gacp-backend","timestamp":"2026-08-19T08:30:13.502Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"21297243938d493b4c7de008e6bbbebb9d00030d233a0721ec5a069075c06439","service":"gacp-backend","timestamp":"2026-08-19T08:30:13.587Z","type":"REFUND_INITIATED","userId":"user-1"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T08:30:13.614Z"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"7196e86cd694711e336cf6b2ab8ad22e9b741ebfba9e905f22c408d95a5c8ec4","service":"gacp-backend","timestamp":"2026-08-19T08:30:13.615Z","type":"REFUND_INITIATED","userId":"user-1"}
+[33mwarn[39m: [fanout] IN_APP dispatch failed for user-1/REFUND_INITIATED: DB write timeout {"service":"gacp-backend","timestamp":"2026-08-19T08:30:13.668Z"}
+[32minfo[39m: [fanout] DEDUPE partial-retry of unsettled channels {"dedupeKey":"d5ad03cf0624ad4d31b904a7fab1b013b932a9960993d33124a195af3ed260a9","retry":["IN_APP"],"service":"gacp-backend","timestamp":"2026-08-19T08:30:13.669Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"d5ad03cf0624ad4d31b904a7fab1b013b932a9960993d33124a195af3ed260a9","service":"gacp-backend","timestamp":"2026-08-19T08:30:13.671Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"52eb7dbf1b7cec93e2e187b0108b3cc2fe71dcbbcb00c4b98ba2be8aec3008c7","service":"gacp-backend","timestamp":"2026-08-19T08:30:13.699Z","type":"REFUND_INITIATED","userId":"user-4"}
+PASS __tests__/unit/notification-fanout-service.test.js
+  [Iter23→T2] notification-fanout-service — send()
+    √ dispatches IN_APP only; EMAIL/SMS channel names come back CHANNEL_RETIRED and never touch the transports (97 ms)
+    √ dedupes a second call within the 60-min window (same userId+type+invoiceId) — IN_APP dispatched once (56 ms)
+    √ IN_APP opt-out is still respected; EMAIL/SMS are unconditionally CHANNEL_RETIRED regardless of opt-out (55 ms)
+    √ respects `channels` filter (IN_APP only) — EMAIL/SMS stay NOT_REQUESTED, not CHANNEL_RETIRED (47 ms)
+    √ default channels (caller omits `channels`) dispatch IN_APP only — ALL_CHANNELS shrank to [IN_APP] (47 ms)
+    √ returns empty result when user not found (58 ms)
+  [T2] notification-fanout-service — PDPA-erasure confirm-URL carrier
+    √ PDPA_ERASURE_REQUESTED: the in-app row message carries the full confirm URL end to end (48 ms)
+  [Iter23] notification-fanout-service — template resolution
+    √ REFUND_INITIATED → Thai subject + body cites ม.86/10 (43 ms)
+    √ PAYMENT_SLIP_APPROVED → contains invoice number + phase (41 ms)
+    √ PAYMENT_SLIP_REJECTED → includes the rejection reason (65 ms)
+    √ CERTIFICATE_ISSUED → includes cert number and url (44 ms)
+    √ REVISION_REQUESTED → includes application number and reason (42 ms)
+    √ AUDIT_SCHEDULED → formats date in Buddhist-Era (45 ms)
+    √ AUDIT_RESULT_CAR → Thai subject + body include application number, summary, and critical findings (59 ms)
+    √ AUDIT_RESULT_CAR → renders cleanly with no summary + empty findings (defaults safe) (43 ms)
+    √ AUDIT_RESULT_NEEDS_REVIEW → Thai subject + body signal "under further review", no action required (44 ms)
+    √ AUDIT_RESULT_NEEDS_REVIEW → renders cleanly without summary (defaults safe) (42 ms)
+    √ unknown type → null (caller can fall back to IN_APP-only) (42 ms)
+    √ PAYMENT_SLIP_UPLOADED → renders Thai subject + body + SMS with invoice number, phase label, formatted amount (54 ms)
+    √ PAYMENT_SLIP_UPLOADED → PHASE_1 maps to "1"; missing invoiceNumber falls back to "-" (43 ms)
+    √ PAYMENT_SLIP_SLA_BREACH → renders Thai subject + URGENT SMS with hoursPending + invoice + phase label (42 ms)
+    √ PAYMENT_SLIP_SLA_BREACH → coerces non-number/missing hoursPending to "0" (41 ms)
+    √ PDPA_ERASURE_REQUESTED → cites ม.32, embeds confirm URL with requestId + token + webBaseUrl (54 ms)
+    √ PDPA_ERASURE_REQUESTED → missing webBaseUrl falls back to [WEB_BASE_URL_NOT_CONFIGURED] sentinel (NOT a relative URL) (40 ms)
+    √ PDPA_ERASURE_EXECUTED → enumerates preserved tables citing ม.32 + ม.87/3 ป.รัษฎากร (48 ms)
+    √ BREACH_NOTIFICATION_SUBJECT → cites ม.28 + PDPC 2565/2022; embeds breach fields verbatim (43 ms)
+    √ NO PII leak invariant — none of the 3 new templates echo raw phone (>=10 digits) or @gmail.com when given a realistic PII payload (55 ms)
+  [Iter23] notification-fanout-service — internals
+    √ _normalizePhone: 0XXXXXXXXX → +66XXXXXXXXX (42 ms)
+    √ _makeDedupeKey: same key for identical inputs, different for different (45 ms)
+    √ formatBE: produces a Buddhist-Era string for 2026 AD (42 ms)
+    √ formatTHB: emits 2-decimal Thai locale string (64 ms)
+  [R5-A] notification-fanout-service — Redis-backed dedupe
+    √ dedupes a second send() within window using Redis NX (single process) (28 ms)
+    √ two concurrent send() calls collapse via Redis NX — exactly ONE IN_APP dispatch (81 ms)
+    √ cross-process: dedupe survives a fresh module load with the SAME Redis store (81 ms)
+    √ falls back to per-process Map when Redis is unavailable (logs warn once) (27 ms)
+  [API-4] notification-fanout-service — transient failure retry within dedupe window
+    √ _isOutcomeRetriable: only transient failures (ok:false + no skipped) are retriable (26 ms)
+    √ re-attempts ONLY the failed IN_APP dispatch on the next send; a third send fully dedupes (29 ms)
+    √ permanent skip (IN_APP OPT_OUT) is NOT retried — second send fully dedupes (29 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       38 passed, 38 total
+Snapshots:   0 total
+Time:        3.508 s, estimated 4 s
+Ran all test suites matching /__tests__\\unit\\notification-fanout-service.test.js/i.

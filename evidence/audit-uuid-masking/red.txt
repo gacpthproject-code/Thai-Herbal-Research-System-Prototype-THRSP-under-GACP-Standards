@@ -1,0 +1,124 @@
+# RED on main a0ee3b68 (tests written first, source untouched) — 2026-10-03
+
+## backend: apps/backend/__tests__/unit/mask-thai-ids-identifier-tokens.test.js
+    ✕ corrupts 0 of 50000 fixed-seed UUIDs (153 ms)
+    ✕ corrupts 0 of 50000 fixed-seed UUIDs written in upper case (110 ms)
+    ✕ corrupts 0 of 50000 fixed-seed 32-char hex ids (62 ms)
+    ✕ corrupts 0 of 50000 fixed-seed 64-char hex ids (132 ms)
+    ✕ leaves the reported UUID as it was, alone and inside text/JSON/URL (3 ms)
+    ✕ leaves a cuid, an ObjectId and a sha-256 hash alone (2 ms)
+    ✕ space (2 ms)
+    ✕ hyphen (1 ms)
+    ✕ UUID first (2 ms)
+    ✕ Thai prose (2 ms)
+    ✕ JSON (1 ms)
+    ✕ URL (1 ms)
+    ✕ dashed ID (2 ms)
+    ✓ masks the bare form (2 ms)
+    ✓ masks the hyphen form (1 ms)
+    ✓ masks the space form (2 ms)
+    ✓ masks the dot form (1 ms)
+    ✓ masks the slash form (2 ms)
+    ✓ masks the comma form (1 ms)
+    ✓ masks the en-dash form (2 ms)
+    ✓ masks the NBSP form (5 ms)
+    ✓ masks the doubled form (1 ms)
+    ✓ masks the glued to a word form (1 ms)
+    ✓ masks the glued to Thai form (1 ms)
+    ✕ metadata keeps the UUID and masks the ID next to it (9 ms)
+Tests:       14 failed, 11 passed, 25 total
+note: the 11 "masks the <form>" cases passed from birth on main — pins (no-regression guard for the fix), not fixes.
+    -   "corrupted": 0,
+    +   "corrupted": 555,
+    Received: 622
+    Received: 365
+    Received: 870
+reported example:
+    Expected: "c82d4715-4c75-4994-8945-880ab07c5ded"
+    Received: "c82d4715-4c7-XXXX-XXXX-X-5880ab07c5ded"
+
+## scrubber: apps/backend/__tests__/unit/sentry-scrub-identifier-tokens.test.js
+    ✕ corrupts 0 of 50000 fixed-seed UUIDs (369 ms)
+    ✕ corrupts 0 of 50000 fixed-seed 32-char hex ids (234 ms)
+    ✕ corrupts 0 of 50000 fixed-seed 64-char hex ids (541 ms)
+    ✕ keeps the reported UUID and a phone-shaped UUID in a message (2 ms)
+    ✕ keeps a UUID path segment of a URL (3 ms)
+    ✕ plain ID (1 ms)
+    ✕ dashed ID (1 ms)
+    ✕ Thai-digit ID (2 ms)
+    ✕ mobile (2 ms)
+    Received: 737
+    Received: 656
+    Received: 1507
+Tests:       9 failed, 9 total
+    Expected: "application c82d4715-4c75-4994-8945-880ab07c5ded not found"
+    Received: "application c82d4715-4c[Filtered]ab07c5ded not found"
+
+## mobile: apps/mobile-app/test/unit/log_redactor_test.dart (scratch git-archive copy)
+00:00 +5 -1: redactForLog — identifiers are never rewritten 0 of 20000 fixed-seed hex ids (32 and 64 chars) are changed [E]
+  Expected: <0>
+    Actual: <612>
+00:00 +6 -2: redactForLog — identifiers are never rewritten an ObjectId and a 20-digit invoice number are left alone [E]
+  Expected: '{"a":"5f1d7c2e9a1234567890123b","b":"12345678901234567890"}'
+    Actual: '{"a":"5f1d7c2e9a12*********23b","b":"12*********234567890"}'
+00:00 +10 -2: Some tests failed.
+note: the 2 UUID/mixed dart cases and the 'glued to a word' case passed from birth — pins, not fixes (bare \d{13} cannot span UUID hyphens).
+
+## measurement (same fixed seed, 50,000 each, main):
+uuid: backend 555 · scrub 737 · dart-equivalent 0 | hex32: 345 · 651 · 857 | hex64: 861 · 1480 · 2201
+
+# ROUND 2 — review FAIL on 1a0dd8e8: IDs glued to hex leaked. RED against HEAD 052b1cd8 (tests first)
+## backend+scrubber: apps/backend/__tests__/unit/pii-mask-no-leak-beside-identifiers.test.js
+    ✕ maskThaiIdsInText abc1100000000008 (28 ms)
+    ✕ maskThaiIdsInText 1100000000008abc (3 ms)
+    ✕ maskThaiIdsInText deadbeef1100000000008 (8 ms)
+    ✕ maskThaiIdsInText ID 1100000000008fee (27 ms)
+    ✕ maskThaiIdsInText scan_1100000000008abc.pdf (20 ms)
+    ✕ maskThaiIdsInText /files/abc1100000000008 (21 ms)
+    ✕ maskThaiIdsInText 1100000000008c82d4715-4c75-4994-8945-880ab07c5ded (8 ms)
+    ✕ maskThaiIdsInText c82d4715-4c75-4994-8945-880ab07c5ded1100000000008 (1 ms)
+    ✕ maskThaiIdsInText abcdef1100000000008abcdef (2 ms)
+    ✕ maskThaiIdsInText aaaaaaaaaaaaaaaaaaaa1100000000008bbbbbbbbbbbbbbbbbbbb (2 ms)
+    ✕ scrubString abc1100000000008 (15 ms)
+    ✕ scrubString 1100000000008abc (3 ms)
+    ✕ scrubString deadbeef1100000000008 (3 ms)
+    ✕ scrubString ID 1100000000008fee (3 ms)
+    ✕ scrubString scan_1100000000008abc.pdf (1 ms)
+    ✕ scrubString /files/abc1100000000008 (8 ms)
+    ✕ scrubString 1100000000008c82d4715-4c75-4994-8945-880ab07c5ded (8 ms)
+    ✕ scrubString c82d4715-4c75-4994-8945-880ab07c5ded1100000000008 (3 ms)
+    ✕ scrubString abcdef1100000000008abcdef (5 ms)
+    ✕ scrubString aaaaaaaaaaaaaaaaaaaa1100000000008bbbbbbbbbbbbbbbbbbbb (7 ms)
+    ✕ an ID glued in front of a UUID: ID masked AND UUID intact (2 ms)
+    ✓ scrubString masks a phone glued to hex letters: abc0812345678 (1 ms)
+    ✓ scrubString masks a phone glued to hex letters: 0812345678fee (5 ms)
+    ✕ scrubString masks a phone glued to hex letters: deadbeef0812345678 (2 ms)
+    ✓ scrubString masks a phone glued to hex letters: call0812345678abcdef0123456789 (2 ms)
+    ✕ a 14-digit run is masked (6 ms)
+    ✕ a 15-digit run is masked (2 ms)
+    ✓ a 20-digit invoice number is left alone (pinned by mask-thai-ids-formatted) (2 ms)
+    ✕ maskThaiIdsInText: 20000 cases, 0 failures (987 ms)
+    ✕ scrubString: 20000 cases, 0 failures (738 ms)
+    -   "failures": 0,
+    +   "failures": 5000,
+    -   "failures": 0,
+    +   "failures": 5000,
+Tests:       26 failed, 4 passed, 30 total
+differential: all 20 differential failures are the leak assertion (main masked each of these IDs; checked with main's THAI_ID_RUN_IN_TEXT)
+## earlier test files after the hex/glue edits
+    ✕ masks the glued to hex letters form (1 ms)
+    ✕ masks the glued in front of a UUID form (2 ms)
+Tests:       2 failed, 34 passed, 36 total
+## mobile log_redactor_test.dart (scratch copy, HEAD source)
+00:01 +8 -1: redactForLog — identifiers are never rewritten an ID glued to hex letters or to a UUID is masked, the UUID kept [E]
+00:01 +8 -2: redactForLog — identifiers are never rewritten 14- and 15-digit runs are masked [E]
+00:01 +9 -3: redactForLog — identifiers are never rewritten a national ID glued to hex letters is still masked [E]
+00:01 +11 -3: Some tests failed.
+
+# RED รอบ 3 against 6978a940 (new tests, HEAD source) — 2026-10-05
+backend pii-mask-main-oracle: 8 failed, 36 passed (3 suites run)
+  maskThaiIdsInText fuzz: diffs 5193/30000 ; no-UUID-input: FAIL
+  scrubString fuzz: diffs 5806/30000 ; no-UUID-input: FAIL
+  leak 1 (Sentry landline + digit-leading UUID): FAIL ; leak 2 x3 (separated ID/phone at UUID edge): FAIL
+mobile log_redactor_test (HEAD dart): fuzz diffs 3948/10000 FAIL ; glued-after-UUID case ran; +15 -1 overall
+note: the 50k UUID-corruption and pre-existing identifier-token tests were already green on HEAD — pins, not fixes.

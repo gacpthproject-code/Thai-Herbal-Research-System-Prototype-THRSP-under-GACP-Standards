@@ -1,0 +1,53 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-21T12:05:37.861Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-21T12:05:37.866Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-21T12:05:37.867Z"}
+[32minfo[39m: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-21T12:05:38.259Z"}
+[32minfo[39m: [Revision Deadline Checker] Found 2 active deadlines {"service":"gacp-backend","timestamp":"2026-10-21T12:05:38.275Z"}
+[32minfo[39m: [Revision Deadline Checker] Auto-cancelled: APP-CLOSING-12-0F1165E6 (deadline: 2026-10-11T12:05:37.753Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-10-21T12:05:38.376Z"}
+[32minfo[39m: [Revision Deadline Checker] Completed: 2 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-21T12:05:38.477Z"}
+[32minfo[39m: [payment-closure] Auto-closed: APP-CLOSING-16-0F1165E6 (M1 due 2026-07-02T16:59:59.999Z) -> EXPIRED, PAYMENT_ABANDONED {"service":"payment-closure","timestamp":"2026-10-21T12:05:38.658Z"}
+[32minfo[39m: [payment-closure] Completed: 3 scanned, 1 closed, 2 skipped, 0 errors {"service":"payment-closure","timestamp":"2026-10-21T12:05:38.711Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-21T12:05:39.737Z"}
+FAIL __tests__/integration/closing-jobs-real-clock-real-postgres.test.js
+  run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres)
+    ✕ in process: the entry calls the scheduler's three closing jobs once each with no clock argument, no other job, and closes only what is overdue (1076 ms)
+    ✕ the command line closes what is overdue on the real clock, exits 0, and prints a summary of names and counts (755 ms)
+
+  ● run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres) › in process: the entry calls the scheduler's three closing jobs once each with no clock argument, no other job, and closes only what is overdue
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /^closing-jobs revisionDeadlineChecker:\S+ correctionDeadlineSweep:\S+ paymentClosureSweep:\S+$/
+    Received string:  "closing-jobs revisionDeadlineChecker:processed=2,expired=1,errors=0 correctionDeadlineSweep:checked=3,skipped=0,remindersSentCount=0,cancelledCount=1 paymentClosureSweep:scanned=3,closed=1,wouldClose=0,skipped=2,errors=0 paymentReminderSweep:checked=2,matched=1,late=1,sent=1,deduped=0,failed=0"
+
+      105 |
+      106 |         expect(result.ok).toBe(true);
+    > 107 |         expect(result.summary).toMatch(/^closing-jobs revisionDeadlineChecker:\S+ correctionDeadlineSweep:\S+ paymentClosureSweep:\S+$/);
+          |                                ^
+      108 |         const called = Object.fromEntries(Object.entries(spies).map(([name, s]) => [name, s.mock.calls]));
+      109 |         expect(called).toEqual({
+      110 |             checkExpiredDeadlines: [[]],
+
+
+  ● run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres) › the command line closes what is overdue on the real clock, exits 0, and prints a summary of names and counts
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /^closing-jobs revisionDeadlineChecker:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)* correctionDeadlineSweep:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)* paymentClosureSweep:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)*$/
+    Received string:  "closing-jobs revisionDeadlineChecker:processed=3,expired=1,errors=0 correctionDeadlineSweep:checked=5,skipped=0,remindersSentCount=0,cancelledCount=1 paymentClosureSweep:scanned=5,closed=1,wouldClose=0,skipped=4,errors=0 paymentReminderSweep:checked=4,matched=2,late=2,sent=2,deduped=0,failed=0"
+
+      127 |         expect({ status: run.status, stderr: run.stderr.split('\n').filter((line) => /failed|Error/.test(line)) }).toEqual({ status: 0, stderr: [] });
+      128 |         const last = run.stdout.split('\n').filter((line) => line.startsWith('closing-jobs ')).pop();
+    > 129 |         expect(last).toMatch(/^closing-jobs revisionDeadlineChecker:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)* correctionDeadlineSweep:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)* paymentClosureSweep:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)*$/);
+          |                      ^
+      130 |         expect(last).toMatch(/paymentClosureSweep:\S*closed=[1-9]/);
+      131 |         await expectClosedOnTheRealClock(world);
+      132 |     });
+
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        2.878 s, estimated 3 s
+Ran all test suites matching __tests__/integration/closing-jobs-real-clock-real-postgres.test.js.
+jest exit 1

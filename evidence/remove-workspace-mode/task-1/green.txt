@@ -1,0 +1,42 @@
+Task 1 GREEN — holder-access service and the marker (2026-09-30, branch feat/holder-read-scope)
+
+Toolchain: Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d), Prisma client 5.22.0
+(require('@prisma/client').Prisma.prismaVersion.client). Real Postgres: throwaway postgres:17 on
+127.0.0.1:5447 (container r1-t1-pg), `prisma migrate deploy` -> 145 migrations, "Database schema is up to date".
+Signing key mtime before/after every run: private.pem/public.pem 1788623435 (unchanged).
+
+1. Brief Step 5 set:
+   npx jest --config jest.config.cjs -i __tests__/unit/holder-access.test.js \
+     __tests__/integration/holder-marker-prisma-real-postgres.test.js __tests__/unit/farm-access*.test.js \
+     __tests__/unit/cultivation-viewer-mutation-floor.test.js
+   Test Suites: 7 passed, 7 total · Tests: 125 passed, 125 total · 0 skipped
+   holder-access.test.js 41/41 · holder-marker-prisma-real-postgres.test.js 5/5 (0 skipped, real PG):
+     - R(user) on the real schema: ACTIVE on a live entity only (no PENDING, no deleted entity)
+     - Prisma 5.22 ignores the symbol key
+     - Prisma 5.22 ignores the symbol key inside a relation filter
+     - an empty scope still fails closed on the real database
+     - the same holds through the tenantInjectExtension client (tenant + entity context bound)
+   Symbol key accepted by Prisma 5.22 -> WeakSet fallback NOT needed.
+
+2. Every suite that references farm-access or its callers (57 files, same DB):
+   Test Suites: 57 passed, 57 total · Tests: 542 passed, 542 total
+   (3 existing suites were updated: expectations now require the marker and the entity.isDeleted filter)
+
+3. Mutation checks (reverted by restoring a backup copy, then re-run green above):
+   - HOLDER_SCOPED as a string key '__holderScoped' -> real-PG suite 4 failed / 1 passed,
+     "Unknown argument `__holderScoped`" (the pin has teeth)
+   - listActiveMemberships without entity: { isDeleted: false } -> 2 failed (real-PG R(user), unit query shape)
+
+4. Probes: ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0 · retired-words PASS ·
+   no-skip PASS · no-secret PASS (layer1 0 hits, layer2 gitleaks clean) · eslint on 8 changed files clean
+
+5. LOCAL_GATE_FULL=1 bash scripts/ci/local-gate.sh (no DATABASE_URL, as the gate runs):
+   banned-terms PASS · mojibake PASS · green-mask PASS
+   probe-gate FAIL: only nginx-config-drift (host nginx differs from git; same FAIL in main attestation 80876b57)
+   unit-suite: Test Suites 1 failed, 47 skipped, 897 passed (945) · Tests 15 failed, 337 skipped, 11884 passed
+     the 1 failing suite = __tests__/integration/payer-block-matrix.test.js:
+     "Can't reach database server at 127.0.0.1:5432" in beforeAll (no DB in this run; the suite has no
+     describeIfTestDatabase guard and imports nothing from farm-access/holder-*). It passed in
+     main attestation 80876b57 (run with a real PG). Not a new failure from this change.
+   Main attestation 80876b57 (latest on main; the plan's 8f0f99a2 json is not in the tree):
+     11 failing suites, none of them touched here; none of them failed in this run.

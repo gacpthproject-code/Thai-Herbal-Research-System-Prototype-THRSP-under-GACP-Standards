@@ -1,0 +1,106 @@
+FAIL __tests__/integration/correction-deadline-sweep-real-postgres.test.js
+  correction-deadline sweep (real Postgres)
+    ✕ a second revision round gets its own 48 and 24 hour reminders, though the first round's record is still on the filing (22 ms)
+    ✕ run by hand, a round whose deadline is new is reminded even with the earlier round's reminder recorded (78 ms)
+    ✕ a filing that is not an object is skipped; the run goes on and the others are reminded (I3) (43 ms)
+    ✕ an expiry read before the applicant's resubmission committed does not cancel the resubmission (271 ms)
+
+  ● correction-deadline sweep (real Postgres) › a second revision round gets its own 48 and 24 hour reminders, though the first round's record is still on the filing
+
+    Cannot find module '../../jobs/correction-deadline-sweep' from '__tests__/integration/correction-deadline-sweep-real-postgres.test.js'
+
+      69 |
+      70 |     test('a second revision round gets its own 48 and 24 hour reminders, though the first round\'s record is still on the filing', async () => {
+    > 71 |         const { runCorrectionDeadlineSweep: sweep } = require('../../jobs/correction-deadline-sweep');
+         |                                                       ^
+      72 |         const firstDue = new Date(Date.now() + 10 * 24 * HOUR);
+      73 |         const row = await waitingOnRevision(firstDue);
+      74 |         await sweep({ now: new Date(firstDue.getTime() - 47 * HOUR) });
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@30.2.0/node_modules/jest-resolve/build/index.js:863:11)
+      at Object.require (__tests__/integration/correction-deadline-sweep-real-postgres.test.js:71:55)
+
+  ● correction-deadline sweep (real Postgres) › run by hand, a round whose deadline is new is reminded even with the earlier round's reminder recorded
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   48,
+    - ]
+    + Array []
+
+       96 |         const res = await runByHand();
+       97 |         expect(res.status).toBe(200);
+    >  98 |         expect(remindersOf(row.id)).toEqual([48]);
+          |                                     ^
+       99 |     });
+      100 |
+      101 |     test('a filing that is not an object is skipped; the run goes on and the others are reminded (I3)', async () => {
+
+      at Object.toEqual (__tests__/integration/correction-deadline-sweep-real-postgres.test.js:98:37)
+
+  ● correction-deadline sweep (real Postgres) › a filing that is not an object is skipped; the run goes on and the others are reminded (I3)
+
+    PrismaClientValidationError: 
+    Invalid `world.raw.revisionDeadline.create()` invocation in
+    /home/ubuntu/work/wt-dispatcher/apps/backend/__tests__/integration/correction-deadline-sweep-real-postgres.test.js:106:42
+
+      103 const fine = await waitingOnRevision(due);
+      104 const odd = await waitingOnRevision(due);
+      105 await world.raw.$executeRaw`UPDATE applications SET "formData" = 'null'::jsonb WHERE id = ${odd.id}`;
+    → 106 await world.raw.revisionDeadline.create({
+            data: {
+              applicationId: "fc4b9a76-063e-4381-ac3b-2f68a38db930",
+              revisionDue: new Date("2026-10-09T19:17:06.079Z"),
+              status: "PENDING",
+              revisionCount: 1,
+          +   application: {
+          +     create: ApplicationCreateWithoutRevisionDeadlineInput | ApplicationUncheckedCreateWithoutRevisionDeadlineInput,
+          +     connectOrCreate: ApplicationCreateOrConnectWithoutRevisionDeadlineInput,
+          +     connect: ApplicationWhereUniqueInput
+          +   }
+            }
+          })
+
+    Argument `application` is missing.
+
+      104 |         const odd = await waitingOnRevision(due);
+      105 |         await world.raw.$executeRaw`UPDATE applications SET "formData" = 'null'::jsonb WHERE id = ${odd.id}`;
+    > 106 |         await world.raw.revisionDeadline.create({ data: { applicationId: odd.id, revisionDue: due, status: 'PENDING', revisionCount: 1 } });
+          |         ^
+      107 |         const res = await runByHand();
+      108 |         expect(res.status).toBe(200);
+      109 |         expect(remindersOf(fine.id)).toEqual([24]);
+
+      at wn (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:29:1363)
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6958)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (__tests__/integration/correction-deadline-sweep-real-postgres.test.js:106:9)
+
+  ● correction-deadline sweep (real Postgres) › an expiry read before the applicant's resubmission committed does not cancel the resubmission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ASSIGNED_FOR_REVIEW"
+    Received: "EXPIRED"
+
+      124 |         const res = await pending;
+      125 |         expect(res.status).toBe(200);
+    > 126 |         expect((await world.rowOf(row.id)).status).toBe('ASSIGNED_FOR_REVIEW');
+          |                                                    ^
+      127 |     });
+      128 | });
+      129 |
+
+      at Object.toBe (__tests__/integration/correction-deadline-sweep-real-postgres.test.js:126:52)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 4 total
+Snapshots:   0 total
+Time:        1.684 s
+Ran all test suites matching __tests__/integration/correction-deadline-sweep-real-postgres.test.js.

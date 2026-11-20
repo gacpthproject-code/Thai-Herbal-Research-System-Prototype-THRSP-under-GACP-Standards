@@ -1,0 +1,48 @@
+F3 — verifying the reviewer's claim that the guards do NOT catch a renamed second holiday table.
+Run in-session 2026-08-07 on branch feat/l001-holiday-ssot at commit 8d7996e1.
+
+MUTATION applied to apps/backend/services/working-days-service.js (appended, then reverted):
+
+    // ---- MUTATION PROBE (temporary, reverted immediately) ----
+    const THAI_OFF_DAYS = ['01-01', '04-13', '12-05'];
+    function isOffDay(mmdd) { return THAI_OFF_DAYS.includes(mmdd); }
+    module.exports.isOffDay = isOffDay;
+
+This is a second Thai holiday table living in the exact file whose header comment claimed
+"Do NOT reintroduce a holiday table ... probe `holiday-single-source` and the SSOT block in
+__tests__/unit/working-days-service.test.js both fail if you do."
+
+RESULT — all three guards stayed green with the duplicate table in place:
+
+  $ bash scripts/probes/holiday-single-source.sh
+  PASS: single calendar source: .../apps/backend/utils/working-days.js
+  probe exit=0
+
+  $ bash scripts/probes/ratchet.sh
+  dup-source: 2
+  PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=168 dup-source=2
+
+  $ npx jest __tests__/unit/working-days-service.test.js
+    ✓ working-days-service names no holiday table of its own (1 ms)
+    ✓ working-days-service reads no holiday source from env or systemConfig (1 ms)
+    ✓ working-days-service no longer exports a holiday loader (1 ms)
+    ✓ routes/api/system/system.js does not build its own holiday set (1 ms)
+    ✓ routes/api/system/cron.js does not build its own holiday set (1 ms)
+    ✓ exactly one file under services/ utils/ shared/ config/ defines holidays (16 ms)
+  Tests:       18 passed, 18 total
+
+CONCLUSION: the reviewer's F3 finding is CONFIRMED. The claim in the header comment was false.
+
+Why it is false: every guard here is BOTH token-scoped and directory-scoped.
+  · tokens    — literally `RECURRING_HOLIDAYS|PUBLIC_HOLIDAYS|EXTRA_HOLIDAYS`
+                (scripts/probes/holiday-single-source.sh:5, scripts/probes/ssot-domains.txt:5,
+                 apps/backend/__tests__/unit/working-days-service.test.js:121)
+  · directories — services/, utils/, shared/, config/ only
+                (holiday-single-source.sh:6; the test mirrors it at :122)
+A table under any other identifier, or in any other directory, is invisible to all of them.
+What the guards actually enforce is: "these three names appear in at most one file under those
+four directories." That is a useful ratchet against the specific regression L-001 fixed. It is
+not a general "no second holiday calendar" guard, and the comment must not say it is.
+
+Mutation reverted from apps/backend/services/working-days-service.js immediately after this run;
+`git diff` against 8d7996e1 for that file shows only the corrected comment.

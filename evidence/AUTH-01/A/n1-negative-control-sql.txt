@@ -1,0 +1,127 @@
+AUTH-01-A / N-1 — negative control ของเทสต์ (6) พิสูจน์ที่ชั้นฐานข้อมูลจริง
+==========================================================================
+finding (audit PR #744, N-1): assertion เดิมที่
+`apps/backend/__tests__/integration/identity-links.test.js` (เวอร์ชันก่อนแก้ :329-338)
+เช็ก `prisma.user.findFirst({ where: { OR: [idCardHash|healthIdHash|providerIdHash = user.id] } })`
+แล้ว expect null — แต่สามคอลัมน์นั้นถูก assert ไปแล้วที่ :312-314 ว่าเป็น NULL
+⇒ ผ่านเสมอ ไม่ว่าการ resolve ผ่าน identity_links จะพังหรือไม่
+
+ที่แก้: ถอด assertion นั้นออก แล้วใส่ negative control ที่ทดสอบกลไกจริง —
+ลบแถว identity_links ของ user คนนั้น แล้วยิง lookup ตัวเดิมซ้ำ ต้องได้ null
+(จำนวน assertion รวมของเทสต์นี้ 8 → 13 ไม่ได้ลดลง — Law 3.7)
+
+ข้อจำกัดของเครื่องนี้ (ตามจริง ไม่ route-around — Law 3.8):
+  suite integration รันด้วย jest บนเครื่องนี้ **ไม่ได้** เพราะ @prisma/client ยัง
+  generate ไม่ได้ (engine ถูก proxy บล็อก 403 — ดู gates.txt GATE 1) ทุกครั้งที่รัน
+  jest จะเห็นบรรทัด
+    "[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet."
+  และตัว suite นี้ self-skip เพราะไม่มี DATABASE_URL
+  ⇒ สิ่งที่ยืนยันได้ในเครื่องนี้คือ **กลไกที่ assertion ใหม่พึ่งพา** ที่ชั้น SQL บน
+    PostgreSQL จริง (ฐาน gacp_test ที่ replay migration ครบแล้ว — ตาราง identity_links
+    มี UNIQUE(provider,subject) + FK ON DELETE CASCADE ตามที่ green-a1-a2-ddl.txt บันทึก)
+    ส่วนการรันผ่าน Prisma client จริงต้องรอ CI (job ที่ wiring postgres ไว้)
+
+หมายเหตุ: คอลัมน์ `idCardHash` ใน Prisma schema map ไปที่คอลัมน์จริงชื่อ
+`idCardHash_deprecated` (prisma/schema/auth.prisma:62) SQL ข้างล่างจึงใช้ชื่อจริง
+
+SQL ที่รัน (ทั้งหมดอยู่ใน transaction เดียวและ ROLLBACK ทิ้ง ไม่แตะข้อมูลเดิม)
+---------------------------------------------------------------------------
+-- N-1 negative control, ตรวจที่ชั้นฐานข้อมูลจริง (PostgreSQL) เพราะเครื่องนี้รัน
+-- __tests__/integration/identity-links.test.js ไม่ได้ (@prisma/client ยัง generate
+-- ไม่ได้ — engine ถูก proxy บล็อก 403)
+-- ทุกอย่างอยู่ใน transaction เดียวและ ROLLBACK ทิ้ง ไม่แตะข้อมูลเดิม
+\set ON_ERROR_STOP on
+BEGIN;
+
+INSERT INTO users (id, uuid, "updatedAt", password, "canonicalId", "organizationId",
+                   "authType", "firstName", "lastName")
+SELECT 'n1-neg-ctl-user', gen_random_uuid(), NOW(), 'x', 'n1-neg-ctl-canon',
+       (SELECT id FROM organizations LIMIT 1), 'EMAIL_LEGACY', 'IdentityLink', 'resolve';
+
+-- ตรงกับ fixture ของเทสต์: ไม่มี CID hash สักคอลัมน์
+SELECT 'PRE  users hashes all NULL   = ' ||
+       CASE WHEN "idCardHash_deprecated" IS NULL AND "healthIdHash" IS NULL AND "providerIdHash" IS NULL
+            THEN 'PASS' ELSE 'FAIL' END AS check_0
+  FROM users WHERE id = 'n1-neg-ctl-user';
+
+-- backfill statement ตัวเดียวกับที่ migration ใช้ (subject = users.id)
+INSERT INTO "identity_links" (id, "userId", provider, subject, "linkedAt", "isActive")
+SELECT gen_random_uuid()::text, u.id, 'local', u.id, NOW(), true
+  FROM users u WHERE u.id = 'n1-neg-ctl-user'
+ON CONFLICT (provider, subject) DO NOTHING;
+
+-- (ก) lookup แบบเดียวกับ prisma.identityLink.findUnique({ provider_subject })
+SELECT 'PRE  lookup(provider,subject) = ' ||
+       CASE WHEN count(*) = 1 THEN 'FOUND (1 row) PASS' ELSE 'FAIL ' || count(*) END AS check_1
+  FROM "identity_links" WHERE provider = 'local' AND subject = 'n1-neg-ctl-user';
+
+-- (ข) negative control: ถอดแถวออก
+WITH d AS (
+    DELETE FROM "identity_links"
+     WHERE "userId" = 'n1-neg-ctl-user' AND provider = 'local' RETURNING 1
+)
+SELECT 'CTL  deleteMany count        = ' ||
+       CASE WHEN count(*) = 1 THEN '1 PASS' ELSE 'FAIL ' || count(*) END AS check_2 FROM d;
+
+-- (ค) lookup ตัวเดิมต้องคืน 0 แถว — พิสูจน์ว่าที่ resolve ได้ก่อนหน้ามาจากแถวนั้นจริง
+SELECT 'POST lookup(provider,subject) = ' ||
+       CASE WHEN count(*) = 0 THEN 'NULL (0 rows) PASS' ELSE 'FAIL ' || count(*) END AS check_3
+  FROM "identity_links" WHERE provider = 'local' AND subject = 'n1-neg-ctl-user';
+
+-- (ง) แถว users ยังอยู่ และยังไม่มี CID hash — สิ่งที่หายไปคือเส้นทาง resolve เท่านั้น
+SELECT 'POST user row still exists   = ' ||
+       CASE WHEN count(*) = 1 THEN 'PASS' ELSE 'FAIL' END AS check_4
+  FROM users WHERE id = 'n1-neg-ctl-user'
+   AND "idCardHash_deprecated" IS NULL AND "healthIdHash" IS NULL AND "providerIdHash" IS NULL;
+
+-- (จ) เทียบกับ assertion เดิมที่ถูกถอดออก: OR ของสาม *Hash = user.id
+--     ผ่านทั้งก่อนและหลังลบ link ⇒ ไม่ได้ทดสอบกลไกอะไรเลย (นี่คือ N-1)
+SELECT 'OLD  assertion (3x *Hash OR)  = ' ||
+       CASE WHEN count(*) = 0 THEN 'null → ผ่านแม้ link ถูกลบไปแล้ว (vacuous)' ELSE 'FAIL' END AS check_5
+  FROM users
+ WHERE "idCardHash_deprecated" = 'n1-neg-ctl-user' OR "healthIdHash" = 'n1-neg-ctl-user'
+    OR "providerIdHash" = 'n1-neg-ctl-user';
+
+ROLLBACK;
+
+ผลลัพธ์ (sudo -u postgres psql -d gacp_test -q -f /tmp/n1.sql)
+---------------------------------------------------------------------------
+               check_0               
+-------------------------------------
+ PRE  users hashes all NULL   = PASS
+(1 row)
+
+                      check_1                       
+----------------------------------------------------
+ PRE  lookup(provider,subject) = FOUND (1 row) PASS
+(1 row)
+
+                check_2                
+---------------------------------------
+ CTL  deleteMany count        = 1 PASS
+(1 row)
+
+                      check_3                       
+----------------------------------------------------
+ POST lookup(provider,subject) = NULL (0 rows) PASS
+(1 row)
+
+               check_4               
+-------------------------------------
+ POST user row still exists   = PASS
+(1 row)
+
+                                check_5                                
+-----------------------------------------------------------------------
+ OLD  assertion (3x *Hash OR)  = null → ผ่านแม้ link ถูกลบไปแล้ว (vacuous)
+(1 row)
+
+
+อ่านผล
+------
+  check_1 / check_3 คู่นี้คือ negative control: ก่อนลบแถว lookup(provider,subject)
+  ได้ 1 แถว หลังลบได้ 0 แถว ⇒ ที่ resolve สำเร็จมาจากแถว identity_links นั้นจริง
+  check_4  แถว users ยังอยู่และยังไม่มี CID hash สักคอลัมน์ ⇒ สิ่งที่หายไปคือเส้นทาง
+           resolve ไม่ใช่ตัว user
+  check_5  รัน assertion **เดิม** ซ้ำหลังลบแถวไปแล้ว — ยังคืน null ⇒ ยืนยันว่ามัน
+           ผ่านทั้งกรณีที่กลไกทำงานและกรณีที่กลไกถูกถอดออก = vacuous ตามที่ audit ระบุ

@@ -1,0 +1,62 @@
+# tree e9d682526 + the R2-M1 fix in apps/backend/shared/user-groups.js (GREEN run)
+# command: ~/work/state/rolesplit-r3/bjest.sh __tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js
+[31merror[39m: [SECURITY] ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE {"error":"Redis unavailable during GET on namespace \"auth\"","event":"ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE","failMode":"OPEN","jtiPrefix":"169dd327-bacd-47","recommendedAction":"Verify Redis health (auth:blocklist namespace). If a credential compromise is suspected during this window, manually invalidate affected sessions via revokeAllUserTokens(userId) or rotate the JWT signing key.","securityEvent":true,"service":"gacp-backend","severity":"CRITICAL","timestamp":"2026-10-09T15:26:45.040Z"}
+[31merror[39m: [SECURITY] ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE {"error":"Redis unavailable during GET on namespace \"auth\"","event":"ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE","failMode":"OPEN","jtiPrefix":"68fc9f6d-c390-4a","recommendedAction":"Verify Redis health (auth:blocklist namespace). If a credential compromise is suspected during this window, manually invalidate affected sessions via revokeAllUserTokens(userId) or rotate the JWT signing key.","securityEvent":true,"service":"gacp-backend","severity":"CRITICAL","timestamp":"2026-10-09T15:26:45.093Z"}
+[31merror[39m: [SECURITY] ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE {"error":"Redis unavailable during GET on namespace \"auth\"","event":"ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE","failMode":"OPEN","jtiPrefix":"f238a2df-0cb4-42","recommendedAction":"Verify Redis health (auth:blocklist namespace). If a credential compromise is suspected during this window, manually invalidate affected sessions via revokeAllUserTokens(userId) or rotate the JWT signing key.","securityEvent":true,"service":"gacp-backend","severity":"CRITICAL","timestamp":"2026-10-09T15:26:46.115Z"}
+PASS __tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js
+  a demoted DTAM admin keeps no admin work power (real doors, real Postgres)
+    ✓ before the demotion, the admin lists and opens field inspector work (63 ms)
+    after the demotion to dispatcher and a new sign-in
+      ✓ the row says dispatcher, the admin membership is still there, and the old session is over (23 ms)
+      ✓ GET /work/queue?group=field_inspector is refused (30 ms)
+      ✓ GET /work/:id of field inspector work is refused (34 ms)
+      ✓ POST /work/:id/done on work another person claimed is refused and the row stays (39 ms)
+      ✓ POST /work/:id/claim on field inspector work is refused and the work stays open (36 ms)
+      ✓ POST /work/:id/unclaim of work another person claimed is refused (33 ms)
+      ✓ DTAM admin notices of the organization reach the admin and not the demoted account (10 ms)
+      controls
+        ✓ the admin, with the role and the row, still lists field inspector work (28 ms)
+        ✓ the demoted account works the dispatcher queue its new role gives it (66 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        2.883 s, estimated 3 s
+Ran all test suites matching __tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js.
+# command: ~/work/state/rolesplit-r3/bjest.sh __tests__/unit/user-groups.test.js
+PASS __tests__/unit/user-groups.test.js
+  getUserGroups
+    ✓ returns codes from active memberships (5 ms)
+    ✓ skips inactive group memberships (2 ms)
+    ✓ falls back to User.role when no memberships exist (2 ms)
+    ✓ returns [] for unknown user (2 ms)
+    ✓ returns [] when userId is falsy (2 ms)
+  userInGroup
+    ✓ returns true when user is in the group via M2M (3 ms)
+    ✓ returns false when user has memberships but not the requested group (2 ms)
+    ✓ admin shortcut: admin user can claim any group (1 ms)
+    ✓ falls back to User.role when no memberships exist (1 ms)
+    ✓ returns false when userId or groupCode is falsy (2 ms)
+  listGroupMemberUserIds
+    ✓ returns members from M2M memberships scoped to organization (3 ms)
+    ✓ union with canonical User.role users in the same org (1 ms)
+    ✓ a legacy-spelled row no longer resolves — such rows cannot exist post-migration (2 ms)
+    ✓ dedupes when a user is in BOTH M2M and the User.role fallback (2 ms)
+    ✓ returns [] when both sources are empty (8 ms)
+  a membership counts only on the account's own side (orders 13, 34(2))
+    ✓ a DTAM group left on a company account grants nothing; the account keeps its role (2 ms)
+    ✓ a staff group on an applicant grants nothing (1 ms)
+    ✓ an account whose role reads as nothing gets nothing from its memberships (2 ms)
+    ✓ a same-side cross-role membership still counts (2 ms)
+    ✓ group member lists leave out accounts of the other side (1 ms)
+  the admin group counts only while the account's role is system_admin_dtam (review R2-M1)
+    ✓ a demoted account keeps the admin row, gets no admin shortcut and falls back to its role (2 ms)
+    ✓ the admin group's member list leaves out a demoted account and keeps the admin (2 ms)
+  listGroupMemberUserIds — cache ที่ค้างข้ามการเปลี่ยนคำของ role_groups
+    ✓ หา code ที่ยังไม่เคยเห็นไม่เจอ ต้องอ่านทะเบียนใหม่ ไม่ใช่คืนลิสต์สั้นเงียบ ๆ (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       23 passed, 23 total
+Snapshots:   0 total
+Time:        0.605 s, estimated 1 s
+Ran all test suites matching __tests__/unit/user-groups.test.js.

@@ -1,0 +1,31 @@
+# Task 7 RED — 2026-10-02T19:27:41Z — HEAD f40be2b0 (tests written, script absent)
+# cmd: SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs -i __tests__/unit/heal-null-holders-rules.test.js __tests__/integration/heal-null-holders-real-postgres.test.js
+# DB: throwaway postgres:17 on 127.0.0.1:55435, prisma migrate deploy applied
+# signing key mtime before/after: 1788623435 / 1788623435 (unchanged)
+FAIL __tests__/integration/heal-null-holders-real-postgres.test.js
+    Cannot find module '../../scripts/heal-null-holders' from '__tests__/integration/heal-null-holders-real-postgres.test.js'
+FAIL __tests__/unit/heal-null-holders-rules.test.js
+    Cannot find module '../../scripts/heal-null-holders' from '__tests__/unit/heal-null-holders-rules.test.js'
+Test Suites: 2 failed, 2 total
+Tests:       0 total
+
+## r1 RED — 2026-10-02T19:36:56Z — HEAD 5ab13298 + round-1 tests, script unchanged
+# same cmd/DB (fresh postgres:17 on 55435, migrate deploy); signing key mtime 1788623435 before/after
+# 'default is a dry run' fails because parseArgs gains plan:null (test updated for --plan)
+    ✕ --apply with a plan that no longer matches the database refuses and writes nothing (1 ms)
+    ✕ the rollback list holds only rows this run wrote — never one filled by someone else (17 ms)
+    ✕ default is a dry run (4 ms)
+    ✕ DATABASE_URL absent from the startup environment → refused, never connects (2 ms)
+    ✕ DATABASE_URL empty → refused, never connects (2 ms)
+    ✕ dry run: plans, writes the plan CSV with the db fingerprint, never reaches applyHeal (2 ms)
+    ✕ --apply without --plan → refused, never connects (2 ms)
+    ✕ --apply without --db-label → refused, never connects (2 ms)
+    ✕ --apply against a different database than the plan was made on → refused before connecting (20 ms)
+    ✕ --apply whose --db-label differs from the plan label → refused before connecting (1 ms)
+    ✕ --apply when the re-plan differs from the reviewed plan → refused, applyHeal never called (2 ms)
+    ✕ --apply when the re-plan has an extra row → refused (1 ms)
+    ✕ --apply on a matching plan writes the rollback list from result.updated only (ALREADY_FILLED excluded) (1 ms)
+    ✕ a value placed into process.env after the module loaded (as dotenv would) is not trusted (35 ms)
+Test Suites: 2 failed, 2 total
+Tests:       14 failed, 31 passed, 45 total
+# child-process test: Expected 2, Received 1 (main not exported yet)

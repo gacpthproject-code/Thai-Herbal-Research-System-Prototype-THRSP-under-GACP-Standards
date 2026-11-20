@@ -1,0 +1,72 @@
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/auth-idp-providers-endpoint.test.js
+  GET /api/auth/idp/providers
+    √ answers 200 with every provider key and its effective state (126 ms)
+    √ reflects the fail-closed resolver, not the raw defaults — thaid without env is coming_soon (86 ms)
+    √ never leaks anything beyond key and state (82 ms)
+    √ is never cached — a delivered credential must flip the badge without a deploy (94 ms)
+    √ requires no authentication — the login page has no session yet (80 ms)
+
+
+    [0m [90m 61 |[39m       [36mawait[39m client[33m.[39m$disconnect()[33m;[39m
+     [90m 62 |[39m     } [36mcatch[39m (e) {
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 64 |[39m     }
+     [90m 65 |[39m   })[33m;[39m
+     [90m 66 |[39m }[0m
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/auth-idp-routes.test.js
+  POST /api/auth/idp/:provider/authorize-url
+    √ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (34 ms)
+    √ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (14 ms)
+    √ mock บน NODE_ENV=production → 503 (mandate §D5 — mock ไม่มีทาง enabled บน prod) (14 ms)
+    √ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (20 ms)
+    √ mock enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (17 ms)
+    √ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (26 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    √ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (51 ms)
+    √ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (24 ms)
+    √ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (41 ms)
+    √ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (22 ms)
+    √ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (35 ms)
+    √ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (24 ms)
+  POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod)
+    √ mock บน NODE_ENV=production → 503 ปิดทั้ง endpoint (13 ms)
+    √ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR (24 ms)
+    √ happy → 200: lookup ทะเบียนด้วย hash_cid, mint ผ่าน issueTokensForAuthenticatedUser, provider_token httpOnly cookie (26 ms)
+    √ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (39 ms)
+    √ staff-not-in-registry → 403 ข้อความไทยตาม mandate §D4 + ไม่มี user.create/lookup/mint (26 ms)
+    √ fixture in-registry แต่ทะเบียนจริงไม่มี row → 403 เดียวกัน (match-only, no auto-provision) (28 ms)
+    √ เจ้าหน้าที่ status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (25 ms)
+    √ ผู้ใช้กด deny (fixture deny) → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (23 ms)
+    √ code หมดอายุ (fixture expired — เลียน 422 ของ IdP) → 401 AUTH_IDP_CODE_EXPIRED (22 ms)
+    √ profile ขาด field (fixture ไม่มี hash_cid) → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (24 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    √ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (31 ms)
+    √ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (23 ms)
+  POST /api/auth/idp/thaid/callback — state anti-CSRF ยังบังคับกับ provider ThaID
+    √ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session (28 ms)
+    √ ไม่มี state ใน body → 400 AUTH_STATE_INVALID (single-use/anti-CSRF ครอบ thaid ด้วย) (24 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    √ mock happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(account_id) ไม่มีค่าดิบใน metadata (25 ms)
+    √ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (25 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    √ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (6 ms)
+    √ routes/api/index.js mount /auth/idp (2 ms)
+    √ server.js ครอบ /auth/idp ด้วย authLimiter ตัวเดียวกับ login (ทั้งสอง prefix) (2 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       36 passed, 36 total
+Snapshots:   0 total
+Time:        3.812 s, estimated 4 s
+Ran all test suites matching /__tests__\\unit\\auth-idp-providers-endpoint.test.js|__tests__\\unit\\auth-idp-routes.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+[exited with code 0]

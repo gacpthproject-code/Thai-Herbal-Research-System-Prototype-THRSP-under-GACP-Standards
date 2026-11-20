@@ -1,0 +1,94 @@
+Task 7 — GREEN evidence (summary; raw jest logs not committed). Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d)
+command: npx jest --config jest.config.cjs <file>  (from the worktree root)
+
+=== unit: apps/backend/__tests__/unit/document-precheck/routes.test.js (TZ=UTC) ===
+    ✓ the owner sees the observations on their in-scope slots: check, result and reason only (103 ms)
+    ✓ never the confidence, the snippet or the extracted text — anywhere in the body (6 ms)
+    ✓ a slot being checked shows PENDING with no observations yet; an in-scope slot never checked and an out-of-scope slot are null (4 ms)
+    ✓ a different health user gets 404 and none of the observations (4 ms)
+    ✓ the pre-check rows are read with explicit selects that never name the extracted text (5 ms)
+    ✓ the owner acknowledges: the time is recorded and the application status is exactly what it was (7 ms)
+    ✓ a non-owner is refused with 404 and nothing is written (4 ms)
+    ✓ a pre-check of another application, named under your own application, is 404 and untouched (4 ms)
+    ✓ an unknown pre-check is 404 (3 ms)
+    ✓ document_reviewer: the same observations plus confidence and the snippet — masked (5 ms)
+    ✓ field_inspector: the same observations plus confidence and the snippet — masked (4 ms)
+    ✓ system_admin_dtam: the same observations plus confidence and the snippet — masked (3 ms)
+    ✓ system_admin_platform: the same observations plus confidence and the snippet — masked (3 ms)
+    ✓ finance_officer_dtam: 403 and the body carries nothing of the pre-check (3 ms)
+    ✓ finance_officer_platform: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ dispatcher: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ certificate_approver: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ health: 403 and the body carries nothing of the pre-check (3 ms)
+    ✓ a document reviewer who is not the assigned one: 403 and nothing of the pre-check (3 ms)
+    ✓ no caller: 401, nothing read (2 ms)
+    ✓ the slot's current DONE pre-check id is written on create and on update (10 ms)
+    ✓ a slot whose current pre-check is still PENDING stores null — the superseded DONE is not "current" (3 ms)
+    ✓ a FAILED current pre-check stores null (2 ms)
+    ✓ a slot outside the catalog stores null even if a row exists for it (2 ms)
+    ✓ the applicant's requirements still answer, every slot's precheck null (3 ms)
+    ✓ the officer's document-check still answers, every slot's precheck null (2 ms)
+    ✓ the verdict is still recorded, with precheckId null (2 ms)
+Tests:       27 passed, 27 total
+TZ=Asia/Bangkok: Tests:       27 passed, 27 total
+TZ=America/Los_Angeles: Tests:       27 passed, 27 total
+
+=== integration: apps/backend/__tests__/integration/document-precheck-api.test.js — scratch PG17 127.0.0.1:5436 (migrate deploy) ===
+    ✓ an officer of org B gets 404 on org A's application and none of its observations (55 ms)
+    ✓ the tenant-bound read itself: org A's pre-check is invisible inside org B and visible inside org A (7 ms)
+    ✓ the officer of org A sees the observations with confidence and the snippet, masked, NOT_FOUND included (35 ms)
+    ✓ the applicant sees check, result and reason only (18 ms)
+    ✓ another health user cannot acknowledge (404, nothing written) (11 ms)
+    ✓ the owner acknowledges: the time is stored and the application status is the same before and after (16 ms)
+    ✓ a verdict row stores the slot's current DONE pre-check id (24 ms)
+Tests:       7 passed, 7 total
+TZ=Asia/Bangkok: Tests:       7 passed, 7 total
+TZ=America/Los_Angeles: Tests:       7 passed, 7 total
+
+=== related suites (unit layer + requirements-door) ===
+PASS apps/backend/__tests__/unit/m2a-doc-requirements.test.js
+PASS apps/backend/__tests__/integration/requirements-door.test.js
+PASS apps/backend/__tests__/unit/document-review-doors.test.js
+PASS apps/backend/__tests__/unit/only-the-assigned-reviewer-decides.test.js
+PASS apps/backend/__tests__/unit/document-approval-opens-the-audit-fee.test.js
+PASS apps/backend/__tests__/unit/document-approval-tells-the-applicant.test.js
+PASS apps/backend/__tests__/unit/prisma-field-mismatch-reports.test.js
+PASS apps/backend/__tests__/unit/error-codes-catalog.test.js
+PASS apps/backend/__tests__/unit/error-codes-source-pointers.test.js
+PASS apps/backend/__tests__/unit/prisma-select-field-guard.test.js
+PASS apps/backend/__tests__/unit/document-precheck/routes.test.js
+PASS apps/backend/__tests__/unit/document-precheck/rules.test.js
+PASS apps/backend/__tests__/unit/document-precheck/extract.test.js
+PASS apps/backend/__tests__/unit/document-precheck/normalize.test.js
+PASS apps/backend/__tests__/unit/document-precheck/tesseract-terminate-race.test.js
+PASS apps/backend/__tests__/unit/document-precheck/service.test.js
+Test Suites: 16 passed, 16 total
+Tests:       294 passed, 294 total
+
+=== related integration suites on the same scratch PG17 ===
+PASS apps/backend/__tests__/integration/tenant-isolation-cross-org-be.test.js
+PASS apps/backend/__tests__/integration/document-precheck-api.test.js
+FAIL apps/backend/__tests__/integration/officer-review-round-trip.test.js
+PASS apps/backend/__tests__/integration/document-precheck-schema.test.js
+PASS apps/backend/__tests__/integration/document-precheck-flow.test.js
+Test Suites: 1 failed, 4 passed, 5 total
+Tests:       4 failed, 26 passed, 30 total
+officer-review-round-trip.test.js fails 4/8 — the SAME 4 fail with HEAD 252ff7f9's three source files (baseline run):
+    ✓ 1. เจ้าหน้าที่เปิดหน้าตรวจ และเห็นรายการเอกสารของคำขอนี้ (46 ms)
+    ✓ 2. ขอเอกสารเพิ่มโดยไม่บอกเหตุผล = ถูกปฏิเสธ — ผู้ยื่นต้องรู้ว่าต้องแก้อะไร (9 ms)
+    ✕ 3. รับใบหนึ่ง และขอเพิ่มอีกใบพร้อมเหตุผลและวันครบกำหนดที่เป็นวันทำการ (13 ms)
+    ✕ 4. เกษตรกรเห็น **เฉพาะ** ใบที่ถูกขอ ไม่ใช่บันทึกภายในของใบที่รับไปแล้ว (18 ms)
+    ✕ 5. ส่งกลับโดยยังไม่แก้อะไร = ถูกปฏิเสธ และบอกชื่อใบที่ยังค้าง (11 ms)
+    ✕ 6. แนบไฟล์ใหม่แล้วส่งกลับ = ผ่าน และคำขอกลับเข้าคิวตรวจ (10 ms)
+    ✓ 6.5 รับคำขอทั้งที่ยังมีเอกสารจำเป็นค้าง = ถูกปฏิเสธ พร้อมชี้ว่าใบไหนค้าง (13 ms)
+    ✓ 7. เจ้าหน้าที่เห็นรอบที่สอง และรับคำขอได้เมื่อรับครบทุกใบที่จำเป็น (126 ms)
+Tests:       4 failed, 4 passed, 8 total
+→ pre-existing, recorded in BACKLOG-FOUND.md (2026-09-28 Task 7).
+
+=== probes ===
+-- ratchet: PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/home/ubuntu/work/wt-precheck/evidence/ratchet-current.txt)
+-- no-skip: PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+-- no-secret: PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+
+eslint (5 touched files): 0 errors, 1 warning — requirements.js:107 unused eslint-disable, a line that predates this task.
+keys: the worktree has no apps/backend/keys/private.pem; main's private.pem mtime 2026-09-05 22:50:35 (unchanged).

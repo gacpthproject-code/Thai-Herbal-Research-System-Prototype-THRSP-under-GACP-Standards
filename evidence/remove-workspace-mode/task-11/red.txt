@@ -1,0 +1,28 @@
+R2 Task 11 — RED (2026-10-03) · base fc533e91 (route + active-entity middleware byte-identical to main a0ee3b68: `git diff main -- routes/api/certificates/certificates.js middleware/active-entity-middleware.js` empty)
+Run: scratch postgres:17 on :55438 (migrate deploy), jest -i, fresh SIGNING_KEY_DIR
+Files: __tests__/unit/certificate-download-cold-start-retry.test.js, __tests__/integration/holder-scope-real-postgres.test.js
+Result: Test Suites: 2 failed, 2 total · Tests: 12 failed, 52 passed, 64 total (0 skipped)
+Key mtime (main checkout keys/*.pem): before 1788623435 / after 1788623435
+
+Failing (expected → received):
+ real PG, Task 11 block (V, B each filed a certificate of C's application X; certX filed by A):
+  ✕ V (VIEWER) downloads its certificate of C, no workspace bound → 403 ENTITY_PERMISSION_DENIED   | received 200 (PDF served)
+  ✕ V (VIEWER) downloads acting on C → 403 ENTITY_PERMISSION_DENIED                             | received code CAPABILITY_DENIED
+  ✕ certificate whose application has no holder → 403 for its filer (fail closed)              | received 200
+  ✕ V /certificates/my row canPrintQr false, qrCode null                                       | canPrintQr undefined
+  ✕ V GET /certificates/:id canPrintQr false, qrData null                                      | canPrintQr undefined
+  ✕ V with PRINT_QR GRANT on C → download 200                                                  | received 403 (role-only gate ignores GRANT)
+  ✕ A (OWNER) with PRINT_QR REVOKE on C → download 403                                         | received 200 (role-only gate ignores REVOKE)
+ unit (engine mocked):
+  ✕ happy path: engine asked once on the holder with PRINT_QR                                  | engine called 0 times
+  ✕ engine denies → 403, PDF never rendered                                                   | received 200
+  ✕ OWNER on the active workspace does not stand in for the holder → 403                      | received 200
+  ✕ no holder → 403 without asking the engine                                                 | received 200
+  ✕ engine failure that is not a denial → 500, no PDF                                         | received 200
+Passing already (pins, not fixes): B (MANAGER) download 200 · A (OWNER) download 200 with/without workspace · S → 404 · unit 404-before-gate · all 6 cold-start budget cases
+
+## ROUND 1 (coordinator: close concern 2, GET /api/certificates) — RED on 3a7a5e9e
+Run: fresh postgres:17 :55438 (migrate deploy), jest -i, fresh SIGNING_KEY_DIR · key mtime 1788623435 before/after
+holder-scope-real-postgres.test.js: Tests 1 failed, 53 passed, 54 total (0 skipped)
+  ✕ round 1: GET /certificates (list) — V (VIEWER, no grant) gets no QR value; A (OWNER) and B (MANAGER) do
+    V's own row is listed (200) and carries no canPrintQr: expected false, received undefined (row returned whole, qrData included)

@@ -1,0 +1,40 @@
+full gate ffd65f667 (coordinator 2026-10-28): summary of the full-suite run, compared with main's gate 2b549aff9
+the full log stays on the work host at /home/ubuntu/work/state/gate/out/evidence/gate/logs/ffd65f6673a77983a88b18e936140d59c8b3ad5e/artifacts/suite-green.log (not committed: it carries epoch-ms runs and key-like strings that gitleaks flags)
+
+suite-green (all suites, parallel)
+Test Suites: 3 failed, 2 skipped, 1177 passed, 1180 of 1182 total
+Tests:       7 failed, 52 skipped, 15297 passed, 15356 total
+Snapshots:   0 total
+Time:        1174.598 s
+failing suites:
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js
+  __tests__/integration/onsite-decision-mint-e2e.test.js
+  __tests__/integration/status-writer-audit-default-invariant.test.js
+failing tests:
+  A0 PR-1 — writer emits the canonical transition row by default, in the same tx › (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #13 — POST /applications/:id/car — late CAR evidence expires the case › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #7 — PATCH /admin/applications/:id/status — admin override › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+new vs main:
+  none
+failing on main's gate, not on this head (main's load flakes included; see notes):
+  none
+
+integration-pg (integration folder, serial, fresh database): 7 failed tests (main: 7)
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #13 — POST /applications/:id/car — late CAR evidence expires the case (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #7 — PATCH /admin/applications/:id/status — admin override (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  status-writer-audit-default-invariant.test.js :: A0 PR-1 — writer emits the canonical transition row by default, in the same tx (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+new vs main:
+  none
+
+CAR unsent-file sweep (orders 127, 129(2)(3), 138): deletes only files recorded as uploaded-but-unsent, at the earlier of the round's latest deadline and upload+7 days; every deletion audited; scheduled hourly but a no-op until CAR_UNSENT_SWEEP_ENABLED=true; the upload page shows each file's deletion date from the same function; duplicate same-file retry not counted twice; privacy notice sentence.
+Authors: opus (round 1, round 2 finisher), coordinator (ffd65f667 pointers). Reviews: sonnet NO OBJECTION on 664f87236, 601f48ebf, ffd65f667.
+Gate ffd65f667 vs main gate 2b549aff9: 0 new failures; secret scan only the 12 classified FPs.
+Open operator decision before turning the switch on: expired rounds A (delete as ordered) vs B (7-day-from-upload only).

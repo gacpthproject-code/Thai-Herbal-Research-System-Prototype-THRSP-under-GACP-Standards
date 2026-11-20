@@ -1,0 +1,294 @@
+# harvest-lock RED — 2026-09-17T10:57:31+07:00
+# branch wave1/harvest-lock @ 1f1ae758 (fix/security-wave1 tip). Production code UNCHANGED.
+# working tree: only the two new test files are untracked:
+#   ?? apps/backend/__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js
+#   ?? apps/backend/__tests__/unit/harvest-trace-published-fields-freeze.test.js
+# cmd (apps/backend): npx jest --config jest.config.cjs __tests__/unit/harvest-trace-published-fields-freeze.test.js __tests__/unit/harvest-freeze-holds-the-lot-lock.test.js
+
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/harvest-trace-published-fields-freeze.test.js
+  harvest-lock (a) — what the public scan shows stops moving once a lot exists
+    ✓ the public doors show grade, harvest date, fresh weight and status — not moisture or drying (3 ms)
+    ✕ every field a scanner can see is refused 409 on PUT /:id after a lot was issued (status aside) (12 ms)
+    ✕ a grade change after packing is refused with the weight-freeze code, in Thai that names the grade (2 ms)
+    ✕ a note riding along with a grade change does not sneak through — the whole edit is refused (1 ms)
+    ✕ POST /:id/harvest cannot re-grade a packed batch either (2 ms)
+    ✓ before any lot exists the grade is still the farmer's to set (2 ms)
+    ✓ fields no scanner sees, the lifecycle status and the note still save after packing (3 ms)
+
+  ● harvest-lock (a) — what the public scan shows stops moving once a lot exists › every field a scanner can see is refused 409 on PUT /:id after a lot was issued (status aside)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 5
+    + Received  + 3
+
+    @@ -12,12 +12,10 @@
+          Array [
+            "harvestDate",
+          ],
+        ],
+        "qualityGrade": Array [
+    -     409,
+    -     "HARVEST_FROZEN_AFTER_PACKING",
+    -     Array [
+    -       "qualityGrade",
+    -     ],
+    +     200,
+    +     undefined,
+    +     undefined,
+        ],
+      }
+
+      261 |             (f) => [f, [409, 'HARVEST_FROZEN_AFTER_PACKING', [f]]],
+      262 |         ));
+    > 263 |         expect(outcome).toEqual(expected);
+          |                         ^
+      264 |         expect(mockState.writes).toEqual([]);
+      265 |     });
+      266 |
+
+      at Object.toEqual (__tests__/unit/harvest-trace-published-fields-freeze.test.js:263:25)
+
+  ● harvest-lock (a) — what the public scan shows stops moving once a lot exists › a grade change after packing is refused with the weight-freeze code, in Thai that names the grade
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      269 |         const res = await callRouter('PUT', '/hb-1', { qualityGrade: 'B' });
+      270 |
+    > 271 |         expect(res.status).toBe(409);
+          |                            ^
+      272 |         expect(res.body.success).toBe(false);
+      273 |         expect(res.body.code).toBe('HARVEST_FROZEN_AFTER_PACKING');
+      274 |         expect(res.body.fields).toEqual(['qualityGrade']);
+
+      at Object.toBe (__tests__/unit/harvest-trace-published-fields-freeze.test.js:271:28)
+
+  ● harvest-lock (a) — what the public scan shows stops moving once a lot exists › a note riding along with a grade change does not sneak through — the whole edit is refused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      282 |         const res = await callRouter('PUT', '/hb-1', { notes: 'แก้บันทึก', qualityGrade: 'C' });
+      283 |
+    > 284 |         expect(res.status).toBe(409);
+          |                            ^
+      285 |         expect(res.body.fields).toEqual(['qualityGrade']);
+      286 |         expect(mockState.writes).toEqual([]);
+      287 |     });
+
+      at Object.toBe (__tests__/unit/harvest-trace-published-fields-freeze.test.js:284:28)
+
+  ● harvest-lock (a) — what the public scan shows stops moving once a lot exists › POST /:id/harvest cannot re-grade a packed batch either
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: ArrayContaining ["qualityGrade"]
+    Received: ["harvestDate"]
+
+      294 |         expect(res.status).toBe(409);
+      295 |         expect(res.body.code).toBe('HARVEST_FROZEN_AFTER_PACKING');
+    > 296 |         expect(res.body.fields).toEqual(expect.arrayContaining(['qualityGrade']));
+          |                                 ^
+      297 |         expect(mockState.writes).toEqual([]);
+      298 |     });
+      299 |
+
+      at Object.toEqual (__tests__/unit/harvest-trace-published-fields-freeze.test.js:296:33)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/harvest-freeze-holds-the-lot-lock.test.js
+  harvest-lock (b) — the freeze check and the write share lot issuance's row lock
+    ✓ lot issuance itself starts its transaction with that lock (the reference this mirrors) (2 ms)
+    ✕ PUT /:id: lock first, then count, then write — all inside one transaction (3 ms)
+    ✕ POST /:id/harvest: lock first, then the batch read, the count and the write — one transaction (3 ms)
+    ✕ both doors take exactly the statement lot issuance takes, on the same row (3 ms)
+    ✕ PUT /:id: a lot issued while the edit waits for the row lock is seen, and the edit is refused (5 ms)
+    ✕ POST /:id/harvest: a lot issued while the edit waits for the row lock is seen, and the edit is refused (2 ms)
+    ✕ a batch that is gone by the time the lock is taken is 404, with nothing counted or written (2 ms)
+
+  ● harvest-lock (b) — the freeze check and the write share lot issuance's row lock › PUT /:id: lock first, then count, then write — all inside one transaction
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 4
+    + Received  + 2
+
+      Array [
+        "root:harvestBatch.findUnique",
+    -   "root:$transaction",
+    -   "tx:$queryRaw",
+    -   "tx:lot.count",
+    -   "tx:harvestBatch.update",
+    +   "root:lot.count",
+    +   "root:harvestBatch.update",
+      ]
+
+      152 |
+      153 |         expect(res.status).toBe(200);
+    > 154 |         expect(steps()).toEqual([
+          |                         ^
+      155 |             'root:harvestBatch.findUnique', // the route's ownership read
+      156 |             'root:$transaction',
+      157 |             'tx:$queryRaw',
+
+      at Object.toEqual (__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js:154:25)
+
+  ● harvest-lock (b) — the freeze check and the write share lot issuance's row lock › POST /:id/harvest: lock first, then the batch read, the count and the write — one transaction
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 5
+    + Received  + 3
+
+      Array [
+        "root:harvestBatch.findUnique",
+    -   "root:$transaction",
+    -   "tx:$queryRaw",
+    -   "tx:harvestBatch.findUnique",
+    -   "tx:lot.count",
+    -   "tx:harvestBatch.update",
+    +   "root:harvestBatch.findUnique",
+    +   "root:lot.count",
+    +   "root:harvestBatch.update",
+      ]
+
+      166 |
+      167 |         expect(res.status).toBe(200);
+    > 168 |         expect(steps()).toEqual([
+          |                         ^
+      169 |             'root:harvestBatch.findUnique', // the route's ownership read
+      170 |             'root:$transaction',
+      171 |             'tx:$queryRaw',
+
+      at Object.toEqual (__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js:168:25)
+
+  ● harvest-lock (b) — the freeze check and the write share lot issuance's row lock › both doors take exactly the statement lot issuance takes, on the same row
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 14
+    + Received  +  1
+
+    - Array [
+    -   Object {
+    -     "sql": "SELECT \"id\" FROM \"harvest_batches\" WHERE \"id\" = $? FOR UPDATE",
+    -     "values": Array [
+    -       "hb-1",
+    -     ],
+    -   },
+    -   Object {
+    -     "sql": "SELECT \"id\" FROM \"harvest_batches\" WHERE \"id\" = $? FOR UPDATE",
+    -     "values": Array [
+    -       "hb-1",
+    -     ],
+    -   },
+    - ]
+    + Array []
+
+      184 |
+      185 |         const taken = lockCalls().map((e) => e.args);
+    > 186 |         expect(taken).toEqual([reference.args, reference.args]);
+          |                       ^
+      187 |     });
+      188 |
+      189 |     it.each([
+
+      at Object.toEqual (__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js:186:23)
+
+  ● harvest-lock (b) — the freeze check and the write share lot issuance's row lock › PUT /:id: a lot issued while the edit waits for the row lock is seen, and the edit is refused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      202 |         const res = await pending;
+      203 |
+    > 204 |         expect(res.status).toBe(409);
+          |                            ^
+      205 |         expect(res.body.code).toBe('HARVEST_FROZEN_AFTER_PACKING');
+      206 |         expect(writes()).toEqual([]);
+      207 |     });
+
+      at toBe (__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js:204:28)
+
+  ● harvest-lock (b) — the freeze check and the write share lot issuance's row lock › POST /:id/harvest: a lot issued while the edit waits for the row lock is seen, and the edit is refused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      202 |         const res = await pending;
+      203 |
+    > 204 |         expect(res.status).toBe(409);
+          |                            ^
+      205 |         expect(res.body.code).toBe('HARVEST_FROZEN_AFTER_PACKING');
+      206 |         expect(writes()).toEqual([]);
+      207 |     });
+
+      at toBe (__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js:204:28)
+
+  ● harvest-lock (b) — the freeze check and the write share lot issuance's row lock › a batch that is gone by the time the lock is taken is 404, with nothing counted or written
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 200
+
+      211 |         const res = await callRouter('PUT', '/hb-1', { dryWeight: 5 });
+      212 |
+    > 213 |         expect(res.status).toBe(404);
+          |                            ^
+      214 |         expect(res.body.code).toBe('NOT_FOUND');
+      215 |         expect(steps()).not.toContain('tx:lot.count');
+      216 |         expect(writes()).toEqual([]);
+
+      at Object.toBe (__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js:213:28)
+
+Test Suites: 2 failed, 2 total
+Tests:       10 failed, 4 passed, 14 total
+Snapshots:   0 total
+Time:        1.373 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/harvest-trace-published-fields-freeze.test.js|__tests__\/unit\/harvest-freeze-holds-the-lot-lock.test.js/i.
+EXIT 1

@@ -1,0 +1,159 @@
+# GREEN round 9 (real Chromium) — working tree on top of 0fb6616d, sha256(account-inactive.ts)=3f3766998975a023
+# harness: the round-8 reviewer's copy of real2.js (real AuthService/ApiClient/account-inactive served to Chromium; login pages = real consumeAccountInactiveSignOut)
+# Z / M / C2 / ZT over http, then over https (self-signed, __Host- marker), then CR with crypto.getRandomValues throwing
+# ZT = known limit (same user, two tabs: the tab that set the marker last owns it) — same result on rounds 7 and 8 per the round-8 review
+
+######## http
+
+=== C2: expired navigation in flight (Leave after 1 s, login TTFB 6 s); ACCOUNT_INACTIVE 3 s later; second dialog answered Stay
+     3  server: GET /api/expired
+     4  server: GET /api/inactive?ms=3000
+     7  tab1 console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+     8  server: POST /api/session/clear-cookie
+     8  tab1 console.warning: [GACP] [ApiClient] 401 Received - Session expired
+   112  tab1 DIALOG beforeunload -> accept in 1000 ms
+  1115  server: GET /auth/health/login?expired=true  [cookie: ]
+  3005  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+  3006  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+  3006  server: POST /api/session/clear-cookie
+  3109  tab1 DIALOG beforeunload -> dismiss in 1000 ms
+  7120  tab1 navigated -> /auth/health/login?expired=true
+  7453  page: tab1 login page ?expired=true -> notice shown: false, cookie after: []
+ 12003  cookie jar at end: []
+tab1: dialogs=accept/dismiss  FINAL URL: /auth/health/login?expired=true
+
+=== Z: A suspended in tab 1, presses Stay (flag left in tab 1); B signs in on tab 2 and is suspended 5 s later; tab 1 follows to a plain login page
+    11  server: GET /api/inactive
+    14  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+    15  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+    15  server: POST /api/session/clear-cookie
+   119  tab1 DIALOG beforeunload -> dismiss in 300 ms
+  1503  tab1 sessionStorage: {"tab":"tab1","gacp.signedOutMarkerSetInThisTab":"b3c2ff306626b125"}
+  1545  server: GET /health/home
+  1548  tab2 navigated -> /health/home
+  1727  tab2: user B signed in
+  5230  server: GET /api/inactive
+  5233  tab2 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+  5233  tab2 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+  5234  server: POST /api/session/clear-cookie
+  5235  tab1 DIALOG beforeunload -> accept in 0 ms
+  5238  server: GET /auth/health/login  [cookie: signed_out_reason=account_inactive.b3c2ff306626b125]
+  5337  tab2 DIALOG beforeunload -> accept in 0 ms
+  5340  server: GET /auth/health/login?reason=account_inactive  [cookie: signed_out_reason=account_inactive.efd0179b08c1d6cf]
+  5443  tab1 navigated -> /auth/health/login
+  5545  tab2 navigated -> /auth/health/login?reason=account_inactive
+  5770  page: tab1 login page  -> notice shown: false, cookie after: [signed_out_reason=account_inactive.efd0179b08c1d6cf]
+  5881  page: tab2 login page ?reason=account_inactive -> notice shown: true, cookie after: []
+tab1: dialogs=dismiss/accept  FINAL URL: /auth/health/login
+tab2: dialogs=accept  FINAL URL: /auth/health/login?reason=account_inactive
+
+=== M: same suspended health user has two tabs; tab 1 gets ACCOUNT_INACTIVE (tab 2 follows via the storage event)
+     3  server: GET /api/inactive
+     5  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+     6  server: POST /api/session/clear-cookie
+     6  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+    12  server: GET /auth/health/login  [cookie: ]
+   109  server: GET /auth/health/login?reason=account_inactive  [cookie: signed_out_reason=account_inactive.2110b5210307cc0b]
+   216  tab2 navigated -> /auth/health/login
+   325  tab1 navigated -> /auth/health/login?reason=account_inactive
+   544  page: tab2 login page  -> notice shown: false, cookie after: [signed_out_reason=account_inactive.2110b5210307cc0b]
+   636  page: tab1 login page ?reason=account_inactive -> notice shown: true, cookie after: []
+tab1: dialogs=0  FINAL URL: /auth/health/login?reason=account_inactive
+tab2: dialogs=0  FINAL URL: /auth/health/login
+
+=== ZT: same user, two dirty tabs; tab 1 suspended (answers Leave after 4 s); tab 2 suspended 0.5 s later, overwrites the marker, answers Stay, then opens the login page itself
+     4  server: GET /api/inactive
+     7  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+     8  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+    10  server: POST /api/session/clear-cookie
+    11  tab2 DIALOG beforeunload -> dismiss in 200 ms
+   112  tab1 DIALOG beforeunload -> accept in 4000 ms
+   503  server: GET /api/inactive
+   508  tab2 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+   509  server: POST /api/session/clear-cookie
+   509  tab2 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+   611  tab2 DIALOG beforeunload -> dismiss in 200 ms
+  2502  tab2 DIALOG beforeunload -> accept in 0 ms
+  2506  server: GET /auth/health/login  [cookie: signed_out_reason=account_inactive.ad1cb341c51e717a]
+  2710  tab2 navigated -> /auth/health/login
+  3042  page: tab2 login page  -> notice shown: false, cookie after: []
+  4114  server: GET /auth/health/login?reason=account_inactive  [cookie: ]
+  4319  tab1 navigated -> /auth/health/login?reason=account_inactive
+  4639  page: tab1 login page ?reason=account_inactive -> notice shown: false, cookie after: []
+  9004  cookie jar at end: []
+tab1: dialogs=accept  FINAL URL: /auth/health/login?reason=account_inactive
+tab2: dialogs=dismiss/dismiss/accept  FINAL URL: /auth/health/login
+EXIT=0
+
+######## https
+
+=== C2: expired navigation in flight (Leave after 1 s, login TTFB 6 s); ACCOUNT_INACTIVE 3 s later; second dialog answered Stay
+     4  server: GET /api/expired
+     4  server: GET /api/inactive?ms=3000
+     7  tab1 console.error: Failed to load resource: the server responded with a status of 401 (Unauthorized)
+     7  server: POST /api/session/clear-cookie
+     8  tab1 console.warning: [GACP] [ApiClient] 401 Received - Session expired
+   110  tab1 DIALOG beforeunload -> accept in 1000 ms
+  1114  server: GET /auth/health/login?expired=true  [cookie: ]
+  3007  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+  3007  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+  3008  server: POST /api/session/clear-cookie
+  3110  tab1 DIALOG beforeunload -> dismiss in 1000 ms
+  7118  tab1 navigated -> /auth/health/login?expired=true
+  7441  page: tab1 login page ?expired=true -> notice shown: false, cookie after: []
+ 12004  cookie jar at end: []
+tab1: dialogs=accept/dismiss  FINAL URL: /auth/health/login?expired=true
+
+=== Z: A suspended in tab 1, presses Stay (flag left in tab 1); B signs in on tab 2 and is suspended 5 s later; tab 1 follows to a plain login page
+    10  server: GET /api/inactive
+    13  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+    14  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+    14  server: POST /api/session/clear-cookie
+   117  tab1 DIALOG beforeunload -> dismiss in 300 ms
+  1502  tab1 sessionStorage: {"tab":"tab1","gacp.signedOutMarkerSetInThisTab":"6dc98c1928acb2c2"}
+  1540  server: GET /health/home
+  1545  tab2 navigated -> /health/home
+  1760  tab2: user B signed in
+  5263  server: GET /api/inactive
+  5265  tab2 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+  5265  tab2 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+  5266  server: POST /api/session/clear-cookie
+  5266  tab1 DIALOG beforeunload -> accept in 0 ms
+  5270  server: GET /auth/health/login  [cookie: __Host-signed_out_reason=account_inactive.6dc98c1928acb2c2]
+  5369  tab2 DIALOG beforeunload -> accept in 0 ms
+  5373  server: GET /auth/health/login?reason=account_inactive  [cookie: __Host-signed_out_reason=account_inactive.7d3f385b68c70038]
+  5475  tab1 navigated -> /auth/health/login
+  5592  tab2 navigated -> /auth/health/login?reason=account_inactive
+  5811  page: tab1 login page  -> notice shown: false, cookie after: [__Host-signed_out_reason=account_inactive.7d3f385b68c70038]
+  5901  page: tab2 login page ?reason=account_inactive -> notice shown: true, cookie after: []
+tab1: dialogs=dismiss/accept  FINAL URL: /auth/health/login
+tab2: dialogs=accept  FINAL URL: /auth/health/login?reason=account_inactive
+
+=== M: same suspended health user has two tabs; tab 1 gets ACCOUNT_INACTIVE (tab 2 follows via the storage event)
+     3  server: GET /api/inactive
+     5  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+     6  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+     7  server: POST /api/session/clear-cookie
+    11  server: GET /auth/health/login  [cookie: ]
+   111  server: GET /auth/health/login?reason=account_inactive  [cookie: __Host-signed_out_reason=account_inactive.b99d890a675c3d0a]
+   216  tab2 navigated -> /auth/health/login
+   314  tab1 navigated -> /auth/health/login?reason=account_inactive
+   546  page: tab2 login page  -> notice shown: false, cookie after: [__Host-signed_out_reason=account_inactive.b99d890a675c3d0a]
+   641  page: tab1 login page ?reason=account_inactive -> notice shown: true, cookie after: []
+tab1: dialogs=0  FINAL URL: /auth/health/login?reason=account_inactive
+tab2: dialogs=0  FINAL URL: /auth/health/login
+EXIT=0
+
+######## CR, getRandomValues blocked
+
+=== CR: one tab, no dialog, ACCOUNT_INACTIVE (INIT may break crypto)
+     3  server: GET /api/inactive
+     8  tab1 console.error: Failed to load resource: the server responded with a status of 403 (Forbidden)
+     9  server: POST /api/session/clear-cookie
+     9  tab1 console.warning: [GACP] [ApiClient] Account is inactive - ending session
+   112  server: GET /auth/health/login?reason=account_inactive  [cookie: signed_out_reason=account_inactive.226988cc1db2e2dd]
+   317  tab1 navigated -> /auth/health/login?reason=account_inactive
+   654  page: tab1 login page ?reason=account_inactive -> notice shown: true, cookie after: []
+ 20003  cookie jar at end: []
+tab1: dialogs=0  FINAL URL: /auth/health/login?reason=account_inactive
+EXIT=0

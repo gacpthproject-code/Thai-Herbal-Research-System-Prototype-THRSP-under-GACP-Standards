@@ -1,0 +1,79 @@
+# Floor-bites demonstration, fix round 1 floors — 2026-09-27T21:09:22Z · node v24.21.0 · NODE_OPTIONS unset
+# NAME_SIMILARITY_MIN temporarily edited (diff below), the plain gate command run, then edited back to 0.85.
+-const NAME_SIMILARITY_MIN = 0.85;
++const NAME_SIMILARITY_MIN = 0.5;
+
+$ npx jest --config jest.config.cjs __tests__/integration/document-precheck-accuracy.test.js   (tesseract info lines removed)
+  console.log
+    document-precheck accuracy — OCR_CONFIDENCE_MIN=60 NAME_SIMILARITY_MIN=0.5
+    files: 61   extraction wall time: 37669 ms
+    
+    check        n  problems warnings  TP  FP  FN  precision  recall  exact
+    READABILITY  61       14       14  14   0   0     100.0%  100.0% 100.0%
+    DOC_TYPE     41        6        7   5   2   1      71.4%   83.3%  92.7%
+    CROSS_MATCH  41        9        6   3   3   6      50.0%   33.3%  75.6%
+    VALIDITY      9        3        4   3   1   0      75.0%  100.0%  77.8%
+    overall     152       32       31  25   6   7      80.7%   78.1%  90.1%
+    UNREADABLE rate:  22.9% of files
+    
+    disagreements with the labels (file: check expected -> actual):
+      land_deed--scan-blur.png: DOC_TYPE MATCH -> NOT_FOUND   [OCR conf 90]
+      land_deed--wrong-type.pdf: DOC_TYPE NOT_FOUND -> MATCH   [TEXT_LAYER conf 100]
+      land_deed--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+      land_lease--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+      land_consent--scan-blur.png: DOC_TYPE MATCH -> NOT_FOUND   [OCR conf 91]
+      land_consent--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+      company_reg--scan-blur.png: VALIDITY PASS -> DATE_NOT_FOUND   [OCR conf 91]
+      company_reg--scan-rotate3.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 93]
+      company_reg--wrong-type.pdf: CROSS_MATCH NOT_FOUND -> MISMATCH   [TEXT_LAYER conf 100]
+      company_reg--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+      company_reg--no-date.pdf: VALIDITY DATE_NOT_FOUND -> EXPIRED   [TEXT_LAYER conf 100]
+      id_card--scan-blur.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 90]
+      id_card--scan-rotate3.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 93]
+      id_card--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+      house_reg--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+    
+    floor breaches: ["CROSS_MATCH.precision 0.5 < floor 0.6364","CROSS_MATCH.recall 0.3333 < floor 0.7778","overall.recall 0.7813 < floor 0.9063"]
+
+      at Object.log (__tests__/integration/document-precheck-accuracy.test.js:84:17)
+
+FAIL __tests__/integration/document-precheck-accuracy.test.js (40.114 s)
+  ✓ reads the committed corpus directory (1 ms)
+  corpus
+    ✓ every labelled file exists and every corpus file is labelled (4 ms)
+    ✓ each of the 7 types has at least 6 variants (2 ms)
+    ✓ the rule layer produced exactly the flags the labels expect (no missing, no extra) (2 ms)
+  floors (thresholds.json)
+    ✓ thresholds.json has a floor for every check and the overall pool (2 ms)
+    ✕ no metric is below its floor (or above its ceiling) (5 ms)
+
+  ● floors (thresholds.json) › no metric is below its floor (or above its ceiling)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 5
+
+    - Array []
+    + Array [
+    +   "CROSS_MATCH.precision 0.5 < floor 0.6364",
+    +   "CROSS_MATCH.recall 0.3333 < floor 0.7778",
+    +   "overall.recall 0.7813 < floor 0.9063",
+    + ]
+
+      74 |
+      75 |     test('no metric is below its floor (or above its ceiling)', () => {
+    > 76 |         expect(compareToFloors(report.metrics, loadFloors())).toEqual([]);
+         |                                                               ^
+      77 |     });
+      78 | });
+      79 |
+
+      at Object.toEqual (__tests__/integration/document-precheck-accuracy.test.js:76:63)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 5 passed, 6 total
+Snapshots:   0 total
+Time:        40.163 s, estimated 41 s
+Ran all test suites matching __tests__/integration/document-precheck-accuracy.test.js.
+exit=1

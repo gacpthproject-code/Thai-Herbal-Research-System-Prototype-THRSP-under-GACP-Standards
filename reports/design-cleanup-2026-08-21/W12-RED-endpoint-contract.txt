@@ -1,0 +1,1004 @@
+FAIL src/__tests__/renewal-endpoint-contract.test.ts
+  W12 — the URL the wizard posts to is the URL the server mounts
+    √ the backend mounts the renewal router at the PLURAL path (3 ms)
+    × the wizard posts to that exact path, not the singular one (3 ms)
+    × no singular /api/applications/renewal call survives anywhere in the wizard (12 ms)
+  W12 — the body the wizard sends is a body the route validates
+    √ the route requires originalCertificateId (or its certificateId fallback) (1 ms)
+    × the wizard sends the canonical field name
+    × every field the wizard sends is a field the route reads (3 ms)
+    × the retired upload payload is gone
+  W12 — the document-upload step is out of the renewal wizard
+    × REQUIRED_DOCS no longer exists (1 ms)
+    × the upload step is not a step any more (2 ms)
+    × the wizard no longer uploads anything (1 ms)
+    × the upload component file is gone (2 ms)
+
+  ● W12 — the URL the wizard posts to is the URL the server mounts › the wizard posts to that exact path, not the singular one
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "/api/applications/renewals"
+    Received: "/api/applications/renewal"
+
+    [0m [90m 62 |[39m     it([32m'the wizard posts to that exact path, not the singular one'[39m[33m,[39m () [33m=>[39m {
+     [90m 63 |[39m         [36mconst[39m { url } [33m=[39m callerPost()[33m;[39m
+    [31m[1m>[22m[39m[90m 64 |[39m         expect(url)[33m.[39mtoBe([32m'/api/applications/renewals'[39m)[33m;[39m
+     [90m    |[39m                     [31m[1m^[22m[39m
+     [90m 65 |[39m     })[33m;[39m
+     [90m 66 |[39m
+     [90m 67 |[39m     it([32m'no singular /api/applications/renewal call survives anywhere in the wizard'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:64:21)
+
+  ● W12 — the URL the wizard posts to is the URL the server mounts › no singular /api/applications/renewal call survives anywhere in the wizard
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /'\/api\/applications\/renewal'/
+    Received string:      "\"use client\";
+
+    export const dynamic = 'force-dynamic';
+
+    import { Suspense, useEffect, useState } from 'react';
+    import { useRouter, useSearchParams } from 'next/navigation';
+    import Link from 'next/link';
+    import { AlertTriangle } from 'lucide-react';
+    import { apiClient as api } from '@/lib/api';
+    import { Spinner } from '@/components/ui/spinner';
+    import { HEALTH_LOGIN_ROUTE } from '@/lib/constants/auth-routes';
+    import { getStoredUser } from '@/lib/services/auth-service-session';
+    import { useLanguage } from '@/lib/i18n/language-context';
+    import { Certificate, RenewalStep } from './types';
+    import { UploadStep } from './upload-step';
+    import { QuotationStep } from './quotation-step';
+    import { InvoiceStep } from './invoice-step';
+    import { PaymentStep } from './payment-step';
+    // V1 review M-3: SuccessStep removed — D3 disabled the success-step jump
+    // since the backend renewal-payment endpoint doesn't exist. Re-enable this
+    // import + the `case 'success'` branch only when RENEWAL_PAYMENT_WIRED flips
+    // true (which requires the missing backend, future iter).
+
+    // V1-C / D3 — RENEWAL_PAYMENT_WIRED feature flag.
+    //
+    // Previous code (before V1-C) POSTed to `/api/payments/confirm` and on
+    // failure (which is the always-case — the endpoint does NOT exist on the
+    // backend; grep apps/backend/routes/api/finance/ returns zero matches
+    // for `payments/confirm`) silently jumped to the success step. The
+    // try/catch swallowed the 404, leaving applicants believing they had
+    // paid for renewal when no invoice / slip / payment transaction had
+    // been created. REAL MONEY LOSS RISK on first renewal cycle.
+    //
+    // Option A (wire renewal to the existing /health/payments?invoice=<id>
+    // slip-upload flow) requires renewal-service to expose a \"create renewal
+    // invoice\" function returning a real invoice id. The current service
+    // (apps/backend/services/renewal-service.js, exports
+    // createRenewalApplication / getApplicationsForRenewalReminder /
+    // markRenewalReminderSent / supersedeCertificate / listUpcomingExpiry)
+    // only creates a DRAFT Application — invoice creation is downstream in
+    // the normal phase-1 flow and not callable from a single client-side
+    // action. So Option A is NOT feasible in this iteration.
+    //
+    // Option B (defensive) chosen: gate the success-step jump behind a
+    // feature flag (default false) and replace the fake POST with a Thai
+    // info message instructing the applicant to contact DTAM. The renewal
+    // DRAFT application is still created at the quotation step, so the
+    // applicant's progress is not lost; only the fake \"you paid\" jump is
+    // removed. When backend wiring is delivered in a future iteration,
+    // flip the flag and (preferably) replace the inline message with a
+    // redirect to the real slip-upload page.
+    const RENEWAL_PAYMENT_WIRED = false;
+
+    function RenewalLoadingFallback() {
+        return (
+            <div className=\"bg-surface-100 flex min-h-screen items-center justify-center\">
+                <Spinner size=\"xl\" />
+            </div>
+        );
+    }
+
+    /**
+     * X1-FIX-C / C-3 (partial) — Renewal payment advisory banner.
+     *
+     * X1-A flagged that the existing payment-step inline notice
+     * (`paymentPendingMessage`, only shown AFTER the user clicked \"confirm
+     * payment\") was too late: the applicant had already filled in upload,
+     * quotation, and invoice screens before discovering that the system
+     * cannot actually take their renewal payment. Per the audit's CRIT-3
+     * remediation: surface a prominent warning at the TOP of the renewal
+     * entry page that is visible on EVERY step of the wizard.
+     *
+     * The backend wiring (Option A in client-view.tsx top-of-file comment)
+     * remains OUT OF SCOPE — `RENEWAL_PAYMENT_WIRED` stays false, the
+     * existing payment-step notice stays in place. This banner is purely
+     * informational and sets expectations before the applicant invests
+     * time uploading documents.
+     *
+     * i18n: pulls Thai/English from `dict.renewalAdvisory` so the banner
+     * localizes even though the rest of this file is still Thai-only (the
+     * full renewal-flow i18n work is deferred to a later X1 iteration per
+     * the M-1 deferral list in X1-A §7).
+     */
+    function RenewalAdvisoryBanner({ supportEmail, dictBanner }: {
+        supportEmail: string;
+        dictBanner: { title: string; body: string; contactCta: string; contactFormCta: string };
+    }) {
+        return (
+            <div
+                role=\"alert\"
+                data-testid=\"renewal-advisory-banner\"
+                className=\"mb-6 w-full rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm\"
+            >
+                <div className=\"flex items-start gap-3\">
+                    <div className=\"mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700\">
+                        <AlertTriangle className=\"h-5 w-5\" aria-hidden=\"true\" focusable=\"false\" />
+                    </div>
+                    <div className=\"min-w-0 flex-1\">
+                        <h2 className=\"text-sm font-bold leading-snug text-amber-900 sm:text-base\">
+                            {dictBanner.title}
+                        </h2>
+                        <p className=\"mt-1 text-sm leading-relaxed text-amber-800\">{dictBanner.body}</p>
+                        <div className=\"mt-3 flex flex-wrap gap-2\">
+                            <a
+                                href={`mailto:${supportEmail}`}
+                                className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg bg-amber-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                            >
+                                {dictBanner.contactCta}
+                            </a>
+                            <Link
+                                href=\"/help/contact\"
+                                className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                            >
+                                {dictBanner.contactFormCta}
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    function RenewalContent() {
+        const _router = useRouter();
+        const searchParams = useSearchParams();
+        const certId = searchParams.get('certId');
+        const { dict } = useLanguage();
+        // X1-FIX-C / C-3 — pull banner copy from the dict so EN users see the
+        // English variant even while the rest of this flow is still Thai-only
+        // (the broader renewal-flow i18n is deferred to a later X1 iteration
+        // per the I-017 enumeration). Falls back to the Thai literals so the
+        // page still works if a key goes missing during a rename.
+        const advisory = dict.renewalAdvisory || {
+            title: 'การชำระเงินสำหรับการต่ออายุไม่สามารถดำเนินการในระบบได้ในขณะนี้',
+            body: 'ฟีเจอร์ชำระเงินค่าต่ออายุยังอยู่ระหว่างพัฒนา กรุณาติดต่อ DTAM',
+            contactCta: 'ติดต่อเจ้าหน้าที่',
+            contactEmail: 'support@gacpth.com',
+            contactFormCta: 'เปิดฟอร์มติดต่อ',
+        };
+        // Y1-FIX-B — pull renewal flow copy from dict.health.renewal
+        const renewalCopy = dict.health.renewal;
+
+        const [isDark, setIsDark] = useState(false);
+        const [certificate, setCertificate] = useState<Certificate | null>(null);
+        const [loading, setLoading] = useState(true);
+        // W1-RETRY — certificate load failure. Previously a failed
+        // GET /api/certificates/:id (backend down → 503 BACKEND_UNREACHABLE)
+        // was SILENT: certificate stayed null and the applicant landed on the
+        // upload wizard with no cert card, no error, and no recovery path
+        // short of a full page reload. This flag drives the amber
+        // indeterminate ServiceUnavailable state (role=\"status\") with a
+        // retry action that re-fires the same fetch.
+        const [loadError, setLoadError] = useState(false);
+        // Definitive backend verdict (4xx: missing / not owned) — a permanent
+        // condition, rendered as the terminal no-certificate screen, never as
+        // the \"temporary glitch, retry\" card.
+        const [notFound, setNotFound] = useState(false);
+        const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
+        const [uploading, setUploading] = useState<string | null>(null);
+        const [step, setStep] = useState<RenewalStep>('upload');
+        const [renewalId, setRenewalId] = useState<string | null>(null);
+
+        useEffect(() => {
+            setIsDark(localStorage.getItem(\"theme\") === \"dark\");
+            if (!getStoredUser()) {
+                window.location.href = HEALTH_LOGIN_ROUTE;
+                return;
+            }
+            if (certId) loadCertificate(certId);
+            else setLoading(false);
+        }, [certId]);
+
+        const loadCertificate = async (id: string) => {
+            setLoading(true);
+            setLoadError(false);
+            try {
+                const result = await api.get<Certificate>(`/api/certificates/${id}`);
+                // apiClient already unwraps one envelope level (api-client.ts:410)
+                // and the backend returns single-level `{ success, data: cert }`
+                // (certificates.js:236) — so `result.data` IS the certificate.
+                if (result.success && result.data) setCertificate(result.data);
+                // Definitive 4xx (404 missing / not-owned per the IDOR contract):
+                // the backend DID answer — retrying will not help.
+                else if (result.status !== undefined && result.status < 500) setNotFound(true);
+                // W1-RETRY: no more silent failure — surface the indeterminate
+                // load-error state so the applicant gets a retry action.
+                else setLoadError(true);
+            } catch {
+                console.error('Failed to load certificate');
+                setLoadError(true);
+            }
+            finally { setLoading(false); }
+        };
+
+        const handleUpload = async (docId: string, file: File) => {
+            setUploading(docId);
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('slotId', docId);
+                formData.append('stepKey', 'renewal-documents');
+                if (renewalId) formData.append('applicationId', renewalId);
+
+                const result = await api.post<{ fileUrl?: string }>('/applications/draft-documents', formData);
+                if (result.success && result.data?.fileUrl) {
+                    setUploadedDocs(prev => ({ ...prev, [docId]: true }));
+                } else {
+                    console.error('[Renewal Upload] Upload failed:', result.error);
+                }
+            } catch (err) {
+                console.error('[Renewal Upload] Error:', err);
+            } finally {
+                setUploading(null);
+            }
+        };
+
+        const [renewalError, setRenewalError] = useState<string | null>(null);
+        // V1-C / D3 — payment-pending notice surfaced on the payment step when
+        // RENEWAL_PAYMENT_WIRED is false (current default). Decoupled from the
+        // existing `renewalError` slot so the upload-step error UI is not
+        // affected by the deferred-payment notice.
+        const [paymentPendingMessage, setPaymentPendingMessage] = useState<string | null>(null);
+
+        const handleProceedToQuotation = async () => {
+            if (certificate) {
+                try {
+                    const result = await api.post<{ applicationId: string }>('/api/applications/renewal', { previousApplicationId: certificate.applicationId, certificateId: certificate._id, documentIds: Object.keys(uploadedDocs).filter(k => uploadedDocs[k]) });
+                    // apiClient already unwraps one envelope level — the backend
+                    // returns single-level `{ success, data: { applicationId } }`
+                    // (renewals.js:89) — so `result.data` IS that object.
+                    if (result.success && result.data?.applicationId) {
+                        setRenewalId(result.data.applicationId);
+                        setRenewalError(null);
+                        setStep('quotation');
+                    } else {
+                        setRenewalError(renewalCopy.errorCreateFailed);
+                    }
+                } catch {
+                    setRenewalError(renewalCopy.errorConnection);
+                }
+            } else {
+                setRenewalError(renewalCopy.errorNoCert);
+            }
+        };
+
+        const handlePaymentConfirm = async () => {
+            // V1-C / D3 — REAL-MONEY-LOSS FIX.
+            //
+            // Previous behaviour: POST /api/payments/confirm (404 — endpoint
+            // does not exist) inside a try/catch that swallowed the error,
+            // then unconditionally jumped to the success step. The applicant
+            // believed they had paid; the backend had no record. Removed.
+            //
+            // Current behaviour while RENEWAL_PAYMENT_WIRED === false:
+            // surface a Thai notice on the payment step and DO NOT advance
+            // to success. When backend support lands and the flag is flipped
+            // to true, the success-jump should be replaced with a redirect
+            // to the existing `/health/payments?invoice=<id>` slip-upload
+            // page rather than a local-only step. See block comment near
+            // RENEWAL_PAYMENT_WIRED at top-of-file for the option choice.
+            if (!RENEWAL_PAYMENT_WIRED) {
+                setPaymentPendingMessage(renewalCopy.paymentPendingMessage);
+                return;
+            }
+            // When the flag is flipped on in a future iteration the
+            // applicant should be redirected to the real slip-upload flow.
+            // We intentionally do NOT call any local-only success jump here
+            // — every payment confirmation must go through the canonical
+            // /health/payments?invoice=<id> page so the slip row is
+            // persisted on the backend and ACCOUNT staff can approve it.
+            setPaymentPendingMessage(renewalCopy.paymentPendingMessage);
+        };
+
+        if (loading) return <RenewalLoadingFallback />;
+
+        // X1-FIX-C / C-3 — render the advisory banner above every step of
+        // the wizard so applicants can't reach the payment step without
+        // understanding the limitation up-front. The banner is identical on
+        // each step; the per-step body renders unchanged below it.
+        const banner = (
+            <RenewalAdvisoryBanner
+                supportEmail={advisory.contactEmail}
+                dictBanner={{ title: advisory.title, body: advisory.body, contactCta: advisory.contactCta, contactFormCta: advisory.contactFormCta }}
+            />
+        );
+
+        // W1-RETRY — certificate fetch failed (backend unreachable / 5xx / bad
+        // envelope). Amber indeterminate ServiceUnavailable pattern (mirrors
+        // the public verify page): role=\"status\", never a definitive \"not
+        // found\" verdict on a fetch failure, retry re-fires the SAME fetch.
+        if (certId && loadError && !certificate) {
+            return (
+                <div className={`min-h-screen p-8 font-sans ${isDark ? 'bg-slate-900' : 'bg-surface-100'}`}>
+                    <div className=\"mx-auto max-w-3xl pt-16\">
+                        {banner}
+                        <div
+                            role=\"status\"
+                            data-testid=\"renewal-load-error\"
+                            className=\"w-full rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm\"
+                        >
+                            <div className=\"flex items-start gap-3\">
+                                <span className=\"mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white\">
+                                    <AlertTriangle className=\"h-5 w-5\" aria-hidden=\"true\" focusable=\"false\" />
+                                </span>
+                                <div className=\"min-w-0 flex-1 leading-snug\">
+                                    <p className=\"text-base font-bold text-amber-800\">{renewalCopy.loadErrorTitle}</p>
+                                    <p className=\"mt-1 text-sm text-amber-700\">{renewalCopy.loadErrorBody}</p>
+                                    {renewalCopy.loadErrorSubline ? (
+                                        <p className=\"mt-1 text-xs text-amber-700\">{renewalCopy.loadErrorSubline}</p>
+                                    ) : null}
+                                    <div className=\"mt-3 flex flex-wrap gap-2\">
+                                        <button
+                                            type=\"button\"
+                                            data-testid=\"renewal-load-retry\"
+                                            onClick={() => { void loadCertificate(certId); }}
+                                            className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg bg-amber-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                                        >
+                                            {dict.common?.fetchError?.retry || 'ลองอีกครั้ง'}
+                                        </button>
+                                        <Link
+                                            href=\"/health/certificates\"
+                                            className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                                        >
+                                            {renewalCopy.goToCertList}
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (!certificate && (!certId || notFound)) {
+            return (
+                <div className={`min-h-screen p-8 font-sans ${isDark ? 'bg-slate-900' : 'bg-surface-100'}`}>
+                    <div className=\"mx-auto max-w-3xl pt-16\">
+                        {banner}
+                    </div>
+                    <div className=\"mx-auto max-w-xl pt-4 text-center\">
+                        <div className={`mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl ${isDark ? 'bg-primary-500/15' : 'bg-primary-50'}`}>
+                            <svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke={isDark ? '#34D399' : '#16A34A'} strokeWidth=\"1.5\"><path d=\"M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z\" /><polyline points=\"13 2 13 9 20 9\" /></svg>
+                        </div>
+                        <h1 className={`mb-4 text-2xl font-semibold ${isDark ? 'text-surface-100' : 'text-foreground'}`}>{renewalCopy.title}</h1>
+                        <p className={`mb-6 ${isDark ? 'text-muted-foreground' : 'text-muted-foreground'}`}>{notFound ? renewalCopy.errorNoCert : renewalCopy.noCertBody}</p>
+                        <Link href=\"/health/certificates\" className=\"inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 font-semibold text-white shadow-sm\">{renewalCopy.goToCertList}</Link>
+                    </div>
+                </div>
+            );
+        }
+
+        switch (step) {
+            // V1 review M-3: success case removed (dead code post-D3); the
+            // disabled-payment notice is rendered inline in PaymentStep instead.
+            case 'payment': return (
+                <>
+                    {banner}
+                    {paymentPendingMessage && (
+                        <div
+                            role=\"alert\"
+                            data-testid=\"renewal-payment-pending\"
+                            className=\"mb-4 w-full rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-800\"
+                        >
+                            {paymentPendingMessage}
+                        </div>
+                    )}
+                    <PaymentStep renewalId={renewalId} isDark={isDark} onBack={() => setStep('invoice')} onConfirm={handlePaymentConfirm} />
+                </>
+            );
+            case 'invoice': return (
+                <>
+                    {banner}
+                    <InvoiceStep certificate={certificate} renewalId={renewalId} isDark={isDark} onBack={() => setStep('quotation')} onProceed={() => setStep('payment')} />
+                </>
+            );
+            case 'quotation': return (
+                <>
+                    {banner}
+                    <QuotationStep certificate={certificate} renewalId={renewalId} isDark={isDark} onBack={() => setStep('upload')} onProceed={() => setStep('invoice')} />
+                </>
+            );
+            default: return (
+                <>
+                    {banner}
+                    {renewalError && (
+                        <div className=\"mb-4 w-full rounded-xl bg-red-50 px-5 py-3 text-sm font-medium text-red-700\">
+                            {renewalError}
+                        </div>
+                    )}
+                    <UploadStep certificate={certificate} uploadedDocs={uploadedDocs} uploading={uploading} isDark={isDark} onUpload={handleUpload} onProceed={handleProceedToQuotation} />
+                </>
+            );
+        }
+    }
+
+    export default function RenewalPage() {
+        return <Suspense fallback={<RenewalLoadingFallback />}><RenewalContent /></Suspense>;
+    }
+    "
+
+    [0m [90m 67 |[39m     it([32m'no singular /api/applications/renewal call survives anywhere in the wizard'[39m[33m,[39m () [33m=>[39m {
+     [90m 68 |[39m         [90m// A trailing-boundary check: `/renewal` not followed by `s`.[39m
+    [31m[1m>[22m[39m[90m 69 |[39m         expect(clientView)[33m.[39mnot[33m.[39mtoMatch([35m/'\/api\/applications\/renewal'/[39m)[33m;[39m
+     [90m    |[39m                                [31m[1m^[22m[39m
+     [90m 70 |[39m     })[33m;[39m
+     [90m 71 |[39m })[33m;[39m
+     [90m 72 |[39m[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:69:32)
+
+  ● W12 — the body the wizard sends is a body the route validates › the wizard sends the canonical field name
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "originalCertificateId"
+    Received string:    " previousApplicationId: certificate.applicationId, certificateId: certificate._id, documentIds: Object.keys(uploadedDocs).filter(k => uploadedDocs[k]) "
+
+    [0m [90m 79 |[39m     it([32m'the wizard sends the canonical field name'[39m[33m,[39m () [33m=>[39m {
+     [90m 80 |[39m         [36mconst[39m { body } [33m=[39m callerPost()[33m;[39m
+    [31m[1m>[22m[39m[90m 81 |[39m         expect(body)[33m.[39mtoContain([32m'originalCertificateId'[39m)[33m;[39m
+     [90m    |[39m                      [31m[1m^[22m[39m
+     [90m 82 |[39m     })[33m;[39m
+     [90m 83 |[39m
+     [90m 84 |[39m     it([32m'every field the wizard sends is a field the route reads'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:81:22)
+
+  ● W12 — the body the wizard sends is a body the route validates › every field the wizard sends is a field the route reads
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "previousApplicationId",
+    +   "documentIds",
+    + ]
+
+    [0m [90m 92 |[39m         [90m// (previousApplicationId, documentIds) hid the fact that the call was[39m
+     [90m 93 |[39m         [90m// never reaching a real handler.[39m
+    [31m[1m>[22m[39m[90m 94 |[39m         expect(ignored)[33m.[39mtoEqual([])[33m;[39m
+     [90m    |[39m                         [31m[1m^[22m[39m
+     [90m 95 |[39m     })[33m;[39m
+     [90m 96 |[39m
+     [90m 97 |[39m     it([32m'the retired upload payload is gone'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:94:25)
+
+  ● W12 — the body the wizard sends is a body the route validates › the retired upload payload is gone
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "documentIds"
+    Received string:        " previousApplicationId: certificate.applicationId, certificateId: certificate._id, documentIds: Object.keys(uploadedDocs).filter(k => uploadedDocs[k]) "
+
+    [0m [90m  97 |[39m     it([32m'the retired upload payload is gone'[39m[33m,[39m () [33m=>[39m {
+     [90m  98 |[39m         [36mconst[39m { body } [33m=[39m callerPost()[33m;[39m
+    [31m[1m>[22m[39m[90m  99 |[39m         expect(body)[33m.[39mnot[33m.[39mtoContain([32m'documentIds'[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 100 |[39m         expect(body)[33m.[39mnot[33m.[39mtoContain([32m'previousApplicationId'[39m)[33m;[39m
+     [90m 101 |[39m     })[33m;[39m
+     [90m 102 |[39m })[33m;[39m[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:99:26)
+
+  ● W12 — the document-upload step is out of the renewal wizard › REQUIRED_DOCS no longer exists
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /export const REQUIRED_DOCS/
+    Received string:      "/**
+     * Renewal Flow - Shared Types
+     * Refactored to remove Theme interface (now using isDark + Tailwind classes)
+     */
+
+    export interface Certificate {
+        _id: string;
+        certificateNumber: string;
+        applicationId: string;
+        siteName: string;
+        plantType: string;
+        expiryDate: string;
+        status: string;
+    }
+
+    // Re-export from Single Source of Truth (constants/fees.ts)
+    // DO NOT define fee values here — update fees.ts instead
+    export { GACP_RENEWAL_FEE as RENEWAL_FEE } from '@/constants/fees';
+
+    export const REQUIRED_DOCS = [
+        { id: 'license_renewal', name: 'หนังสืออนุญาตประกอบกิจการ (ต่ออายุ)', required: true },
+        { id: 'annual_report', name: 'รายงานผลผลิตประจำปี', required: true },
+        { id: 'inspection_report', name: 'รายงานการตรวจสอบคุณภาพ', required: true },
+        { id: 'tax_certificate', name: 'หนังสือรับรองการเสียภาษี', required: false },
+    ];
+
+    export type RenewalStep = 'upload' | 'quotation' | 'invoice' | 'payment' | 'success';
+    "
+
+    [0m [90m 108 |[39m             [32m'utf8'[39m[33m,[39m
+     [90m 109 |[39m         )[33m;[39m
+    [31m[1m>[22m[39m[90m 110 |[39m         expect(types)[33m.[39mnot[33m.[39mtoMatch([35m/export const REQUIRED_DOCS/[39m)[33m;[39m
+     [90m     |[39m                           [31m[1m^[22m[39m
+     [90m 111 |[39m     })[33m;[39m
+     [90m 112 |[39m
+     [90m 113 |[39m     it([32m'the upload step is not a step any more'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:110:27)
+
+  ● W12 — the document-upload step is out of the renewal wizard › the upload step is not a step any more
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "'upload'"
+    Received string:        "'upload' | 'quotation' | 'invoice' | 'payment' | 'success'"
+
+    [0m [90m 117 |[39m         )[33m;[39m
+     [90m 118 |[39m         [36mconst[39m stepType [33m=[39m types[33m.[39mmatch([35m/export type RenewalStep = ([^;]+);/[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 119 |[39m         expect(stepType[33m?[39m[33m.[39m[[35m1[39m])[33m.[39mnot[33m.[39mtoContain([32m"'upload'"[39m)[33m;[39m
+     [90m     |[39m                                   [31m[1m^[22m[39m
+     [90m 120 |[39m         expect(stepType[33m?[39m[33m.[39m[[35m1[39m])[33m.[39mtoContain([32m"'quotation'"[39m)[33m;[39m
+     [90m 121 |[39m     })[33m;[39m
+     [90m 122 |[39m[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:119:35)
+
+  ● W12 — the document-upload step is out of the renewal wizard › the wizard no longer uploads anything
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "draft-documents"
+    Received string:        "\"use client\";
+
+    export const dynamic = 'force-dynamic';
+
+    import { Suspense, useEffect, useState } from 'react';
+    import { useRouter, useSearchParams } from 'next/navigation';
+    import Link from 'next/link';
+    import { AlertTriangle } from 'lucide-react';
+    import { apiClient as api } from '@/lib/api';
+    import { Spinner } from '@/components/ui/spinner';
+    import { HEALTH_LOGIN_ROUTE } from '@/lib/constants/auth-routes';
+    import { getStoredUser } from '@/lib/services/auth-service-session';
+    import { useLanguage } from '@/lib/i18n/language-context';
+    import { Certificate, RenewalStep } from './types';
+    import { UploadStep } from './upload-step';
+    import { QuotationStep } from './quotation-step';
+    import { InvoiceStep } from './invoice-step';
+    import { PaymentStep } from './payment-step';
+    // V1 review M-3: SuccessStep removed — D3 disabled the success-step jump
+    // since the backend renewal-payment endpoint doesn't exist. Re-enable this
+    // import + the `case 'success'` branch only when RENEWAL_PAYMENT_WIRED flips
+    // true (which requires the missing backend, future iter).
+
+    // V1-C / D3 — RENEWAL_PAYMENT_WIRED feature flag.
+    //
+    // Previous code (before V1-C) POSTed to `/api/payments/confirm` and on
+    // failure (which is the always-case — the endpoint does NOT exist on the
+    // backend; grep apps/backend/routes/api/finance/ returns zero matches
+    // for `payments/confirm`) silently jumped to the success step. The
+    // try/catch swallowed the 404, leaving applicants believing they had
+    // paid for renewal when no invoice / slip / payment transaction had
+    // been created. REAL MONEY LOSS RISK on first renewal cycle.
+    //
+    // Option A (wire renewal to the existing /health/payments?invoice=<id>
+    // slip-upload flow) requires renewal-service to expose a \"create renewal
+    // invoice\" function returning a real invoice id. The current service
+    // (apps/backend/services/renewal-service.js, exports
+    // createRenewalApplication / getApplicationsForRenewalReminder /
+    // markRenewalReminderSent / supersedeCertificate / listUpcomingExpiry)
+    // only creates a DRAFT Application — invoice creation is downstream in
+    // the normal phase-1 flow and not callable from a single client-side
+    // action. So Option A is NOT feasible in this iteration.
+    //
+    // Option B (defensive) chosen: gate the success-step jump behind a
+    // feature flag (default false) and replace the fake POST with a Thai
+    // info message instructing the applicant to contact DTAM. The renewal
+    // DRAFT application is still created at the quotation step, so the
+    // applicant's progress is not lost; only the fake \"you paid\" jump is
+    // removed. When backend wiring is delivered in a future iteration,
+    // flip the flag and (preferably) replace the inline message with a
+    // redirect to the real slip-upload page.
+    const RENEWAL_PAYMENT_WIRED = false;
+
+    function RenewalLoadingFallback() {
+        return (
+            <div className=\"bg-surface-100 flex min-h-screen items-center justify-center\">
+                <Spinner size=\"xl\" />
+            </div>
+        );
+    }
+
+    /**
+     * X1-FIX-C / C-3 (partial) — Renewal payment advisory banner.
+     *
+     * X1-A flagged that the existing payment-step inline notice
+     * (`paymentPendingMessage`, only shown AFTER the user clicked \"confirm
+     * payment\") was too late: the applicant had already filled in upload,
+     * quotation, and invoice screens before discovering that the system
+     * cannot actually take their renewal payment. Per the audit's CRIT-3
+     * remediation: surface a prominent warning at the TOP of the renewal
+     * entry page that is visible on EVERY step of the wizard.
+     *
+     * The backend wiring (Option A in client-view.tsx top-of-file comment)
+     * remains OUT OF SCOPE — `RENEWAL_PAYMENT_WIRED` stays false, the
+     * existing payment-step notice stays in place. This banner is purely
+     * informational and sets expectations before the applicant invests
+     * time uploading documents.
+     *
+     * i18n: pulls Thai/English from `dict.renewalAdvisory` so the banner
+     * localizes even though the rest of this file is still Thai-only (the
+     * full renewal-flow i18n work is deferred to a later X1 iteration per
+     * the M-1 deferral list in X1-A §7).
+     */
+    function RenewalAdvisoryBanner({ supportEmail, dictBanner }: {
+        supportEmail: string;
+        dictBanner: { title: string; body: string; contactCta: string; contactFormCta: string };
+    }) {
+        return (
+            <div
+                role=\"alert\"
+                data-testid=\"renewal-advisory-banner\"
+                className=\"mb-6 w-full rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm\"
+            >
+                <div className=\"flex items-start gap-3\">
+                    <div className=\"mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-700\">
+                        <AlertTriangle className=\"h-5 w-5\" aria-hidden=\"true\" focusable=\"false\" />
+                    </div>
+                    <div className=\"min-w-0 flex-1\">
+                        <h2 className=\"text-sm font-bold leading-snug text-amber-900 sm:text-base\">
+                            {dictBanner.title}
+                        </h2>
+                        <p className=\"mt-1 text-sm leading-relaxed text-amber-800\">{dictBanner.body}</p>
+                        <div className=\"mt-3 flex flex-wrap gap-2\">
+                            <a
+                                href={`mailto:${supportEmail}`}
+                                className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg bg-amber-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                            >
+                                {dictBanner.contactCta}
+                            </a>
+                            <Link
+                                href=\"/help/contact\"
+                                className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                            >
+                                {dictBanner.contactFormCta}
+                            </Link>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    function RenewalContent() {
+        const _router = useRouter();
+        const searchParams = useSearchParams();
+        const certId = searchParams.get('certId');
+        const { dict } = useLanguage();
+        // X1-FIX-C / C-3 — pull banner copy from the dict so EN users see the
+        // English variant even while the rest of this flow is still Thai-only
+        // (the broader renewal-flow i18n is deferred to a later X1 iteration
+        // per the I-017 enumeration). Falls back to the Thai literals so the
+        // page still works if a key goes missing during a rename.
+        const advisory = dict.renewalAdvisory || {
+            title: 'การชำระเงินสำหรับการต่ออายุไม่สามารถดำเนินการในระบบได้ในขณะนี้',
+            body: 'ฟีเจอร์ชำระเงินค่าต่ออายุยังอยู่ระหว่างพัฒนา กรุณาติดต่อ DTAM',
+            contactCta: 'ติดต่อเจ้าหน้าที่',
+            contactEmail: 'support@gacpth.com',
+            contactFormCta: 'เปิดฟอร์มติดต่อ',
+        };
+        // Y1-FIX-B — pull renewal flow copy from dict.health.renewal
+        const renewalCopy = dict.health.renewal;
+
+        const [isDark, setIsDark] = useState(false);
+        const [certificate, setCertificate] = useState<Certificate | null>(null);
+        const [loading, setLoading] = useState(true);
+        // W1-RETRY — certificate load failure. Previously a failed
+        // GET /api/certificates/:id (backend down → 503 BACKEND_UNREACHABLE)
+        // was SILENT: certificate stayed null and the applicant landed on the
+        // upload wizard with no cert card, no error, and no recovery path
+        // short of a full page reload. This flag drives the amber
+        // indeterminate ServiceUnavailable state (role=\"status\") with a
+        // retry action that re-fires the same fetch.
+        const [loadError, setLoadError] = useState(false);
+        // Definitive backend verdict (4xx: missing / not owned) — a permanent
+        // condition, rendered as the terminal no-certificate screen, never as
+        // the \"temporary glitch, retry\" card.
+        const [notFound, setNotFound] = useState(false);
+        const [uploadedDocs, setUploadedDocs] = useState<Record<string, boolean>>({});
+        const [uploading, setUploading] = useState<string | null>(null);
+        const [step, setStep] = useState<RenewalStep>('upload');
+        const [renewalId, setRenewalId] = useState<string | null>(null);
+
+        useEffect(() => {
+            setIsDark(localStorage.getItem(\"theme\") === \"dark\");
+            if (!getStoredUser()) {
+                window.location.href = HEALTH_LOGIN_ROUTE;
+                return;
+            }
+            if (certId) loadCertificate(certId);
+            else setLoading(false);
+        }, [certId]);
+
+        const loadCertificate = async (id: string) => {
+            setLoading(true);
+            setLoadError(false);
+            try {
+                const result = await api.get<Certificate>(`/api/certificates/${id}`);
+                // apiClient already unwraps one envelope level (api-client.ts:410)
+                // and the backend returns single-level `{ success, data: cert }`
+                // (certificates.js:236) — so `result.data` IS the certificate.
+                if (result.success && result.data) setCertificate(result.data);
+                // Definitive 4xx (404 missing / not-owned per the IDOR contract):
+                // the backend DID answer — retrying will not help.
+                else if (result.status !== undefined && result.status < 500) setNotFound(true);
+                // W1-RETRY: no more silent failure — surface the indeterminate
+                // load-error state so the applicant gets a retry action.
+                else setLoadError(true);
+            } catch {
+                console.error('Failed to load certificate');
+                setLoadError(true);
+            }
+            finally { setLoading(false); }
+        };
+
+        const handleUpload = async (docId: string, file: File) => {
+            setUploading(docId);
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('slotId', docId);
+                formData.append('stepKey', 'renewal-documents');
+                if (renewalId) formData.append('applicationId', renewalId);
+
+                const result = await api.post<{ fileUrl?: string }>('/applications/draft-documents', formData);
+                if (result.success && result.data?.fileUrl) {
+                    setUploadedDocs(prev => ({ ...prev, [docId]: true }));
+                } else {
+                    console.error('[Renewal Upload] Upload failed:', result.error);
+                }
+            } catch (err) {
+                console.error('[Renewal Upload] Error:', err);
+            } finally {
+                setUploading(null);
+            }
+        };
+
+        const [renewalError, setRenewalError] = useState<string | null>(null);
+        // V1-C / D3 — payment-pending notice surfaced on the payment step when
+        // RENEWAL_PAYMENT_WIRED is false (current default). Decoupled from the
+        // existing `renewalError` slot so the upload-step error UI is not
+        // affected by the deferred-payment notice.
+        const [paymentPendingMessage, setPaymentPendingMessage] = useState<string | null>(null);
+
+        const handleProceedToQuotation = async () => {
+            if (certificate) {
+                try {
+                    const result = await api.post<{ applicationId: string }>('/api/applications/renewal', { previousApplicationId: certificate.applicationId, certificateId: certificate._id, documentIds: Object.keys(uploadedDocs).filter(k => uploadedDocs[k]) });
+                    // apiClient already unwraps one envelope level — the backend
+                    // returns single-level `{ success, data: { applicationId } }`
+                    // (renewals.js:89) — so `result.data` IS that object.
+                    if (result.success && result.data?.applicationId) {
+                        setRenewalId(result.data.applicationId);
+                        setRenewalError(null);
+                        setStep('quotation');
+                    } else {
+                        setRenewalError(renewalCopy.errorCreateFailed);
+                    }
+                } catch {
+                    setRenewalError(renewalCopy.errorConnection);
+                }
+            } else {
+                setRenewalError(renewalCopy.errorNoCert);
+            }
+        };
+
+        const handlePaymentConfirm = async () => {
+            // V1-C / D3 — REAL-MONEY-LOSS FIX.
+            //
+            // Previous behaviour: POST /api/payments/confirm (404 — endpoint
+            // does not exist) inside a try/catch that swallowed the error,
+            // then unconditionally jumped to the success step. The applicant
+            // believed they had paid; the backend had no record. Removed.
+            //
+            // Current behaviour while RENEWAL_PAYMENT_WIRED === false:
+            // surface a Thai notice on the payment step and DO NOT advance
+            // to success. When backend support lands and the flag is flipped
+            // to true, the success-jump should be replaced with a redirect
+            // to the existing `/health/payments?invoice=<id>` slip-upload
+            // page rather than a local-only step. See block comment near
+            // RENEWAL_PAYMENT_WIRED at top-of-file for the option choice.
+            if (!RENEWAL_PAYMENT_WIRED) {
+                setPaymentPendingMessage(renewalCopy.paymentPendingMessage);
+                return;
+            }
+            // When the flag is flipped on in a future iteration the
+            // applicant should be redirected to the real slip-upload flow.
+            // We intentionally do NOT call any local-only success jump here
+            // — every payment confirmation must go through the canonical
+            // /health/payments?invoice=<id> page so the slip row is
+            // persisted on the backend and ACCOUNT staff can approve it.
+            setPaymentPendingMessage(renewalCopy.paymentPendingMessage);
+        };
+
+        if (loading) return <RenewalLoadingFallback />;
+
+        // X1-FIX-C / C-3 — render the advisory banner above every step of
+        // the wizard so applicants can't reach the payment step without
+        // understanding the limitation up-front. The banner is identical on
+        // each step; the per-step body renders unchanged below it.
+        const banner = (
+            <RenewalAdvisoryBanner
+                supportEmail={advisory.contactEmail}
+                dictBanner={{ title: advisory.title, body: advisory.body, contactCta: advisory.contactCta, contactFormCta: advisory.contactFormCta }}
+            />
+        );
+
+        // W1-RETRY — certificate fetch failed (backend unreachable / 5xx / bad
+        // envelope). Amber indeterminate ServiceUnavailable pattern (mirrors
+        // the public verify page): role=\"status\", never a definitive \"not
+        // found\" verdict on a fetch failure, retry re-fires the SAME fetch.
+        if (certId && loadError && !certificate) {
+            return (
+                <div className={`min-h-screen p-8 font-sans ${isDark ? 'bg-slate-900' : 'bg-surface-100'}`}>
+                    <div className=\"mx-auto max-w-3xl pt-16\">
+                        {banner}
+                        <div
+                            role=\"status\"
+                            data-testid=\"renewal-load-error\"
+                            className=\"w-full rounded-2xl border-2 border-amber-300 bg-amber-50 p-5 shadow-sm\"
+                        >
+                            <div className=\"flex items-start gap-3\">
+                                <span className=\"mt-0.5 flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500 text-white\">
+                                    <AlertTriangle className=\"h-5 w-5\" aria-hidden=\"true\" focusable=\"false\" />
+                                </span>
+                                <div className=\"min-w-0 flex-1 leading-snug\">
+                                    <p className=\"text-base font-bold text-amber-800\">{renewalCopy.loadErrorTitle}</p>
+                                    <p className=\"mt-1 text-sm text-amber-700\">{renewalCopy.loadErrorBody}</p>
+                                    {renewalCopy.loadErrorSubline ? (
+                                        <p className=\"mt-1 text-xs text-amber-700\">{renewalCopy.loadErrorSubline}</p>
+                                    ) : null}
+                                    <div className=\"mt-3 flex flex-wrap gap-2\">
+                                        <button
+                                            type=\"button\"
+                                            data-testid=\"renewal-load-retry\"
+                                            onClick={() => { void loadCertificate(certId); }}
+                                            className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg bg-amber-700 px-4 text-sm font-semibold text-white shadow-sm hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                                        >
+                                            {dict.common?.fetchError?.retry || 'ลองอีกครั้ง'}
+                                        </button>
+                                        <Link
+                                            href=\"/health/certificates\"
+                                            className=\"inline-flex min-h-[44px] items-center justify-center rounded-lg border border-amber-300 bg-white px-4 text-sm font-semibold text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2\"
+                                        >
+                                            {renewalCopy.goToCertList}
+                                        </Link>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        if (!certificate && (!certId || notFound)) {
+            return (
+                <div className={`min-h-screen p-8 font-sans ${isDark ? 'bg-slate-900' : 'bg-surface-100'}`}>
+                    <div className=\"mx-auto max-w-3xl pt-16\">
+                        {banner}
+                    </div>
+                    <div className=\"mx-auto max-w-xl pt-4 text-center\">
+                        <div className={`mb-6 inline-flex h-20 w-20 items-center justify-center rounded-2xl ${isDark ? 'bg-primary-500/15' : 'bg-primary-50'}`}>
+                            <svg width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke={isDark ? '#34D399' : '#16A34A'} strokeWidth=\"1.5\"><path d=\"M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z\" /><polyline points=\"13 2 13 9 20 9\" /></svg>
+                        </div>
+                        <h1 className={`mb-4 text-2xl font-semibold ${isDark ? 'text-surface-100' : 'text-foreground'}`}>{renewalCopy.title}</h1>
+                        <p className={`mb-6 ${isDark ? 'text-muted-foreground' : 'text-muted-foreground'}`}>{notFound ? renewalCopy.errorNoCert : renewalCopy.noCertBody}</p>
+                        <Link href=\"/health/certificates\" className=\"inline-flex items-center gap-2 rounded-xl bg-primary px-7 py-3.5 font-semibold text-white shadow-sm\">{renewalCopy.goToCertList}</Link>
+                    </div>
+                </div>
+            );
+        }
+
+        switch (step) {
+            // V1 review M-3: success case removed (dead code post-D3); the
+            // disabled-payment notice is rendered inline in PaymentStep instead.
+            case 'payment': return (
+                <>
+                    {banner}
+                    {paymentPendingMessage && (
+                        <div
+                            role=\"alert\"
+                            data-testid=\"renewal-payment-pending\"
+                            className=\"mb-4 w-full rounded-xl border border-amber-200 bg-amber-50 px-5 py-3 text-sm font-medium text-amber-800\"
+                        >
+                            {paymentPendingMessage}
+                        </div>
+                    )}
+                    <PaymentStep renewalId={renewalId} isDark={isDark} onBack={() => setStep('invoice')} onConfirm={handlePaymentConfirm} />
+                </>
+            );
+            case 'invoice': return (
+                <>
+                    {banner}
+                    <InvoiceStep certificate={certificate} renewalId={renewalId} isDark={isDark} onBack={() => setStep('quotation')} onProceed={() => setStep('payment')} />
+                </>
+            );
+            case 'quotation': return (
+                <>
+                    {banner}
+                    <QuotationStep certificate={certificate} renewalId={renewalId} isDark={isDark} onBack={() => setStep('upload')} onProceed={() => setStep('invoice')} />
+                </>
+            );
+            default: return (
+                <>
+                    {banner}
+                    {renewalError && (
+                        <div className=\"mb-4 w-full rounded-xl bg-red-50 px-5 py-3 text-sm font-medium text-red-700\">
+                            {renewalError}
+                        </div>
+                    )}
+                    <UploadStep certificate={certificate} uploadedDocs={uploadedDocs} uploading={uploading} isDark={isDark} onUpload={handleUpload} onProceed={handleProceedToQuotation} />
+                </>
+            );
+        }
+    }
+
+    export default function RenewalPage() {
+        return <Suspense fallback={<RenewalLoadingFallback />}><RenewalContent /></Suspense>;
+    }
+    "
+
+    [0m [90m 122 |[39m
+     [90m 123 |[39m     it([32m'the wizard no longer uploads anything'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 124 |[39m         expect(clientView)[33m.[39mnot[33m.[39mtoContain([32m'draft-documents'[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 125 |[39m         expect(clientView)[33m.[39mnot[33m.[39mtoContain([32m'renewal-documents'[39m)[33m;[39m
+     [90m 126 |[39m         expect(clientView)[33m.[39mnot[33m.[39mtoContain([32m'UploadStep'[39m)[33m;[39m
+     [90m 127 |[39m     })[33m;[39m[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:124:32)
+
+  ● W12 — the document-upload step is out of the renewal wizard › the upload component file is gone
+
+    expect(received).toThrow()
+
+    Received function did not throw
+
+    [0m [90m 131 |[39m             resolve([33mWEB_SRC[39m[33m,[39m [32m'app/health/applications/renewal/upload-step.tsx'[39m)[33m,[39m
+     [90m 132 |[39m             [32m'utf8'[39m[33m,[39m
+    [31m[1m>[22m[39m[90m 133 |[39m         ))[33m.[39mtoThrow()[33m;[39m
+     [90m     |[39m            [31m[1m^[22m[39m
+     [90m 134 |[39m     })[33m;[39m
+     [90m 135 |[39m })[33m;[39m
+     [90m 136 |[39m[0m
+
+      at Object.<anonymous> (src/__tests__/renewal-endpoint-contract.test.ts:133:12)
+
+Test Suites: 1 failed, 1 total
+Tests:       9 failed, 2 passed, 11 total
+Snapshots:   0 total
+Time:        1.718 s, estimated 6 s
+Ran all test suites matching src/__tests__/renewal-endpoint-contract.test.ts.

@@ -1,0 +1,26 @@
+Task 1 fix round 1 GREEN (2026-09-30)
+
+Toolchain: Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d), Prisma 5.22.0.
+Real PG: throwaway postgres:17 127.0.0.1:5447 (r1-t1-pg), 145 migrations, removed after.
+Signing key mtime before/after: 1788623435 / 1788623435 (unchanged).
+
+1. The 3 RED files + every suite referencing farm-access or its callers (57 files):
+   Test Suites: 57 passed, 57 total · Tests: 565 passed, 565 total · 0 skipped
+   holder-access.test.js 59/59 · holder-marker-prisma-real-postgres.test.js 8/8 (real PG, 0 skipped)
+   - Prisma 5.22 ignores the symbol key whose value is now the frozen vouch list (not a boolean)
+   - spread-then-override on real PG reads unscoped; REVOKED membership grants nothing (4 seeded rows)
+   Existing expectations changed shape only: `markHolderScoped({ OR, isDeleted })` -> `{ ...markHolderScoped({ OR }), isDeleted }`
+   (the marker now vouches for the keys the fragment built, not for keys a caller adds).
+
+2. Mutation: drop `hasOwn(where, v.key) && where[v.key] === v.ref` from isMarked -> holder-access 13 failed / 46 passed
+   (the override/delete/forged cases); restored from backup, re-run green.
+
+3. Probes: ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0 · retired-words PASS · no-skip PASS ·
+   no-secret PASS · eslint clean on the 8 touched JS files.
+
+4. LOCAL_GATE_FULL=1 local-gate.sh: banned-terms/mojibake/green-mask PASS.
+   probe-gate FAIL: nginx-config-drift, deploy-drift (host/deploy state; both FAIL in main attestation 80876b57),
+   main-attestation-audit (origin/main history), gate-attestation (branch carries apps/ commits with no
+   full-gate attestation yet — attestation is the full-gate run, not this task).
+   unit-suite: Test Suites 1 failed, 47 skipped, 897 passed · Tests 15 failed, 339 skipped, 11905 passed
+   only failure = payer-block-matrix.test.js (no DB; logged in BACKLOG-FOUND.md), same as round 0.

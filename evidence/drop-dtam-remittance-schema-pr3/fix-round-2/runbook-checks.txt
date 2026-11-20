@@ -1,0 +1,30 @@
+PR3 fix round 2 — runbook commands run from the RAW .md (docs/operations/runbooks/deploy-pr3-drop-dtam-remittance-schema.md)
+scratch Postgres 17 on 127.0.0.1:5443 (random password, not printed, removed after) · 2026-09-30
+each case: env -i bash --noprofile --norc · the chain as written, with only: backup dir -> scratch, sudo -> no-op shim, docker --network host (to reach 127.0.0.1:5443), and migrate/up replaced by an echo
+
+== A. good dump (real pg_dump of a DB holding public.checkout_orders)
+backup ok: bk/20260929T174938Z_pre-pr3.sql.gz (4.0K)
+CHAIN CONTINUES -> migrate deploy would run now
+exit=0
+-rw------- bk/20260929T174938Z_pre-pr3.sql.gz
+
+== B. empty dump (pg_dump printed nothing; the .gz is ~20 bytes so test -s alone would pass)
+exit=1
+size=20
+
+== C. dump of the wrong database (no checkout_orders)
+exit=1
+
+== D. why 'command grep': in an agent shell, grep is a function that runs an embedded ugrep (type -t grep = function) · set -o pipefail · a good 2M-line dump
+grep here is: function (embedded ugrep)
+grep -c (function/ugrep): status=141
+grep -q (function/ugrep): status=141
+command grep -c: status=0
+
+== E. step 6 (psql -c, no heredoc), copied verbatim from the raw file · table: 1 SETTLED 5885=5885 + 1 legacy CANCELLED 885/5885
+stdout: 0   (expected 0 — CANCELLED legacy row exempt)
+negative control, + 1 SETTLED 885/5885 row -> stdout: 1   (expected 1)
+
+== F. step 0 source: the backend-demo health endpoint answers a revision (read-only GET, this box)
+keys include revision: true · revision = 8f0f99a25b39dadf499635c27a731a9fa5721eab
+git merge-base --is-ancestor dc0e3368 <that revision>: yes (exit 0) — demo backend already contains PR2 as of this check

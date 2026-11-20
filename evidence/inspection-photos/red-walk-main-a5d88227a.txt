@@ -1,0 +1,24 @@
+== walk red-main 2026-10-13T12:02:58Z audit=98fa007e-1929-45fa-ab97-c5ad612a5f7f photo=photo-1.jpg bytes=275853 sha256=d34d9f83a5da58efb35f5a79a2cfbfe668a1b5e06c30cd43571a429fc379f20a
+-- 0. GET /api/audit/onsite/98fa007e-1929-45fa-ab97-c5ad612a5f7f/context (inspector session)
+HTTP 404
+   success: false startedAt: null savedAnswers: 0 photoIds: 0
+-- 1. POST /api/audit/onsite/98fa007e-1929-45fa-ab97-c5ad612a5f7f/photo (multipart photo + gps json + itemId 1.1)
+HTTP 200
+   success: true code: - error: -
+   photoId: 059b1a36-7eb7-4907-a2fb-92e7cc876c75
+   url: /uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791892978192-photo-1.jpg
+   fileHash: d34d9f83a5da58efb35f5a79a2cfbfe668a1b5e06c30cd43571a429fc379f20a
+-- 2. POST /api/files/signed-url {fileUrl} (what the web SignedImage does)
+HTTP 200
+   success: true code: - error: -
+   minted: /uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791892978192-photo-1.jpg?exp=1791893278&sub=<masked>&sig=<masked> expiresAt: 2026-10-13T12:07:58.000Z
+-- 3. GET the signed url with no session (how <img src> loads it)
+HTTP 404 bytes 216 type text/html; charset=utf-8
+   body sha256: 40fbbf9385dd9722846ba0d8f6654c48ae21621a1b02dc25740a630f1ca60720
+-- 4. GET the stored url with the inspector session (unsigned)
+HTTP 404 bytes 216 type text/html; charset=utf-8
+-- 5. disk: files under apps/backend/public/uploads written since the upload
+   count: 0
+-- 6. database rows for this url
+   attachment: {"id":"1c6831cd-ad18-428b-bf67-7b70209c1b53","resModel":"FarmAuditPhoto","resId":"98fa007e-1929-45fa-ab97-c5ad612a5f7f","fileName":"photo-1.jpg","fileSize":275853,"fileHash":"d34d9f83a5da58efb35f5a79a2cfbfe668a1b5e06c30cd43571a429fc379f20a","mimeType":"image/jpeg"}
+   farmAuditPhoto: {"id":"059b1a36-7eb7-4907-a2fb-92e7cc876c75","fileHash":"d34d9f83a5da58efb35f5a79a2cfbfe668a1b5e06c30cd43571a429fc379f20a","checklistItemId":null}

@@ -1,0 +1,149 @@
+Task 4 — services/document-precheck/extract.js — RED evidence (summary, no raw jest log per task instructions)
+
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/extract.test.js
+Date: 2026-09-27 · Node v24.21.0 (nvm use 24) · HEAD 30d03ff9 (feat/document-precheck)
+
+Result: Test Suites: 1 failed, 1 total / Tests: 0 total
+Failure: "Cannot find module '../../../services/document-precheck/extract' from
+'__tests__/unit/document-precheck/extract.test.js'" — extract.js did not exist yet,
+exactly the expected RED per task-4-brief.md Step 2 ("Run the tests. Expected: FAIL.").
+
+apps/backend/keys/private.pem: not present in this worktree (only quarantine
+subdirs + README.md under apps/backend/keys/) — N/A, nothing to compare mtimes on.
+
+=== Fix round 1 (task-4-fix-round-1, on top of 9f05bf6b) ===
+
+Coordinator's blocker: the full gate runs `jest --config jest.config.cjs`
+with NODE_OPTIONS unset; the real RED is 9f05bf6b's extract.js under that
+exact command, not the module-missing RED above.
+
+Command: git stash (reverting to 9f05bf6b's extract.js) ->
+  SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs \
+    __tests__/unit/document-precheck/extract.test.js
+  (NODE_OPTIONS unset) -> git stash pop (fix restored)
+Date: 2026-09-27 · Node v24.21.0 (nvm use 24) · on top of 9f05bf6b
+
+Result: Test Suites: 1 failed, 1 total / Tests: 5 failed, 3 passed, 8 total
+(one more failure than the 4/8 first observed while writing 9f05bf6b — the
+5th, the timeout case, is the same root cause racing against a 1ms timer
+slightly differently run to run; every failure below is the identical
+message):
+  ✕ a text-layer PDF returns TEXT_LAYER and the page text contains the Thai phrase
+  ✕ an image-only PDF (scanned Thai page) returns OCR and reads the Thai phrase
+  ✕ extract-limits: a 60-page PDF reports pageCount 60, returns 10 pages, truncated true
+  ✕ an encrypted PDF returns NONE with no pages
+  ✕ extraction that exceeds timeoutMs rejects with code PRECHECK_TIMEOUT
+  ✓ a PNG image returns OCR / ✓ a 0-byte file / ✓ an unsupported mime type
+    (these three never call PDFParse at all — unaffected)
+Failure (all 5): "Setting up fake worker failed: \"A dynamic import callback
+was invoked without --experimental-vm-modules.\"" thrown from
+node_modules/.pnpm/pdf-parse@2.4.5/node_modules/pdfjs-dist/legacy/build/pdf.mjs
+— confirms the coordinator's blocker exactly: green only with a hand-set
+NODE_OPTIONS flag was red on the real gate command.
+
+Option 1 checked and rejected (read the actual code, not guessed — see
+pdf-extract-worker.js's header comment for the full trail): pdf-parse v2's
+`LoadParameters` has no `disableWorker` field; `PDFParse.setWorker(src)`
+only rewrites the URL fed into the same `import()` call, it does not remove
+it; `GlobalWorkerOptions.workerPort`'s setter throws unless given a real
+`Worker` instance, which itself would need to be constructed via that same
+import(). Grepped dist/pdf-parse/cjs/index.cjs directly for
+`disableWorker`/`workerPort`/`setWorker` to confirm — none avoid the dynamic
+import.
+
+Fix (Option 2, per coordinator's order of preference): extract.js now forks
+a child `node` process (`pdf-extract-worker.js`) for every PDF; only that
+child calls PDFParse's getInfo/getText/getScreenshot. A forked process is a
+plain `node <file>` invocation, outside Jest's module sandbox entirely — the
+same runtime production already uses. extract.js no longer requires
+`pdf-parse` at all.
+
+=== Fix round 2 (task-4-review.md, on top of c646bf29) ===
+
+Command: git stash push -- (the 4 production files only, not extract.test.js
+  or the new pdf-raster-scale.js) -> SIGNING_KEY_DIR=$(mktemp -d)
+  timeout 120 npx jest --config jest.config.cjs
+  __tests__/unit/document-precheck/extract.test.js (NODE_OPTIONS unset) ->
+  git stash pop (fix restored)
+Date: 2026-09-27 · Node v24.21.0 (nvm use 24) · on top of c646bf29 for
+  extract.js/pdf-extract-worker.js/tesseract-service.js/tessdata.js; the test
+  file (with every Fix-round-2 assertion already written) and the new
+  pure pdf-raster-scale.js were left in place — c646bf29's tree cannot run
+  these new assertions at all (pdf-raster-scale.js did not exist there), so
+  this is the closest real "against c646bf29" RED for code that did not
+  exist yet, same technique as Fix round 1's own RED capture.
+
+Result: outer `timeout 120` had to SIGKILL the whole run at 120s even though
+Jest's own summary (printed at 62.73s, before something kept the process
+alive past that) reports Test Suites: 1 failed, 1 total / Tests: 3 failed,
+10 passed, 13 total. The 8 original + Minor 5 (timeout-mid-flight child
+cleanup) passed unchanged — Fix round 1 already killed the child correctly
+on timeout, so Minor 5 is a new regression guard, not a case this round's
+bugs broke. Three failed exactly as the review predicted:
+
+  ✕ I1: a timed-out call does not corrupt a concurrent call's own OCR worker
+    "Exceeded timeout of 30000 ms for a test." — the legitimate, concurrent
+    call never resolved: the timing-out call's unconditional
+    tesseractService.terminate() (the pre-fix shared module singleton) tore
+    down the OTHER call's in-flight OCR worker too, exactly as
+    task-4-review.md Important #1 describes ("its `finally terminate()` ...
+    can tear down a worker that another extraction is using").
+
+  ✕ I2: a missing tessdata directory makes OCR reject, not silently return
+    an unreadable page — TWO distinct failures on the SAME test, both real:
+    (a) "Error: ENOENT: no such file or directory, open
+    '/tmp/empty-tessdata-.../eng.traineddata'" thrown from
+    node_modules/tesseract.js/src/createWorker.js:217 — an UNCAUGHT
+    exception (not a rejected promise) crashing the pre-fix worker's message
+    loop, worse than the review's own diagnosis of "returns an unreadable
+    page"; (b) the same test ALSO "Exceeded timeout of 30000 ms" — even past
+    that crash, `Tesseract.createWorker()`'s returned promise never actually
+    settles for a `loadLanguage` failure (verified separately with a
+    `node -e` reproduction against 9f05bf6b/c646bf29's tessdata.js/
+    tesseract-service.js unchanged since: 15-20s real hangs, no output, no
+    crash, no rejection — see tessdata.js's Fix round 2 comment for the
+    upstream root cause).
+
+  ✕ I3: a 1-page PDF declaring a 14400x14400pt MediaBox extracts
+    successfully — "Create skia surface failed" (pdf-parse's Node canvas
+    backend refusing to allocate the ~28800x28800px canvas the pre-fix fixed
+    `scale:2` asked for) — the exact resource-exhaustion the review
+    predicted, surfacing as a clean-ish error here rather than a true OOM,
+    but broken either way: the fixed code returns a real OCR page for the
+    same fixture (see test-output.txt).
+
+Fix: see extract.js/pdf-extract-worker.js/pdf-raster-scale.js/
+tesseract-service.js/tessdata.js's own Fix round 2 comments (summarized in
+task-4-report.md).
+
+=== Fix round 4 (task-4-rereview-1.md Important #1: worker leak on terminate during createWorker) ===
+HEAD 6d73a33d + new test only · Node v24.21.0 · NODE_OPTIONS unset · SIGNING_KEY_DIR=$(mktemp -d)
+Command: npx jest --config jest.config.cjs __tests__/unit/document-precheck/tesseract-terminate-race.test.js
+(summary: test-name/assertion/count lines only)
+### TZ=default
+    ✕ the worker createWorker resolves with is terminated and no scheduler is left (13 ms)
+    ✕ extractDocument timing out during createWorker() rejects PRECHECK_TIMEOUT and still terminates the late worker (108 ms)
+    Expected number of calls: 1
+    Received number of calls: 0
+    Expected number of calls: 1
+    Received number of calls: 0
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+### TZ=UTC
+    ✕ the worker createWorker resolves with is terminated and no scheduler is left (18 ms)
+    ✕ extractDocument timing out during createWorker() rejects PRECHECK_TIMEOUT and still terminates the late worker (109 ms)
+    Expected number of calls: 1
+    Received number of calls: 0
+    Expected number of calls: 1
+    Received number of calls: 0
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+### TZ=America/Los_Angeles
+    ✕ the worker createWorker resolves with is terminated and no scheduler is left (18 ms)
+    ✕ extractDocument timing out during createWorker() rejects PRECHECK_TIMEOUT and still terminates the late worker (109 ms)
+    Expected number of calls: 1
+    Received number of calls: 0
+    Expected number of calls: 1
+    Received number of calls: 0
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total

@@ -1,0 +1,101 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/m2a-revision-formdata-ownership.test.js
+  submitRevision — the applicant may not write server-owned keys (F2)
+    √ a forged serverRequirementSnapshot in the request body does not reach the column — the stored stamp survives (8 ms)
+    √ an application with NO stamp does not acquire one from the request body (2 ms)
+    √ the other server-owned keys are refused by the same one rule, not by a list of special cases (2 ms)
+    √ applicant answers already stored survive a partial resubmit (3 ms)
+  submitRevision — a door may record server truth through serverFormDataPatch
+    √ the patch is persisted (this is how the fifth door stamps a DRAFT first submit) (3 ms)
+    √ the patch outranks a forged key sent in the same request (1 ms)
+    √ the patch cannot rewrite the lifecycle keys the method owns itself (2 ms)
+    √ omitting the fourth argument changes nothing (2 ms)
+
+PASS __tests__/unit/m2a-doc-requirements-doors.test.js
+  M2a — POST /submit, DRAFT branch = first submit
+    √ JURISTIC with no company registration on file → 422, and NOTHING is written (83 ms)
+    √ a client flag cannot buy the way in — documents[].uploaded stays worthless at the door (AC2) (12 ms)
+    √ with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers (13 ms)
+    √ the idempotent early return stays idempotent — an already-submitted application is never re-judged (11 ms)
+  M2a — POST /submit, REVISION_REQUESTED / CAR_PENDING branch = resubmit
+    √ judges by the stamp, not by todays law — a rule filed later cannot 422 it (AC3) (12 ms)
+    √ the stamped set is still enforced on resubmit → 422 before any write (11 ms)
+    √ an application filed before M2a carries no stamp — it is let through, not refused (11 ms)
+  M2a — POST /bundles/:id/submit
+    √ one linked case short of a document refuses the WHOLE bundle → 422, no transaction opened (17 ms)
+    √ every linked case is stamped inside the existing transaction, applicant data intact (13 ms)
+    √ the linked-case projection loads formData — without it the door would stamp over an empty blob (12 ms)
+  M2a — POST /applications/:id/car (resubmit)
+    √ a stamped slot the server cannot see → 422, no status write (22 ms)
+    √ stamped and satisfied → the CAR resubmit proceeds, judged by the stamp alone (12 ms)
+  M2a — PUT /revision-deadline/:id/submit
+    √ an applicant missing a stamped document → 422, the deadline row is untouched (15 ms)
+    √ the projection now carries formData and status — the check has nothing to read without them (11 ms)
+    √ the provider bypass skips the document check entirely, exactly as it skips the entity check (10 ms)
+    √ applicant with the stamped document on file → 200 (10 ms)
+  M2a — PUT /applications/:id/revision
+    √ a stamped slot the server cannot see → 422, submitRevision never runs (15 ms)
+    √ satisfied → the revision goes through, judged by the stamp (23 ms)
+    √ a DRAFT here is a FIRST submit — todays law is read and the missing document is refused (11 ms)
+    √ a satisfied DRAFT is stamped BY THE DOOR — the snapshot travels as server data, not as client formData (11 ms)
+    √ a REVISION_REQUESTED row is still judged by its stamp, and carries no fresh stamp (11 ms)
+  M2a — the applicant cannot write the stamp through /prepare
+    √ both M2 snapshot keys are declared server-owned (1 ms)
+    √ a full-replacement merge keeps the stored stamp, whatever the client sends (1 ms)
+    √ POST /prepare strips a forged stamp at the edge — the stored one survives (11 ms)
+
+PASS __tests__/unit/admin-requirement-rules-routes.test.js
+  the surface is admin-only — and mounted (both proven by one request)
+    √ document_reviewer cannot read the rules (403, no query fired) (14 ms)
+    √ scheduler cannot read the rules (403, no query fired) (11 ms)
+    √ auditor cannot read the rules (403, no query fired) (10 ms)
+    √ account_dtam cannot read the rules (403, no query fired) (23 ms)
+    √ health cannot read the rules (403, no query fired) (10 ms)
+    √ document_reviewer cannot write a rule (403, nothing created, nothing audited) (13 ms)
+    √ scheduler cannot write a rule (403, nothing created, nothing audited) (9 ms)
+    √ auditor cannot write a rule (403, nothing created, nothing audited) (10 ms)
+    √ account_dtam cannot write a rule (403, nothing created, nothing audited) (10 ms)
+    √ health cannot write a rule (403, nothing created, nothing audited) (10 ms)
+    √ document_reviewer cannot close a rule (403, no update) (10 ms)
+    √ scheduler cannot close a rule (403, no update) (9 ms)
+    √ auditor cannot close a rule (403, no update) (15 ms)
+    √ account_dtam cannot close a rule (403, no update) (9 ms)
+    √ health cannot close a rule (403, no update) (10 ms)
+    √ an anonymous caller gets 401, not 403 (auth sits before the admin gate) (26 ms)
+  GET / — the law as of a date
+    √ returns the rules in force NOW by default (open window, deterministic order) (12 ms)
+    √ ?at= asks the question as of THAT instant, not now (10 ms)
+    √ ?includeClosed=true drops the window so retired rules stay readable (AC3) (9 ms)
+    √ ?at=garbage is refused (400) instead of silently answering about now (11 ms)
+  POST / — new law enters as a row
+    √ 201: the row is created under the caller and an audit row is emitted (11 ms)
+    √ a slot written through an old alias is stored canonical (LAND_TITLE → land_deed) (11 ms)
+    √ all three dimensions omitted = a rule that binds everyone (201, NULLs stored) (9 ms)
+    √ an explicit null dimension is accepted the same way (9 ms)
+    √ an unknown slot is refused (400) — a law about a slot that does not exist can never fire (11 ms)
+    √ a missing slot is refused (400) (9 ms)
+    √ an unknown holderType is refused (400) and the answer names the accepted set (10 ms)
+    √ 'RENEW' is refused (400): the vocabulary is NEW/RENEWAL/REPLACEMENT and gets no fifth word (10 ms)
+    √ NEW is accepted (9 ms)
+    √ RENEWAL is accepted (9 ms)
+    √ REPLACEMENT is accepted (9 ms)
+    √ INDIVIDUAL is accepted (9 ms)
+    √ JURISTIC is accepted (12 ms)
+    √ COMMUNITY_ENTERPRISE is accepted (9 ms)
+    √ a per-plant rule is refused (400) instead of being filed as law that can never fire (10 ms)
+    √ the refusal says WHY, so the admin does not simply retype it (10 ms)
+    √ plantCode null still means "every plant" (201) (9 ms)
+    √ plantCode "" still means "every plant" (201) (10 ms)
+    √ an unparsable effectiveFrom surfaces as 400, not 500 (10 ms)
+    √ a DB failure is a 500 that leaks no internals (10 ms)
+  POST /:id/close — retiring a rule is the only touch a row ever gets
+    √ 200: exactly effectiveTo/closedBy/closedAt are written, plus an audit row (10 ms)
+    √ closing a rule that was already closed is a 409, not a second stamp (10 ms)
+    √ closing a rule that does not exist is a 404 (9 ms)
+    √ there is no route that edits a rule body — PUT/PATCH/DELETE do not exist (29 ms)
+
+Test Suites: 3 passed, 3 total
+Tests:       76 passed, 76 total
+Snapshots:   0 total
+Time:        4.727 s, estimated 5 s
+Ran all test suites within paths "__tests__/unit/m2a-doc-requirements-doors.test.js", "__tests__/unit/m2a-revision-formdata-ownership.test.js", "__tests__/unit/admin-requirement-rules-routes.test.js".

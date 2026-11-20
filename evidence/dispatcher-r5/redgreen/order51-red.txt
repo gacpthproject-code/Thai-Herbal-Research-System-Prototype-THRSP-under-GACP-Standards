@@ -1,0 +1,790 @@
+FAIL src/__tests__/truthful-copy/dispatcher-screens-speak-thai.test.ts
+  the dispatcher's screens speak Thai
+    ✕ the calendar kicker is Thai (5 ms)
+    ✕ the staff notification groups name no English term or design record (3 ms)
+
+  ● the dispatcher's screens speak Thai › the calendar kicker is Thai
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /eyebrow="[A-Z ]+"/
+    Received string:      "\"use client\";
+
+    import { useCallback, useEffect, useMemo, useRef, useState } from \"react\";
+
+    import { Button } from '@/components/ui/primitives/button';
+    import { Card } from '@/components/ui/primitives/card';
+    import { Spinner } from '@/components/ui/spinner';
+    import { Tabs, TabsList, TabsTrigger } from '@/components/ui/primitives/tabs';
+
+    import {
+        IconAlertCircle,
+        IconCalendar,
+        IconClock,
+        IconRefresh,
+        IconMapPin,
+    } from \"@tabler/icons-react\";
+    import { notifications } from '@/lib/notifications';
+    import ProviderLayout from \"../components/provider-layout\";
+    import { SummaryHeader } from '@/components/feature/summary-header';
+    import { apiClient as api } from \"@/lib/api\";
+    import { providerApiPaths } from \"@/lib/services/provider-api\";
+    import { formatThaiDate, thaiDayOfMonth } from \"@/lib/format/thai-date\";
+    import { getStatusLabel } from \"@/lib/constants/workflow-states\";
+
+    import {
+        type SchedulerQueueItem,
+        type SchedulerDashboardData,
+        type AuditorOption,
+        EMPTY_DASHBOARD,
+    } from \"./calendar-types\";
+    import { ScheduleModal } from \"./schedule-modal\";
+    import { evidenceWarningFrom, type ScheduleAnswer } from \"./schedule-evidence\";
+    import { resolveMapViewerUrl } from \"@/lib/config/map-tiles\";
+    import type { DispatcherApplicationDetail } from \"../coordinator/coordinator-types\";
+    import {
+        reasonAskedBy, useDispatcherReasons, type ReasonListKey, type StatedReason, type StatedReasons,
+    } from \"@/components/provider/dispatch/stated-reason\";
+
+    export default function PROVIDERCalendarPage() {
+        const [isLoading, setIsLoading] = useState(true);
+        const [isSubmitting, setIsSubmitting] = useState(false);
+        const [dashboard, setDashboard] = useState<SchedulerDashboardData>(EMPTY_DASHBOARD);
+        const [auditors, setAuditors] = useState<AuditorOption[]>([]);
+        const [activeQueue, setActiveQueue] = useState<string>(\"ready\");
+        const [opened, setOpened] = useState(false);
+        const [selectedItem, setSelectedItem] = useState<SchedulerQueueItem | null>(null);
+        const [scheduleDate, setScheduleDate] = useState<Date | null>(new Date());
+        const [scheduleTime, setScheduleTime] = useState(\"09:00\");
+        // The backend's answer to a booking says whether the visit can lead to a certificate
+        // (canLeadToCertificate / evidenceNote). Kept on the page until dismissed.
+        const [evidenceWarning, setEvidenceWarning] = useState<string | null>(null);
+        const [mapLink, setMapLink] = useState(\"\");
+        const [location, setLocation] = useState(\"\");
+        const [auditorId, setAuditorId] = useState<string | null>(null);
+        const [notes, setNotes] = useState(\"\");
+        const [estimatedDuration, setEstimatedDuration] = useState<number>(120);
+        // The application whose form is open: a site lookup answers only that one (security review 2026-10-09 J3).
+        const formFor = useRef<string | null>(null);
+        // Reasons the server asked for this booking: past the inspector's cap, after the inspection due date (order 56(1)).
+        const reasonLists = useDispatcherReasons();
+        const [askedReasons, setAskedReasons] = useState<ReasonListKey[]>([]);
+        const [statements, setStatements] = useState<StatedReasons>({});
+        const setStatement = (list: ReasonListKey, reason: StatedReason) => setStatements((current) => ({ ...current, [list]: reason }));
+
+        const fetchDashboard = useCallback(async () => {
+            setIsLoading(true);
+            try {
+                const [dashboardResponse, auditorResponse] = await Promise.all([
+                    api.get<SchedulerDashboardData>(providerApiPaths.schedulerDashboard(\"?limit=100\")),
+                    api.get<AuditorOption[]>(providerApiPaths.schedulerAuditors()),
+                ]);
+
+                if (dashboardResponse.success && dashboardResponse.data) {
+                    setDashboard(dashboardResponse.data);
+                } else {
+                    setDashboard(EMPTY_DASHBOARD);
+                }
+
+                if (auditorResponse.success && Array.isArray(auditorResponse.data)) {
+                    setAuditors(auditorResponse.data);
+                } else {
+                    setAuditors([]);
+                }
+            } catch (error: unknown) {
+                console.error(\"[scheduler-dashboard] load failed\", error);
+                setDashboard(EMPTY_DASHBOARD);
+                setAuditors([]);
+                notifications.show({
+                    color: \"red\",
+                    title: \"โหลดไม่สำเร็จ\",
+                    message: \"ไม่สามารถโหลดข้อมูลแดชบอร์ดจัดตารางได้\",
+                    icon: <IconAlertCircle size={16} />,
+                });
+            } finally {
+                setIsLoading(false);
+            }
+        }, []);
+
+        useEffect(() => {
+            fetchDashboard();
+        }, [fetchDashboard]);
+
+        const queueItems = useMemo(() => {
+            if (activeQueue === \"scheduled\") {
+                return dashboard.queues.scheduledUpcoming.items;
+            }
+            if (activeQueue === \"reinspection\") {
+                return dashboard.queues.reinspectionRequired.items;
+            }
+            return dashboard.queues.readyToSchedule.items;
+        }, [activeQueue, dashboard]);
+
+        const auditorOptions = useMemo(
+            () => auditors.map((auditor) => ({
+                value: auditor.id,
+                label: auditor.fullName,
+            })),
+            [auditors],
+        );
+
+        const openScheduleModal = (item: SchedulerQueueItem) => {
+            // A second visit is a new date for the visit already held; the first one's date is past.
+            const keepsDate = Boolean(item.scheduledDate) && !item.isReinspectionRequired;
+            const eventDate = keepsDate && item.scheduledDate ? new Date(item.scheduledDate) : new Date();
+            setSelectedItem(item);
+            setScheduleDate(eventDate);
+            setScheduleTime(keepsDate
+                ? `${String(eventDate.getHours()).padStart(2, \"0\")}:${String(eventDate.getMinutes()).padStart(2, \"0\")}`
+                : \"09:00\");
+            setMapLink(item.mapLink || \"\");
+            setLocation(item.location || \"\");
+            setAuditorId(item.auditorId || null);
+            setNotes(item.notes || \"\");
+            setEstimatedDuration(item.estimatedDuration || 120);
+            setAskedReasons([]);
+            setStatements({});
+            formFor.current = item.applicationId;
+            setOpened(true);
+            // The site of this application, so the dispatcher does not type the address (audit D11).
+            if (!item.location && !item.mapLink) {
+                api.get<DispatcherApplicationDetail>(`/api/provider/scheduler/applications/${encodeURIComponent(item.applicationId)}`).then((res) => {
+                    const summary = res.success ? res.data?.summary : null;
+                    if (!summary || formFor.current !== item.applicationId) { return; }
+                    setLocation((current) => current || [summary.farmName, summary.farmAddress].filter(Boolean).join(\" \"));
+                    if (summary.farmLatitude !== null && summary.farmLongitude !== null) {
+                        const viewer = resolveMapViewerUrl(summary.farmLatitude, summary.farmLongitude);
+                        if (viewer) { setMapLink((current) => current || viewer); }
+                    }
+                });
+            }
+        };
+
+        const submitSchedule = async () => {
+            if (!selectedItem || !scheduleDate || !scheduleTime || !auditorId) {
+                return;
+            }
+
+            const datePart = scheduleDate.toISOString().split(\"T\")[0];
+            const scheduledAt = new Date(`${datePart}T${scheduleTime}:00`);
+            if (Number.isNaN(scheduledAt.getTime())) {
+                notifications.show({ color: \"red\", title: \"วันที่ไม่ถูกต้อง\", message: \"กรุณาเลือกวันและเวลาที่ถูกต้อง\" });
+                return;
+            }
+
+            if (!mapLink.trim() && !location.trim()) {
+                notifications.show({ color: \"red\", title: \"ยังไม่มีสถานที่\", message: \"การตรวจพื้นที่ต้องระบุลิงก์แผนที่หรือสถานที่\" });
+                return;
+            }
+
+            setIsSubmitting(true);
+            try {
+                const response = await api.post<ScheduleAnswer>(providerApiPaths.schedulerAuditSchedules, {
+                    applicationId: selectedItem.applicationId,
+                    auditorId,
+                    scheduledDate: scheduledAt.toISOString(),
+                    mapLink: mapLink.trim() || undefined,
+                    location: location.trim() || undefined,
+                    notes: notes.trim() || undefined,
+                    estimatedDuration,
+                    ...statements,
+                });
+
+                if (!response.success) {
+                    const asked = reasonAskedBy(response);
+                    if (asked && !askedReasons.includes(asked)) {
+                        setAskedReasons((current) => [...current, asked]);
+                        return;
+                    }
+                    notifications.show({ color: \"red\", title: \"บันทึกนัดหมายไม่สำเร็จ\", message: response.error || \"ไม่สามารถบันทึกนัดหมายได้\" });
+                    return;
+                }
+
+                notifications.show({
+                    color: \"teal\",
+                    title: selectedItem.isReinspectionRequired ? \"นัดลงพื้นที่ซ้ำแล้ว\" : selectedItem.scheduledDate ? \"เลื่อนนัดตรวจแล้ว\" : \"นัดหมายการตรวจแล้ว\",
+                    message: `อัปเดตคำขอ ${selectedItem.applicationNumber} แล้ว`,
+                });
+                setEvidenceWarning(evidenceWarningFrom(response.data, selectedItem.applicationNumber));
+                setOpened(false);
+                await fetchDashboard();
+            } catch (error: unknown) {
+                console.error(\"[scheduler-dashboard] submit failed\", error);
+                notifications.show({ color: \"red\", title: \"บันทึกนัดหมายไม่สำเร็จ\", message: \"เกิดข้อผิดพลาดระหว่างบันทึกนัดหมาย กรุณาลองใหม่อีกครั้ง\" });
+            } finally {
+                setIsSubmitting(false);
+            }
+        };
+
+        if (isLoading) {
+            return (
+                <ProviderLayout title=\"แดชบอร์ดนัดตรวจ\" subtitle=\"คิว ปฏิทิน และตัวชี้วัด\">
+                    <div className=\"flex items-center justify-center\">
+                        <Spinner color=\"teal\" />
+                    </div>
+                </ProviderLayout>
+            );
+        }
+
+        return (
+            <ProviderLayout>
+                <div className=\"space-y-6\">
+                    {/* ui_kit reskin (Wave, 2026-06-09): two-column Calendar/Agenda
+                        layout, leaf-icon rows, status chips. Data/logic/i18n unchanged.
+
+                        Minimal-redesign pass (2026-07-24): the header was a full-bleed
+                        dark-green gradient hero with shadow-xl (the X3-FIX-B H-8 brand
+                        cue). It is now the same plain hairline card the COORDINATOR
+                        (B2) and AUDITS (B3) landings already use — the KPI strip
+                        stays, the gradient and drop shadow go. */}
+                    {evidenceWarning && (
+                        <div
+                            role=\"alert\"
+                            data-testid=\"schedule-evidence-warning\"
+                            className=\"flex items-start justify-between gap-4 rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive\"
+                        >
+                            <p className=\"min-w-0 flex-1 font-semibold\">{evidenceWarning}</p>
+                            <Button size=\"sm\" variant=\"outline\" onClick={() => setEvidenceWarning(null)}>
+                                รับทราบ
+                            </Button>
+                        </div>
+                    )}
+                    <SummaryHeader
+                        eyebrow=\"SCHEDULING\"
+                        title=\"แดชบอร์ดนัดตรวจ\"
+                        description=\"จัดการนัดหมายการตรวจพื้นที่ GACP\"
+                        metrics={[
+                            { label: \"นัดวันนี้\", value: (dashboard.kpi?.scheduledToday ?? 0).toString() },
+                            { label: \"นัดสัปดาห์นี้\", value: (dashboard.kpi?.scheduledThisWeek ?? 0).toString() },
+                            { label: \"รอนัดตรวจ\", value: (dashboard.kpi?.pendingScheduling ?? 0).toString() },
+                            { label: \"รอลงพื้นที่ซ้ำ\", value: (dashboard.kpi?.reinspectionBacklog ?? 0).toString() },
+                        ]}
+                        actions={
+                            <Button
+                                variant=\"outline\"
+                                onClick={() => fetchDashboard()}
+                            >
+                                <IconRefresh className=\"mr-2 h-4 w-4\" aria-hidden=\"true\" focusable=\"false\" />
+                                รีเฟรช
+                            </Button>
+                        }
+                    />
+
+                    <div className=\"grid grid-cols-1 gap-6 lg:grid-cols-2\">
+                        <Card className=\"p-5 sm:p-6\">
+                            <div className=\"mb-6\">
+                                <Tabs value={activeQueue} onValueChange={(value) => setActiveQueue(value || \"ready\")} className=\"w-full\">
+                                    {/* Plain segmented control (primitive defaults):
+                                        muted track, hairline-radius, active tab on the
+                                        card surface — not a mint pill row. */}
+                                    <TabsList className=\"grid w-full grid-cols-3 rounded-lg\">
+                                        <TabsTrigger value=\"ready\" className=\"justify-center rounded-md\">
+                                            รอนัด ({dashboard.queues.readyToSchedule.total})
+                                        </TabsTrigger>
+                                        <TabsTrigger value=\"scheduled\" className=\"justify-center rounded-md\">
+                                            นัดแล้ว ({dashboard.queues.scheduledUpcoming.total})
+                                        </TabsTrigger>
+                                        <TabsTrigger value=\"reinspection\" className=\"justify-center rounded-md\">
+                                            ลงพื้นที่ซ้ำ ({dashboard.queues.reinspectionRequired.total})
+                                        </TabsTrigger>
+                                    </TabsList>
+                                </Tabs>
+                            </div>
+
+                            <div className=\"space-y-3\">
+                                {queueItems.map((item) => (
+                                    <div
+                                        className=\"group flex flex-col gap-3 rounded-lg border border-border p-4 transition-colors hover:bg-muted/40 md:flex-row md:items-center md:justify-between\"
+                                        key={item.id}
+                                    >
+                                        {/* The per-row leaf badge carried no information — every
+                                            row showed the same glyph — so the row now leads with
+                                            the application number. */}
+                                        <div className=\"flex min-w-0 flex-1 items-start gap-3\">
+                                            <div className=\"min-w-0 flex-1 space-y-1\">
+                                                <p className=\"text-[11px] font-semibold text-muted-foreground\">
+                                                    {item.applicationNumber}
+                                                </p>
+                                                <p className=\"font-bold text-foreground\">{item.applicantName}</p>
+                                                <div className=\"mt-1 flex flex-wrap items-center gap-2\">
+                                                    {/* Minimal-redesign pass: raw slate/sky/red pill
+                                                        fills + leading status dots removed. The dot
+                                                        duplicated the label beside it, and the fills
+                                                        were off-token. Only the overdue chip keeps a
+                                                        tint, because that one is the exception. */}
+                                                    <span className=\"inline-flex items-center rounded-md border border-border px-2 py-0.5 text-[11px] font-semibold text-muted-foreground\">
+                                                        {getStatusLabel(item.workflowState)}
+                                                    </span>
+                                                    {item.overdueDays > 0 && (
+                                                        <span className=\"inline-flex items-center rounded-md bg-destructive/10 px-2 py-0.5 text-[11px] font-semibold text-destructive\">
+                                                            เกินกำหนด {item.overdueDays} วัน
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                {item.scheduledDate && (
+                                                    <div className=\"mt-2 flex items-center gap-1.5 text-xs text-muted-foreground\">
+                                                        <IconClock size={14} aria-hidden=\"true\" focusable=\"false\" />
+                                                        {new Date(item.scheduledDate).toLocaleString('th-TH')}
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <Button
+                                            size=\"sm\"
+                                            className=\"shrink-0\"
+                                            onClick={() => openScheduleModal(item)}
+                                        >
+                                            {item.isReinspectionRequired ? \"นัดลงพื้นที่ซ้ำ\" : item.scheduledDate ? \"เลื่อนนัด\" : \"จัดคู่นัดตรวจ\"}
+                                        </Button>
+                                    </div>
+                                ))}
+                                {queueItems.length === 0 && (
+                                    <div className=\"flex flex-col items-center justify-center rounded-lg border border-dashed border-border py-12 text-center text-muted-foreground\">
+                                        <span className=\"mb-3 text-muted-foreground\">
+                                            <IconCalendar size={24} aria-hidden=\"true\" focusable=\"false\" />
+                                        </span>
+                                        <p className=\"text-sm\">ไม่มีรายการในคิวนี้</p>
+                                    </div>
+                                )}
+                            </div>
+                        </Card>
+
+                        <div className=\"space-y-6\">
+                            <Card className=\"p-5 sm:p-6\">
+                                {/* Section heading: plain small icon + label, not a 40px
+                                    tinted icon tile. */}
+                                <div className=\"mb-6 flex items-center gap-2\">
+                                    <IconCalendar size={16} className=\"text-muted-foreground\" aria-hidden=\"true\" focusable=\"false\" />
+                                    <h3 className=\"font-semibold text-foreground\">ปฏิทินนัดตรวจ</h3>
+                                </div>
+
+                                <div className=\"space-y-3\">
+                                    {dashboard.calendar.events.slice(0, 8).map((event) => (
+                                        <div className=\"flex items-start gap-4 rounded-lg border border-border p-4 transition-colors hover:bg-muted/40\" key={`${event.applicationId}-${event.scheduledDate}`}>
+                                            {/* Date stamp: no nested white card / shadow inside the
+                                                row, no uppercase on the Thai month abbreviation, and
+                                                no font-black. Plain type hierarchy. */}
+                                            <div className=\"flex min-w-[60px] flex-col items-center justify-center\">
+                                                <p className=\"text-[11px] text-muted-foreground\">
+                                                    {formatThaiDate(event.scheduledDate, { month: 'short' }, '—')}
+                                                </p>
+                                                <p className=\"text-xl font-semibold tabular-nums text-foreground\">
+                                                    {thaiDayOfMonth(event.scheduledDate)}
+                                                </p>
+                                            </div>
+                                            <div className=\"flex-1 space-y-1\">
+                                                <p className=\"text-[11px] font-semibold text-muted-foreground\">
+                                                    {event.applicationNumber}
+                                                </p>
+                                                <p className=\"font-bold leading-tight text-foreground\">{event.applicantName}</p>
+                                                <p className=\"text-xs text-muted-foreground\">
+                                                    ผู้ตรวจ: {event.auditorName || '-'}
+                                                </p>
+                                                <div className=\"mt-2 flex flex-wrap items-center gap-2\">
+                                                    {event.mapLink && (
+                                                        <Button href={event.mapLink} target=\"_blank\" size=\"sm\" variant=\"white\" className=\"min-h-[44px] min-w-[44px] text-xs\">
+                                                            <IconMapPin size={12} className=\"mr-1\" aria-hidden=\"true\" focusable=\"false\" /> แผนที่
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    ))}
+                                    {dashboard.calendar.events.length === 0 && (
+                                        <p className=\"py-8 text-center text-sm italic text-muted-foreground\">
+                                            ไม่มีรายการนัดตรวจ
+                                        </p>
+                                    )}
+                                </div>
+                            </Card>
+
+                        </div>
+                    </div>
+                </div>
+
+                <ScheduleModal
+                    opened={opened}
+                    setOpened={setOpened}
+                    selectedItem={selectedItem}
+                    scheduleDate={scheduleDate}
+                    setScheduleDate={(date) => { setScheduleDate(date); setAskedReasons([]); setStatements({}); }}
+                    scheduleTime={scheduleTime}
+                    setScheduleTime={setScheduleTime}
+                    auditorId={auditorId}
+                    setAuditorId={(id) => { setAuditorId(id); setAskedReasons([]); setStatements({}); }}
+                    auditorOptions={auditorOptions}
+                    mapLink={mapLink}
+                    setMapLink={setMapLink}
+                    location={location}
+                    setLocation={setLocation}
+                    notes={notes}
+                    setNotes={setNotes}
+                    estimatedDuration={estimatedDuration}
+                    setEstimatedDuration={setEstimatedDuration}
+                    submitSchedule={submitSchedule}
+                    isSubmitting={isSubmitting}
+                    reasonLists={reasonLists}
+                    askedReasons={askedReasons}
+                    statements={statements}
+                    setStatement={setStatement}
+                />
+            </ProviderLayout>
+        );
+    }
+
+    "
+
+      14 | describe('the dispatcher\'s screens speak Thai', () => {
+      15 |     it('the calendar kicker is Thai', () => {
+    > 16 |         expect(read('app/provider/calendar/client-view.tsx')).not.toMatch(/eyebrow="[A-Z ]+"/);
+         |                                                                   ^
+      17 |     });
+      18 |
+      19 |     it('the staff notification groups name no English term or design record', () => {
+
+      at Object.<anonymous> (src/__tests__/truthful-copy/dispatcher-screens-speak-thai.test.ts:16:67)
+
+  ● the dispatcher's screens speak Thai › the staff notification groups name no English term or design record
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "Work Queue"
+    Received string:        "\"use client\";
+
+    import { useCallback, useEffect, useState } from 'react';
+    import { Button } from '@/components/ui/primitives/button';
+    import { Card } from '@/components/ui/primitives/card';
+    import { Spinner } from '@/components/ui/spinner';
+    import { AlertCircle, Save } from 'lucide-react';
+    import { notifications } from '@/lib/notifications';
+    import { apiClient } from '@/lib/api/api-client';
+    import { SummaryHeader } from '@/components/feature/summary-header';
+
+    // External-services cleanup, Task 4 (2026-08-19): the email/SMS channel
+    // concept is gone from the backend — notification-preferences-service.js
+    // only tracks an `inApp` toggle per notification type now (business
+    // email/SMS dispatch was retired in Tasks 1-3; see
+    // shared/notification-view.js:16-19 for the operator decision this
+    // executes). This UI drops the email/SMS columns to match. A stored or
+    // in-flight payload may still carry legacy `email`/`sms` sub-keys from
+    // before the cleanup — they are simply never read or written back here,
+    // so an old value cannot crash this component.
+    interface PrefsPayload {
+        channels: Record<string, { inApp?: boolean }>;
+        /** Types the server always sends (rulings 2026-10-08 and 2026-10-09): shown locked on. */
+        alwaysOn?: string[];
+    }
+
+    const ALWAYS_ON_NOTE_TH = 'ส่งถึงทุกคนเสมอ ปิดไม่ได้ เพราะเกี่ยวกับกำหนดชำระและการยกเลิกคำขอ';
+
+    interface TypeRow {
+        code: string;
+        label: string;
+        description?: string;
+    }
+
+    interface TypeGroup {
+        title: string;
+        rows: TypeRow[];
+    }
+
+    const HEALTH_GROUPS: TypeGroup[] = [
+        {
+            title: 'การชำระเงิน',
+            rows: [
+                { code: 'PAYMENT_REMINDER', label: 'แจ้งเตือนชำระเงิน' },
+                { code: 'APPLICATION_EXPIRED', label: 'คำขอถูกยกเลิกเพราะเลยกำหนด' },
+                { code: 'PAYMENT_PHASE1_SUCCESS', label: 'ยืนยันชำระค่าเอกสาร' },
+                { code: 'PAYMENT_PHASE2_SUCCESS', label: 'ยืนยันการชำระค่าบริการก่อนตรวจแปลง' },
+            ],
+        },
+        {
+            title: 'สถานะคำขอ',
+            rows: [
+                { code: 'APPLICATION_SUBMITTED', label: 'ส่งคำขอสำเร็จ' },
+                { code: 'APPLICATION_APPROVED', label: 'คำขอได้รับการอนุมัติ' },
+                { code: 'APPLICATION_REJECTED', label: 'คำขอไม่ผ่าน' },
+                { code: 'REVISION_REQUIRED', label: 'ต้องแก้ไขเอกสาร' },
+                { code: 'DEADLINE_REMINDER', label: 'ใกล้ครบกำหนดแก้ไข' },
+            ],
+        },
+        {
+            title: 'การตรวจประเมิน + ใบรับรอง',
+            rows: [
+                { code: 'AUDIT_SCHEDULED', label: 'นัดหมายการตรวจประเมิน' },
+                { code: 'AUDIT_VISIT_REMINDER', label: 'แจ้งเตือนก่อนวันนัดตรวจพื้นที่' },
+                { code: 'CERTIFICATE_EXPIRING_SOON', label: 'ใบรับรองใกล้หมดอายุ' },
+            ],
+        },
+    ];
+
+    const PROVIDER_GROUPS: TypeGroup[] = [
+        {
+            title: 'งานในระบบ Work Queue (ADR-016)',
+            rows: [
+                { code: 'WORK_ACTIVITY_ASSIGNED', label: 'ได้รับมอบหมายงานใหม่' },
+                { code: 'WORK_ACTIVITY_WARNING', label: 'งานใกล้ครบกำหนดเวลา' },
+                { code: 'WORK_ACTIVITY_BREACH', label: 'งานเลยกำหนดเวลาแล้ว' },
+            ],
+        },
+        {
+            title: 'การมอบหมาย + workflow',
+            rows: [
+                { code: 'NEW_APPLICATION_ASSIGNED', label: 'คำขอใหม่รอจ่ายงาน' },
+                { code: 'WORK_ASSIGNED_TO_REVIEWER', label: 'ได้รับมอบหมายตรวจเอกสาร' },
+                { code: 'AUDIT_ASSIGNED', label: 'ได้รับมอบหมายตรวจประเมิน' },
+                { code: 'AUDIT_REASSIGNED', label: 'งานถูกย้ายมือผู้ตรวจ' },
+                { code: 'CAR_SUBMITTED', label: 'CAR ส่งกลับมาให้ตรวจ' },
+            ],
+        },
+    ];
+
+    interface Props {
+        portal: 'health' | 'provider';
+        apiBase: string; // e.g. \"/auth/health\" or \"/auth/provider\"
+    }
+
+    export function NotificationPreferences({ portal, apiBase }: Props) {
+        const [prefs, setPrefs] = useState<PrefsPayload>({ channels: {} });
+        const [isLoading, setIsLoading] = useState(true);
+        const [busy, setBusy] = useState(false);
+        const groups = portal === 'health' ? HEALTH_GROUPS : PROVIDER_GROUPS;
+
+        const fetchPrefs = useCallback(async () => {
+            setIsLoading(true);
+            try {
+                const res = await apiClient.get<PrefsPayload>(`${apiBase}/me/notification-prefs`);
+                if (res.success && res.data) {
+                    setPrefs(res.data);
+                } else {
+                    setPrefs({ channels: {} });
+                }
+            } finally {
+                setIsLoading(false);
+            }
+        }, [apiBase]);
+
+        useEffect(() => { fetchPrefs(); }, [fetchPrefs]);
+
+        // A legacy-shaped entry (from before this cleanup) may still carry
+        // `email`/`sms` keys alongside — or instead of — `inApp`. Reading only
+        // `.inApp` here tolerates that shape without crashing or echoing the
+        // retired fields back to the server.
+        const isAlwaysOn = (type: string) => (prefs.alwaysOn ?? []).includes(type);
+
+        function getValue(type: string): boolean {
+            if (isAlwaysOn(type)) return true;
+            const entry = prefs.channels[type];
+            if (!entry || entry.inApp === undefined) return true; // default-allow
+            return entry.inApp !== false;
+        }
+
+        function toggle(type: string) {
+            const current = getValue(type);
+            setPrefs((prev) => {
+                const next = { ...prev, channels: { ...prev.channels } };
+                next.channels[type] = { inApp: !current };
+                return next;
+            });
+        }
+
+        async function save() {
+            setBusy(true);
+            try {
+                const res = await apiClient.put<PrefsPayload>(`${apiBase}/me/notification-prefs`, prefs);
+                if (!res.success) {
+                    notifications.show({
+                        color: 'red',
+                        title: 'บันทึกล้มเหลว',
+                        message: res.error || 'ไม่สามารถบันทึกการตั้งค่าได้',
+                        icon: <AlertCircle size={16} />,
+                    });
+                    return;
+                }
+                notifications.show({
+                    color: 'teal',
+                    title: 'บันทึกเรียบร้อย',
+                    message: 'การตั้งค่าการแจ้งเตือนถูกบันทึกแล้ว',
+                });
+            } finally {
+                setBusy(false);
+            }
+        }
+
+        if (isLoading) {
+            return (
+                <Card className=\"rounded-2xl border-border bg-card p-12 text-center shadow-sm\">
+                    <Spinner />
+                </Card>
+            );
+        }
+
+        return (
+            // Wave E.2-B (batch 9): SummaryHeader replaces inline h1+p Card
+            // (used by both /health/profile/notifications and
+            // /provider/profile/notifications). Eyebrow swaps based on
+            // the portal prop the parent already passes for HEALTH_GROUPS
+            // vs PROVIDER_GROUPS selection.
+            <div className=\"space-y-4\">
+                <SummaryHeader
+                    eyebrow={portal === 'health' ? 'ผู้ขอรับรอง · การแจ้งเตือน' : 'ผู้ให้บริการ · การแจ้งเตือน'}
+                    title=\"การแจ้งเตือน\"
+                    description=\"เลือกว่าต้องการรับการแจ้งเตือนในแอปสำหรับเหตุการณ์แต่ละประเภทหรือไม่ (อีเมลและ SMS ยกเลิกแล้ว การแจ้งเตือนทั้งหมดอยู่ในแอปเท่านั้น)\"
+                />
+
+                {groups.map((group) => (
+                    <Card key={group.title} className=\"rounded-2xl border-border bg-card p-6 shadow-sm\">
+                        <h2 className=\"mb-4 text-sm font-bold uppercase tracking-widest text-muted-foreground\">
+                            {group.title}
+                        </h2>
+                        <div className=\"overflow-x-auto\">
+                            <table className=\"w-full text-sm\">
+                                <thead>
+                                    <tr className=\"border-b text-left text-xs text-muted-foreground\">
+                                        <th className=\"px-3 py-2\">เหตุการณ์</th>
+                                        <th className=\"px-3 py-2 text-center\">ในแอป</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {group.rows.map((row) => (
+                                        <tr key={row.code} data-testid={`notification-type-${row.code}`} className=\"border-b last:border-0\">
+                                            <td className=\"px-3 py-3\">
+                                                <p className=\"font-medium\">{row.label}</p>
+                                                {isAlwaysOn(row.code) && (
+                                                    <p className=\"text-xs text-muted-foreground\">{ALWAYS_ON_NOTE_TH}</p>
+                                                )}
+                                            </td>
+                                            <td className=\"px-3 py-3 text-center\">
+                                                <input
+                                                    type=\"checkbox\"
+                                                    checked={getValue(row.code)}
+                                                    disabled={isAlwaysOn(row.code)}
+                                                    onChange={() => toggle(row.code)}
+                                                    className=\"h-4 w-4 rounded\"
+                                                />
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    </Card>
+                ))}
+
+                <div className=\"flex justify-end\">
+                    <Button onClick={save} disabled={busy}>
+                        <Save size={14} className=\"mr-1\" /> บันทึกการตั้งค่า
+                    </Button>
+                </div>
+            </div>
+        );
+    }
+    "
+
+      19 |     it('the staff notification groups name no English term or design record', () => {
+      20 |         const source = read('components/feature/notification-preferences.tsx');
+    > 21 |         expect(source).not.toContain('Work Queue');
+         |                            ^
+      22 |         expect(source).not.toContain('ADR-016');
+      23 |         expect(source).not.toMatch(/title: '[^']*workflow[^']*'/);
+      24 |     });
+
+      at Object.<anonymous> (src/__tests__/truthful-copy/dispatcher-screens-speak-thai.test.ts:21:28)
+
+FAIL src/app/provider/audits/[id]/__tests__/decision-modal-thai-copy.test.tsx
+  AuditDecisionModal — DI-4 Thai copy (V3-C)
+    ✓ renders the PASS decision in Thai, never its code (8 ms)
+    ✓ renders the MINOR decision in Thai, never its code (2 ms)
+    ✓ renders the MAJOR decision in Thai, never its code (2 ms)
+    ✓ renders the REINSPECT decision in Thai, never its code (1 ms)
+    ✓ renders Thai body labels: notes / evidence / actions (2 ms)
+    ✓ does NOT leak the legacy English copy (regression guard) (2 ms)
+    ✕ renders the Thai CAR findings block when decision is MINOR or MAJOR (1 ms)
+    ✓ renders nothing when opened=false (Modal shim returns null) (1 ms)
+
+  ● AuditDecisionModal — DI-4 Thai copy (V3-C) › renders the Thai CAR findings block when decision is MINOR or MAJOR
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "(CAR)"
+    Received string:        "<div data-testid=\"modal-mock\"><h2 data-testid=\"modal-title\">ส่งผลการตรวจ: ข้อบกพร่องเล็กน้อย</h2><div data-testid=\"modal-body\"><div class=\"flex flex-col\"><div class=\"mb-4 rounded-lg border border-amber-200 bg-amber-50/50 p-4 dark:border-amber-900/30 dark:bg-amber-950/20\"><div class=\"mb-3 flex items-center justify-between\"><div><p class=\"text-sm font-bold text-foreground\">สิ่งที่ไม่เป็นไปตามข้อกำหนด (CAR)</p><p class=\"text-xs text-muted-foreground\">ระบุจุดที่ผิดและสิ่งที่ต้องแก้ไข</p></div><button data-testid=\"button\"><span data-testid=\"icon-plus\"></span>เพิ่มรายการ</button></div><p class=\"py-4 text-center text-sm italic text-muted-foreground\">กดปุ่ม &quot;เพิ่มรายการ&quot; เพื่อเพิ่ม CAR</p><div class=\"space-y-3\"></div></div><label data-testid=\"textarea\">บันทึกผลการตัดสิน<textarea data-testid=\"textarea-input\" placeholder=\"ระบุรายละเอียดผลการตัดสิน\" readonly=\"\"></textarea></label><div class=\"rounded-lg bg-card p-4 shadow-sm\"><div class=\"mb-2 flex flex-wrap items-center justify-between gap-2\"><p class=\"text-sm font-bold\">ภาพถ่ายหลักฐาน</p><span data-testid=\"badge\">0 ไฟล์</span></div><p class=\"mb-4 text-xs text-slate-500\">อัปโหลดภาพถ่ายภาคสนาม ระบบจะบีบอัดภาพความละเอียดสูงโดยอัตโนมัติเพื่อประหยัด bandwidth ก่อนส่งขึ้น server</p><div class=\"relative\"><button data-testid=\"button\"><label for=\"evidence-upload\" class=\"cursor-pointer\">เลือกภาพ</label><input id=\"evidence-upload\" type=\"file\" class=\"sr-only\" title=\"เลือกภาพหลักฐาน\" aria-label=\"เลือกภาพหลักฐาน\" multiple=\"\" accept=\"image/*\"/></button></div></div><div class=\"mt-4 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end sm:gap-3\"><button data-testid=\"button\">ยกเลิก</button><button data-testid=\"button\">ยืนยันผล ข้อบกพร่องเล็กน้อย</button></div></div></div></div>"
+
+      174 |         expect(minorHtml).toContain('สิ่งที่ไม่เป็นไปตามข้อกำหนด');
+      175 |         // No English abbreviation on this Thai screen (order 51).
+    > 176 |         expect(minorHtml).not.toContain('(CAR)');
+          |                               ^
+      177 |         expect(minorHtml).toContain('ระบุจุดที่ผิดและสิ่งที่ต้องแก้ไข');
+      178 |         expect(minorHtml).toContain('เพิ่มรายการ');
+      179 |     });
+
+      at Object.<anonymous> (src/app/provider/audits/[id]/__tests__/decision-modal-thai-copy.test.tsx:176:31)
+
+FAIL src/app/health/applications/new/_steps/steps/__tests__/success-step-states-the-dispatch-rule.test.tsx
+  the success screen states the dispatcher rule
+    ✓ paid: the document reviewer is assigned within the working days of the rule the server serves (109 ms)
+    ✓ paid, the rule cannot be read: the screen says what is true under any rule and names no number (29 ms)
+    ✕ names no retired system name, no gacpth.com address and no old phone, and speaks to the applicant as คุณ (orders 51, 56(0), 62) (19 ms)
+    ✓ not paid yet: the check starts once the first instalment is paid, and no person is said to check the payment (26 ms)
+
+  ● the success screen states the dispatcher rule › names no retired system name, no gacpth.com address and no old phone, and speaks to the applicant as คุณ (orders 51, 56(0), 62)
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "ระบบรับรองมาตรฐาน GACP สมุนไพร"
+    Received string:        "ยื่นคำขอสำเร็จชำระงวดที่ 1 ค่าบริการตรวจสอบเอกสารเรียบร้อย คำขอเข้าสู่ขั้นตอนตรวจเอกสารแล้วเลขที่คำขอ: app-1สรุปข้อมูลคำขอเลขที่คำขอapp-1วันที่ยื่นคำขอ9 ตุลาคม 2569ผู้ยื่นคำขอ-สถานที่ผลิต-พืชที่ขอรับรองCANNABISสถานะการชำระเงินชำระแล้วขั้นตอนถัดไปยื่นคำขอเสร็จสิ้น - 9 ตุลาคม 2569ตรวจสอบเอกสารเบื้องต้นผู้จัดคิวจะมอบหมายผู้ตรวจเอกสารหลังได้รับชำระงวดที่ 1นัดหมายตรวจประเมินสถานที่เจ้าหน้าที่จะติดต่อนัดหมายตรวจประเมินสถานที่ผู้ประเมินลงพื้นที่ตรวจสอบรับใบรับรอง GACPเมื่อผ่านการประเมินคำแนะนำสำคัญ• กรุณาเก็บเลขที่คำขอ app-1 ไว้เป็นหลักฐาน• ท่านสามารถติดตามสถานะคำขอได้ที่เมนู \"คำขอของฉัน\"• หากมีข้อสงสัย กรุณาติดต่อ ระบบรับรองมาตรฐาน GACP สมุนไพร โทร. (02) 5647889• อีเมล: contact@gacpth.comดูสถานะใบสมัครดูคำขอทั้งหมดของฉันยื่นคำขอฉบับใหม่กลับหน้าหลัก(02) 5647889contact@gacpth.comระบบรับรองมาตรฐาน GACP สมุนไพร"
+
+      87 |   it('names no retired system name, no gacpth.com address and no old phone, and speaks to the applicant as คุณ (orders 51, 56(0), 62)', async () => {
+      88 |     const text = await mount('DOC_FEE_PAID');
+    > 89 |     expect(text).not.toContain('ระบบรับรองมาตรฐาน GACP สมุนไพร');
+         |                      ^
+      90 |     expect(text).not.toContain('gacpth.com');
+      91 |     expect(text).not.toContain('5647889');
+      92 |     expect(text).not.toContain('ท่าน');
+
+      at Object.<anonymous> (src/app/health/applications/new/_steps/steps/__tests__/success-step-states-the-dispatch-rule.test.tsx:89:22)
+
+FAIL src/app/provider/audits/[id]/__tests__/doc-comment-textarea-disabled.test.tsx
+  [X3-FIX-D / H-9] per-document comment Textarea disabled until persistence ships
+    ✕ renders the per-document <textarea> with disabled + aria-disabled and a Thai tooltip (89 ms)
+    ✕ renders a visible helper paragraph below each disabled textarea (non-pointer users) (18 ms)
+
+  ● [X3-FIX-D / H-9] per-document comment Textarea disabled until persistence ships › renders the per-document <textarea> with disabled + aria-disabled and a Thai tooltip
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "X3.5"
+    Received string:        "บันทึกหมายเหตุต่อเอกสารยังไม่พร้อมใช้งาน (X3.5)"
+
+      114 |             expect(ta!.getAttribute('aria-disabled')).toBe('true');
+      115 |             expect(ta!.getAttribute('title')).toContain('ยังไม่พร้อมใช้งาน');
+    > 116 |             expect(ta!.getAttribute('title')).not.toContain('X3.5');
+          |                                                   ^
+      117 |         }
+      118 |     });
+      119 |
+
+      at Object.<anonymous> (src/app/provider/audits/[id]/__tests__/doc-comment-textarea-disabled.test.tsx:116:51)
+
+  ● [X3-FIX-D / H-9] per-document comment Textarea disabled until persistence ships › renders a visible helper paragraph below each disabled textarea (non-pointer users)
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "X3.5"
+    Received string:        "บันทึกหมายเหตุต่อเอกสารยังไม่พร้อมใช้งาน (X3.5)"
+
+      138 |             expect(helper).not.toBeNull();
+      139 |             expect(helper!.textContent).toContain('ยังไม่พร้อมใช้งาน');
+    > 140 |             expect(helper!.textContent).not.toContain('X3.5');
+          |                                             ^
+      141 |         }
+      142 |     });
+      143 | });
+
+      at Object.<anonymous> (src/app/provider/audits/[id]/__tests__/doc-comment-textarea-disabled.test.tsx:140:45)
+
+Test Suites: 4 failed, 4 total
+Tests:       6 failed, 10 passed, 16 total
+Snapshots:   0 total
+Time:        2.201 s
+Ran all test suites matching src/__tests__/truthful-copy/dispatcher-screens-speak-thai.test.ts|src/app/provider/audits/\[id\]/__tests__/doc-comment-textarea-disabled.test.tsx|src/app/provider/audits/\[id\]/__tests__/decision-modal-thai-copy.test.tsx|src/app/health/applications/new/_steps/steps/__tests__/success-step-states-the-dispatch-rule.test.tsx.
+Force exiting Jest: Have you considered using `--detectOpenHandles` to detect async operations that kept running after all tests finished?

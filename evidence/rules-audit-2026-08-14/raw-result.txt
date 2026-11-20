@@ -1,0 +1,1166 @@
+{
+  "summary": "Sweep every mechanical rule surface for stale/conflicting/dead rules vs current operator directives",
+  "agentCount": 4,
+  "logs": [
+    "rows: 174 — {\"VALID\":68,\"STALE\":69,\"CONFLICTS\":12,\"DEAD\":25}"
+  ],
+  "result": {
+    "counts": {
+      "VALID": 68,
+      "STALE": 69,
+      "CONFLICTS": 12,
+      "DEAD": 25
+    },
+    "rows": [
+      {
+        "surface": "ci-checks",
+        "rule": "local-gate.sh (gate runner: banned-terms, mojibake, green-mask, probe-gate, optional unit-suite)",
+        "where": "scripts/ci/local-gate.sh:1-41",
+        "enforces": "Tier A/B local gate: runs the 4 static checks blocking; LOCAL_GATE_FULL=1 adds backend jest",
+        "verdict": "STALE",
+        "why": "Steps are live and correct (deploy-drift double-run note lines 23-27 matches the 2026-08-14 registry flip), but the header (lines 2-3, 9) frames no-Actions as a temporary '2026-08-06 CI outage' and says money/R2 work must 'รอ runner จริง' — directive 3 makes Actions permanently gone and full-gate-on-staging the real full path",
+        "proposed_action": "Reword header: Actions are permanently unavailable; the full path is docs/operations/runbooks/full-gate-on-staging.md, not a returning runner",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-access-allowlist.js (check:access-allowlist)",
+        "where": "scripts/ci/check-access-allowlist.js:1-26,244-298; invokers .github/workflows/topology-guard.yml:44-47 (dead), package.json:27",
+        "enforces": "nginx pre-launch geo allowlist: deny-by-default, matches $remote_addr after real_ip restore, required exempt paths, gate applied on every public server block of deploy/nginx/gacp-platform.conf",
+        "verdict": "STALE",
+        "why": "Logic and target conf are current and the functions are unit-tested in suite-green (prelaunch-access-gate.test.js), but its only blocking invoker is a workflow that can never run (directive 3) and the header still assumes it 'fails the build'",
+        "proposed_action": "Add a required check row to scripts/ci/full-gate-checks.txt running node scripts/ci/check-access-allowlist.js",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-backup-cron-wired.js",
+        "where": "scripts/ci/check-backup-cron-wired.js:1-47; no invoker anywhere (not in any workflow, package.json, local-gate, or full-gate-checks.txt)",
+        "enforces": "deploy-production.sh must invoke scripts/backup/install-cron.sh on a non-comment line",
+        "verdict": "DEAD",
+        "why": "Never invoked — the exact 'exists but never runs' class it was built to prevent (already called out in reports/risk-assessment/2026-08-13.md:169: the guard watches a deploy script that is not what actually runs); with directive 3 the real deploy path is the on-box runbooks, which this guard does not inspect at all",
+        "proposed_action": "Retarget the assertion at the deploy path actually used on the staging box (build-images-on-the-box.md flow) and add it to full-gate-checks.txt; otherwise delete it as a phantom guardrail",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-closing-patterns.js (check:closing-patterns)",
+        "where": "scripts/ci/check-closing-patterns.js:5,51-150; package.json:35 (only invoker)",
+        "enforces": "6 regression regex rules (mfa legacy columns, raw healthId in actorIdentity, admin-override tx wrapping) over 11 named files",
+        "verdict": "STALE",
+        "why": "Self-described 'CI gate' with no automated invoker left; content is current — all 11 target files verified present",
+        "proposed_action": "Wire into full-gate-checks.txt as required, or edit the header to declare it a manual check",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-data-sovereignty.js (data-leaves-Thailand gate)",
+        "where": "scripts/ci/check-data-sovereignty.js:70-161; invokers ci.yml:58 (dead); scope test apps/backend/__tests__/unit/data-sovereignty-scope.test.js in suite-green",
+        "enforces": "No foreign map/identity/calendar/font hosts in shipped source (incl. .conf/.html/.env), comment- and marker-aware",
+        "verdict": "STALE",
+        "why": "Content is current and deliberately does NOT ban Stripe — consistent with directive 5 (interim, operator-acknowledged conflict). But the blocking repo-wide run lived only in dead ci.yml; suite-green covers the scope logic, not a blocking verdict over the tree",
+        "proposed_action": "Add a required check row to full-gate-checks.txt running the gate over the checkout",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-enforcement-guardrails.js G-01..G-07 (auth/RBAC/schema drift)",
+        "where": "scripts/ci/check-enforcement-guardrails.js:52-151; invoker ci.yml:342 (dead); teeth test schema-single-source-gate-teeth.test.js",
+        "enforces": "No localStorage auth, no Bearer+localStorage fetch, no duplicate role alias maps, prisma schema single-source (fails on empty set), no req.user._id, prisma validate, no token in provider login body",
+        "verdict": "STALE",
+        "why": "Two decays: sole automated invoker is dead ci.yml, and G-07 greps apps/backend/routes/api/auth-provider.js which moved to routes/api/auth/auth-provider.js (verified missing at old path) — grep() returns [] on a missing file, so G-07 has passed vacuously since the move",
+        "proposed_action": "Fix the G-07 path to routes/api/auth/auth-provider.js (and make a missing target a failure, as G-04 already does); add the script to full-gate-checks.txt",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-frontend-lint-ratchet.js + frontend-lint-baseline.json",
+        "where": "scripts/ci/check-frontend-lint-ratchet.js:1-23; sole invoker .github/workflows/frontend-lint-ratchet.yml:49 (dead); not in package.json",
+        "enforces": "web-app eslint warning count must not exceed committed baseline (ratchet-down)",
+        "verdict": "DEAD",
+        "why": "Its only invoker is a workflow that can never run, so the warning ceiling is currently enforced by nothing and can silently ratchet UP; docstring also leans on ci.yml continue-on-error context that no longer exists",
+        "proposed_action": "Add it to full-gate-checks.txt (required) or the LOCAL_GATE_FULL branch of local-gate.sh; update the docstring; baseline lowering stays agent-side, baseline raising stays operator (L4)",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-frontend-provider-api-usage.js (check:provider-api-surface)",
+        "where": "scripts/ci/check-frontend-provider-api-usage.js:10-29; invokers package.json:20 and production-readiness-check.js:140 (both manual)",
+        "enforces": "Frontend must not call legacy provider endpoints (provider-cms, scheduler queue, workflow-transition, legacy auditor decision path...)",
+        "verdict": "STALE",
+        "why": "Content current (canonical vs legacy path split documented in the pattern list), but nothing automated runs it since Actions died",
+        "proposed_action": "Wire into full-gate-checks.txt",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-hardcoded-tax-ids.js (check:hardcoded-tax-ids)",
+        "where": "scripts/ci/check-hardcoded-tax-ids.js:1-43; package.json:36 (only invoker); targets apps/backend/services/pdf/templates/*.html (verified present)",
+        "enforces": "No 13-digit literal in the issuer block of financial-document HTML templates (must be {{ISSUER_TAX_ID}} from config/invoice-issuers.js)",
+        "verdict": "STALE",
+        "why": "Header claims 'CI gate' but it was never wired into any workflow and has no automated invoker; header also carries a long-stale open item ('DTAM tax ID not confirmed by Finance yet') on payment-info literals",
+        "proposed_action": "Wire into full-gate-checks.txt; put the DTAM payment-info literal question to the operator (money path, Tier C)",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-i18n-reachability.js + i18n-reachability-baseline.json",
+        "where": "scripts/ci/check-i18n-reachability.js:1-40; invoker ci.yml:131 (dead); resolver unit-tested in suite-green (i18n-reachability-gate.test.js)",
+        "enforces": "Dictionary-key reachability ratchet (dead keys = untranslatable hardcoded pages); floor-not-ceiling analysis",
+        "verdict": "STALE",
+        "why": "The ratchet comparison against the baseline ran only in dead ci.yml; suite-green tests the resolver, not the repo-wide ratchet verdict",
+        "proposed_action": "Add to full-gate-checks.txt (needs the web-app TS compiler in the gate checkout — the script names that dependency itself)",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-identity-field-usage.js (check:identity-fields)",
+        "where": "scripts/ci/check-identity-field-usage.js:1-40; invokers ci.yml:51 (dead), package.json:65; teeth test identity-field-gate-teeth.test.js (classifier only)",
+        "enforces": "identity = req.user.id, authorization = req.user.canonicalRole; raw req.user.role only in audit-log fields and normalizeRole",
+        "verdict": "STALE",
+        "why": "Rule content fits the canonical-roles world of directive 4; but the repo-wide blocking scan ran only in dead ci.yml — the suite-green teeth test validates the regexes by eval, not the tree",
+        "proposed_action": "Add the full scan to full-gate-checks.txt as required",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-infra-contracts.js (check:infra-contracts)",
+        "where": "scripts/ci/check-infra-contracts.js:78-300; invokers production.yml:77 + infrastructure-contract-guard.yml:42 (dead), package.json:28",
+        "enforces": "9 infra manifests must exist and agree: ports 3000/8000, health paths, provider-neutral data protocols, DO single-host baseline, provider map <-> scorecard consistency",
+        "verdict": "STALE",
+        "why": "All 9 required artifacts verified present and assertions match the current topology (backend 8000 agrees with .env.example:2); but both blocking invokers are dead workflows. Note it does not cover directive 6 (NODE_ENV=staging / GACP_DEPLOY_SLOT) — no conflict, just out of scope",
+        "proposed_action": "Wire into full-gate-checks.txt",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-max-lines.js (check:max-lines)",
+        "where": "scripts/ci/check-max-lines.js:21-28; package.json:33 runs --mode=delta --warn=500 with no --max",
+        "enforces": "Nothing blocking — default max=0 disables the hard cap by design ('feedback, not gate'); it can only warn",
+        "verdict": "DEAD",
+        "why": "As invoked it cannot exit non-zero for size, and nothing automated invokes it anyway; under CLAUDE.md's own meta-rule a check that cannot fail enforces nothing",
+        "proposed_action": "Either accept it as a feedback tool and move it out of the check:* namespace, or give the npm script a --max and wire it into full-gate",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-no-new-eslint-warnings.js (check:no-new-eslint-warnings)",
+        "where": "scripts/ci/check-no-new-eslint-warnings.js:1-9; invokers production.yml:134 (dead), verify:build/package.json:12,32 (manual)",
+        "enforces": "Zero eslint warnings in files changed by the HEAD commit",
+        "verdict": "STALE",
+        "why": "Per-PR CI design whose blocking invoker is dead; only reachable via the manual verify:build battery",
+        "proposed_action": "Run it in full-gate against the attested commit (fits the per-commit design)",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-orphan-api-routes.js (check:orphan-routes)",
+        "where": "scripts/ci/check-orphan-api-routes.js:19-23; invokers package.json:19, production-readiness-check.js:133, QUEUE.md manual playbooks",
+        "enforces": "Every top-level route entry file under routes/api must be mounted by index.js",
+        "verdict": "STALE",
+        "why": "ignoredFiles still lists 'provider-cms.js' though apps/backend/routes/api/provider-cms.js was deleted (verified missing) — a harmless but false register entry; and the detector has no automated runner",
+        "proposed_action": "Delete the provider-cms.js ignore entry; optionally wire via full-gate",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-prisma-migration-consistency.js (check:prisma-migration-consistency)",
+        "where": "scripts/ci/check-prisma-migration-consistency.js:1-14; package.json:30 (only invoker)",
+        "enforces": "Schema change in HEAD commit must ship a migration; optional SQL-level drift check with SHADOW_DATABASE_URL",
+        "verdict": "STALE",
+        "why": "Per-commit guard built for PR CI; nothing automated runs it now — migrate-deploy in full-gate catches broken migrations, but the schema-without-migration drift case is exactly what this guard exists for",
+        "proposed_action": "Wire into full-gate-checks.txt; the staging box can supply SHADOW_DATABASE_URL for strict mode",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-production-topology.js (check:production-topology)",
+        "where": "scripts/ci/check-production-topology.js:51-54; invokers topology-guard.yml:44 + production.yml:74 (dead), package.json:26",
+        "enforces": "docker-compose.production.yml + host nginx (deploy/nginx/gacp-platform.conf) + docker nginx (nginx/gacp.production.conf) + network diagram stay consistent",
+        "verdict": "STALE",
+        "why": "All 4 target files present and the check exits 0 today (ran it), but both blocking invokers are dead workflows",
+        "proposed_action": "Wire into full-gate-checks.txt",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-tenant-conventions.js (check:tenant-conventions)",
+        "where": "scripts/ci/check-tenant-conventions.js:1-40; invokers production.yml:123 (dead), package.json:25",
+        "enforces": "ADR-014: platform-admin handlers must call withoutTenantScope; cron jobs must establish or explicitly waive tenant scope",
+        "verdict": "STALE",
+        "why": "RLS-prep guard whose only blocking invoker is a dead workflow",
+        "proposed_action": "Wire into full-gate-checks.txt",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-thai-copy-style.js",
+        "where": "scripts/ci/check-thai-copy-style.js:1-38; invokers ci.yml:123 (dead); classifier tested in suite-green (thai-copy-style-gate.test.js)",
+        "enforces": "Thai typography in string literals: no em dash as clause separator, space before ไม้ยมก; comment/test-file aware",
+        "verdict": "STALE",
+        "why": "Content current and carefully scoped, but the blocking repo run existed only in dead ci.yml; evidence packs show it being run by hand per work item — discipline, not machine",
+        "proposed_action": "Wire into full-gate-checks.txt",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-thai-locations.js",
+        "where": "scripts/ci/check-thai-locations.js:1-27; invoker ci.yml:66 (dead); data files verified present",
+        "enforces": "Thai administrative dataset coherence: 77 provinces / 928 districts / 7467 subdistricts + structural validation",
+        "verdict": "STALE",
+        "why": "'CI gate' whose only invoker is dead; the dataset it guards (community-maintained, per PROVENANCE.md) is exactly the kind that drifts silently without a machine check",
+        "proposed_action": "Wire into full-gate-checks.txt",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-vulnerability-exceptions.js + security/vulnerability-exceptions.json",
+        "where": "scripts/ci/check-vulnerability-exceptions.js:1-40; invoker ci.yml:797 (dead); register security/vulnerability-exceptions.json:2",
+        "enforces": "Every pnpm.auditConfig.ignoreCves entry needs a justified, owned, time-boxed register record; expired/stale records fail",
+        "verdict": "STALE",
+        "why": "The mechanism is sound and self-policing, but both it and the pnpm audit gate it protects ran only in dead ci.yml — package.json currently suppresses CVE-2026-14257 (package.json:128) with nothing automated verifying the register anymore",
+        "proposed_action": "Wire the audit + this guard into full-gate-checks.txt; exception re-signing itself stays operator-side",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "check-webapp-jest-module-mode.js (check:jest-module-mode)",
+        "where": "scripts/ci/check-webapp-jest-module-mode.js:1-42; invokers ci.yml:195 (dead), package.json:38; referenced by apps/web-app/jest.config.mjs:23",
+        "enforces": "web-app jest must not run CJS-idiom test files under ESM vm-modules (documented 518-hidden-tests failure)",
+        "verdict": "STALE",
+        "why": "Guard content current, but no automated invoker — and note the wider gap it exposes: full-gate's suite-green is backend-only, so web-app jest runs nowhere automated at all",
+        "proposed_action": "Wire into full-gate-checks.txt, and raise the missing web-app test check in the full-gate list to the operator",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "production-readiness-check.js / .sh (--ci-mode)",
+        "where": "scripts/ci/production-readiness-check.js:110-116,233-238,277-281; invoker ci.yml:833 (dead) + manual runbook (scripts/readme.md:138-150)",
+        "enforces": "Readiness battery: tests, env/SSL/WAF presence, compose/monitoring/docs/backup/frontend existence checks",
+        "verdict": "STALE",
+        "why": "Three dead-Actions assumptions baked in: ci-mode defers backend tests to 'the ci.yml test job' (:110-116); claims compose is 'YAML-linted by the system-integrity job already' (:237); and counts .github/workflows/production.yml existence as 'CI/CD pipeline configuration present' (:277-281) — under directive 3 that file is not a pipeline, the runbooks are",
+        "proposed_action": "Rewrite ci-mode framing around full-gate; replace the pipeline-present check with existence of docs/operations/runbooks/build-images-on-the-box.md and full-gate-on-staging.md",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "validate-workflow-paths.js",
+        "where": "scripts/ci/validate-workflow-paths.js:1-35; sole invoker ci.yml:302 (dead)",
+        "enforces": "Every node/bash scripts/... reference inside .github/workflows/* must resolve on disk",
+        "verdict": "DEAD",
+        "why": "Doubly dead: its only invoker is a workflow that can never run, and the artifacts it validates (.github/workflows/*) never execute under directive 3 — a guard for a machine that is off",
+        "proposed_action": "Retire it, or retarget the scanner at script references inside docs/operations/runbooks/* (the live equivalent of the bug class it caught); the wider decision to prune the workflows tree is the operator's",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "probe no-secret CI=1 'layer2' branch (consumed as ci by probe-gate)",
+        "where": "scripts/probes/no-secret.sh:31-34; probe-registry.txt:26",
+        "enforces": "Secret grep layer1; when CI env is set and gitleaks absent it self-PASSes claiming 'layer2 = TruffleHog job in this CI run'",
+        "verdict": "CONFLICTS",
+        "why": "The TruffleHog Actions job can never run again (directive 3), so any environment exporting CI=1 mints a false two-layer PASS — violating L2's own fail-loud rule ('ห้าม PASS เงียบ') that this very probe is cited for in CLAUDE.md",
+        "proposed_action": "Delete the CI branch: gitleaks absent = report grep-only truthfully in ALL environments (full-gate's secret-scan-deep already fail-closes the deep layer); ship via L6 selftest PR; registry:26 reason text update rides the same change (operator merges — secret path is Tier C)",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "registry rows: settle-webhook-only + webhook-idempotent manual-until:2026-09-15",
+        "where": "scripts/probes/probe-registry.txt:33-38",
+        "enforces": "Parks both prisma-dependent probes out of the CI probe set until 2026-09-15",
+        "verdict": "STALE",
+        "why": "The written unlock condition ('job enforcement-guardrails installs with --ignore-scripts, no prisma generate') describes an Actions job that will never run again; meanwhile full-gate already runs both blocking via probe-prisma-deps (full-gate-checks.txt:46). On 2026-09-16 these rows make probe-gate go red for a reason that stopped existing",
+        "proposed_action": "Operator re-signs: either permanent manual with the honest standing reason 'runs blocking in full-gate as probe-prisma-deps', or flips to ci if local-gate machines get prisma generate — cover rows are operator-only under L6",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "registry row: tier-check manual-until:2026-09-15",
+        "where": "scripts/probes/probe-registry.txt:39",
+        "enforces": "Parks tier-check (tier decision probe backing L5) out of CI until 2026-09-15",
+        "verdict": "STALE",
+        "why": "Unlock condition 'ปลดเมื่อตั้ง fetch-depth: 0' is an actions/checkout knob on a dead platform; on the staging box origin/main is available, so the standing reason no longer holds — and the row itself notes tier-check is still missing from check-done.sh DEFAULT, so L5's 'tier decided only by tier-check.sh' has no automated leg anywhere right now",
+        "proposed_action": "Operator re-signs with a non-Actions condition and orders tier-check wired into full-gate + check-done DEFAULT; cover rows are operator-only under L6",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "registry row: suite-green permanent manual ('duplicate of the Test job')",
+        "where": "scripts/probes/probe-registry.txt:42",
+        "enforces": "Keeps the suite-green probe out of the PR probe set because 'the Test job already runs the full suite'",
+        "verdict": "STALE",
+        "why": "The standing reason names a CI job that no longer runs; the duplication argument now points at full-gate's suite-green check instead, which is true but not what the row says",
+        "proposed_action": "Operator updates the written reason to cite full-gate-checks.txt:42 as the live runner of the suite; operator-only (registry)",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "ci-checks",
+        "rule": ".husky/pre-commit header + chain framing",
+        "where": ".husky/pre-commit:1-10",
+        "enforces": "Documents where the heavy gates live; runs system-integrity-check then trust-lint",
+        "verdict": "CONFLICTS",
+        "why": "States heavy gates 'live in CI (.github/workflows/ci.yml) so they run on every PR + push to main' and 'CI runs typecheck unconditionally' — directly contradicts directive 3; developers are promised coverage that no longer exists anywhere",
+        "proposed_action": "Rewrite the comments: heavy gates live in scripts/ci/local-gate.sh and full-gate on the staging box (runbooks); typecheck/tests are covered by full-gate, not CI",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": ".husky/pre-commit step 2: trust-domain lint (lint:trust)",
+        "where": ".husky/pre-commit (step 2); apps/web-app/package.json:10",
+        "enforces": "eslint --max-warnings=0 over the trust/verify surface when node_modules exists",
+        "verdict": "STALE",
+        "why": "The no-node_modules fallback prints '(skipping — ...; CI will run it)' — a false assurance under directive 3; on a fresh worktree this check silently runs nowhere",
+        "proposed_action": "Change the skip message to name full-gate as the backstop and ensure lint:trust actually runs in the full-gate path (it currently does not)",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "system-integrity-check.js file header",
+        "where": "scripts/system-integrity-check.js:14-16",
+        "enforces": "Documents how the doctor script runs",
+        "verdict": "STALE",
+        "why": "Line 15 claims 'CI: Runs automatically on every push via GitHub Actions' — it now runs via .husky/pre-commit and pnpm doctor only",
+        "proposed_action": "Fix the comment to name pre-commit as the invoker",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "system-integrity §6 Page/ClientView Integrity",
+        "where": "scripts/system-integrity-check.js:245-279",
+        "enforces": "For 7 hardcoded /health pages: page.tsx importing ClientView must have client-view.tsx and be a server component",
+        "verdict": "STALE",
+        "why": "The page map froze at 7 while app/health now has ~28 route directories (billing, establishments, herbs, official-documents, sop-builder, site-analysis, surveys, tracking... all unchecked) — the section silently guards a shrinking fraction of the surface it names",
+        "proposed_action": "Enumerate app/health/*/page.tsx dynamically instead of the hardcoded list",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "system-integrity §9 DEMO_MODE Production Safety",
+        "where": "scripts/system-integrity-check.js:323-334; apps/web-app/src/lib/constants.ts:214-218",
+        "enforces": "DEMO_MODE must equal false in constants.ts",
+        "verdict": "CONFLICTS",
+        "why": "Directive 2 says nothing simulated user-facing and no demo modes — but this check's premise is that a validation-bypass demo switch EXISTS and merely stays off; DEMO_MODE is still exported and 9 wizard files still branch on it (application-navigation.tsx:56, farm-info-step.tsx:524, documents-step.tsx:184, preview/client-view.tsx:430, review/production/plant-selection/invoice/general steps). The rule preserves the exact mechanism the operator ordered out",
+        "proposed_action": "Delete DEMO_MODE and every branch on it, then flip this section to fail if the identifier DEMO_MODE reappears anywhere under apps/web-app/src",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "system-integrity §10 Fee Constant Integrity",
+        "where": "scripts/system-integrity-check.js:336-363; apps/web-app/src/constants/fees.ts:12-21",
+        "enforces": "fees.ts exists (vacuous), renewal/types.tsx must re-export not redefine, plant-selection-config.ts must not duplicate",
+        "verdict": "STALE",
+        "why": "Three decays: check('fees.ts exists as SSOT', true) can never fail; the plant-selection-config.ts target was deleted (new-legacy path gone) so that guard silently skips; and the 'SSOT' it blesses is hardcoded THB constants (5,000/25,000/30,000/10,000 fallbacks) in tension with directive 8 (dated data, not constants) even though fees.ts:4-5 declares the API/DB primary. The one live sub-check (renewal re-export, verified types.tsx:18) still works",
+        "proposed_action": "Drop the vacuous and dead branches, keep the duplicate-guard, and put the fees-fallback-constants question to the operator under directive 8",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "system-integrity §13 Hardcoded Fee Strings",
+        "where": "scripts/system-integrity-check.js:389-408",
+        "enforces": "No '5,000/25,000/30,000 บาท' literals in JSX — but only in app/health/help-center.tsx",
+        "verdict": "DEAD",
+        "why": "The sole target file no longer exists (verified missing); readFile returns null and the loop continues, so the section has asserted nothing since the file was removed — green while checking zero files",
+        "proposed_action": "Retarget at pages that render fee copy today (health/payments, applications new steps, subscription) or replace with a src-wide fee-literal scan aligned with directive 8",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "ci-checks",
+        "rule": "system-integrity §14 User-Facing Error Localization",
+        "where": "scripts/system-integrity-check.js:410-431",
+        "enforces": "No English 'Failed to fetch/load' in setError() for 4 named files",
+        "verdict": "STALE",
+        "why": "2 of the 4 targets are gone (hooks/use-master-data.ts and app/provider/planting/page.tsx verified missing) and are silently skipped; only provider/analytics and admin/planting are still actually checked",
+        "proposed_action": "Refresh the file list or make the scan pattern-wide over src with an allowlist",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "probes",
+        "rule": "no-secret probe + registry row — layer-2 story assumes GitHub Actions",
+        "where": "scripts/probes/no-secret.sh:6,31-35; scripts/probes/probe-registry.txt:26",
+        "enforces": "L2 NO SECRET — grep pin (layer 1) + deep scanner (layer 2), fail-loud",
+        "verdict": "STALE",
+        "why": "The probe's layer 2 is 'CI job Secret Scanning (TruffleHog) in .github/workflows/ci.yml' (no-secret.sh:6) and it early-PASSes whenever env CI is set, crediting 'layer2 = TruffleHog job in this CI run' (no-secret.sh:33-35) — a job that can never run again: operator ruled Actions permanently unpaid (HARNESS_LOG.md:226, directive 3). Registry:26 repeats the claim ('probe คืน PASS เองเมื่อ CI=1'). Any box exporting CI=1 turns a deep scan that did not happen into PASS — the exact vacuous-pass this probe's own header (lines 8-17) forbids. The real layer 2 is now gitleaks in full-gate secret-scan-deep (scripts/ci/full-gate-checks.txt:44, full-gate.sh:987-1009).",
+        "proposed_action": "Delete the CI early-PASS branch (no-secret.sh:31-35) so the order is: grep → gitleaks if present → BLOCKED; update the comment at lines 4-6 and the registry:26 reason to name gitleaks/full-gate secret-scan-deep. Ship with a --selftest per L6 (probe currently has none). Tier C merge stays with operator.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "probes",
+        "rule": "settle-webhook-only registry row — manual-until:2026-09-15, unlock tied to a dead Actions job",
+        "where": "scripts/probes/probe-registry.txt:37 (env comment 33-36); probe scripts/probes/settle-webhook-only.sh",
+        "enforces": "L3 — only checkout-settlement-service writes SETTLED + settle unit test green",
+        "verdict": "STALE",
+        "why": "The unlock 'ปลดเมื่อ job มี deps ครบ' refers to the Actions job enforcement-guardrails installed with --ignore-scripts (registry:34) — that job can never run again (HARNESS_LOG.md:226, directive 3), so the condition as written is unmeetable. Meanwhile the probe ALREADY runs blocking on the real gate path as full-gate required check probe-prisma-deps (scripts/ci/full-gate-checks.txt:46). On 2026-09-16 probe-gate goes red (probe-gate.js:157-158) demanding a wiring that cannot happen as described. Flipping to ci is wrong too: local-gate.sh:22 runs probe-gate without pnpm install/prisma generate, so ci would false-FAIL there. Probe logic itself is fine.",
+        "proposed_action": "Operator re-sign the row as permanent `manual` with standing reason: 'runs as required full-gate check probe-prisma-deps (full-gate-checks.txt:46); probe-gate contexts without prisma client (local-gate) would false-FAIL'.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "probes",
+        "rule": "webhook-idempotent registry row — manual-until:2026-09-15, same dead unlock",
+        "where": "scripts/probes/probe-registry.txt:38; probe scripts/probes/webhook-idempotent.sh",
+        "enforces": "L3 — replayed Stripe event id is a 200 no-op (dedup test green)",
+        "verdict": "STALE",
+        "why": "Identical situation to settle-webhook-only: 'เงื่อนไขเดียวกับข้างบน' points at the dead enforcement-guardrails Actions job; the probe already runs as required in full-gate's probe-prisma-deps check (full-gate-checks.txt:46); probe-gate goes red 2026-09-16 with an unmeetable instruction.",
+        "proposed_action": "Operator re-sign as permanent `manual` with the full-gate standing reason (same wording as settle-webhook-only).",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "probes",
+        "rule": "tier-check registry row — manual-until:2026-09-15, unlock 'ปลดเมื่อตั้ง fetch-depth: 0'",
+        "where": "scripts/probes/probe-registry.txt:39; scripts/probes/tier-check.sh:4-6,29; CLAUDE.md L5 carries the same unlock text",
+        "enforces": "L5 — merge tier decided by path classification only, never by agent judgement",
+        "verdict": "STALE",
+        "why": "fetch-depth:0 is an actions/checkout parameter — with Actions permanently gone (HARNESS_LOG.md:226, directive 3) the unlock condition can never be met, and the second condition 'เข้า DEFAULT check-done' is also still unmet (check-done.sh:12 has no tier-check). When 2026-09-15 passes, probe-gate goes red (probe-gate.js:157-158) demanding the impossible. The probe itself works wherever origin/main resolves (dev checkouts, the staging box full clone) and BLOCKs honestly otherwise (tier-check.sh:122-126); the header comment 'wired into CI' (lines 4-6) is likewise Actions-era.",
+        "proposed_action": "Operator re-sign the row as permanent `manual` with standing reason 'run at PR time by the merging human/agent per L5; probe-gate contexts may lack origin/main' — or add it as a full-gate/local-gate step. Also update tier-check.sh:4-6 header and the CLAUDE.md L5 unlock text (CLAUDE.md content = operator-only merge).",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "probes",
+        "rule": "suite-green registry row — permanent manual, reason names dead Actions job `Test`",
+        "where": "scripts/probes/probe-registry.txt:42; probe scripts/probes/suite-green.sh",
+        "enforces": "DoD §5 B/C — real full backend jest suite, exit 0 and count >= baseline",
+        "verdict": "STALE",
+        "why": "The standing reason 'ซ้ำกับ job `Test` ที่รัน suite เต็มอยู่แล้ว' cites a GitHub Actions job that will never run again (HARNESS_LOG.md:226). The conclusion is still right for a different reason: suite-green is a required check inside full-gate (full-gate-checks.txt:42), so running it again inside probe-ci would double the suite on the same box. A permanent-manual row whose written justification is false is exactly the phantom the registry header (lines 16, 20-21) forbids.",
+        "proposed_action": "Operator re-sign the reason text to: 'runs as required full-gate check suite-green (full-gate-checks.txt:42); a second run inside probe-ci doubles gate time with no new signal'. Row state stays manual.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "probes",
+        "rule": "report-integrity registry row — manual-until:2026-09-15 with unlock already met probe-side",
+        "where": "scripts/probes/probe-registry.txt:51; probe scripts/probes/report-integrity.sh:33-47",
+        "enforces": "L1 — report under judgement uses §2 status vocab, referenced claims, and Ratchet numbers matching the probe",
+        "verdict": "STALE",
+        "why": "The row itself says 'เงื่อนไขปลดทำแล้ว รอ operator เสียบ CI': the L-031 fix (explicit target via argv[1]/REPORT_INTEGRITY_TARGET, missing explicit target = FAIL, mode+target always printed) is implemented and verifiable at report-integrity.sh:33-47. Only the operator decision (target convention per PR, move row to ci) is outstanding — and 'CI' now means probe-gate/full-gate on the staging box, not Actions. If not acted on, probe-gate goes red 2026-09-16 (probe-gate.js:157-158).",
+        "proposed_action": "Operator: decide the per-run REPORT_INTEGRITY_TARGET convention and flip the row to ci — or re-sign a new date / permanent manual before 2026-09-15.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "probes",
+        "rule": "money-write-guard [BUILD] probe",
+        "where": "Named in CLAUDE.md L3 and HARNESS.md:98; no file exists anywhere under scripts/ (verified by recursive search 2026-08-14)",
+        "enforces": "L3 — writes to payment/invoice/journal tables only from an operator-signed writer allowlist (nothing today)",
+        "verdict": "DEAD",
+        "why": "[BUILD] since v3 (2026-08-07) and still not built — the tag is honest but a week on, L3's only mechanical cover remains 'every money path = Tier C = operator merge' (CLAUDE.md L3), which is a merge-process control, not a code-level guard.",
+        "proposed_action": "Build scripts/probes/money-write-guard.sh (grep/static writer-allowlist check, shaped like settle-webhook-only's SETTLED-writer grep) with --selftest, register as ci via L6 PR; operator merges the Tier C PR and signs the registry row.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "probes",
+        "rule": "path-guard [BUILD] probe",
+        "where": "Named in CLAUDE.md L5/L6 and HARNESS.md:97 ('path-guard (CI job)'); no file exists",
+        "enforces": "L5/L6 — PR touching Tier-C/operator-owned paths without an operator-applied label = FAIL",
+        "verdict": "DEAD",
+        "why": "Never built, and its design as a 'CI job' checking operator-applied PR labels assumes GitHub Actions + PR UI enforcement that is permanently gone (HARNESS_LOG.md:226). As specified it can never exist; as unbuilt it enforces nothing today. The path-classification half already exists in tier-check.sh's C_STRUCTURAL patterns.",
+        "proposed_action": "Redesign for the real gate path: a probe run by probe-gate/full-gate that classifies the diff via tier-check and FAILs when Tier-C paths changed without an operator attestation artifact (labels are unavailable without Actions). Build with --selftest via L6 PR; HARNESS.md §4.5 text update is operator-merge.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "probes",
+        "rule": "report-size [BUILD] probe",
+        "where": "Named in CLAUDE.md L1 and §6 (40-line cap) and HARNESS.md:99; no file exists",
+        "enforces": "L1 — per-work-item report ≤ 40 lines (kills rationale inflation)",
+        "verdict": "DEAD",
+        "why": "Unbuilt since v3; interim enforcement is 'reviewer ตีกลับ' (CLAUDE.md §6) — human discipline, which is exactly what this harness replaces with machines. Trivially mechanisable (line count over the judged report).",
+        "proposed_action": "Build scripts/probes/report-size.sh sharing report-integrity.sh's target-selection contract (argv[1]/env target), FAIL above 40 lines, with --selftest; register as ci via L6 PR.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "probes",
+        "rule": "probe-selftest [BUILD] probe",
+        "where": "Named in CLAUDE.md L6 and HARNESS.md:100; no file exists",
+        "enforces": "L6 — every scripts/probes/*.sh touched in a PR must have a --selftest that passes",
+        "verdict": "DEAD",
+        "why": "Unbuilt. Most probes now carry in-file selftests (status-vocab, holiday-single-source, ratchet, crawler-clean, gate-attestation, main-attestation-audit, plus tests/deploy-drift.selftest.sh), so the L6 selftest requirement is currently honored by convention only — nothing fails when a new probe ships without one (no-secret.sh and the five one-liner probes have none today).",
+        "proposed_action": "Build scripts/probes/probe-selftest.sh: diff-driven — for each changed scripts/probes/*.sh, require a '--selftest' branch and run it; with its own --selftest; register as ci via L6 PR.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "probes",
+        "rule": "probe-registry.txt header comments — 'ci = รันใน CI ทุก PR' and the enforcement-guardrails job block",
+        "where": "scripts/probes/probe-registry.txt:15 and :33-36",
+        "enforces": "Documentation of what the run-state column means and why three probes are parked",
+        "verdict": "STALE",
+        "why": "Line 15 defines ci as 'รันใน CI ทุก PR' and lines 33-36 describe the Actions job enforcement-guardrails (--ignore-scripts, shallow actions/checkout) — an environment that will never run again (HARNESS_LOG.md:226, directive 3). The ci set actually runs via node scripts/ci/probe-gate.js inside local-gate (local-gate.sh:22) and as the full-gate required check probe-ci (full-gate-checks.txt:45). The comments now mislead readers about where 'ci' executes and why rows are parked.",
+        "proposed_action": "Reword line 15 to 'ci = รันโดย probe-gate ทุกครั้งที่รัน local-gate/full-gate (ไม่มี GitHub Actions ถาวร — HARNESS_LOG.md:226)' and replace the :33-36 job description with the full-gate/prisma-deps reality. Comment-only edit, proposable by agent via PR; registry is operator-owned so merge = operator (Tier C).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "law-docs",
+        "rule": "L2 enforcement names 'CI job TruffleHog' as layer-2 secret scanning",
+        "where": "CLAUDE.md:39",
+        "enforces": "L2 NO SECRET — deep scan layer on top of the grep pin",
+        "verdict": "CONFLICTS",
+        "why": "Operator ruled 2026-08-14 that GitHub Actions is permanently unavailable (HARNESS_LOG.md:226-227), so the TruffleHog job can never run again. The real layer-2 today is gitleaks: locally in no-secret.sh:26-30, and full-history via full-gate check `secret-scan-deep | required` (scripts/ci/full-gate-checks.txt).",
+        "proposed_action": "In CLAUDE.md:39 replace 'CI job TruffleHog' with 'full-gate `secret-scan-deep` (gitleaks ทั้ง history, required — scripts/ci/full-gate-checks.txt) + gitleaks local ใน no-secret.sh'.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "no-secret probe passes on CI=1 by crediting the TruffleHog job",
+        "where": "scripts/probes/no-secret.sh:33-37",
+        "enforces": "L2 — fail-loud when no deep scanner ran",
+        "verdict": "CONFLICTS",
+        "why": "The branch `if [ -n \"${CI:-}\" ]; then pass \"layer2 = TruffleHog job ... in this CI run\"` claims a second layer that can never exist now (Actions permanently off, HARNESS_LOG.md:226). Any runner that exports CI=1 gets a PASS for a scan that did not happen — exactly the phantom the file's own header (lines 8-17) forbids.",
+        "proposed_action": "Delete the CI=1 pass branch (or make it BLOCKED like the fallthrough) so PASS requires gitleaks actually running; ship as a probe-logic PR with --selftest covering both the fail and pass case per L6.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "law-docs",
+        "rule": "Registry no-secret row: 'layer2 = TruffleHog job ในรันเดียวกัน → probe คืน PASS เองเมื่อ CI=1'",
+        "where": "scripts/probes/probe-registry.txt:26",
+        "enforces": "L2 — documents why the ci row is two-layer",
+        "verdict": "CONFLICTS",
+        "why": "Same dead assumption as above: there is no 'รันเดียวกัน' with a TruffleHog job anymore (HARNESS_LOG.md:226-227). The note now documents a false-pass path.",
+        "proposed_action": "Operator rewords the row note to name gitleaks/secret-scan-deep as layer 2 (registry is operator-owned — probe-registry.txt:2, L6).",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "L1 enforcement: report-integrity [MANUAL] '(เงื่อนไขปลดทำแล้ว — registry:48 รอ operator เสียบ CI)'",
+        "where": "CLAUDE.md:38 + scripts/probes/probe-registry.txt:51",
+        "enforces": "L1 EVIDENCE-OR-SILENCE — report claims must parse against artifacts",
+        "verdict": "STALE",
+        "why": "Pointer is off (the row now sits at probe-registry.txt:51, not :48) and 'เสียบ CI' assumes Actions PR jobs that no longer exist. The registry row is manual-until:2026-09-15, so per registry rules (probe-registry.txt:8,17) the gate goes red on that date if nobody decides the plug point. The real plug points today are full-gate `probe-ci` and check-done.sh DEFAULT.",
+        "proposed_action": "Update CLAUDE.md:38 to cite registry:51 and reword the unlock to 'operator ชี้ REPORT_INTEGRITY_TARGET ต่อ run แล้วย้ายแถวเป็น ci ใน probe-gate/full-gate ก่อน 2026-09-15'; operator flips the registry row when done.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "L5: 'CI ล่ม = ห้าม merge โค้ด' + deploy enforcement 'workflow_dispatch only + promote if:false (#775) [ACTIVE]'",
+        "where": "CLAUDE.md:42",
+        "enforces": "L5 TIERED MERGE / NO AUTO-DEPLOY",
+        "verdict": "CONFLICTS",
+        "why": "With Actions permanently down (HARNESS_LOG.md:226), 'CI ล่ม = ห้าม merge โค้ด' read literally bans every code merge forever — yet the sanctioned real gate is full-gate on the staging box (docs/operations/runbooks/full-gate-on-staging.md, verified by ci probe gate-attestation, probe-registry.txt:29). The workflow_dispatch/promote-if:false guard is vacuous (no runner minutes) — actual deploy governance is the on-box runbook plus deploy-drift required (full-gate-checks.txt; probe-registry.txt:50).",
+        "proposed_action": "Rewrite the L5 sentence to 'ไม่มี full-gate attestation ของ HEAD = ห้าม merge โค้ด (gate-attestation)' and replace the deploy enforcement entry with 'build/deploy บนเครื่องตาม runbook build-images-on-the-box.md + probe deploy-drift (ci, full-gate required) — deploy สั่งโดย operator เท่านั้น'.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "tier-check unlock condition: 'ปลดเมื่อ fetch-depth:0 + เข้า DEFAULT check-done'",
+        "where": "CLAUDE.md:42 + scripts/probes/probe-registry.txt:39",
+        "enforces": "L5 — tier decided only by tier-check.sh",
+        "verdict": "STALE",
+        "why": "fetch-depth:0 is an actions/checkout knob that can never be set again (Actions permanently off). Meanwhile tier-check is genuinely still absent from check-done.sh DEFAULT (scripts/check-done.sh:12) and the registry row expires manual-until:2026-09-15, after which the gate reddens (probe-registry.txt:17). The probe itself works — the on-box full-gate checkout has origin/main.",
+        "proposed_action": "Operator rewrites the unlock as 'เข้า probe-ci ของ full-gate (checkout เต็มบนเครื่อง staging) + เพิ่มเข้า DEFAULT ใน check-done.sh:12' and acts before 2026-09-15; CLAUDE.md:42 annotation updated to match.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "settle-webhook-only + webhook-idempotent parked as manual-until:2026-09-15 pending 'job มี deps ครบ (prisma generate)'",
+        "where": "scripts/probes/probe-registry.txt:33-38",
+        "enforces": "L3 — SETTLED only from webhook; webhook idempotency",
+        "verdict": "STALE",
+        "why": "The unlock condition is already met on the real gate path: full-gate runs both probes as required check `probe-prisma-deps` after prisma-generate (scripts/ci/full-gate-checks.txt, which itself cites the rows at stale line numbers 35-36). The Actions job (`enforcement-guardrails` with --ignore-scripts) these rows describe will never run again.",
+        "proposed_action": "Operator flips both rows to ci (or rewords the reason to 'covered as required by full-gate probe-prisma-deps') before the 2026-09-15 expiry reddens the gate; fix the full-gate-checks.txt cross-reference line numbers at the same time.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "Registry vocabulary: run=ci means 'รันใน CI ทุก PR'",
+        "where": "scripts/probes/probe-registry.txt:14-18",
+        "enforces": "Meaning of the run column for every probe row",
+        "verdict": "STALE",
+        "why": "There are no PR-triggered CI runs anymore and never will be (HARNESS_LOG.md:226). What 'ci' actually means today: executed by scripts/ci/probe-gate.js, which runs inside full-gate on the staging box (`probe-ci | required`, full-gate-checks.txt) and local-gate.",
+        "proposed_action": "Operator rewords the header: 'ci = รันโดย probe-gate.js ทุกครั้งที่ full-gate/local-gate ทำงาน (ไม่มี hosted CI อีกต่อไป — HARNESS_LOG 2026-08-14)'.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "§5 DoD ชั้น B: primary gate 'CI เขียวจริงบน runner', fallback 'ช่วง Actions ล็อก (operator 2026-08-06): LOCAL_GATE_FULL=1'",
+        "where": "CLAUDE.md:52",
+        "enforces": "Definition of Done for ordinary code (Tier B)",
+        "verdict": "CONFLICTS",
+        "why": "The primary path can never happen and the fallback's framing 'ช่วง Actions ล็อก' presents the outage as temporary — both contradict directive 3 (Actions permanently unavailable). The proven real path is full-gate on the staging box producing evidence/gate/<sha>.json checked by gate-attestation (probe-registry.txt:29; runbook docs/operations/runbooks/full-gate-on-staging.md; first green run evidenced in commit fd58f516).",
+        "proposed_action": "Rewrite the B row gate to 'full-gate บนเครื่อง staging (runbook full-gate-on-staging.md) PASS = attestation evidence/gate/<sha>.json + review 2 ชั้น'; keep LOCAL_GATE_FULL=1 as the explicit off-box fallback, dropping 'ช่วง Actions ล็อก'.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "Permission matrix: orchestrator reaches the staging box 'ผ่าน self-hosted runner + Actions workflow เท่านั้น (ไม่มี SSH ตรง — L-008)'",
+        "where": "HARNESS.md:36",
+        "enforces": "Who may execute commands on the staging machine",
+        "verdict": "CONFLICTS",
+        "why": "The only permitted agent path runs through Actions workflows, which are permanently unavailable — as written the agent has no lawful route at all, while the practiced route since 2026-08-14 is operator-executed runbooks (docs/operations/runbooks/build-images-on-the-box.md and full-gate-on-staging.md, both present; HARNESS_LOG.md:233).",
+        "proposed_action": "Operator rewrites the cell: orchestrator = เสนอคำสั่งตาม runbook ให้ operator รัน (คำสั่งคนละเครื่องห้ามอยู่บล็อกเดียวกัน — บทเรียน HARNESS_LOG.md:221); operator = SSH ตรงได้.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "§4.4 enforcement: 'ขยาย evidence-complete — งาน UI ที่ screenshots/ ว่าง = FAIL [BUILD]' (+ matching §4.5 row)",
+        "where": "HARNESS.md:92 and HARNESS.md:102",
+        "enforces": "View-pack evidence is machine-required for UI work",
+        "verdict": "STALE",
+        "why": "The extension is already built: evidence-complete.sh:11-16 fails when UI_ITEM=1 and trace/, video/, screenshots/ are empty or crawler-report.json is missing. The [BUILD] tag understates real enforcement.",
+        "proposed_action": "Operator edits HARNESS.md:92 to drop [BUILD] and cite evidence-complete.sh:11-16, and removes/checks-off the §4.5 'evidence-complete (ขยาย)' row.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "§4.5 build item: 'path-guard (CI job) — PR แตะ path Tier C โดยไม่มี label = FAIL'",
+        "where": "HARNESS.md:97 (referenced from CLAUDE.md:42,43)",
+        "enforces": "L5/L6 — machine protection of Tier C / operator-owned paths",
+        "verdict": "STALE",
+        "why": "The spec assumes a PR-triggered CI job and operator-applied PR labels — infrastructure that permanently does not run (directive 3). Built as specified it would enforce nothing.",
+        "proposed_action": "Operator respecs path-guard as a probe run by probe-gate/full-gate (e.g. diff HEAD against origin/main for operator-owned paths without an operator sign-off artifact), keeping the [BUILD] slot; CLAUDE.md L5/L6 references follow.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "HARNESS.md §4.1/§4.3 probe tables vs the live registry",
+        "where": "HARNESS.md:58-88 vs scripts/probes/probe-registry.txt:29-31,50",
+        "enforces": "Human-readable index of the probe fleet",
+        "verdict": "STALE",
+        "why": "Three probes that are now core ci rows — gate-attestation, main-attestation-audit, deploy-drift (the latter operator-flipped to ci + full-gate required 2026-08-14, HARNESS_LOG.md:233) — appear nowhere in the HARNESS.md tables. All .sh probes the tables DO list exist on disk (verified by ls).",
+        "proposed_action": "Operator adds the three rows to §4.1/§4.3 (or a one-line pointer that the registry at probe-registry.txt is the only complete list, per HARNESS.md:57).",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "law-docs",
+        "rule": "GOALS.md G0 — 'เครื่องพิสูจน์กลับมามีชีวิต (ภายใน 7 วัน)'",
+        "where": "GOALS.md:23-29 (also :58 'เขียวบน runner')",
+        "enforces": "Gate-revival goal that gates all feature work (GOALS.md:64)",
+        "verdict": "CONFLICTS",
+        "why": "Item 1 'จ่าย Actions billing' contradicts the written operator decision not to pay (HARNESS_LOG.md:226). 'CI เขียวจริงบน runner' was superseded by the on-box full-gate, proven green with deploy-drift required on 2026-08-14 (HARNESS_LOG.md:233). 'ปลดป้าย Law 3.5' targets a v2 law that no longer exists (folded into L4 — CLAUDE.md §0). Items #832 (status-vocab, now ci — registry:31) and #834 (L-001 burned — registry:25, dup-source now 2) are done but unchecked. The 7-day deadline (from 2026-08-07) has passed; GOALS.md:60 requires slips to be logged, and GOALS.md:64 makes an un-closeable G0 a permanent feature freeze.",
+        "proposed_action": "Rewrite G0 around the on-box gate (full-gate green on main + deploy-drift required — largely ACHIEVED), check off #832/#834, delete the billing item citing HARNESS_LOG.md:226, and append the goal-revision entry to HARNESS_LOG.md per GOALS.md:60.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "law-docs",
+        "rule": "Ratchet baseline env-direct: 169",
+        "where": "AUDIT_LEDGER.md:8 vs evidence/ratchet-current.txt (env-direct: 168)",
+        "enforces": "L4 one-way ratchet on direct process.env access",
+        "verdict": "STALE",
+        "why": "Current measured count is 168, one below baseline. HARNESS.md:68 mandates the baseline follow the count down (ratchet ลงทางเดียว); lowering is the agent-safe direction.",
+        "proposed_action": "Edit AUDIT_LEDGER.md:8 to `env-direct: 168` citing evidence/ratchet-current.txt.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "law-docs",
+        "rule": "Ratchet baseline dup-source: 4",
+        "where": "AUDIT_LEDGER.md:9 vs evidence/ratchet-current.txt (dup-source: 2)",
+        "enforces": "L4 one-way ratchet on duplicate SSOT sources",
+        "verdict": "STALE",
+        "why": "Current count is 2 after L-001 was burned via #834 (probe-registry.txt:25; the very reduction G0 line GOALS.md:28 called for). Baseline must follow down.",
+        "proposed_action": "Edit AUDIT_LEDGER.md:9 to `dup-source: 2` citing evidence/ratchet-current.txt and #834.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "law-docs",
+        "rule": "L-001 (holiday calendar 3 sources) still listed open; Burned table empty",
+        "where": "AUDIT_LEDGER.md:20 and AUDIT_LEDGER.md:27-30",
+        "enforces": "Ledger bookkeeping of debt burn-down (HARNESS.md §4.2 quota)",
+        "verdict": "STALE",
+        "why": "The registry records 'L-001 เผาแล้ว (#834) — แหล่งเดียวที่ utils/working-days.js; waiver คืนแล้ว 2026-08-07' (probe-registry.txt:25) and holiday-single-source now runs ci un-waived, yet the ledger still shows L-001 open and zero rows in Burned.",
+        "proposed_action": "Append `L-001 | 2026-08-07 | #834 — collapsed to utils/working-days.js; holiday-single-source waiver returned` to the Burned table and mark the open row closed (append-style edit, consistent with the ledger's append-only discipline).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "law-docs",
+        "rule": "L-004 — 'Deploy to Staging job แดงบน main run 30750228203; operator ตรวจ SSH secrets ของ staging'",
+        "where": "AUDIT_LEDGER.md:23",
+        "enforces": "Open finding directing operator effort at the Actions deploy job",
+        "verdict": "DEAD",
+        "why": "The Actions deploy path is permanently retired (HARNESS_LOG.md:226-227) and staging deployment now happens on-box with deploy-drift proving staging runs origin/main (HARNESS_LOG.md:233, full-gate-checks.txt required row). Fixing that job's SSH secrets can never matter again.",
+        "proposed_action": "Close L-004 as overtaken-by-events with a pointer to HARNESS_LOG.md 2026-08-14 (deploy-drift ปิดวงจร) — append a closure note rather than editing history.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "accounting-reconciler agent spec",
+        "where": ".claude/agents/accounting-reconciler.md:15",
+        "enforces": "flag-only reconciliation, no money mutation (cites CLAUDE.md Law 3.4)",
+        "verdict": "STALE",
+        "why": "Cites v2 'Law 3.4'; CLAUDE.md v3 (2026-08-07) renumbered it to L3. Substance (read/flag only, BLOCKED without DB) still matches directive 5.",
+        "proposed_action": "Edit citation 'CLAUDE.md Law 3.4' -> 'CLAUDE.md L3'.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "chief-of-staff check-in protocol",
+        "where": ".claude/agents/chief-of-staff.md:12,15-16,29",
+        "enforces": "daily status must be verified against live GitHub via `gh pr list` + per-PR CI green/red",
+        "verdict": "STALE",
+        "why": "gh CLI is not installed (verified: `command -v gh` empty) and Actions is permanently unavailable, so both the mandated tool and the 'CI เขียว/แดง' column are impossible; line 12 cites v2 Law 3.2 (now L1).",
+        "proposed_action": "Replace `gh pr list` with `git ls-remote`/operator-supplied PR list; replace per-PR CI status with gate-attestation results (scripts/probes/gate-attestation.sh + main-attestation-audit.sh); renumber Law 3.2 -> L1.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "implementer agent spec",
+        "where": ".claude/agents/implementer.md:14-15",
+        "enforces": "TDD with captured RED output; born-green tests declared as pin (cites Law 3.11)",
+        "verdict": "STALE",
+        "why": "Cites v2 Law 3.11; v3 moved red-first into DoD §5 (B/C executable behavior only). Substance still correct.",
+        "proposed_action": "Edit citation to 'CLAUDE.md §5 (RED-first, ชั้น B/C)'.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "infra-devops freeze + task list",
+        "where": ".claude/agents/infra-devops.md:21,28-30",
+        "enforces": "no `docker compose up` until #762 closes; owns A-lane tasks incl. A1 CI Postgres",
+        "verdict": "STALE",
+        "why": "The compose freeze was lifted 2026-08-05 and #762 executed (docs/operations/runbooks/deploy-staging-manual.md:6,20,50,144); A1 'CI Postgres' lived in the now-dead ci.yml — the real gate is full-gate on the staging box (directive 3).",
+        "proposed_action": "Rewrite line 21: staging compose allowed per deploy-staging-manual.md, production = operator-run always (L5 NO AUTO-DEPLOY unchanged); repoint CI/workflow duties to build-images-on-the-box.md + full-gate-on-staging.md.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "qa-e2e agent spec",
+        "where": ".claude/agents/qa-e2e.md:22-23",
+        "enforces": "no .skip/.only/assertion-weakening (cites Law 3.7); Playwright executablePath /opt/pw-browsers/chromium",
+        "verdict": "STALE",
+        "why": "Law 3.7 is v2 numbering (now L4 ratchet); the hardcoded /opt/pw-browsers/chromium path is the retired cloud-container environment — the machines that now run QA are the staging box / dev machines. Mock webhook adapter marked integration=mock stays legal as a jest-level double (directive 2).",
+        "proposed_action": "Renumber citation to L4; make browser path environment-derived (PLAYWRIGHT_BROWSERS_PATH or per-machine note) instead of a fixed literal.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "qc-evidence agent spec",
+        "where": ".claude/agents/qc-evidence.md:16",
+        "enforces": "claim without artifact = REJECTED (cites Law 3.2/3.9)",
+        "verdict": "STALE",
+        "why": "Cites v2 Laws 3.2/3.9, merged into L1 in v3. Substance unchanged and current.",
+        "proposed_action": "Edit citation to 'CLAUDE.md L1'.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "role-workflow-auditor role list",
+        "where": ".claude/agents/role-workflow-auditor.md:3,9",
+        "enforces": "S0-S6 walk per role: reviewer/Scheduler/Audit/Account/Admin/farmer",
+        "verdict": "STALE",
+        "why": "Role vocabulary drifted from directive 4 canon (admin, platform_admin, scheduler, document_reviewer, auditor, account_dtam, account_platform, health): platform_admin missing, 'Account' hides the dtam/platform split. No deleted COORDINATOR/ACCOUNTANT present.",
+        "proposed_action": "Rewrite the role list to the canonical strings from apps/backend/shared/canonical-rbac.js.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "security agent spec",
+        "where": ".claude/agents/security.md:15,24",
+        "enforces": "secret+authz scan, veto seat (cites Law 3.6 and CLAUDE.md §7)",
+        "verdict": "STALE",
+        "why": "Law 3.6 is now inside L4; escalation moved from §7 to §8 in v3. Duties themselves (rotate-not-hide, negative control) remain current.",
+        "proposed_action": "Renumber citations (Law 3.6 -> L4 dup-source, §7 -> §8).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "senior-swe review checklist pointer",
+        "where": ".claude/agents/senior-swe.md:21-23",
+        "enforces": "PR review against 'CLAUDE.md non-obvious rules 1-9'",
+        "verdict": "STALE",
+        "why": "CLAUDE.md v3 contains no 'non-obvious rules 1-9' section (v3 = §0 table + §1-§8); the pointer resolves to nothing even though the listed items (status-writer canonical path, tenant scoping, two JWT audiences...) are still correct.",
+        "proposed_action": "Inline the 9-item checklist in this spec or repoint to the skills that now carry them (gacp-workflow-rules, gacp-payment-invariants).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "/audit-role command",
+        "where": ".claude/commands/audit-role.md:5",
+        "enforces": "role argument list (reviewer | scheduler | audit | account | admin | farmer)",
+        "verdict": "STALE",
+        "why": "Same role-vocabulary drift as role-workflow-auditor.md: missing platform_admin, 'account' conflates account_dtam/account_platform (directive 4).",
+        "proposed_action": "Update argument list to canonical role strings.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "/qa-full command",
+        "where": ".claude/commands/qa-full.md:12",
+        "enforces": "report per 'CLAUDE.md §5'",
+        "verdict": "STALE",
+        "why": "v2 §5 (report) became §6 in v3; v3 §5 is DoD. Off-by-one section pointer.",
+        "proposed_action": "Edit to 'CLAUDE.md §6'.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "/recon-daily command",
+        "where": ".claude/commands/recon-daily.md:12",
+        "enforces": "flag-only discrepancies (cites Law 3.4)",
+        "verdict": "STALE",
+        "why": "v2 Law 3.4 is now L3. Substance current (matches directive 5, G1 hard gate).",
+        "proposed_action": "Edit citation to L3.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "v2 law-number citations across skills",
+        "where": ".claude/skills/gacp-payment-invariants/SKILL.md:10,15,116,133; gacp-debug/SKILL.md:11-13,31; thai-business-days/SKILL.md:63,91; gacp-view-in-the-loop/SKILL.md:38; gacp-workflow-rules/SKILL.md:102,106-107",
+        "enforces": "skills cite CLAUDE.md Law 3.2/3.4/3.5/3.8, §3.1(ค), §4.2/§4.3, §7",
+        "verdict": "STALE",
+        "why": "All cite the v2 numbering retired 2026-08-07; v3 mapping: 3.2/3.8/3.9->L1, 3.4->L3, 3.5/3.6/3.7->L4, 3.1->L5, §7->§8, DoD->§5, report->§6. Substance of every cited rule survives, only the addresses are dead.",
+        "proposed_action": "One sweep PR renumbering all citations using CLAUDE.md v3 §0 mapping table.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "gacp-workflow-rules content details",
+        "where": ".claude/skills/gacp-workflow-rules/SKILL.md:79,99",
+        "enforces": "waiver-reopen approved by 'accountant ฝั่ง DTAM'; documents cert mint at AUDIT_PASSED as current truth",
+        "verdict": "STALE",
+        "why": "'accountant' wording risks resurrecting the deleted ACCOUNTANT role (canonical = account_dtam, directive 4); line 99 states mint-on-AUDIT_PASSED without noting operator ruling D2 (GAP-MAP.md:117) that this is REJECTED and must move to the CERTIFIED write — a reader could pin the current behavior as intended.",
+        "proposed_action": "Reword :79 to `account_dtam`; add a D2 note at :99 ('current code, ruled to change — see GAP-MAP §6 D2').",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "QUEUE demo-Q&A identity answer",
+        "where": "QUEUE.md:210",
+        "enforces": "answer sheet: federation 'ยัง' — only local + mock IdP walkable, all providers coming_soon",
+        "verdict": "CONFLICTS",
+        "why": "Directive 2: mock IdP fully removed (verified: apps/backend/services/auth/idp/ has no mock-idp-adapter.js on this branch); directive 1: ThaID + Health ID are ministry-mandated entry paths the login page must name. The prepared answer would state a falsehood in front of the ministry.",
+        "proposed_action": "Rewrite the row: entry paths = ThaID + Health ID (mandated, named on login); no mock exists; state per-provider real credential status honestly.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "R-CI-1 (CI must have Postgres)",
+        "where": "QUEUE.md:74-77",
+        "enforces": "`.github/workflows/ci.yml` must run Postgres service + the 2 skipped integration tests",
+        "verdict": "STALE",
+        "why": "Actions is permanently unavailable (directive 3); the goal is already delivered on-box: full-gate-checks.txt has migrate-deploy + integration-pg required and integration-no-skip advisory.",
+        "proposed_action": "Mark R-CI-1 superseded by docs/operations/runbooks/full-gate-on-staging.md; keep the 'tests must actually run, skipped = fail' criterion pointed at integration-pg / integration-no-skip.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "R-R2-1 (real-Postgres integration tests)",
+        "where": "QUEUE.md:56-72",
+        "enforces": "each R2 mechanism needs >=1 integration test on real Postgres; 'บน CI ต้องรันจริง ถ้า CI รายงาน skipped = ไม่ผ่าน'",
+        "verdict": "STALE",
+        "why": "The requirement itself stands (and now CAN be met on the staging box), but its enforcement clause names CI/ci.yml which is dead; dependency on R-CI-1 is obsolete.",
+        "proposed_action": "Repoint the gate clause to full-gate integration-pg (required) and integration-no-skip (promote to required when operator signs the pending-count baseline).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "QUEUE current-order SSOT block",
+        "where": "QUEUE.md:269-316",
+        "enforces": "the single source of work order (last re-sort 2026-08-04, facts frozen ~2026-08-06)",
+        "verdict": "STALE",
+        "why": "Pre-2026-08-14 world: A1 'DONE' verified on the dead ci.yml (:278), A11-STEP1 evidenced by a CI run (:279), C1 live parts 'BLOCKED(operator:762-run)' though #762 was executed and freeze lifted 2026-08-05 (deploy-staging-manual.md:6,20,50), PR snapshot dated 2026-08-06 (:316). Its own rule (:271-273) demands the block be updated when reality moves.",
+        "proposed_action": "PM re-sort commit: refresh the block for the 2026-08-14 constitution (mock IdP removed, Actions permanently out, deploy-drift required, #762 done) with per-item reasons as :272 requires.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "DEMO-READINESS visual evidence source",
+        "where": "QUEUE.md:180-182",
+        "enforces": "visual evidence pack 'จาก E2E ที่รันจริงบน CI'",
+        "verdict": "STALE",
+        "why": "No CI exists to produce it; the working equivalent is scripts/ops/run-walkthrough.sh run on the staging machine (verified to exist; staging-walkthrough.yml header names it as the path that works today).",
+        "proposed_action": "Repoint the evidence source to run-walkthrough.sh on the staging box.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "GAP-MAP §0 PromptPay-only bullet",
+        "where": "GAP-MAP.md:22",
+        "enforces": "records `['promptpay','card']` as an open gap",
+        "verdict": "STALE",
+        "why": "D3 trim was merged as #774 (QUEUE.md:301: DONE, bba7b71/266cb35, 2026-08-04) — the cell describes a closed gap as open.",
+        "proposed_action": "Annotate the bullet 'closed by D3/#774' (keep the WALK record otherwise intact as a dated snapshot).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "GAP-MAP mock-adapter walk advice",
+        "where": "GAP-MAP.md:25,91",
+        "enforces": "recommends walking GP-3/4/6b 'via PAYMENT_ADAPTER=mock for E2E'",
+        "verdict": "CONFLICTS",
+        "why": "Directive 2 bans anything simulated user-facing; mock-driven settles rendered in the staging UI are simulated money presented as real (GAP-MAP itself flags the missing NODE_ENV guard on PAYMENT_ADAPTER=mock at GP-6b). Jest-level doubles remain allowed — the boundary needs an operator ruling before this advice is followed for walkthroughs.",
+        "proposed_action": "Operator to scope where PAYMENT_ADAPTER=mock may run (test-process only, NODE_ENV-guarded); until ruled, do not use mock settles in operator-facing walks.",
+        "fixable_by_agent": false
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "deploy-staging-manual runbook framing",
+        "where": "docs/operations/runbooks/deploy-staging-manual.md:3,8,75,145",
+        "enforces": "'active until deploy-staging.yml (A11 part 2) lands'; 22-July-image/150-commits narrative; 'build+push first' via GHCR",
+        "verdict": "STALE",
+        "why": "Directive 3 makes 'until the workflow lands' permanently false; staging must now track origin/main HEAD under the required deploy-drift probe (deploy-targets.txt staging rows, probe-registry.txt:50); on-box build supersedes push-to-GHCR (deploy-staging.sh accepts local images per build-images-on-the-box.md:60). §4 rollback section was already corrected 2026-08-13 and is good.",
+        "proposed_action": "Rewrite header/§2: canonical path = build-images-on-the-box.md + deploy-staging.sh with local IMAGE_TAG; delete the 'until A11 part 2' clause and the stale drift narrative; keep §4.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "setup-self-hosted-runner runbook",
+        "where": "docs/operations/runbooks/setup-self-hosted-runner.md:4-5,59-60,70-72",
+        "enforces": "restore CI by installing a self-hosted runner; 'first green run on main = evidence to lift Law 3.5'",
+        "verdict": "STALE",
+        "why": "Written for the 2026-08-06 quota outage on the premise Actions comes back; operator ruled 2026-08-14 Actions permanently unpaid, and dispatch is withheld even for self-hosted jobs (staging-walkthrough.yml header; runner-dispatch-probe.yml 'queues, runner Idle -> billing'). The unlock list (:70-72) was delivered by full-gate on staging instead.",
+        "proposed_action": "Stamp header 'superseded 2026-08-14 by build-images-on-the-box.md + full-gate-on-staging.md; retained only in case billing ever returns'.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "ghcr-pat-rotation runbook",
+        "where": "docs/operations/runbooks/ghcr-pat-rotation.md:95,108",
+        "enforces": "fix production pulls from GHCR; test-pull `ghcr.io/jonmaxmore/gacp-platform-backend:deploy-production-latest`",
+        "verdict": "STALE",
+        "why": "No new images reach GHCR (build-images.yml dead; builds are on-box and deploy-staging.sh skips pull when a local image exists) — GHCR pull is now a legacy path; additionally the test-pull image name `gacp-platform-backend` does not match what build-images.yml pushed (`gacp-backend`), so the verification step may 404 even with a valid PAT.",
+        "proposed_action": "Annotate as legacy-pull-only; verify/fix the image name in scripts/maintenance/fix-ghcr-pat.sh's test-pull.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "secret-rotation-full status header",
+        "where": "docs/operations/runbooks/secret-rotation-full.md:3-4,43",
+        "enforces": "Status DRAFT — do not execute until compose freeze lifted and #762 gates satisfied",
+        "verdict": "STALE",
+        "why": "The rotation was executed via #762 and the freeze lifted 2026-08-05 (deploy-staging-manual.md:6 'Freeze: lifted', :20 'sessions already invalidated by the JWT rotation in #762', :50 'both were rotated in #762').",
+        "proposed_action": "Restamp: 'executed 2026-08-05 via #762 — retained as the template for the next coordinated rotation'; drop the freeze precondition.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "restrict-site-to-one-ip CI-enforcement claim",
+        "where": "docs/operations/runbooks/restrict-site-to-one-ip.md:68,159",
+        "enforces": "claims scripts/ci/check-access-allowlist.js 're-reads the file in CI' / 'CI enforces that'",
+        "verdict": "STALE",
+        "why": "The only runner of check-access-allowlist.js is topology-guard.yml:47, which is dead — the allowlist check is currently enforced NOWHERE (grep: no row in local-gate.sh, probe-gate registry, or full-gate-checks.txt).",
+        "proposed_action": "Add check-access-allowlist.js to local-gate.sh or full-gate-checks.txt (PR with --selftest per L6), then fix the runbook wording to name the on-box gate.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "ci.yml workflow",
+        "where": ".github/workflows/ci.yml:26 (runs-on self-hosted), :1073-1085 (promote-deploy-branch if:false)",
+        "enforces": "the full CI suite + the promote-to-deploy/production guard",
+        "verdict": "DEAD",
+        "why": "Actions permanently unpaid — jobs never dispatch even to the self-hosted label (runner-dispatch-probe.yml documents 'queues, runner Idle -> billing'). Gate duty is replaced by full-gate on staging. The `if: false` promote guard (:1085) is an L5 artifact that must stay.",
+        "proposed_action": "Keep the file and the if:false guard untouched (L5); add a header note pointing to full-gate-on-staging.md; never re-enable push triggers without operator order.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "deploy-staging.yml workflow",
+        "where": ".github/workflows/deploy-staging.yml:24-25 (workflow_dispatch only)",
+        "enforces": "operator-triggered staging deploy; NO push trigger (L5)",
+        "verdict": "DEAD",
+        "why": "Cannot run (Actions unpaid); its header claim 'Replaces the ad-hoc VM process' is now inverted — the VM process (deploy-staging-manual.md + build-images-on-the-box.md) is the real path. The dispatch-only shape is the property L5 requires and must be preserved.",
+        "proposed_action": "Keep workflow_dispatch-only trigger exactly as-is per L5; annotate header that the live path is the on-box runbooks.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "production.yml workflow",
+        "where": ".github/workflows/production.yml:51-52 (workflow_dispatch only)",
+        "enforces": "operator-triggered production pipeline",
+        "verdict": "DEAD",
+        "why": "Cannot start (Actions unpaid, ubuntu-latest). Production deploys remain operator-manual under ADR-017; dispatch-only shape must stay per L5.",
+        "proposed_action": "Keep dispatch-only untouched; header note pointing to ADR-017 + on-box path.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "build-images.yml workflow",
+        "where": ".github/workflows/build-images.yml:22-26 (push main/deploy/tags)",
+        "enforces": "build+push images to GHCR on push",
+        "verdict": "DEAD",
+        "why": "Explicitly superseded by operator ruling: build-images-on-the-box.md:4-5 'operator ตัดสิน 2026-08-14 ว่าไม่จ่ายค่า GitHub Actions ⇒ build-images.yml ผลิต image ไม่ได้อีก'.",
+        "proposed_action": "Header tombstone pointing to build-images-on-the-box.md; PR to remove push triggers or delete the file (operator merges, Tier C).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "backend-qc-golden.yml workflow",
+        "where": ".github/workflows/backend-qc-golden.yml:3-13",
+        "enforces": "backend QC golden checks on push/PR",
+        "verdict": "DEAD",
+        "why": "Never fires (Actions unpaid, ubuntu-latest) and the golden check has NO on-box home — no matching row in full-gate-checks.txt or probe-registry.txt (verified by grep) ⇒ this check is currently enforced nowhere.",
+        "proposed_action": "Port the golden check into full-gate-checks.txt / local-gate.sh via PR with --selftest, then tombstone the workflow.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "carpet-bomb-test.yml workflow",
+        "where": ".github/workflows/carpet-bomb-test.yml:3-10 (dispatch+schedule)",
+        "enforces": "scheduled carpet-bomb test sweep",
+        "verdict": "DEAD",
+        "why": "Schedule never fires and dispatch is withheld (Actions unpaid). On-box QA equivalent is the qa-full path.",
+        "proposed_action": "Propose deletion or tombstone PR; fold any unique coverage into the on-box QA matrix.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "cleanup-ghcr.yml workflow",
+        "where": ".github/workflows/cleanup-ghcr.yml:23-28 (schedule+dispatch)",
+        "enforces": "GHCR image retention cleanup",
+        "verdict": "DEAD",
+        "why": "Never fires; GHCR also receives no new images anymore, so growth stopped — residual cleanup, if ever needed, is a one-off operator act.",
+        "proposed_action": "Delete/tombstone via PR.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "e2e-staging-nightly.yml workflow",
+        "where": ".github/workflows/e2e-staging-nightly.yml:26-29 (schedule)",
+        "enforces": "nightly staging E2E",
+        "verdict": "DEAD",
+        "why": "Schedule never fires (Actions unpaid). The visual/E2E duty lives on-box (scripts/ops/run-walkthrough.sh; full-gate flow-proof-full advisory).",
+        "proposed_action": "Tombstone; document the on-box nightly equivalent (operator-run or cron on the staging box).",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "frontend-lint-ratchet.yml workflow",
+        "where": ".github/workflows/frontend-lint-ratchet.yml:12-19",
+        "enforces": "L4 frontend lint ratchet on push/PR",
+        "verdict": "DEAD",
+        "why": "Never fires, and check-frontend-lint-ratchet.js has no on-box home (not in local-gate.sh:19-22, probe-gate registry, or full-gate-checks.txt — verified by grep) ⇒ the frontend ratchet is currently unenforced, an L4 hole.",
+        "proposed_action": "Add check-frontend-lint-ratchet.js to local-gate.sh (PR + selftest), then tombstone the workflow.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "generate-api-clients.yml workflow",
+        "where": ".github/workflows/generate-api-clients.yml:11-22",
+        "enforces": "API client generation/drift check",
+        "verdict": "DEAD",
+        "why": "Never fires (Actions unpaid, ubuntu-latest).",
+        "proposed_action": "Run generation manually/on-box when schemas change; tombstone or port a drift check into local-gate.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "infrastructure-contract-guard.yml workflow",
+        "where": ".github/workflows/infrastructure-contract-guard.yml:3-14",
+        "enforces": "infrastructure contract guard on PR/push",
+        "verdict": "DEAD",
+        "why": "Never fires, and no matching row exists in the on-box gate lists (verified by grep) ⇒ the contract guard is enforced nowhere.",
+        "proposed_action": "Port the guard script into local-gate.sh / full-gate-checks.txt via PR + selftest, then tombstone.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "security-scan.yml workflow",
+        "where": ".github/workflows/security-scan.yml:3-10",
+        "enforces": "scheduled TruffleHog/security scan (the 'CI job TruffleHog' layer L2 cites)",
+        "verdict": "DEAD",
+        "why": "Never fires (Actions unpaid). The deep-scan layer survives as required gitleaks `secret-scan-deep` in full-gate-checks.txt (scanner absent = NOT-RUN, never PASS). CLAUDE.md L2 still cites 'CI job TruffleHog' — that text is operator-owned.",
+        "proposed_action": "Tombstone the workflow; propose a CLAUDE.md L2 wording diff (TruffleHog CI -> full-gate secret-scan-deep) for the operator to merge.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "topology-guard.yml workflow",
+        "where": ".github/workflows/topology-guard.yml:3-15,47",
+        "enforces": "topology + access-allowlist checks (sole runner of scripts/ci/check-access-allowlist.js)",
+        "verdict": "DEAD",
+        "why": "Never fires, and it was the ONLY invoker of check-access-allowlist.js (grep across local-gate.sh/probe-gate.js/full-gate.sh: zero other callers) ⇒ the site-access allowlist and topology guards are enforced nowhere — a security-relevant gap.",
+        "proposed_action": "Port both checks into local-gate.sh or full-gate-checks.txt (PR + selftest), then tombstone; same gap as the restrict-site-to-one-ip runbook row.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "runner-dispatch-probe.yml workflow",
+        "where": ".github/workflows/runner-dispatch-probe.yml:45-51 + header ('Delete it once the answer is recorded')",
+        "enforces": "one-shot probe answering 'can a self-hosted job start today?'",
+        "verdict": "DEAD",
+        "why": "Its own contract says delete once the answer is recorded — the answer is now recorded permanently (operator will not pay for Actions, 2026-08-14).",
+        "proposed_action": "Delete via PR per the file's own instruction.",
+        "fixable_by_agent": true
+      },
+      {
+        "surface": "workflow-rules",
+        "rule": "staging-walkthrough.yml workflow",
+        "where": ".github/workflows/staging-walkthrough.yml:5-11 (STATUS comment)",
+        "enforces": "visual capture kit; header says 'kept as the intended future path once Actions is unlocked again'",
+        "verdict": "DEAD",
+        "why": "'Once Actions is unlocked again' contradicts the 2026-08-14 permanent ruling (directive 3); the working equivalent scripts/ops/run-walkthrough.sh exists on the tree (verified).",
+        "proposed_action": "Update the STATUS comment from 'postponed / unlocked again' to 'permanent — use scripts/ops/run-walkthrough.sh on the staging box', or tombstone the workflow.",
+        "fixable_by_agent": true
+      }
+    ]
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "Sweep"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "ci-checks",
+      "phaseIndex": 1,
+      "phaseTitle": "Sweep",
+      "agentId": "a9c72fb6323003a80",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1786717929268,
+      "queuedAt": 1786717927122,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Repo: C:/Users/charo/Documents/GitHub/GACP-Certification-Application (branch feat/remove-mock-idp checked out — audit THIS tree, it carries the newest rulings).\nWindows: bash shells running node need: export PATH=\"/c/Program Files/nodejs:$PATH\"\nCURRENT OPERATOR DIRECTIVES (the constitution as of 2026-08-14 — anything contradicting these is STALE or CONFLICTS):\n1. ThaID + Health ID (หมอพร้อม) are M…",
+      "lastProgressAt": 1786719106513,
+      "tokens": 198658,
+      "toolCalls": 42,
+      "durationMs": 1175521,
+      "resultPreview": "{\"rows\":[{\"rule\":\"local-gate.sh (gate runner: banned-terms, mojibake, green-mask, probe-gate, optional unit-suite)\",\"where\":\"scripts/ci/local-gate.sh:1-41\",\"enforces\":\"Tier A/B local gate: runs the 4 static checks blocking; LOCAL_GATE_FULL=1 adds backend jest\",\"verdict\":\"STALE\",\"why\":\"Steps are live and correct (deploy-drift double-run note lines 23-27 matches the 2026-08-14 registry flip), but th…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "probes",
+      "phaseIndex": 1,
+      "phaseTitle": "Sweep",
+      "agentId": "a4e4692e3c5cc65a3",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1786717929244,
+      "queuedAt": 1786717927123,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Repo: C:/Users/charo/Documents/GitHub/GACP-Certification-Application (branch feat/remove-mock-idp checked out — audit THIS tree, it carries the newest rulings).\nWindows: bash shells running node need: export PATH=\"/c/Program Files/nodejs:$PATH\"\nCURRENT OPERATOR DIRECTIVES (the constitution as of 2026-08-14 — anything contradicting these is STALE or CONFLICTS):\n1. ThaID + Health ID (หมอพร้อม) are M…",
+      "lastProgressAt": 1786718423592,
+      "tokens": 129902,
+      "toolCalls": 42,
+      "durationMs": 494347,
+      "resultPreview": "{\"rows\":[{\"rule\":\"no-skip probe + waiver row L-006 (waived:2026-09-15)\",\"where\":\"scripts/probes/no-skip.sh; scripts/probes/probe-registry.txt:24; scripts/probes/no-skip-allowlist.txt (empty)\",\"enforces\":\"L4 ratchet — no .skip/.only/xit/xdescribe outside operator-signed allowlist\",\"verdict\":\"VALID\",\"why\":\"Ran this session: FAIL with exactly the 10 conditional E2E skips the waiver names (apps/web-ap…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "law-docs",
+      "phaseIndex": 1,
+      "phaseTitle": "Sweep",
+      "agentId": "a6e877dec84b3a605",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1786718427468,
+      "queuedAt": 1786717927123,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Repo: C:/Users/charo/Documents/GitHub/GACP-Certification-Application (branch feat/remove-mock-idp checked out — audit THIS tree, it carries the newest rulings).\nWindows: bash shells running node need: export PATH=\"/c/Program Files/nodejs:$PATH\"\nCURRENT OPERATOR DIRECTIVES (the constitution as of 2026-08-14 — anything contradicting these is STALE or CONFLICTS):\n1. ThaID + Health ID (หมอพร้อม) are M…",
+      "lastProgressAt": 1786718896344,
+      "tokens": 108338,
+      "toolCalls": 19,
+      "durationMs": 468874,
+      "resultPreview": "{\"rows\":[{\"rule\":\"L2 enforcement names 'CI job TruffleHog' as layer-2 secret scanning\",\"where\":\"CLAUDE.md:39\",\"enforces\":\"L2 NO SECRET — deep scan layer on top of the grep pin\",\"verdict\":\"CONFLICTS\",\"why\":\"Operator ruled 2026-08-14 that GitHub Actions is permanently unavailable (HARNESS_LOG.md:226-227), so the TruffleHog job can never run again. The real layer-2 today is gitleaks: locally in no-se…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "workflow-rules",
+      "phaseIndex": 1,
+      "phaseTitle": "Sweep",
+      "agentId": "aca2b1ca9d6279bc9",
+      "model": "claude-fable-5",
+      "state": "done",
+      "startedAt": 1786718899868,
+      "queuedAt": 1786717927123,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "promptPreview": "Repo: C:/Users/charo/Documents/GitHub/GACP-Certification-Application (branch feat/remove-mock-idp checked out — audit THIS tree, it carries the newest rulings).\nWindows: bash shells running node need: export PATH=\"/c/Program Files/nodejs:$PATH\"\nCURRENT OPERATOR DIRECTIVES (the constitution as of 2026-08-14 — anything contradicting these is STALE or CONFLICTS):\n1. ThaID + Health ID (หมอพร้อม) are M…",
+      "lastProgressAt": 1786719638444,
+      "tokens": 195191,
+      "toolCalls": 63,
+      "durationMs": 738576,
+      "resultPreview": "{\"rows\":[{\"rule\":\"accounting-reconciler agent spec\",\"where\":\".claude/agents/accounting-reconciler.md:15\",\"enforces\":\"flag-only reconciliation, no money mutation (cites CLAUDE.md Law 3.4)\",\"verdict\":\"STALE\",\"why\":\"Cites v2 'Law 3.4'; CLAUDE.md v3 (2026-08-07) renumbered it to L3. Substance (read/flag only, BLOCKED without DB) still matches directive 5.\",\"proposed_action\":\"Edit citation 'CLAUDE.md L…"
+    }
+  ],
+  "totalTokens": 632089,
+  "totalToolCalls": 166
+}

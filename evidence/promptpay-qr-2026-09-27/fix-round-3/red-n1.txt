@@ -1,0 +1,19 @@
+# RED — fix round 3 N-1 on head de296a94 (service unchanged). Trimmed.
+# Passing from birth = pins.
+    ✓ PI_A requires_payment_method → reused, no second intent, order still names PI_A (13 ms)
+    ✓ PI_A requires_action → reused, no second intent, order still names PI_A (2 ms)
+    ✓ PI_A processing → reused, no second intent, order still names PI_A (2 ms)
+    ✓ PI_A succeeded (webhook not landed yet) → nothing new is minted, the state is handed back without a client secret (2 ms)
+    ✕ PI_A canceled → the only replacement, under its own idempotency key, and the order moves to it (3 ms)
+    ✓ an intent state this flow never produces (requires_capture) → refused, nothing minted (4 ms)
+    ✓ the gateway cannot say what PI_A is → refused (fail closed), never a blind second intent (3 ms)
+    ✕ N-1: the order row changed between the read and the write (cancelled meanwhile, or a later replacement) → refused, nothing overwritten, no client secret (2 ms)
+    ✕ N-1: a first mint writes its intent with the same compare-and-set (read value: none) (2 ms)
+    ✓ a first entry (no intent on the order yet) still mints under the plain key (2 ms)
+Tests:       3 failed, 7 passed, 10 total
+
+## decisive: the order changed underneath (compare-and-set would match 0 rows) — current code overwrote it with a blind update by id
+  ● re-entry after the idempotency window: the order keeps ONE live intent › N-1: the order row changed between the read and the write (cancelled meanwhile, or a later replacement) → refused, nothing overwritten, no client secret
+    Expected number of calls: 0
+    Received number of calls: 1
+    1: {"data": {"stripePaymentIntentId": "pi_B"}, "where": {"id": "co-1"}}

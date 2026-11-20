@@ -1,0 +1,58 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.082Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":1,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":2,"notifications":5},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.088Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.105Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":1,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.108Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.111Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.115Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.118Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.120Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.123Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.126Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-19T11:43:29.128Z","userId":"user-abc"}
+PASS __tests__/unit/pdpa-erasure-service.test.js
+  pdpa-erasure-service
+    requestErasure
+      √ rejects when healthId is missing (6 ms)
+      √ rejects when actorId is missing (2 ms)
+      √ rejects unknown data subject (2 ms)
+      √ rejects when legalHold is set (2 ms)
+      √ returns requestId + expiresAt + token; persists envelope; emits audit + fanout (4 ms)
+      √ returns PDPA_ERASURE_IN_PROGRESS when a REQUESTED envelope already exists (2 ms)
+    confirmErasure
+      √ rejects when token mismatches (2 ms)
+      √ rejects and marks EXPIRED when the window has passed (2 ms)
+      √ rejects when requestId does not match the envelope (1 ms)
+      √ executes erasure on valid token and returns the summary (13 ms)
+    executeErasure
+      √ anonymises user, application formData, and certificates; deletes drafts + notifications (4 ms)
+      √ blocks erasure when legalHold is set on the user row (1 ms)
+      √ requires either healthId or userId (1 ms)
+    _sanitizeApplicationFormData
+      √ clears known PII keys at every level of a nested blob (1 ms)
+      √ passes through null / primitive inputs unchanged (1 ms)
+    listErasureRequests
+      √ returns envelopes without the token field (2 ms)
+      √ filters by status when provided (1 ms)
+      √ falls back to a broad scan when JSON-path filter is unsupported (2 ms)
+    cancelErasure
+      √ flips status to CANCELED and strips the token (1 ms)
+      √ refuses to cancel a non-REQUESTED envelope (2 ms)
+    STAGE 0 — erasure gap + data-state-agnostic resolve
+      √ (d) executeErasure ALSO nulls the *Hmac columns + sets canonicalId = user.id (2 ms)
+      √ (d) anonymises the personal INDIVIDUAL Entity row (null thaiCitizenId + thaiCitizenIdHash) (2 ms)
+      √ (d) Application anonymise queries by the post-cascade FK value (resolvedUserId), not the old national ID (3 ms)
+      √ (b) requestErasure resolves the subject by the national-ID HASH (not a canonicalId value WHERE) (2 ms)
+    M1 — erasure and the holder columns (D8 / AC4)
+      √ asks Postgres for holderType — without it every branch below reads undefined (3 ms)
+      √ wipes holderDisplayName to the sentinel when holderType is LEGACY_PERSON (a person is behind that name) (2 ms)
+      √ wipes holderDisplayName to the sentinel when holderType is INDIVIDUAL (a person is behind that name) (3 ms)
+      √ never writes holderDisplayName at all when holderType is JURISTIC (AC4 — the farm keeps its certificate) (3 ms)
+      √ never writes holderDisplayName at all when holderType is COMMUNITY_ENTERPRISE (AC4 — the farm keeps its certificate) (2 ms)
+      √ leaves holderDisplayName alone for a row whose holderType is still NULL (pre-backfill safety) (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       30 passed, 30 total
+Snapshots:   0 total
+Time:        1.96 s
+Ran all test suites matching /__tests__\\unit\\pdpa-erasure-service.test.js/i.

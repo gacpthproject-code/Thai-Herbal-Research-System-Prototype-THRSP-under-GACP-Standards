@@ -1,0 +1,58 @@
+RED (2nd) — added the provisioning door test after the first RED; tree = ac289c93 with services/tenant-context.js reverted to main 8368dfd4 (fix removed) for this run only
+node v24.21.0 · NODE_OPTIONS=<unset> · SIGNING_KEY_DIR=<mktemp -d> · TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5441 (password redacted)
+$ npx jest --config jest.config.cjs __tests__/integration/without-tenant-scope-lazy.int.test.js -t provisioning
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T12:33:12.909Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T12:33:12.915Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T12:33:12.918Z"}
+[31merror[39m: [org-user-create] failed: {"service":"platform-admin-organizations","timestamp":"2026-09-29T12:33:13.628Z"}
+FAIL __tests__/integration/without-tenant-scope-lazy.int.test.js
+  withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres)
+    S6 — last-admin guard, caller bound to org A, target in org B
+      ○ skipped service: assertNotLastActiveAdmin refuses to remove org B's only admin
+      ○ skipped real door: PATCH disabling org B's only admin answers 409 and the row stays ACTIVE
+      ○ skipped control: org C has two admins, so disabling one of them succeeds
+    platform-admin provisioning — caller bound to org A creates a user in org B
+      ✕ POST /api/platform-admin/organizations/:orgB/users answers 201 and the row lands in org B (504 ms)
+    S7 — a REVOKE stored under org B, caller bound to org A
+      ○ skipped the fixture really is a default MANAGER permission
+      ○ skipped effective permissions honour the REVOKE
+      ○ skipped revoking the member removes its grant rows (no resurrect on re-invite)
+    money path — settlement-reconcile runs with no tenant (behaviour unchanged)
+      ○ skipped stale PENDING_PAYMENT orders from every org reach the gateway question
+
+  ● withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres) › platform-admin provisioning — caller bound to org A creates a user in org B › POST /api/platform-admin/organizations/:orgB/users answers 201 and the row lands in org B
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 500
+
+      203 |             const row = await raw.user.findFirst({ where: { email }, select: { id: true, organizationId: true } });
+      204 |             if (row) { ids.users.push(row.id); }
+    > 205 |             expect(res.status).toBe(201);
+          |                                ^
+      206 |             expect(row && row.organizationId).toBe(orgB.id);
+      207 |         });
+      208 |     });
+
+      at Object.toBe (__tests__/integration/without-tenant-scope-lazy.int.test.js:205:32)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 7 skipped, 8 total
+Snapshots:   0 total
+Time:        1.481 s, estimated 2 s
+Ran all test suites matching __tests__/integration/without-tenant-scope-lazy.int.test.js with tests matching "provisioning".

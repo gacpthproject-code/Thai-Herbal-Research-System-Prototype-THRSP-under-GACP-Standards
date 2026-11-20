@@ -1,0 +1,391 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+    [0m [90m 110 |[39m
+     [90m 111 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mHEALTH_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mJWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 112 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 113 |[39m   }
+     [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/interoperability/interoperability-core.js:5:20)
+      at Object.require (routes/api/integration/interoperability.js:31:5)
+      at require (__tests__/unit/interop-resolve.test.js:80:34)
+      at Object.buildApp (__tests__/unit/interop-resolve.test.js:114:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m   }
+     [90m 118 |[39m
+     [90m 119 |[39m   [36mconst[39m providerConfig [33m=[39m {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/interoperability/interoperability-core.js:5:20)
+      at Object.require (routes/api/integration/interoperability.js:31:5)
+      at require (__tests__/unit/interop-resolve.test.js:80:34)
+      at Object.buildApp (__tests__/unit/interop-resolve.test.js:114:35)
+
+PASS __tests__/unit/interop-resolve.test.js (27.26 s)
+  GET /interoperability/v1/resolve — partner gate
+    √ 401 without a partner key (fail-closed like every partner endpoint) (3893 ms)
+    √ 400 when code param is missing/blank (28 ms)
+  GET /interoperability/v1/resolve — deterministic prefixes
+    √ GACP-* resolves a certificate with trust status + PII-safe provenance (no applicantName) (19 ms)
+    √ PU-* resolves a plant unit with FULL provenance: plot/แปลง, batch/ล็อต, cycle plant counts, farm (owner ask 2026-07-08) (22 ms)
+    √ a plant not yet harvested has batch=null and empty lots (13 ms)
+    √ BATCH-* resolves a harvest batch by batchNumber (14 ms)
+    √ LOT-* probes Lot.lotNumber FIRST, then falls back to legacy batchNumber (29 ms)
+  GET /interoperability/v1/resolve — URL normalization
+    √ full https trace URL (plant) resolves; legacy doubled /trace/trace/ too (27 ms)
+    √ cert verify URL (gacpth.com/verify/<n>) resolves the certificate (12 ms)
+  GET /interoperability/v1/resolve — TraceQrSecurity index + cascade
+    √ bare UUID found in the TraceQrSecurity index resolves a plot-cycle QR (35 ms)
+    √ unknown code → 404 resolved:false with the probe trail (13 ms)
+  partner access log — best-effort, never breaks the request
+    √ a resolved call records partnerId + endpoint (14 ms)
+    √ an access-log failure does NOT fail the request (18 ms)
+
+PASS __tests__/unit/cultivation-twin-routers-permission-gates.test.js
+  M3 — POST /api/cultivation-logs gates per activity type
+    √ resolves ACTIVITY_IRRIGATION from logType and asserts it before the write (83 ms)
+    √ legacy alias PESTICIDE normalizes to ACTIVITY_PEST_CONTROL (21 ms)
+    √ legacy alias WEEDING normalizes to ACTIVITY_WEED_CONTROL (11 ms)
+    √ this router's own catalog types PRUNING/OBSERVATION map to ACTIVITY_OTHER (not 400) (22 ms)
+    √ missing logType follows the service default (OBSERVATION) → ACTIVITY_OTHER (11 ms)
+    √ unknown logType → 400 BEFORE any engine call or write (11 ms)
+    √ denied worker → 403 ENTITY_PERMISSION_DENIED, write blocked (12 ms)
+  M3 — PUT/DELETE /api/cultivation-logs/:id gate on the ROW's own type
+    √ PUT asserts the stored row type (FERTILIZER → ACTIVITY_FERTILIZER) (13 ms)
+    √ PUT that RE-TYPES the row also asserts the target type (13 ms)
+    √ PUT denied → 403, no write (11 ms)
+    √ DELETE asserts the stored row type; denied → 403, no delete (11 ms)
+    √ DELETE allowed → 200 and deletes (19 ms)
+  M4 — harvest-batches mutations gate on HARVEST_RECORD
+    √ POST / asserts HARVEST_RECORD with the body farmId; allowed → 201 (77 ms)
+    √ POST / denied → 403 ENTITY_PERMISSION_DENIED, no create (11 ms)
+    √ PUT /:id asserts HARVEST_RECORD with the BATCH farm; denied → 403, no update (22 ms)
+    √ POST /:id/harvest asserts HARVEST_RECORD; denied → 403, no record (14 ms)
+    √ reads stay ungated (GET /:id makes no engine call) (12 ms)
+
+PASS __tests__/unit/cultivation-farm-access-routes.test.js
+  Wave A chunk 3 — DELETE /plots/:id (mutation) honours entity co-membership
+    √ ACTIVE co-member of the farm entity can delete (previously 404) (102 ms)
+    √ M2: un-granted ACTIVE VIEWER cannot delete — the CYCLE_CREATE gate denies with an explicit 403 (10 ms)
+    √ PENDING member still 404s (no mutation) (11 ms)
+    √ entityId=null plot farm stays owner-only → 404 for the worker (9 ms)
+    √ owner still deletes (regression) (9 ms)
+    √ M2: plot CREATE probes read-shaped — the CYCLE_CREATE gate is the mutation authority (14 ms)
+    √ S2: plot LIST keeps the read-shaped probe (no forMutation) (10 ms)
+  Wave A chunk 3 — GET /harvest-batches/:id (read) uses the accessible-farm set
+    √ co-member sees a workspace batch (previously 403 via owner-only farm ids) (17 ms)
+    √ non-member is still denied (10 ms)
+
+PASS __tests__/unit/harvest-identifiers-ssot.test.js
+  harvest-identifiers SSOT — thaiYear
+    √ converts a Gregorian year to Buddhist Era (+543) (10 ms)
+    √ defaults to the current system date when no date is given (3 ms)
+  harvest-identifiers SSOT — buildBatchNumber
+    √ mints a BATCH- prefixed number, never LOT- (2 ms)
+    √ mints the BE year, not the Gregorian year (fix round 1 pin) (2 ms)
+    √ two batches minted sequentially against the same sequence never collide (2 ms)
+    √ falls back to a collision-resistant timestamp+random suffix when the sequence is unavailable (still BATCH-, BE year, never LOT-) (2 ms)
+  harvest-identifiers SSOT — buildLotNumber (unchanged behaviour)
+    √ derives an A..Z suffix for the first 26 packaging lots of a batch (1 ms)
+    √ derives a numeric suffix past the 26th packaging lot (never the "[" charCode overflow) (1 ms)
+    √ is guarded against a null/undefined batchNumber (1 ms)
+    √ never computes its own year — it only re-derives whatever year is already in batchNumber (BE-consistent by construction) (1 ms)
+  W1-3 guard — batchNumber can never be minted with a "LOT-" prefix again
+    √ sanity check: the guard actually detects the historical bug shape (1 ms)
+    √ no source file under services/, routes/, or shared/ mints a LOT-prefixed batchNumber (52 ms)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:18.530Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:18.550Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:18.551Z"}
+PASS __tests__/unit/trace-generic-lab-privacy.test.js
+  resolveTraceByGenericQr — public lab-result redaction (SEC-TRACE-PII-002 / R9)
+    √ PLANTING_CYCLE branch: lab_analysis carries existence + labName only (11 ms)
+    √ HARVEST_BATCH branch: lab_analysis carries existence + labName only (6 ms)
+    √ HARVEST_BATCH branch: no cert → lab_analysis is null (existing gate unchanged) (3 ms)
+    √ LOT branch: labTest carries ONLY `tested` — no values, no file, no status string (4 ms)
+    √ LOT branch: PENDING status → tested:false (no pass/fail leaked either way) (2 ms)
+    √ LOT branch: FAILED status → tested:true (existence only — FAIL is not distinguishable from PASS) (3 ms)
+
+PASS __tests__/unit/cycle-permission-gate-service.test.js
+  resolveActivityPermission — payload type → ACTIVITY_* code
+    √ IRRIGATION → ACTIVITY_IRRIGATION (2 ms)
+    √ FERTILIZER → ACTIVITY_FERTILIZER (2 ms)
+    √ PEST_CONTROL → ACTIVITY_PEST_CONTROL (1 ms)
+    √ WEED_CONTROL → ACTIVITY_WEED_CONTROL (1 ms)
+    √ INSPECTION → ACTIVITY_INSPECTION (1 ms)
+    √ INCIDENT → ACTIVITY_INCIDENT (1 ms)
+    √ OTHER → ACTIVITY_OTHER (1 ms)
+    √ normalizes legacy aliases (PESTICIDE → ACTIVITY_PEST_CONTROL, lowercase ok) (1 ms)
+    √ unknown / missing type → null (1 ms)
+  requireCycleFarmPermission — express gate after ensureCycleOwned
+    √ static permission: allowed → next(), assert called with farmId+userId+permission (22 ms)
+    √ denied → 403 with code ENTITY_PERMISSION_DENIED + permission in the body (2 ms)
+    √ resolver returning null (unknown activity type) → 400 BEFORE any permission check (2 ms)
+    √ resolver with a valid type gates on the per-type code (2 ms)
+    √ shares ONE per-request cache Map across gates on the same req (2 ms)
+    √ unexpected (non-denial) failure → 500, not a hang (2 ms)
+  assertFarmPermission — req-cached wrapper for inline route gates
+    √ delegates with the req-scoped cache (2 ms)
+    √ propagates the denial error untouched (1 ms)
+
+[32minfo[39m: [Certificate] Auto-Created Cycle: cycle-1 {"service":"gacp-backend","timestamp":"2026-08-22T03:56:25.498Z"}
+[32minfo[39m: [Certificate] Auto-Created Batch: BATCH-2569-000001 with QR {"service":"gacp-backend","timestamp":"2026-08-22T03:56:25.499Z"}
+[32minfo[39m: [Certificate] Auto-Created Cycle: cycle-1 {"service":"gacp-backend","timestamp":"2026-08-22T03:56:25.502Z"}
+[32minfo[39m: [Certificate] Auto-Created Batch: BATCH-2569-000001 with QR {"service":"gacp-backend","timestamp":"2026-08-22T03:56:25.503Z"}
+[32minfo[39m: [Certificate] Auto-Created Cycle: cycle-1 {"service":"gacp-backend","timestamp":"2026-08-22T03:56:25.504Z"}
+[32minfo[39m: [Certificate] Auto-Created Batch: BATCH-2569-000002 with QR {"service":"gacp-backend","timestamp":"2026-08-22T03:56:25.506Z"}
+PASS __tests__/unit/certificate-service-batch-number-format.test.js (6.016 s)
+  certificate-service.createInitialAssets — batch number (W1-3 SSOT)
+    √ mints a BATCH- prefixed harvest batch number, never LOT- (4 ms)
+    √ two batches minted for the same farm in the same run never collide (no hardcoded "-001" tail) (6 ms)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:26.507Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:26.509Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:26.511Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:26.513Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:26.514Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:26.516Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:26.564Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:26.565Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:26.567Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:26.568Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:26.568Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:26.569Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:26.570Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:26.571Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:26.572Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:26.573Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:26.574Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:26.574Z"}
+PASS __tests__/unit/lot-number-suffix-race.test.js
+  Bug 5.5 — buildLotNumber suffix past 26
+    √ the 27th lot (index 26) yields a valid non-collapsing suffix (not "[") (182 ms)
+    √ does not throw on a null batchNumber (guarded) (47 ms)
+  Bug 5.5 — createLotWithQuotaCheck single lot-number allocation
+    √ derives the lotNumber via buildLotNumber from the raw COUNT when not supplied (47 ms)
+    √ a P2002 on the single create → 409 LOT_NUMBER_CONFLICT IMMEDIATELY (no retry) (68 ms)
+    √ honours a caller-supplied lotNumber (backward compat) (47 ms)
+    √ an explicit caller lotNumber that collides ALSO surfaces as a 409 (single create, no retry) (46 ms)
+
+PASS __tests__/unit/plot-qr-partial-route-consumption.test.js
+  Bug 8.4 — routes consume the partial plot-QR report
+    √ manual POST /:id/plot-qrs/generate surfaces failed plots on partial (not a silent success) (49 ms)
+    √ manual POST /:id/plot-qrs/generate still 400s when ALL plots failed (11 ms)
+    √ create-cycle automation pushes a WARNING on partial (no green success toast) (52 ms)
+
+PASS __tests__/unit/prisma-write-payload-fixes.test.js
+  HIGH-1/2 — quote-service write payloads
+    √ markAcceptedWithInvoice does NOT write a (non-existent) invoiceId column (4 ms)
+    √ markRejected writes `notes` (not the non-existent ApplicantNotes) (1 ms)
+  MEDIUM — harvest-service.recordHarvest maps yield to freshWeight
+    √ writes freshWeight (kg) and NOT actualYield/yieldUnit (2 ms)
+  HIGH-5 — auditor-workload counts filter on auditorId (not assignedAuditorId)
+    √ countAuditorCompletedAuditsSince uses auditorId (1 ms)
+
+PASS __tests__/unit/harvest-batch-cross-farm-create.test.js
+  A3 — create rejects a cross-farm cycle binding
+    √ cycleId whose cycle.farmId !== farmId → rejected, batch NOT created (147 ms)
+    √ cycleId that does not resolve to a cycle → rejected, batch NOT created (12 ms)
+  A3 — legit paths still create
+    √ cycleId whose cycle.farmId === farmId → 201, batch created with cycleId (22 ms)
+    √ no cycleId → 201, batch created (no cycle check) (19 ms)
+
+PASS __tests__/unit/cultivation-viewer-mutation-floor-routes.test.js
+  M2 — POST /planting-cycles probes read-shaped (the CYCLE_CREATE gate is the mutation authority)
+    √ POST / (cycle create) probes WITHOUT the VIEWER floor (M2: grants to VIEWER must reach the gate) (20 ms)
+    √ GET / (list) keeps the read-shaped probe (no forMutation) (11 ms)
+
+PASS __tests__/unit/entity-permission-cycle-route-wiring.test.js
+  Wave B chunk 4 — cycle route registers the per-permission gates
+    √ registers HARVEST_RECORD twice (harvest-batches + legacy harvest) (1 ms)
+    √ registers UNIT_MANAGE four times (generate/confirm/reconcile + legacy generate-units) (1 ms)
+    √ registers QR_GENERATE once (plot-qrs/generate) (1 ms)
+    √ registers the per-type activity resolver for POST /:id/activities (1 ms)
+  Wave B chunk 4 — POST / (cycle create) asserts CYCLE_CREATE
+    √ allowed → 201, assertFarmPermission called with CYCLE_CREATE (133 ms)
+    √ denied → 403 ENTITY_PERMISSION_DENIED naming the permission (28 ms)
+
+PASS __tests__/unit/planting-cycle-error-sanitization.test.js
+  HD-cultivation — planting-cycle 5xx error sanitization
+    √ POST / — internal error message is NOT leaked in the 500 body (28 ms)
+    √ POST /:id/harvest-batches — internal error message is NOT leaked in the 500 body (152 ms)
+    √ POST / — an allowlisted (safe) message still passes through unchanged (18 ms)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:32.614Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:32.619Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:32.620Z"}
+PASS __tests__/unit/trace-resolve-legacy-batch-number-format.test.js
+  trace resolver — pre-W1-3 old-format batch numbers still resolve
+    √ resolves a HarvestBatch stored with the OLD LOT-prefixed batchNumber, unchanged (5 ms)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'CERTIFICATE',
+      action: 'CERTIFICATE_SUSPENDED',
+      severity: 'WARNING',
+      error: 'this.prisma.$transaction is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-22T03:56:33.646Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at CertificateService._auditCertLifecycle (services/certificate-service.js:1381:13)
+      at CertificateService.suspendCertificate (services/certificate-service.js:1452:9)
+      at Object.<anonymous> (__tests__/unit/certificate-service.test.js:333:21)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'CERTIFICATE',
+      action: 'CERTIFICATE_REINSTATED',
+      severity: 'WARNING',
+      error: 'this.prisma.$transaction is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-22T03:56:34.427Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at CertificateService._auditCertLifecycle (services/certificate-service.js:1381:13)
+      at CertificateService.reinstateCertificate (services/certificate-service.js:1495:9)
+      at Object.<anonymous> (__tests__/unit/certificate-service.test.js:364:21)
+
+PASS __tests__/unit/certificate-service.test.js
+  certificate-service.findById
+    √ returns null when id is empty without hitting Prisma (3 ms)
+    √ returns null when id is null without hitting Prisma (2 ms)
+    √ queries by id with isDeleted: false filter and NO userId predicate (3 ms)
+    √ returns null when Prisma returns null (soft-deleted or missing) (2 ms)
+    √ forwards include option to Prisma (e.g. application relation) (3 ms)
+    √ forwards select option to Prisma (column projection) (2 ms)
+    √ returns revoked certificates (REVOKED is a status, not a delete) (2 ms)
+  certificate-service.findById — tenant scoping (C3)
+    √ adds organizationId to the where when an organizationId is supplied (non-cross-tenant provider) (2 ms)
+    √ a tenant-A scoped lookup of a tenant-B cert returns null (Prisma where excludes it) (2 ms)
+    √ does NOT add organizationId when crossTenant is true (PLATFORM_ADMIN) (2 ms)
+    √ does NOT add organizationId when none is supplied (legacy/back-compat callers) (2 ms)
+  certificate-service.listCertificates — tenant scoping (C3)
+    √ scope=all + organizationId → where narrowed to that org (no userId) (3 ms)
+    √ scope=all + crossTenant:true (PLATFORM_ADMIN) → no organizationId filter (2 ms)
+    √ scope=self still narrows by userId (HEALTH owner) and ignores org filter (1 ms)
+  certificate-service.getCertificateForUser (ownership preserved)
+    √ returns null when certificateId is missing (2 ms)
+    √ returns null when userId is missing (1 ms)
+    √ queries with BOTH id, userId, and isDeleted filters (IDOR guard) (1 ms)
+  certificate-service.findCertificateForApplication (dedupe primitive)
+    √ returns null for empty applicationId without hitting Prisma (1 ms)
+    √ filters out soft-deleted AND revoked certs so a re-pass re-issues (#17) (2 ms)
+  certificate-service.revokeCertificateForApplication (audit-pass reversal)
+    √ returns null for empty applicationId without hitting Prisma (1 ms)
+    √ is a no-op (null) when no live cert exists for the application (1 ms)
+    √ voids the live cert: status=revoked + soft-delete + forensic fields (2 ms)
+    √ uses the provided transaction handle (opts.prisma) for atomicity (1 ms)
+    √ defaults revokedBy to 'system' and a generic reason when omitted (2 ms)
+  certificate-service.suspendCertificate
+    √ rejects a missing certificateId with VALIDATION_ERROR (1 ms)
+    √ requires a reason of at least 3 chars (ISO 17065 record of decision) (2 ms)
+    √ suspends an active cert: status→suspended, scoped to {id, status:active, isDeleted:false} (781 ms)
+    √ maps Prisma P2025 (no active row) to CERTIFICATE_NOT_SUSPENDABLE (1 ms)
+  certificate-service.reinstateCertificate
+    √ reinstates a suspended cert: status→active, scoped to {id, status:suspended, isDeleted:false} (7 ms)
+    √ maps Prisma P2025 (not suspended) to CERTIFICATE_NOT_REINSTATABLE (1 ms)
+
+[31merror[39m: [plot-cycle-qr] registration failed for cyclePlot cp2: trace integrity write failed {"service":"planting-cycle-service","timestamp":"2026-08-22T03:56:37.623Z"}
+[31merror[39m: [plot-cycle-qr] registration failed for cyclePlot cp1: down {"service":"planting-cycle-service","timestamp":"2026-08-22T03:56:37.628Z"}
+[31merror[39m: [plot-cycle-qr] registration failed for cyclePlot cp2: down {"service":"planting-cycle-service","timestamp":"2026-08-22T03:56:37.629Z"}
+PASS __tests__/unit/generate-plot-cycle-qrs-partial.test.js
+  Bug 8.4 — generatePlotCycleQrsForCycle partial report + no abort-on-first-error
+    √ one plot failing does NOT abort — returns the other successes + a partial report (5 ms)
+    √ all succeed → status generated, missingCount 0, no failures (2 ms)
+    √ all fail → status failed (with error), generated empty (3 ms)
+    √ no assignments → failed with error (unchanged) (2 ms)
+
+PASS __tests__/unit/cultivation-viewer-mutation-floor.test.js
+  S2 — verifyOwnedCycle / verifyOwnedFarm mutation floor
+    √ verifyOwnedCycle forMutation: the membership branch excludes VIEWER (JS floor over the ACTIVE lookup) (8 ms)
+    √ verifyOwnedCycle read path uses the same ACTIVE lookup (3 ms)
+    √ VIEWER co-member: mutation lookup finds nothing, read finds the cycle (4 ms)
+    √ MANAGER co-member passes the mutation lookup (3 ms)
+    √ verifyOwnedFarm forMutation (POST /planting-cycles create): VIEWER excluded, MANAGER passes (4 ms)
+  S2 — ensureCycleOwned derives the floor from the HTTP method
+    √ POST (activity/harvest/unit mutations): VIEWER co-member → 404, next NOT called (2 ms)
+    √ POST: MANAGER co-member passes to the handler (1 ms)
+    √ PATCH is a mutation too: VIEWER co-member → 404 (2 ms)
+    √ GET (reads) unchanged for VIEWER: passes (1 ms)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-22T03:56:39.183Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-22T03:56:39.200Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-22T03:56:39.200Z"}
+PASS __tests__/unit/trace-generic-pii-redaction.test.js
+  resolveTraceByGenericQr — public PII redaction (SEC-CULT-001)
+    √ PLANTING_CYCLE branch strips address + sub-district, keeps coarse location (3 ms)
+    √ HARVEST_BATCH branch strips address + sub-district (1 ms)
+    √ LOT branch strips address + sub-district (1 ms)
+  resolveTraceByGenericQr — verification reflects real RSA integrity (SEC-CULT-002)
+    √ a sealed + valid batch reports verification.valid=true (signature actually checked) (2 ms)
+    √ a tampered batch (bad signature) reports verification.valid=false (2 ms)
+    √ an unsealed cycle no longer claims valid:true (was hardcoded) (1 ms)
+
+PASS __tests__/unit/harvest-batch-number-race.test.js
+  Bug 5.4 — harvest-batch number race
+    √ allocates the number from harvest_batch_number_seq (not count()+1) (11 ms)
+    √ retries on a single P2002 and succeeds with a fresh number (5 ms)
+    √ maps an unresolved P2002 to a 409 (not a 500) (4 ms)
+    √ re-raises a non-P2002 error unchanged (4 ms)
+
+PASS __tests__/unit/cultivation-grant-to-viewer-gated-surfaces.test.js
+  M2 — VIEWER + GRANT reaches and passes the per-permission gate
+    √ VIEWER with GRANT HARVEST_RECORD: reachability passes AND the gate allows (200-path) (2 ms)
+    √ VIEWER with GRANT UNIT_MANAGE passes the plant-units gate (1 ms)
+    √ un-granted VIEWER: reaches, but the engine denies with an explicit 403 (same net posture as the floor) (3 ms)
+    √ regression pin: MANAGER with REVOKE HARVEST_RECORD is denied by the engine (1 ms)
+    √ regression pin: MANAGER (role default holds HARVEST_RECORD) still passes (2 ms)
+  M2 — verifyOwnedFarm at the CYCLE_CREATE site is read-shaped (gate is the sole authority)
+    √ VIEWER co-member reaches the farm row (the CYCLE_CREATE engine gate then decides) (1 ms)
+
+PASS __tests__/unit/auto-trace-actor-identity-mask.test.js
+  [ROUND-4] auto-first-cycle-trace masks actorIdentity in HarvestBatch.notes
+    √ persists the MASKED national ID into the batch note (never the raw 13-digit ID) (4 ms)
+    √ keeps a null actorIdentity as null (no mask on absent value) (1 ms)
+  [ROUND-4] both auto-trace note sites wrap actorIdentity in maskThaiId (source guard)
+    √ auto-first-cycle-trace.js masks actorIdentity at the batch note (1 ms)
+    √ traceability-service.js ensureAutoTraceCycle masks actorIdentity at the cycle note (20 ms)
+
+Test Suites: 22 passed, 22 total
+Tests:       168 passed, 168 total
+Snapshots:   0 total
+Time:        57.946 s
+Ran all test suites matching /__tests__\\unit\\harvest-identifiers-ssot.test.js|__tests__\\unit\\certificate-service-batch-number-format.test.js|__tests__\\unit\\trace-resolve-legacy-batch-number-format.test.js|__tests__\\unit\\harvest-batch-number-race.test.js|__tests__\\unit\\cultivation-farm-access-routes.test.js|__tests__\\unit\\cultivation-twin-routers-permission-gates.test.js|__tests__\\unit\\prisma-write-payload-fixes.test.js|__tests__\\unit\\harvest-batch-cross-farm-create.test.js|__tests__\\unit\\lot-number-suffix-race.test.js|__tests__\\unit\\auto-trace-actor-identity-mask.test.js|__tests__\\unit\\interop-resolve.test.js|__tests__\\unit\\certificate-service.test.js|__tests__\\unit\\trace-generic-lab-privacy.test.js|__tests__\\unit\\trace-generic-pii-redaction.test.js|__tests__\\unit\\planting-cycle-error-sanitization.test.js|__tests__\\unit\\plot-qr-partial-route-consumption.test.js|__tests__\\unit\\generate-plot-cycle-qrs-partial.test.js|__tests__\\unit\\entity-permission-cycle-route-wiring.test.js|__tests__\\unit\\cultivation-grant-to-viewer-gated-surfaces.test.js|__tests__\\unit\\cultivation-viewer-mutation-floor-routes.test.js|__tests__\\unit\\cultivation-viewer-mutation-floor.test.js|__tests__\\unit\\cycle-permission-gate-service.test.js/i.
+DONE_0

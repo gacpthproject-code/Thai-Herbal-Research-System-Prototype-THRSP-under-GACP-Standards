@@ -1,0 +1,49 @@
+# M1: the committed doors + unit tests on base c84940ec3 (detached worktree wt-ff-base, same scratch Postgres)
+[run-base] base=c84940ec3c296ca3498145acb4e6867dde2dad8f tests-from=6b5a218f519a38f7486d82192833f587676a26a5 07:26:40
+FAIL __tests__/integration/katorlor1-fields-required-at-every-door-real-postgres.test.js (20.123 s)
+FAIL __tests__/unit/katorlor1-fields-required-at-submit.test.js
+Test Suites: 2 failed, 2 total
+Tests:       45 failed, 20 passed, 65 total
+    ✓ POST /submit: the complete filing is filed (PENDING_DOC_FEE) (3 ms)
+    ✓ POST /:id/revision-resubmit: the complete filing is filed (ASSIGNED_FOR_REVIEW) (1 ms)
+    ✓ POST /:id/car: the complete filing is filed (CAR_REVIEWING) (1 ms)
+    ✕ POST /submit without land tenure: 422 APPLICATION_INCOMPLETE naming step3.land_tenure, nothing moves (6 ms)
+    ✕ POST /submit without land document type: 422 APPLICATION_INCOMPLETE naming step3.land_document_type, nothing moves (2 ms)
+    ✕ POST /submit without land document number: 422 APPLICATION_INCOMPLETE naming step3.land_document_number, nothing moves (2 ms)
+    ✕ POST /submit without owner of rented land: 422 APPLICATION_INCOMPLETE naming step3.landlord_name, nothing moves (2 ms)
+    ✕ POST /submit without coordinates: 422 APPLICATION_INCOMPLETE naming step3.coordinates, nothing moves (1 ms)
+    ✕ POST /submit without coordinates that are not a pair: 422 APPLICATION_INCOMPLETE naming step3.coordinates, nothing moves (1 ms)
+    ✕ POST /submit without plants per cycle: 422 APPLICATION_INCOMPLETE naming step3.plants_per_cycle, nothing moves (3 ms)
+    ✕ POST /submit without cycles per year: 422 APPLICATION_INCOMPLETE naming step3.cycles_per_year, nothing moves (3 ms)
+    ✕ POST /submit without varieties: 422 APPLICATION_INCOMPLETE naming varieties.name, nothing moves (2 ms)
+    ✕ POST /:id/revision-resubmit without land tenure: 422 APPLICATION_INCOMPLETE naming step3.land_tenure, nothing moves (3 ms)
+    ✕ POST /:id/revision-resubmit without land document type: 422 APPLICATION_INCOMPLETE naming step3.land_document_type, nothing moves (1 ms)
+    ✕ POST /:id/revision-resubmit without land document number: 422 APPLICATION_INCOMPLETE naming step3.land_document_number, nothing moves (1 ms)
+    ✕ POST /:id/revision-resubmit without owner of rented land: 422 APPLICATION_INCOMPLETE naming step3.landlord_name, nothing moves (2 ms)
+    ✕ POST /:id/revision-resubmit without coordinates: 422 APPLICATION_INCOMPLETE naming step3.coordinates, nothing moves (1 ms)
+    ✕ POST /:id/revision-resubmit without coordinates that are not a pair: 422 APPLICATION_INCOMPLETE naming step3.coordinates, nothing moves (6 ms)
+    ✕ POST /:id/revision-resubmit without plants per cycle: 422 APPLICATION_INCOMPLETE naming step3.plants_per_cycle, nothing moves (2 ms)
+    ✕ POST /:id/revision-resubmit without cycles per year: 422 APPLICATION_INCOMPLETE naming step3.cycles_per_year, nothing moves (1 ms)
+    ✕ POST /:id/revision-resubmit without varieties: 422 APPLICATION_INCOMPLETE naming varieties.name, nothing moves (1 ms)
+    ✓ POST /:id/car without land tenure: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (1 ms)
+    ✓ POST /:id/car without land document type: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING)
+    ✓ POST /:id/car without land document number: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (1 ms)
+    ✓ POST /:id/car without owner of rented land: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (1 ms)
+    ✓ POST /:id/car without coordinates: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (1 ms)
+    ✓ POST /:id/car without coordinates that are not a pair: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (1 ms)
+    ✓ POST /:id/car without plants per cycle: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (2 ms)
+    ✓ POST /:id/car without cycles per year: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (1 ms)
+    ✓ POST /:id/car without varieties: corrective-action evidence is not a refiling, so it is accepted (CAR_REVIEWING) (1 ms)
+## decisive diff (POST /submit without coordinates)
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "code": "APPLICATION_INCOMPLETE",
+    -   "status": 422,
+    +   "code": null,
+    +   "status": 200,
+      }
+## why round 1's control failed: its RED log traces server require to test line 171; the committed test has it at 179, so round 1 ran an earlier uncommitted draft of the test, not a different DB (rules seeded 22:54 UTC, RED 22:58 UTC, GREEN 23:04 UTC)

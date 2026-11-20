@@ -1,0 +1,70 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-21T11:32:47.419Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-21T11:32:47.422Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-21T11:32:47.424Z"}
+[32minfo[39m: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-21T11:32:47.748Z"}
+[32minfo[39m: [Revision Deadline Checker] Found 2 active deadlines {"service":"gacp-backend","timestamp":"2026-10-21T11:32:47.763Z"}
+[32minfo[39m: [Revision Deadline Checker] Auto-cancelled: APP-CLOSING-12-071355AD (deadline: 2026-10-11T11:32:47.337Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-10-21T11:32:47.857Z"}
+[32minfo[39m: [Revision Deadline Checker] Completed: 2 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-21T11:32:47.932Z"}
+[32minfo[39m: [payment-closure] Auto-closed: APP-CLOSING-16-071355AD (M1 due 2026-07-02T16:59:59.999Z) -> EXPIRED, PAYMENT_ABANDONED {"service":"payment-closure","timestamp":"2026-10-21T11:32:48.101Z"}
+[32minfo[39m: [payment-closure] Auto-closed: APP-CLOSING-17-071355AD (M1 due 2026-07-02T16:59:59.999Z) -> EXPIRED, PAYMENT_ABANDONED {"service":"payment-closure","timestamp":"2026-10-21T11:32:48.164Z"}
+[32minfo[39m: [payment-closure] Completed: 3 scanned, 2 closed, 1 skipped, 0 errors {"service":"payment-closure","timestamp":"2026-10-21T11:32:48.215Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-21T11:32:48.918Z"}
+FAIL __tests__/integration/closing-jobs-real-clock-real-postgres.test.js
+  run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres)
+    ✕ in process: the entry calls the scheduler's three closing jobs once each with no clock argument, no other job, and closes only what is overdue (887 ms)
+    ✕ the command line closes what is overdue on the real clock, exits 0, and prints a summary of names and counts (569 ms)
+
+  ● run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres) › in process: the entry calls the scheduler's three closing jobs once each with no clock argument, no other job, and closes only what is overdue
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    @@ -5,11 +5,13 @@
+        "checkOverdueActivities": Array [],
+        "runCorrectionDeadlineSweep": Array [
+          Array [],
+        ],
+        "runPaymentClosureSweep": Array [
+    -     Array [],
+    +     Array [
+    +       2026-11-30T11:32:48.029Z,
+    +     ],
+        ],
+        "runPaymentReminderSweep": Array [],
+        "runSettlementReconcile": Array [],
+        "runSiteContactRequests": Array [],
+        "runStalePrecheckSweep": Array [],
+
+      107 |         expect(result.summary).toMatch(/^closing-jobs revisionDeadlineChecker:\S+ correctionDeadlineSweep:\S+ paymentClosureSweep:\S+$/);
+      108 |         const called = Object.fromEntries(Object.entries(spies).map(([name, s]) => [name, s.mock.calls]));
+    > 109 |         expect(called).toEqual({
+          |                        ^
+      110 |             checkExpiredDeadlines: [[]],
+      111 |             runCorrectionDeadlineSweep: [[]],
+      112 |             runPaymentClosureSweep: [[]],
+
+
+  ● run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres) › the command line closes what is overdue on the real clock, exits 0, and prints a summary of names and counts
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PENDING_DOC_FEE"
+    Received: "EXPIRED"
+
+      84 |         expect((await statusOf(world.revisionOpen.id)).status).toBe('REVISION_REQUESTED');
+      85 |         expect((await statusOf(world.carOpen.id)).status).toBe('CAR_PENDING');
+    > 86 |         expect((await statusOf(world.unpaidWithinGrace.id)).status).toBe('PENDING_DOC_FEE');
+         |                                                                     ^
+      87 |         expect((await statusOf(world.unpaidNeverReminded.id)).status).toBe('PENDING_DOC_FEE');
+      88 |     }
+      89 |
+
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        2.259 s, estimated 3 s
+Ran all test suites matching __tests__/integration/closing-jobs-real-clock-real-postgres.test.js.
+jest exit 1

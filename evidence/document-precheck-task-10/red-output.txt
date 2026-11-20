@@ -1,0 +1,179 @@
+Task 10 — RED evidence (summary; raw jest log not committed). Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d), TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5436 (migrate deploy, 145+ migrations)
+command (apps/backend): npx jest --ci <5 files below>   — run against HEAD cd6b2bfe sources + the new/extended tests
+
+FAIL __tests__/unit/document-precheck/routes.test.js
+    ✓ the owner sees the observations on their in-scope slots: check, result and reason only (118 ms)
+    ✓ never the confidence, the snippet or the extracted text — anywhere in the body (12 ms)
+    ✓ a slot being checked shows PENDING with no observations yet; an in-scope slot never checked and an out-of-scope slot are null (10 ms)
+    ✓ a different health user gets 404 and none of the observations (9 ms)
+    ✓ the pre-check rows are read with explicit selects that never name the extracted text (11 ms)
+    ✓ the owner acknowledges: the time is recorded and the application status is exactly what it was (31 ms)
+    ✓ a non-owner is refused with 404 and nothing is written (8 ms)
+    ✓ a pre-check of another application, named under your own application, is 404 and untouched (8 ms)
+    ✓ an unknown pre-check is 404 (7 ms)
+    ✓ document_reviewer: the same observations plus confidence and the snippet — masked (13 ms)
+    ✓ field_inspector: the same observations plus confidence and the snippet — masked (9 ms)
+    ✓ system_admin_dtam: the same observations plus confidence and the snippet — masked (9 ms)
+    ✓ system_admin_platform: the same observations plus confidence and the snippet — masked (9 ms)
+    ✓ finance_officer_dtam: 403 and the body carries nothing of the pre-check (24 ms)
+    ✓ finance_officer_platform: 403 and the body carries nothing of the pre-check (7 ms)
+    ✓ dispatcher: 403 and the body carries nothing of the pre-check (8 ms)
+    ✓ certificate_approver: 403 and the body carries nothing of the pre-check (7 ms)
+    ✓ health: 403 and the body carries nothing of the pre-check (7 ms)
+    ✓ a document reviewer who is not the assigned one: 403 and nothing of the pre-check (7 ms)
+    ✓ no caller: 401, nothing read (6 ms)
+    ✓ the slot's current DONE pre-check id is written on create and on update (14 ms)
+    ✓ a slot whose current pre-check is still PENDING stores null — the superseded DONE is not "current" (9 ms)
+    ✓ a FAILED current pre-check stores null (23 ms)
+    ✓ a slot outside the catalog stores null even if a row exists for it (8 ms)
+    ✓ the applicant's requirements still answer, every slot's precheck null (10 ms)
+    ✓ the officer's document-check still answers, every slot's precheck null (7 ms)
+    ✓ the verdict is still recorded, with precheckId null (8 ms)
+    ✓ a client-sent precheckId pc-B is ignored (7 ms)
+    ✓ a client-sent precheckId pc-old is ignored (9 ms)
+    ✓ a client-sent precheckId pc-nope is ignored (10 ms)
+    ✕ a long snippet comes back at most 200 characters, with no full id even where the cut falls (8 ms)
+    ✓ a short snippet is returned whole (23 ms)
+    ✕ Prisma P2021: the verdict is recorded with precheckId null, and the loss is an error, not a warning (9 ms)
+    ✕ Prisma P2022: the verdict is recorded with precheckId null, and the loss is an error, not a warning (7 ms)
+    ✓ any other read failure stays a warning (7 ms)
+FAIL __tests__/unit/dead-doc-analysis-gone.test.js
+    ✕ require(../../services/document-analysis-service) throws MODULE_NOT_FOUND (3 ms)
+    ✕ require(../../services/ai/document-classifier) throws MODULE_NOT_FOUND (2 ms)
+    ✕ require(../../services/ocr-service) throws MODULE_NOT_FOUND (40 ms)
+    ✕ answers 404: the door is gone (85 ms)
+    ✕ never answers 500 — removed (404) or served from the register (200) (14 ms)
+FAIL __tests__/unit/pdpa-retention-job.test.js
+    ✓ anonymises users whose retainUntil is past, leaving future users alone (6 ms)
+    ✓ anonymisation nulls ALL identity + PII fields and sets password to PDPA_ANONYMIZED (3 ms)
+    ✓ never retries without isAnonymized/anonymizedAt — a marker failure is recorded, not routed around (2 ms)
+    ✓ error in a single user update is recorded but does not halt the sweep (3 ms)
+    ✓ exits the loop cleanly when findMany returns empty batch (2 ms)
+    ✓ filters legalHold rows out at the query layer and selects the column (12 ms)
+    ✓ never anonymises a legal-hold user whose retainUntil is in the past (2 ms)
+    ✓ fails closed when the isAnonymized column is missing — no unfiltered fallback re-query (2 ms)
+    ✓ fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody (1 ms)
+    ✓ skips a held row whose retainUntil elapsed 36 years ago (1 ms)
+    ✓ the query excludes held rows unconditionally, not by shifting the date window (2 ms)
+    ✓ never writes retainUntil or legalHold — the sweep cannot defer or clear a hold (2 ms)
+    ✓ every column in the WHERE clause is declared on model User (1 ms)
+    ✓ every column in the SELECT clause is declared on model User
+    ✓ every column the anonymization payload writes is declared on model User
+    ✓ passes no null predicate to a column the schema declares NOT NULL (1 ms)
+    ✓ every column the sweep touches is materialised by a migration, not only declared (5 ms)
+    ✕ clears extractedText and every evidenceSnippet of the user's applications before anonymizing the user (3 ms)
+    ✕ a failed clear leaves the user un-anonymized for the next run — never anonymized with the text still there (2 ms)
+    ✓ a user under legal hold: no pre-check text is touched (1 ms)
+FAIL __tests__/integration/pdpa-retention-clears-precheck-text.test.js
+    ✕ an expired applicant: every pre-check loses its page text and every snippet; status and results stay (74 ms)
+    ✓ an applicant still inside the window keeps the text (21 ms)
+    ✓ a user under legal hold keeps the text (18 ms)
+    ✓ an application under legal hold keeps the text even when its applicant is anonymized (28 ms)
+FAIL __tests__/unit/document-precheck/rules.test.js
+    ✓ OCR_CONFIDENCE_MIN is 60 (set from the Task 9 corpus) (1 ms)
+    ✓ NAME_SIMILARITY_MIN is re-exported from normalize.js, not a second constant
+    ✓ CATALOG has an entry, with a source, for exactly the 7 canonical slots (1 ms)
+    ✓ only company_reg carries a validity rule, exactly maxAgeMonths 6 / facts.md:50 (1 ms)
+    ✓ evaluate() throws for a slotId outside the 7-slot CATALOG scope (23 ms)
+    ✓ I1: land_deed/land_lease/land_consent declare referenceCombine ANY; every other slot is the ALL default (1 ms)
+    ✓ PASS: readable text, no page-count rule configured for this slot (1 ms)
+    ✓ UNREADABLE: empty extracted text (1 ms)
+    ✓ UNREADABLE: OCR confidence below OCR_CONFIDENCE_MIN
+    ✓ PAGE_COUNT: pinned directly against a synthetic catalog entry (no production slot has this rule) (1 ms)
+    ✓ MATCH: the sourced phrase appears in the text (1 ms)
+    ✓ NOT_FOUND: readable, but none of the sourced phrases appear (11 ms)
+    ✓ UNREADABLE: an unreadable document is UNREADABLE, never NOT_FOUND (1 ms)
+    ✓ I5: land_lease has no sourced phrase, so evaluate() emits NO DOC_TYPE flag at all (1 ms)
+      ✓ an OCR-inserted space inside the phrase still MATCHes (1 ms)
+      ✓ one OCR-wrong character still MATCHes (1 ms)
+      ✓ a Thai-digit "๓" with an OCR-inserted space still MATCHes the printed "น.ส.3" (2 ms)
+      ✓ a clearly different document is still NOT_FOUND — the tolerance is small, not unlimited (10 ms)
+      ✓ an ID card naming a "น.ส." (Miss) is NOT_FOUND in LAND_DEED, not a false MATCH on "น.ส.3" (15 ms)
+      ✓ a receipt naming a "น.ส." is NOT_FOUND in LAND_DEED (15 ms)
+      ✓ "น.ส. ๓" (Thai digit + OCR space) still MATCHes — exact containment after normalization needs no tolerance (1 ms)
+    ✓ MATCH: name and citizen-id-last-4 both found in the document (2 ms)
+    ✓ MISMATCH: name matches but the citizen id in the document does not end in the expected last 4 (2 ms)
+    ✓ cross-match-missing-reference: an individual with no Entity yields NOT_FOUND, never MISMATCH (1 ms)
+    ✓ unreadable-short-circuits: DOC_TYPE is UNREADABLE and CROSS_MATCH is NOT_FOUND, even with full reference data on file (1 ms)
+    ✓ I5: previous_cert has no sourced reference field, so evaluate() emits NO CROSS_MATCH flag at all (1 ms)
+    ✓ I1: a deed held by the company, with the (unrelated) applicant person also on file, is MATCH via any-of (3 ms)
+      ✓ a trailing tone mark is TONE_ONLY -> MISMATCH, never MATCH (1 ms)
+      ✓ a mid-word tone mark is TONE_ONLY -> MISMATCH, never MATCH (1 ms)
+      ✓ a high-similarity OCR variant that is CLOSE (not tone-only) -> MATCH (2 ms)
+      ✓ a name that is a prefix of a different, longer name found in the document is not MATCH (1 ms)
+      ✓ a short company name is not MATCH merely for being a substring of an unrelated word ("ทุน" inside "ทุนจดทะเบียน") (1 ms)
+      ✓ a label glued to the title with no space ("ชื่อนายสมชาย ใจดี") (2 ms)
+      ✓ a whole line glued with no spaces at all ("ชื่อนายสมชายใจดีเกิดวันที่") (8 ms)
+      ✓ OCR over-splits the name into more tokens than expected+1 ("นาย สม ชาย ใจ ดี") (1 ms)
+      ✓ no 13-digit id anywhere in the text, with a juristicId on file -> NOT_FOUND, not MISMATCH
+      ✓ a different, valid-checksum id IS found -> MISMATCH
+      ✕ nothing to compare found in the document (2 ms)
+      ✕ no applicant data on file for this slot (1 ms)
+    ✓ PASS: exactly 6 months after issuance (2 ms)
+    ✓ EXPIRED: one day past the 6-month boundary (2 ms)
+    ✓ DATE_NOT_FOUND: no date at all in the text (1 ms)
+    ✓ I3: registered 2560, issued 1 ก.ย. 2569 — the LABELED issue date is used, not the earlier registration date (1 ms)
+    ✓ I3: several dates found and NONE is labeled -> DATE_NOT_FOUND, not a guess (62 ms)
+    ✓ no VALIDITY flag at all for a slot with no validity rule (land_deed) (1 ms)
+    ✓ sanity: issuedBangkok really is 1 มกราคม 2569 at Bangkok midnight (1 ms)
+      ✓ the date right after the label is OCR-garbled ("l กันยายน 2S69") -> DATE_NOT_FOUND, not the registration date (1 ms)
+      ✓ a later, unrelated dated line must not bind through the label -> DATE_NOT_FOUND (1 ms)
+    ✓ is always MANUAL, on every slot (1 ms)
+    ✓ reasonTH and evidenceSnippet never match /\d{13}/, across every check, including a mismatched id (8 ms)
+Test Suites: 5 failed, 5 total
+Tests:       13 failed, 101 passed, 114 total
+
+=== key failure messages ===
+  ● POST /api/documents/verify › answers 404: the door is gone
+    Expected: 404
+    Received: 400
+  ● GET /api/plants/:plantId/documents › never answers 500 — removed (404) or served from the register (200)
+    Expected: not 500
+  ● pdpa-retention-clears-precheck-text (real Postgres) › an expired applicant: every pre-check loses its page text and every snippet; status and results stay
+    Received: "หนังสือรับรองการจดทะเบียน นายสมชาย ใจดี เลขประจำตัว 1103700012345"
+    Received: null
+    Received: null
+  ● CROSS_MATCH › Task 10: NOT_FOUND reasons read the same to the applicant and the officer › nothing to compare found in the document
+    Expected: "ไม่พบข้อมูลที่จะเทียบในเอกสารนี้ เจ้าหน้าที่จะตรวจสอบเพิ่มเติม"
+    Received: "ไม่พบข้อมูลที่จะเทียบในเอกสารนี้ ให้เจ้าหน้าที่ตรวจสอบด้วยตนเอง"
+  ● CROSS_MATCH › Task 10: NOT_FOUND reasons read the same to the applicant and the officer › no applicant data on file for this slot
+    Expected: "ไม่มีข้อมูลผู้ยื่นให้เทียบสำหรับช่องนี้ เจ้าหน้าที่จะตรวจสอบเพิ่มเติม"
+    Received: "ไม่มีข้อมูลผู้ยื่นให้เทียบสำหรับช่องนี้"
+    Expected: <= 200
+    Received:    595
+    Expected: true
+    Received: false
+  ● [Task 10] the same sweep clears pre-check page text › clears extractedText and every evidenceSnippet of the user's applications before anonymizing the user
+    - Expected  - 2
+    + Received  + 0
+    -   "flags",
+    -   "prechecks",
+
+PIN, not fix (green from birth): routes.test.js M4 'a client-sent precheckId pc-B/pc-old/pc-nope is ignored' (3) — the POST already destructures only {slotId,verdict,reason,dueDate}; routes 'a short snippet is returned whole'; retention unit 'a user under legal hold: no pre-check text is touched'; integration: 'inside the window keeps the text', 'legal hold keeps the text' (user and application).
+Note: M4 first went red for a TEST reason (an unconsumed mockRejectedValueOnce from the warn-only describe leaked into later tests); fixed with an afterEach in that describe before this capture.
+
+=== operator ruling 2026-09-28 — officer-row labels (web) — RED against 7fde4bf8+ sources, new tests only ===
+command (apps/web-app): npx jest --ci 'src/app/provider/reviewer/[id]/document-check/__tests__/document-check-precheck.test.tsx'
+    ✕ PASS/MATCH is tagged "ไม่มีข้อสังเกต" — "ผ่าน" is no longer a tag anywhere (12 ms)
+    ✕ the MANUAL line reads "ตรวจเอง · ตรวจลายมือชื่อ/ตรา" (8 ms)
+    ✕ each pre-check block opens with the one line that the officer decides — once (8 ms)
+    ✕ the copy constants carry the ruling’s exact words (1 ms)
+    ✓ catches ✕ (1 ms)
+Tests:       4 failed, 18 passed, 22 total
+  ● officer-row labels (operator ruling 2026-09-28) › PASS/MATCH is tagged "ไม่มีข้อสังเกต" — "ผ่าน" is no longer a tag anywhere
+    Expected: "ไม่มีข้อสังเกต"
+    Received: "ผ่าน"
+  ● officer-row labels (operator ruling 2026-09-28) › the MANUAL line reads "ตรวจเอง · ตรวจลายมือชื่อ/ตรา"
+    Expected: "ตรวจเอง · ตรวจลายมือชื่อ/ตรา"
+    Received: "ตรวจลายมือชื่อ/ตรา"
+  ● officer-row labels (operator ruling 2026-09-28) › each pre-check block opens with the one line that the officer decides — once
+    Expected: 1
+    Received: 0
+  ● officer-row labels (operator ruling 2026-09-28) › the copy constants carry the ruling’s exact words
+    Expected: "ไม่มีข้อสังเกต"
+    Received: "ผ่าน"
+PIN, not fix: 'every non-PASS/MATCH result keeps "ข้อสังเกต"' (green from birth — isObservation already covered them).
+
+=== backend branch-red suites found by the Task 10 full run (not red on main 2dff24ae) ===
+data-sovereignty-scope.test.js: unclassified ['.traineddata'] (Received + '.traineddata')
+env-example-documents-config.test.js: missing ['PATH'] (config/child-process-env.js:29)

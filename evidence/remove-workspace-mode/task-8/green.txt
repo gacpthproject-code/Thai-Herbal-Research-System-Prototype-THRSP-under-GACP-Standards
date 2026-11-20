@@ -1,0 +1,114 @@
+# Task 8 GREEN — 2026-10-03T06:27:39Z · branch feat/remove-workspace-mode (on f5b92ad8, uncommitted tree = the commit below)
+# Postgres 17 throwaway :55436 (ws-pg-55436) · prisma migrate deploy · jest -i · witness THROW (NODE_ENV=test)
+
+## 1. focused run (new + rewritten + error-code pointers + autosave + R1 neutrality + witness)
+Test Suites: 17 passed, 17 total
+Tests:       119 passed, 119 total
+skipped: 0 (no 'skipped' in the Tests line; every real-PG suite ran)
+PASS __tests__/integration/draft-explicit-id-routes-to-its-application-real-postgres.test.js
+PASS __tests__/integration/draft-renewal-save-on-one-connection-real-postgres.test.js
+PASS __tests__/integration/draft-save-repeat-is-harmless-real-postgres.test.js
+PASS __tests__/integration/health-door-walk-real-postgres.test.js
+PASS __tests__/integration/holder-scope-real-postgres.test.js
+PASS __tests__/integration/holder-write-doors-witness-real-postgres.test.js
+PASS __tests__/integration/r1-application-reads-neutral-real-postgres.test.js
+PASS __tests__/integration/r1-billing-doors-neutral-real-postgres.test.js
+PASS __tests__/integration/r1-cert-doc-finance-reads-neutral-real-postgres.test.js
+PASS __tests__/integration/r1-task6-write-doors-neutral-real-postgres.test.js
+PASS __tests__/unit/applications-prepare-server-owned-fields.test.js
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+PASS __tests__/unit/entities-mine-can-flags.test.js
+PASS __tests__/unit/error-codes-source-pointers.test.js
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+PASS __tests__/unit/wizard-answers-are-writable.test.js
+PASS __tests__/unit/wizard-blocked-by-missing-personal-entity.test.js
+
+### holder-scope-real-postgres.test.js + entities-mine-can-flags.test.js (the RED files)
+    ✓ the witness runs in THROW mode for this file
+    ✓ case 6: A /prepare on D with body entityId PA → D.entityId still C, body entityId stripped
+    ✓ case 6b: A /prepare on D acting on PA (no header) → 404, D still held by C and unchanged
+    ✓ case 7: create with entityId C by S → 403 ENTITY_PERMISSION_DENIED, nothing created
+    ✓ case 7: create with entityId C by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED, nothing created
+    ✓ case 7: no entityId → 400 APPLICATION_HOLDER_REQUIRED with the spec copy, nothing created
+    ✓ a draft-document upload with no id and no entityId → 400 APPLICATION_HOLDER_REQUIRED, nothing created, no file kept
+    ✓ created draft has formData.applicantType = Entity.type; body applicantType ignored
+    ✓ /prepare cannot rewrite applicantType
+    ✓ GET /draft-documents without applicationId → 400; missing draft → 404; no row created
+    ✓ GET /draft-documents for a user with no draft at all → 400, nothing minted
+    ✓ GET /draft without id returns latest open draft with submitterId = me and holder in editIds
+    ✓ ordered save: a holder outside editIds → 404 under the lock, nothing written
+    ✓ case 8b: A REVOKED on C → POST /draft {applicationId: D} → 404, applications count unchanged
+    ✓ OWNER {edit,submit,createFarm} = {true,true,true}
+    ✓ MANAGER = {true,false,false}
+    ✓ VIEWER = {false,false,false}
+    ✓ MANAGER with a SUBMIT_APPLICATION GRANT → submit:true
+    ✓ PENDING (include=pending) → all false
+
+## 2. backend unit folder (after every edit): Test Suites: 840 passed, 840 total · Tests:       11568 passed, 11568 total
+
+## 3. backend integration folder, real PG, -i (full): Test Suites: 12 failed, 1 skipped, 98 passed, 110 of 111 total · Tests:       36 failed, 13 skipped, 753 passed, 802 total
+- 4 of those failures were Task 8 fallout and are fixed + re-run green: application-health-reads-real-postgres (1), document-precheck-flow (3) → 'PASS, 31 passed' after the edit
+- 31 remaining failing tests in 9 suites fail IDENTICALLY on main df107376 (same test names, comm -3 empty; base run: 9 failed suites / 31 failed tests):
+    FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+    FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+    FAIL __tests__/integration/m1-submit-enforcement.test.js
+    FAIL __tests__/integration/m2a-submit-enforcement.test.js
+    FAIL __tests__/integration/officer-review-round-trip.test.js
+    FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+    FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+    FAIL __tests__/integration/staff-scope-contract.test.js
+    FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+- onsite-evidence-unfreeze HEADLINE failed once in the full run ("cannabis" not in plant master: shared-DB order dependence); alone on this tree: PASS 6/6; it passed on base in a different order. Not Task 8 code (certificate issuance).
+- 13 skipped = main attestation 1d6a7dff integration-no-skip advisory ("13 integration test(s) still skipped").
+
+## 4. probes: ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0 · retired-words PASS · no-skip PASS · no-secret PASS (layer1 0 hits, gitleaks clean) · green-mask PASS (no net-new masks, baseline 15)
+## 5. eslint on changed files: 0 new errors (4 'curly' errors in error-codes-source-pointers.test.js exist on HEAD — BACKLOG-FOUND)
+## 6. signing key mtime before/after every run: 1788623435 / 1788623435 (unchanged)
+
+## 7. R1 neutrality expected files — every changed row, one by one
+### __tests__/fixtures/r1-application-reads-neutral.expected.json (4 of 1339 rows; recorded diff = exactly these 4)
+- N|none|GET /draft: '200 nD' → '200 -'. N's own draft nD has entityId NULL. Spec §3.2 resume = own draft on a holder in editIds; §3.1 no filer fallback: a null holder is in nobody's set.
+- N|transient|GET /draft: '200 nD' → '200 -'. Same row, middleware catch path (no context); same rule.
+- N|none|POST /draft|nD: '200 nD' → '404 -'. Spec §3.2 draft edits need the holder in editIds; Review Focus 3 (no fallback). Deploy gate D1 heals such rows to 0 first.
+- N|transient|POST /draft|nD: '200 nD' → '404 -'. Same, catch path.
+### __tests__/fixtures/health-door-walk.expected.json (4 of 492 rows; recorded diff = exactly these 4)
+- The walk now calls GET /api/applications/draft-documents?applicationId=D (new QUERY entry): spec §3.2 'reads never create' makes an id-less call 400 for everyone, which walks no read.
+- A: {200,[D2]} → {200,[D,draftDoc]}. A (filer, OWNER of C, header C) reads D's document list by id; before, the id-less call resumed A's latest draft D2.
+- B: {200,[]} → {404,[D]}. B (MANAGER of C) cannot load D: R1 filer pin (healthId of A) until Task 12. Before: 200 on a draft findOrCreate resumed/created for B (the read that wrote).
+- S: {200,[]} → {404,[D]}. Stranger. Before: 200 on a draft resumed/created for S.
+- V: {200,[]} → {404,[D]}. VIEWER; C not in V's editIds (and R1 pin). Before: 200 on a draft resumed/created for V.
+  (labels [D] on the 404 rows = the id echoed back in the request path the response names)
+### r1-task6-write-doors / r1-billing-doors / r1-cert-doc-finance-reads expected files: unchanged, suites PASS
+
+## 8. notes
+- PIN not fix (green from birth, red.txt): case 6b and case 8b — the R1 entity dimension already filters D out when the active entity is PA; Task 8's editIds check is the rule that survives Task 12.
+- Deviation from the plan interface ('without an id it creates'): an id-less write with entityId first resumes the caller's OWN open DRAFT on that same holder (submitterId = me, entityId = the named holder), else creates. Forced by draft-save-repeat-is-harmless 'a FIRST save … retried with no id: still one new application, not two' (the autosave fix must keep working). No default holder, no other holder, no other filer's row.
+
+## ROUND 1 GREEN — 2026-10-03T06:49:50Z · review CRITICAL (renewal writes before refusing) + minor (co-member resume)
+### holder-scope-real-postgres.test.js (real PG :55436, witness THROW, renewal service NOT mocked)
+    ✓ the witness runs in THROW mode for this file
+    ✓ case 6: A /prepare on D with body entityId PA → D.entityId still C, body entityId stripped
+    ✓ case 6b: A /prepare on D acting on PA (no header) → 404, D still held by C and unchanged
+    ✓ case 7: create with entityId C by S → 403 ENTITY_PERMISSION_DENIED, nothing created
+    ✓ case 7: create with entityId C by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED, nothing created
+    ✓ case 7: no entityId → 400 APPLICATION_HOLDER_REQUIRED with the spec copy, nothing created
+    ✓ a draft-document upload with no id and no entityId → 400 APPLICATION_HOLDER_REQUIRED, nothing created, no file kept
+    ✓ created draft has formData.applicantType = Entity.type; body applicantType ignored
+    ✓ /prepare cannot rewrite applicantType
+    ✓ GET /draft-documents without applicationId → 400; missing draft → 404; no row created
+    ✓ GET /draft-documents for a user with no draft at all → 400, nothing minted
+    ✓ GET /draft without id returns latest open draft with submitterId = me and holder in editIds
+    ✓ ordered save: a holder outside editIds → 404 under the lock, nothing written
+    ✓ id-less write by B on C never resumes O2's open draft on C: B gets its own new draft
+    ✓ renewal of a source with NO holder → 400 APPLICATION_HOLDER_REQUIRED; no application, quotation or invoice written
+    ✓ renewal of a source with NO holder by a caller with no entity context (no membership) → 400; retries write nothing
+    ✓ renewal by a VIEWER of the source holder → 403 ENTITY_PERMISSION_DENIED; nothing written
+    ✓ renewal of a source with a holder the caller edits → 201, the renewal carries that holder
+    ✓ case 8b: A REVOKED on C → POST /draft {applicationId: D} → 404, applications count unchanged
+Tests:       19 passed, 19 total
+### unit + services folders: Test Suites: 1 failed, 842 passed, 843 total — the 1 failure was error-codes-source-pointers (5 renewal-service pointers moved), refreshed → PASS 18/18 with error-codes-catalog
+### integration folder (real PG, -i): Test Suites: 10 failed, 1 skipped, 100 passed, 110 of 111 total · Tests:       32 failed, 13 skipped, 762 passed, 807 total
+- 31 of 32 failures: same names as main df107376 (comm vs the base run, empty). The 32nd: onsite-evidence-unfreeze HEADLINE (shared-DB order, plant master); alone: PASS 6/6 (this round).
+- 13 skipped = main attestation advisory (13).
+### probes: ratchet 26/53/101/0 PASS · retired-words · no-skip · no-secret · green-mask PASS · key mtime 1788623435 unchanged
+### what changed: renewal-service decides the holder (cert → application.entityId relation) BEFORE any write: none → 400 APPLICATION_HOLDER_REQUIRED, not in holderScope.editIds → 403 ENTITY_PERMISSION_DENIED; holderScope required (TypeError); the two reads carry the holder fragment (R1 legacy pin) and the quotation issuance gets holderScope (it read Application unscoped: throw-mode 500 / staging shadow count). The route no longer re-reads the row after the fact.

@@ -1,0 +1,53 @@
+P0-3 gates - 2026-08-04T09:05:12Z
+branch (as reported by the shared worktree at run time): fix/checkout-page-flag-guard
+WARNING: this repo checkout is shared by parallel agent runs. HEAD was moved
+off fix/reset-script-guard by another run WHILE these gates executed. The two
+files this PR touches were byte-identical to the committed version at that
+moment; the extra suite in the AFTER numbers comes from that other run.
+The commit itself was made from an isolated `git worktree` on
+fix/reset-script-guard, whose only diff vs origin/main is this PR.
+
+===== BASELINE (origin/main = cffdea7b, before this change) =====
+Test Suites: 1 failed, 7 skipped, 531 passed, 532 of 539 total
+Tests:       1 failed, 74 skipped, 7175 passed, 7250 total
+Snapshots:   0 total
+Time:        229.794 s, estimated 238 s
+
+===== AFTER (same command) =====
+Test Suites: 1 failed, 7 skipped, 533 passed, 534 of 541 total
+Tests:       1 failed, 74 skipped, 7209 passed, 7284 total
+Snapshots:   0 total
+Time:        231.026 s
+
+NOTE: +2 suites / +34 tests. 17 of those are this PR
+      (__tests__/unit/reset-for-handoff-guard.test.js);
+      the other 17 are __tests__/unit/server-staging-debug-surfaces.test.js,
+      committed onto this branch by a parallel P0-1 run (commit 5a99ad1a).
+      The single failure is identical before and after:
+      __tests__/unit/dataset-export-service.test.js (Prisma DMMF undefined,
+      prisma client not generated in this environment) - pre-existing.
+
+===== bash scripts/probes/ratchet.sh =====
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4 (/home/user/GACP-Certification-Application/evidence/ratchet-current.txt)
+
+===== node scripts/ci/check-ai-style-smells.js =====
+[ai-style-smells] PASS — no banner separators or stray emoji in source
+
+===== node scripts/ci/check-thai-copy-style.js =====
+[thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+
+===== npm run check:banned-terms =====
+> node scripts/ci/check-banned-terms.js
+
+[banned-terms] Repository scan passed
+
+===== npx eslint (apps/backend) on the two touched files =====
+eslint exit=0
+
+===== grep -ci 'readline|confirm|prompt|NODE_ENV' apps/backend/scripts/reset-for-handoff.js =====
+46

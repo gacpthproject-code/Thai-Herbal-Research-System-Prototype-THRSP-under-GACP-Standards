@@ -1,0 +1,61 @@
+MUTATION check — c1ec5c0c with the invoice soft-delete disabled (if (false && ...)), real Postgres scratch · proves the soft-delete is what lets press 2 mint
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T13:25:24.730Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T13:25:24.733Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T13:25:24.734Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.173Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.214Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.243Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.256Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.284Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"UserConsent","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.296Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.300Z"}
+[33mwarn[39m: [checkout] retired an open order carrying a DTAM portion; the next press mints a fresh order {"applicationId":"fd5b676b-8d1a-4b6e-8a4c-939c0aa5f430","checkoutOrderId":"a3e6b11f-8ca7-4d61-b217-a9c03af7c798","milestone":"M1","paymentIntentId":"pi_mock_240fc9fe19f42722","service":"gacp-backend","timestamp":"2026-09-29T13:25:25.313Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.333Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"UserConsent","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.339Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.342Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:25:25.373Z"}
+[31merror[39m: [checkout-settle] order carries a DTAM portion — not settled, operator action required {"checkoutOrderId":"a3e6b11f-8ca7-4d61-b217-a9c03af7c798","eventId":"evt_pr2_1790688325071-i3v9ur","orderStatus":"CANCELLED","paymentIntentId":"pi_mock_240fc9fe19f42722","receivedSatang":588500,"service":"gacp-backend","timestamp":"2026-09-29T13:25:25.382Z"}
+FAIL __tests__/integration/dtam-portion-order-retired-real-postgres.test.js
+  an open order carrying a DTAM portion, on a real Postgres
+    ✕ press 1: refused CHECKOUT_ORDER_HAS_DTAM_PORTION; intent canceled, order CANCELLED, invoice soft-deleted, charge CANCELLED; no amount moved (41 ms)
+    ✕ press 2: a fresh order is minted past both partial unique indexes, priced from the quotation, no DTAM portion (35 ms)
+    ✓ a payment that lands for the retired order anyway is recorded on its event (FAILED + code), not lost, not settled (46 ms)
+
+  ● an open order carrying a DTAM portion, on a real Postgres › press 1: refused CHECKOUT_ORDER_HAS_DTAM_PORTION; intent canceled, order CANCELLED, invoice soft-deleted, charge CANCELLED; no amount moved
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      144 |         expect(Number(order.totalPayableAmount)).toBe(5885);
+      145 |         const invoice = await prisma.invoice.findUnique({ where: { id: oldInvoice.id } });
+    > 146 |         expect(invoice.isDeleted).toBe(true);
+          |                                   ^
+      147 |         expect(invoice.deletedAt).toBeInstanceOf(Date);
+      148 |         expect(invoice.status).toBe('cancelled');
+      149 |         expect(Number(invoice.totalAmount)).toBe(5885);
+
+      at Object.toBe (__tests__/integration/dtam-portion-order-retired-real-postgres.test.js:146:35)
+
+  ● an open order carrying a DTAM portion, on a real Postgres › press 2: a fresh order is minted past both partial unique indexes, priced from the quotation, no DTAM portion
+
+    มีรายการชำระเงินของงวดนี้กำลังดำเนินการอยู่แล้ว กรุณาเปิดหน้าชำระเงินเดิมหรือลองใหม่อีกครั้ง
+
+      93 |
+      94 | function httpError(status, code, message) {
+    > 95 |     return Object.assign(new Error(message), { status, statusCode: status, code });
+         |                          ^
+      96 | }
+      97 |
+      98 | /**
+
+      at httpError (services/checkout/stripe-checkout-service.js:95:26)
+      at httpError (services/checkout/stripe-checkout-service.js:708:23)
+      at Object.<anonymous> (__tests__/integration/dtam-portion-order-retired-real-postgres.test.js:155:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        1.267 s, estimated 2 s
+Ran all test suites matching __tests__/integration/dtam-portion-order-retired-real-postgres.test.js.

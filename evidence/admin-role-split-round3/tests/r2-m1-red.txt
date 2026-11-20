@@ -1,0 +1,127 @@
+# tree c1ea2dd63 + uncommitted test file (RED run, before the R2-M1 fix)
+# command: ~/work/state/rolesplit-r3/bjest.sh __tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js
+[31merror[39m: [SECURITY] ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE {"error":"Redis unavailable during GET on namespace \"auth\"","event":"ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE","failMode":"OPEN","jtiPrefix":"93d514a0-a27b-49","recommendedAction":"Verify Redis health (auth:blocklist namespace). If a credential compromise is suspected during this window, manually invalidate affected sessions via revokeAllUserTokens(userId) or rotate the JWT signing key.","securityEvent":true,"service":"gacp-backend","severity":"CRITICAL","timestamp":"2026-10-09T15:24:41.901Z"}
+[31merror[39m: [SECURITY] ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE {"error":"Redis unavailable during GET on namespace \"auth\"","event":"ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE","failMode":"OPEN","jtiPrefix":"95b6e489-3164-44","recommendedAction":"Verify Redis health (auth:blocklist namespace). If a credential compromise is suspected during this window, manually invalidate affected sessions via revokeAllUserTokens(userId) or rotate the JWT signing key.","securityEvent":true,"service":"gacp-backend","severity":"CRITICAL","timestamp":"2026-10-09T15:24:41.949Z"}
+[31merror[39m: [SECURITY] ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE {"error":"Redis unavailable during GET on namespace \"auth\"","event":"ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE","failMode":"OPEN","jtiPrefix":"f1d6593d-0b52-44","recommendedAction":"Verify Redis health (auth:blocklist namespace). If a credential compromise is suspected during this window, manually invalidate affected sessions via revokeAllUserTokens(userId) or rotate the JWT signing key.","securityEvent":true,"service":"gacp-backend","severity":"CRITICAL","timestamp":"2026-10-09T15:24:42.144Z"}
+FAIL __tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js
+  a demoted DTAM admin keeps no admin work power (real doors, real Postgres)
+    ✓ before the demotion, the admin lists and opens field inspector work (59 ms)
+    after the demotion to dispatcher and a new sign-in
+      ✓ the row says dispatcher, the admin membership is still there, and the old session is over (44 ms)
+      ✕ GET /work/queue?group=field_inspector is refused (49 ms)
+      ✕ GET /work/:id of field inspector work is refused (41 ms)
+      ✕ POST /work/:id/done on work another person claimed is refused and the row stays (48 ms)
+      ✕ POST /work/:id/claim on field inspector work is refused and the work stays open (39 ms)
+      ✕ POST /work/:id/unclaim of work another person claimed is refused (38 ms)
+      ✕ DTAM admin notices of the organization reach the admin and not the demoted account (10 ms)
+      controls
+        ✓ the admin, with the role and the row, still lists field inspector work (32 ms)
+        ✓ the demoted account works the dispatcher queue its new role gives it (60 ms)
+
+  ● a demoted DTAM admin keeps no admin work power (real doors, real Postgres) › after the demotion to dispatcher and a new sign-in › GET /work/queue?group=field_inspector is refused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 200
+
+      153 |             await workItem({ candidateGroup: 'field_inspector' });
+      154 |             const res = await request(app).get('/api/provider/work/queue?group=field_inspector').set(as(fx.demotedToken));
+    > 155 |             expect(res.status).toBe(403);
+          |                                ^
+      156 |             expect(res.body.data).toBeUndefined();
+      157 |         });
+      158 |
+
+      at Object.toBe (__tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js:155:32)
+
+  ● a demoted DTAM admin keeps no admin work power (real doors, real Postgres) › after the demotion to dispatcher and a new sign-in › GET /work/:id of field inspector work is refused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 200
+
+      160 |             const item = await workItem({ candidateGroup: 'field_inspector' });
+      161 |             const res = await request(app).get(`/api/provider/work/${item.id}`).set(as(fx.demotedToken));
+    > 162 |             expect(res.status).toBe(403);
+          |                                ^
+      163 |             expect(res.body.data).toBeUndefined();
+      164 |         });
+      165 |
+
+      at Object.toBe (__tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js:162:32)
+
+  ● a demoted DTAM admin keeps no admin work power (real doors, real Postgres) › after the demotion to dispatcher and a new sign-in › POST /work/:id/done on work another person claimed is refused and the row stays
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: 200
+    Received array: [400, 403]
+
+      167 |             const item = await workItem({ candidateGroup: 'dispatcher', assignedUserId: fx.dispatcher.id });
+      168 |             const res = await request(app).post(`/api/provider/work/${item.id}/done`).set(as(fx.demotedToken)).send({});
+    > 169 |             expect([400, 403]).toContain(res.status);
+          |                                ^
+      170 |             expect(await stateOf(item.id)).toEqual({ state: 'CLAIMED', assignedUserId: fx.dispatcher.id, completedBy: null });
+      171 |         });
+      172 |
+
+      at Object.toContain (__tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js:169:32)
+
+  ● a demoted DTAM admin keeps no admin work power (real doors, real Postgres) › after the demotion to dispatcher and a new sign-in › POST /work/:id/claim on field inspector work is refused and the work stays open
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      174 |             const item = await workItem({ candidateGroup: 'field_inspector' });
+      175 |             const res = await request(app).post(`/api/provider/work/${item.id}/claim`).set(as(fx.demotedToken)).send({});
+    > 176 |             expect(res.status).toBe(400);
+          |                                ^
+      177 |             expect(await stateOf(item.id)).toEqual({ state: 'TODO', assignedUserId: null, completedBy: null });
+      178 |         });
+      179 |
+
+      at Object.toBe (__tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js:176:32)
+
+  ● a demoted DTAM admin keeps no admin work power (real doors, real Postgres) › after the demotion to dispatcher and a new sign-in › POST /work/:id/unclaim of work another person claimed is refused
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      181 |             const item = await workItem({ candidateGroup: 'dispatcher', assignedUserId: fx.dispatcher.id });
+      182 |             const res = await request(app).post(`/api/provider/work/${item.id}/unclaim`).set(as(fx.demotedToken)).send({});
+    > 183 |             expect(res.status).toBe(400);
+          |                                ^
+      184 |             expect(await stateOf(item.id)).toEqual({ state: 'CLAIMED', assignedUserId: fx.dispatcher.id, completedBy: null });
+      185 |         });
+      186 |
+
+      at Object.toBe (__tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js:183:32)
+
+  ● a demoted DTAM admin keeps no admin work power (real doors, real Postgres) › after the demotion to dispatcher and a new sign-in › DTAM admin notices of the organization reach the admin and not the demoted account
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "0cf7f8fa-232b-4279-811c-7aa294259c1d"
+    Received array:     ["07c188ff-d488-4fcd-92c8-ad97900f3fe4", "0cf7f8fa-232b-4279-811c-7aa294259c1d"]
+
+      190 |             const admins = await userGroups.listGroupMemberUserIds(raw, fx.org, 'system_admin_dtam');
+      191 |             expect(admins).toContain(fx.admin.id);
+    > 192 |             expect(admins).not.toContain(fx.target.id);
+          |                                ^
+      193 |         });
+      194 |
+      195 |         describe('controls', () => {
+
+      at Object.toContain (__tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js:192:32)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 4 passed, 10 total
+Snapshots:   0 total
+Time:        2.07 s, estimated 3 s
+Ran all test suites matching __tests__/integration/demoted-admin-keeps-no-admin-work-real-postgres.test.js.

@@ -1,0 +1,43 @@
+full gate 48815f6db (coordinator 2026-10-20): summary of the full-suite run, compared with main's gate 18c6e9ac9
+the full log stays on the work host at /home/ubuntu/work/state/gate/out/evidence/gate/logs/48815f6db4198d8451c9ee9f95ef134626f56ec3/artifacts/suite-green.log (not committed: it carries epoch-ms runs and key-like strings that gitleaks flags)
+
+suite-green (all suites, parallel)
+Test Suites: 4 failed, 2 skipped, 1117 passed, 1121 of 1123 total
+Tests:       8 failed, 52 skipped, 14916 passed, 14976 total
+Snapshots:   0 total
+Time:        1063.182 s
+failing suites:
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js
+  __tests__/integration/onsite-decision-mint-e2e.test.js
+  __tests__/integration/registration-sets-no-protected-column-real-postgres.test.js
+  __tests__/integration/status-writer-audit-default-invariant.test.js
+failing tests:
+  A0 PR-1 — writer emits the canonical transition row by default, in the same tx › (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #13 — POST /applications/:id/car — late CAR evidence expires the case › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #7 — PATCH /admin/applications/:id/status — admin override › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a public registration sets no protected column of its own account (real Postgres) › a nested write in the body creates no a per-user permission grant
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+new vs main:
+  __tests__/integration/registration-sets-no-protected-column-real-postgres.test.js
+failing on main's gate, not on this head (main's load flakes included; see notes):
+  __tests__/integration/field-audit-clock-real-postgres.test.js
+
+integration-pg (integration folder, serial, fresh database): 7 failed tests (main: 7)
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #13 — POST /applications/:id/car — late CAR evidence expires the case (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #7 — PATCH /admin/applications/:id/status — admin override (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  status-writer-audit-default-invariant.test.js :: A0 PR-1 — writer emits the canonical transition row by default, in the same tx (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+new vs main:
+  none
+
+Coordinator notes for the gate of fix/submit-doors-same-gates at 48815f6db (2026-10-20, compared with main's gate 18c6e9ac9).
+
+1. One suite failed in the parallel run only: __tests__/integration/registration-sets-no-protected-column-real-postgres.test.js, test "a nested write in the body creates no a per-user permission grant". The schema refused the test's own random password ("Reg-" + 12 random hex characters + "-Ok9") because it held more than 3 identical characters in a row, which the password policy forbids. This branch does not change that file (git diff 1b785c48c 48815f6db is empty for it), and the same gate's integration-pg run passed the whole suite. Root cause: a random fixture that can break the policy, about 0.2% per registration (inferred: 9 windows x 16^-3). It goes to the gate-load-flakes unit.
+2. field-audit-clock fails on main's gate but not on this head: the known load flake (task #65, solo reruns 3/3 on 2026-10-20).
+3. The independent review (Fable, ~/work/state/reviews/unit2-and-manual-delta-review-48815f6db.md) left its jest half pending because the heavy lane never freed. The coordinator ran the reviewer's own batch unchanged, relocated to a job directory, on a scratch Postgres 17 at 127.0.0.1:55617 through heavy.sh. Every result matched the reviewer's stated expectation: door test 17/17 at the head; mutant M1 (resubmit without judgeFiling) 4 red; M2 (CAR without requireConsent) 1 red; m2a 5/5 on a clean register and 5/5 on the seeded register (189 rules); M3, M4 and M5 one red each on the rule they target; answer-doors 11/11; the legacy-steps probe passes (a client still sending steps gets 200 and no steps are stored). See review-batch-48815f6db.txt.

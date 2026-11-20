@@ -1,0 +1,31 @@
+# Backend full run (unit + integration on rolesplit-pg, Postgres 17), tree a77588b9c
+# ~/work/state/heavy.sh jest --config jest.config.cjs --maxWorkers=2 --json · NODE_OPTIONS=--max-old-space-size=3072 · private SIGNING_KEY_DIR
+# compared by name with the 23 integration names of gate log e5c38497…/integration-pg.log
+
+suites 1078 (failed 11) · tests 14236 (failed 28, passed 14156, pending 52)
+failing names: 28 · in the baseline: 23 · NEW (not in the baseline): 5 · baseline names that pass now: 0
+NEW failures:
+  __tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by O2 (OWNER of C, not the filer) → 200, one order minted; V on the same filing → 403, nothing written
+  __tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by A (OWNER, holds SUBMIT_APPLICATION) → 200, one order minted through the gateway
+  __tests__/unit/document-precheck/extract.test.js :: extractDocument (services/document-precheck/extract.js) › a timeout that lands while the pdf-extract-worker child is running leaves no child process behind
+  __tests__/unit/role-filters-canonical-only.test.js :: each narrowed filter holds canonical values only › services/provider-user-service.js :: ADMIN_ROLES
+  __tests__/unit/error-codes-source-pointers.test.js :: shared/error-codes.js — every source pointer › no NEW pointer has drifted beyond the known 2026-09-26 baseline (catches the INVALID_ISSUER_SIDE class of regression)
+
+# the five names outside the baseline
+- role-filters-canonical-only :: ADMIN_ROLES and error-codes-source-pointers: caused by this round (I3 removed ADMIN_ROLES; edits moved 10 cited lines). Fixed in d95bbcddb and bc1ac6f62; both files rerun: 34 passed, 0 failed.
+- holder-scope-real-postgres (2 checkout tests) and document-precheck/extract (child-process timing test): fail the same way on main 5828c0b0e in this environment (main exported with git archive, same node_modules, database and env), and the same way when rerun alone on the branch. Not touched by this round.
+- On the main export, extract.test.js also failed eight OCR tests that pass on the branch run; other agents' suites ran on the box at the same time and that file watches system-wide worker processes, so it is load-sensitive here. The one name that fails on the branch fails on main too.
+
+# main 5828c0b0e, same environment, the two files
+tests 89 (failed 11)
+  main FAIL: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by O2 (OWNER of C, not the filer) → 200, one order minted; V on the same filing → 403, nothing written
+  main FAIL: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by A (OWNER, holds SUBMIT_APPLICATION) → 200, one order minted through the gateway
+  main FAIL: extractDocument (services/document-precheck/extract.js) › a text-layer PDF returns TEXT_LAYER and the page text contains the Thai phrase
+  main FAIL: extractDocument (services/document-precheck/extract.js) › an image-only PDF (scanned Thai page) returns OCR and reads the Thai phrase
+  main FAIL: extractDocument (services/document-precheck/extract.js) › a PNG image returns OCR
+  main FAIL: extractDocument (services/document-precheck/extract.js) › extract-limits: a 60-page PDF reports pageCount 60, returns 10 pages, truncated true
+  main FAIL: extractDocument (services/document-precheck/extract.js) › extraction that exceeds timeoutMs rejects with code PRECHECK_TIMEOUT
+  main FAIL: extractDocument (services/document-precheck/extract.js) › a timeout that lands while the pdf-extract-worker child is running leaves no child process behind
+  main FAIL: extractDocument (services/document-precheck/extract.js) › I1: a timed-out call does not corrupt a concurrent call's own OCR worker
+  main FAIL: extractDocument (services/document-precheck/extract.js) › I2: a missing tessdata directory makes OCR reject, not silently return an unreadable page
+  main FAIL: extractDocument (services/document-precheck/extract.js) › I3: raster size cap › a 1-page PDF declaring a 14400x14400pt MediaBox extracts successfully

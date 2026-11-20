@@ -1,0 +1,38 @@
+Stored certificate copies on the hosts: counts and the move (the operator runs every step that touches a live volume)
+
+What is there today
+  staging  at least 1: /uploads/gacp-certificates/TH-GACP-1-2569.pdf answers 200 to anyone (live-check.txt).
+           None of TH-GACP-2..30-2569 exists. Copies under legacy numbers (GACP-TH-<year>-<random>) cannot be
+           counted from outside; the dry run below counts every file.
+  demo     0 of TH-GACP-1..30-2569 (404 from the backend's /uploads chain). B0's evidence found no MinIO bucket on
+           demo, so no copy went to object storage either.
+
+Why the copies exist
+  Every holder download rendered the certificate and, as a side effect, stored a copy under
+  <uploads>/gacp-certificates/<number>.pdf (local storage keeps that folder under the static mount). Nothing ever
+  read the copy back: the holder's door renders a fresh PDF from the database row each time.
+
+After this branch is deployed
+  - the renderer stores no copy, so the folder stops growing;
+  - /uploads/gacp-certificates/* answers 401 without a session and 404 with any session, and the signed-URL mint
+    refuses it, so the files left on disk are closed even before they move.
+  The move takes the bytes out of the static root so they stop depending on that one gate, as B0 did for gacp-pdfs.
+
+Steps (operator, staging host; staging backend container gacp-backend-staging, WorkingDir /app/apps/backend,
+uploads volume gacp-platform_gacp_staging_uploads, /app/storage is volume gacp-platform_gacp_staging_storage)
+  1. count, after the deploy (read only, prints counts, never a certificate number):
+       docker exec gacp-backend-staging node scripts/ops/move-generated-pdfs-out-of-public.js --dry-run --folder gacp-certificates
+  2. move (idempotent; refuses a destination that leads back into uploads through a symlink or a bind mount):
+       docker exec gacp-backend-staging node scripts/ops/move-generated-pdfs-out-of-public.js --apply --folder gacp-certificates --to /app/storage/quarantine
+  3. confirm: the same --dry-run prints "total: 0", and
+       curl -s -o /dev/null -w '%{http_code}\n' -I https://staging.gacpth.com/uploads/gacp-certificates/TH-GACP-1-2569.pdf
+     prints 401.
+  To count before the deploy instead, read the volume in a throwaway container with this branch's script:
+       docker run --rm --entrypoint node -v gacp-platform_gacp_staging_uploads:/u:ro \
+         -v <checkout of fix/uploads-fail-closed>/apps/backend/scripts/ops:/s:ro <the staging backend image> \
+         /s/move-generated-pdfs-out-of-public.js --dry-run --folder gacp-certificates --uploads-dir /u
+
+  Demo: run step 1 in the demo backend container after its deploy; expected "total: 0" or "(absent)".
+
+  Deleting the copies instead of moving them is possible (the door re-renders any certificate on request), but a
+  delete cannot be undone, so it is the operator's choice; the plan above only moves.

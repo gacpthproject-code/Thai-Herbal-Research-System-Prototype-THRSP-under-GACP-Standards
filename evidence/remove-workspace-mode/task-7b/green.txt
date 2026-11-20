@@ -1,0 +1,41 @@
+Task 7b — GREEN (cde25f0c door+hook+tests · c751af13 pin updates for the helper move)
+Date: 2026-10-03 · Real Postgres 17 on 127.0.0.1:55438 (throwaway ws-pg-55438, 146 migrations; removed after)
+Signing key mtime before/after every backend jest run: 1788623435 / 1788623435 (unchanged)
+
+Backend: __tests__/integration/planting-attachment-door-real-postgres.test.js (jest -i, witness mode throw)
+  ✓ a member holding the activity capability uploads (201) and deletes (200); the bytes and the row go
+  ✓ the upload creates no Application row
+  ✓ a VIEWER of the farm's holder is refused with 403 on upload and on delete, and nothing is stored
+  ✓ a stranger gets the cycle gate's 404 on upload and on delete, and nothing changes
+  ✓ the upload goes through the same content guard as the draft-documents door: a fake PDF is refused and leaves no row
+  ✓ an unknown activityType is refused with 400 before any permission check
+  ✓ deleting an attachment that is not on this cycle answers 404
+  Tests: 7 passed, 7 total · 0 skipped
+
+Related backend suites (draft-document*, upload-door, document-precheck-flow, holder-write-doors-witness, *planting*, *upload*), real PG, -i:
+  Test Suites: 32 passed, 32 total · Tests: 364 passed, 364 total (no skipped line)
+
+Web: use-planting-activities-attachment-door.test.tsx 3/3 · src/app/health/planting/[id] 12 suites, 74 tests passed
+  (includes planting/[id]/__tests__/entity-permission-gating.test.ts — PASS)
+Web full suite (npx jest --ci): Test Suites 438 passed · Tests 3625 passed · exit 0
+
+Full backend suite on real PG (npx jest --ci, same mode as full-gate suite-green), vs main df107376 attestation log
+(/home/ubuntu/work/state/gate/out/evidence/gate/logs/df107376…/artifacts/suite-green.log):
+  main df107376: Suites 11 failed / 957 passed · Tests 33 failed, 54 skipped, 12662 passed (12749)
+  this branch:   Suites 11 failed / 958 passed · Tests 33 failed, 54 skipped, 12669 passed (12756)
+  failing test names: diff of the "●" lines is empty (33 vs 33) → NO NEW FAILURES (+7 = the new door suite, passing)
+
+LOCAL_GATE_FULL=1 local-gate.sh (no DB) on cde25f0c:
+  banned-terms, mojibake, green-mask PASS
+  probe-gate FAIL: deploy-drift, main-attestation-audit, nginx-config-drift (same three FAIL on main df107376 probe-ci.log)
+    + gate-attestation (this branch has no attestation yet — expected for any unattested commit)
+  unit-suite: 4 failed suites — payer-block-matrix + dtam-schema-drop-migration (both need a DB; "Invalid URL"/connect, no DB in this mode),
+    error-codes-source-pointers + request-limit-refusals → CAUSED BY the helper move, fixed in c751af13, re-run: 3 suites / 88 tests passed
+
+Probes (after c751af13): ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0 · no-skip PASS · retired-words PASS ·
+  no-secret PASS (layer1 0 hits, gitleaks clean) · green-mask PASS (no net-new) · tier-check TIER=C (middleware/draft-document-upload.js auth-identity)
+
+View-pack (brief Step 3): PENDING — not brought up in this session. A local stack needs backend + Next dev + a seeded
+  company farm/cycle with an ACTIVE MANAGER membership and a login; this session spent its host on the real-PG full suite
+  and the full local gate instead. Coordinator to run per .claude/skills/gacp-view-in-the-loop/SKILL.md
+  (upload on /health/planting/<cycle>/activities, before/after, light/dark).

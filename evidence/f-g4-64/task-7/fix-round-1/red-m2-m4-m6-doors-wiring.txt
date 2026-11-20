@@ -1,0 +1,110 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-issuance-submit-doors-wiring.test.js
+  door 1 — POST /api/applications/submit
+    √ reports a failed issuance to the caller, the audit trail AND the admin queue (142 ms)
+    × stamps that audit row with the caller's role AND the application's own organization (20 ms)
+    √ AWAITS the issuance — the response cannot leave before it settles (49 ms)
+    × a resubmit leg says NOT_AN_ISSUANCE_LEG instead of claiming a price of record (16 ms)
+  door 2 — submitRevision
+    √ reports a failed issuance to the caller, the audit trail AND the admin queue (3 ms)
+    √ AWAITS the issuance — the return value cannot be built before it settles (37 ms)
+    × a REVISION_REQUESTED leg says NOT_AN_ISSUANCE_LEG instead of claiming a price of record (2 ms)
+
+  ● door 1 — POST /api/applications/submit › stamps that audit row with the caller's role AND the application's own organization
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "actorId": "user-1",
+        "actorRole": "health",
+    -   "organizationId": "org-1",
+    +   "organizationId": null,
+        "resourceId": "app-1",
+      }
+
+    [0m [90m 254 |[39m         [36mawait[39m request(app)[33m.[39mpost([32m'/api/applications/submit'[39m)[33m.[39msend({})[33m;[39m
+     [90m 255 |[39m
+    [31m[1m>[22m[39m[90m 256 |[39m         expect(auditRows([32m'QUOTATION_ISSUE_FAILED'[39m)[[35m0[39m])[33m.[39mtoMatchObject({
+     [90m     |[39m                                                        [31m[1m^[22m[39m
+     [90m 257 |[39m             resourceId[33m:[39m [32m'app-1'[39m[33m,[39m
+     [90m 258 |[39m             actorId[33m:[39m [32m'user-1'[39m[33m,[39m
+     [90m 259 |[39m             actorRole[33m:[39m [32m'health'[39m[33m,[39m[0m
+
+      at Object.toMatchObject (__tests__/unit/quotation-issuance-submit-doors-wiring.test.js:256:56)
+
+  ● door 1 — POST /api/applications/submit › a resubmit leg says NOT_AN_ISSUANCE_LEG instead of claiming a price of record
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "issued": null,
+    -   "reason": "NOT_AN_ISSUANCE_LEG",
+    +   "issued": true,
+      }
+
+    [0m [90m 288 |[39m
+     [90m 289 |[39m         expect(mockIssue)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+    [31m[1m>[22m[39m[90m 290 |[39m         expect(r[33m.[39mbody[33m.[39mquotation)[33m.[39mtoEqual({ issued[33m:[39m [36mnull[39m[33m,[39m reason[33m:[39m [32m'NOT_AN_ISSUANCE_LEG'[39m })[33m;[39m
+     [90m     |[39m                                  [31m[1m^[22m[39m
+     [90m 291 |[39m     })[33m;[39m
+     [90m 292 |[39m })[33m;[39m
+     [90m 293 |[39m[0m
+
+      at Object.toEqual (__tests__/unit/quotation-issuance-submit-doors-wiring.test.js:290:34)
+
+  ● door 2 — submitRevision › a REVISION_REQUESTED leg says NOT_AN_ISSUANCE_LEG instead of claiming a price of record
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "issued": null,
+    -   "reason": "NOT_AN_ISSUANCE_LEG",
+    +   "issued": true,
+      }
+
+    [0m [90m 376 |[39m
+     [90m 377 |[39m         expect(mockIssue)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+    [31m[1m>[22m[39m[90m 378 |[39m         expect(result[33m.[39mbody[33m.[39mquotation)[33m.[39mtoEqual({ issued[33m:[39m [36mnull[39m[33m,[39m reason[33m:[39m [32m'NOT_AN_ISSUANCE_LEG'[39m })[33m;[39m
+     [90m     |[39m                                       [31m[1m^[22m[39m
+     [90m 379 |[39m     })[33m;[39m
+     [90m 380 |[39m })[33m;[39m
+     [90m 381 |[39m[0m
+
+      at Object.toEqual (__tests__/unit/quotation-issuance-submit-doors-wiring.test.js:378:39)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 4 passed, 7 total
+Snapshots:   0 total
+Time:        2.69 s, estimated 3 s
+Ran all test suites matching /__tests__\\unit\\quotation-issuance-submit-doors-wiring.test.js/i.

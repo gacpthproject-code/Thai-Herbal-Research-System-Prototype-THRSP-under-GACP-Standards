@@ -1,0 +1,404 @@
+AUTH-01-A / A3 — RED-FIRST สำหรับการปิดช่องลอดของ grep-pin
+==========================================================
+ที่มา: audit ของ PR #744 (M-1) ระบุว่า pin
+`apps/backend/__tests__/unit/identity-provider-naming-collision.test.js`
+ไม่ได้บังคับสิ่งที่เอกสารอ้าง — mutation หลายแบบผ่านฉลุย
+
+วิธีเก็บหลักฐาน (Law 3.11 — ต้องเคยแดงจริงก่อนถึงจะเคลมว่าบังคับได้):
+  1. เขียนไฟล์ mutation ลงในไดเรกทอรีที่ scanner ตรวจ
+  2. รัน pin suite ด้วย **ตัว pin ที่ commit ไว้แล้วที่ eae9f47e** → คาดว่า PASS (= ลอด)
+  3. ขยาย regex / SCAN_DIRS
+  4. รัน pin suite ด้วย mutation ตัวเดิม → ต้อง FAIL (= จับได้)
+  5. ลบไฟล์ mutation แล้วยืนยัน `git status --porcelain` ว่าง
+
+คำสั่งที่รันทุกครั้ง (จาก apps/backend):
+  npx jest --config jest.config.cjs \
+    --testPathPattern 'unit/identity-provider-naming-collision' --no-coverage
+
+สรุปผล
+------
+  MUT-1  bracket-notation write            BEFORE PASS (ลอด)  →  AFTER FAIL (จับได้)
+  MUT-2  ตาราง field-map                    BEFORE PASS (ลอด)  →  AFTER FAIL (จับได้)
+  MUT-5  raw SQL $executeRawUnsafe          BEFORE PASS (ลอด)  →  AFTER FAIL (จับได้)
+  MUT-6  subject → providerIdHash (bracket) BEFORE PASS (ลอด)  →  AFTER FAIL (จับได้)
+  MUT-4  ไฟล์ละเมิดใน apps/backend/scripts/  BEFORE PASS (ลอด)  →  AFTER FAIL (จับได้)
+  MUT-3  dataflow ข้ามไฟล์                   BEFORE PASS (ลอด)  →  AFTER PASS (**ยังลอดอยู่**)
+  N-2a/b sanity floor                       floor 200 ไม่จับ    →  floor 560 จับได้
+  N-2c/d ชื่อ dir ใน SCAN_DIRS เพี้ยน          —                  →  จับได้ทั้งสองชั้น
+
+MUT-3 ไม่ได้แก้ และแก้ด้วย grep ไม่ได้ — บันทึกไว้ตรง ๆ ว่าเป็นขอบเขตที่ pin ไม่ครอบ
+(หัวไฟล์ของ pin เขียนข้อจำกัดนี้ไว้แล้ว พร้อมระบุว่าอะไรคือกลไกที่ต้องมาเสริม)
+
+
+########################################################################
+#  PHASE 1 — BEFORE : pin ตามที่ commit ไว้ที่ eae9f47e (ยังไม่แก้อะไร)
+########################################################################
+
+════════════════════════════════════════════════════════════════════════
+[BEFORE (pin as committed at eae9f47e)] MUT-1 bracket-notation write  (services/auth/idp/__mut1.js)
+════════════════════════════════════════════════════════════════════════
+    patch['providerId'] = profile.provider_id;
+    patch['providerIdHash'] = profile.provider_id;
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (10 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (16 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (10 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (14 ms)
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        1.025 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[BEFORE (pin as committed at eae9f47e)] MUT-2 field-map table  (services/auth/idp/__mut2.js)
+════════════════════════════════════════════════════════════════════════
+const MOPH_FIELD_MAP = { provider_id: 'providerId', hash_cid: 'providerIdHash' };
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (10 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (15 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (10 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (13 ms)
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        1.053 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[BEFORE (pin as committed at eae9f47e)] MUT-5 raw SQL identity_links write  (services/auth/idp/__mut5.js)
+════════════════════════════════════════════════════════════════════════
+        `INSERT INTO "identity_links" (id, "userId", provider, subject) VALUES (gen_random_uuid()::text, '${userId}', 'providerid', '${subject}')`,
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (10 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (15 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (10 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (14 ms)
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        1.117 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[BEFORE (pin as committed at eae9f47e)] MUT-6 subject → providerIdHash via bracket  (services/auth/idp/__mut6.js)
+════════════════════════════════════════════════════════════════════════
+    patch['providerIdHash'] = link.subject;
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (10 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (14 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (9 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (11 ms)
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        1.057 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[BEFORE (pin as committed at eae9f47e)] MUT-4 violation inside apps/backend/scripts/  (scripts/__mut4-backfill.js)
+════════════════════════════════════════════════════════════════════════
+        data: { providerId: profile.provider_id },
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (12 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (17 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (11 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (12 ms)
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        1.161 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[BEFORE (pin as committed at eae9f47e)] MUT-3 cross-file dataflow  (services/auth/idp/__mut3a.js + __mut3b.js)
+════════════════════════════════════════════════════════════════════════
+__mut3a.js:1  function extractMophLicence(profile) { return profile.provider_id; }
+__mut3b.js:3      await prisma.user.update({ where: { id }, data: { providerId: extractMophLicence(profile) } });
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (11 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (15 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (10 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (14 ms)
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        1.112 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[BEFORE (pin as committed at eae9f47e)] tree restored
+════════════════════════════════════════════════════════════════════════
+(empty above = restored)
+
+########################################################################
+#  PHASE 2 — AFTER : pin ที่ขยายแล้วใน session นี้ (mutation ชุดเดิมทุกตัว)
+########################################################################
+
+════════════════════════════════════════════════════════════════════════
+[AFTER (pin expanded in this session)] MUT-1 bracket-notation write  (services/auth/idp/__mut1.js)
+════════════════════════════════════════════════════════════════════════
+    patch['providerId'] = profile.provider_id;
+    patch['providerIdHash'] = profile.provider_id;
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (12 ms)
+    ✕ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (21 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (15 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (13 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (15 ms)
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 6
+    - Array []
+    + Array [
+    +   "services/auth/idp/__mut1.js:2 provider_id → services/auth/idp/__mut1.js:2 patch['providerId'] = profile.provider_id;",
+    +   "services/auth/idp/__mut1.js:2 provider_id → services/auth/idp/__mut1.js:3 patch['providerIdHash'] = profile.provider_id;",
+    +   "services/auth/idp/__mut1.js:3 provider_id → services/auth/idp/__mut1.js:2 patch['providerId'] = profile.provider_id;",
+    +   "services/auth/idp/__mut1.js:3 provider_id → services/auth/idp/__mut1.js:3 patch['providerIdHash'] = profile.provider_id;",
+    + ]
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        1.216 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[AFTER (pin expanded in this session)] MUT-2 field-map table  (services/auth/idp/__mut2.js)
+════════════════════════════════════════════════════════════════════════
+const MOPH_FIELD_MAP = { provider_id: 'providerId', hash_cid: 'providerIdHash' };
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (11 ms)
+    ✕ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (20 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (11 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (15 ms)
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "services/auth/idp/__mut2.js:1 provider_id → services/auth/idp/__mut2.js:1 const MOPH_FIELD_MAP = { provider_id: 'providerId', hash_cid: 'providerIdHash' }",
+    + ]
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        1.167 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[AFTER (pin expanded in this session)] MUT-5 raw SQL identity_links write  (services/auth/idp/__mut5.js)
+════════════════════════════════════════════════════════════════════════
+        `INSERT INTO "identity_links" (id, "userId", provider, subject) VALUES (gen_random_uuid()::text, '${userId}', 'providerid', '${subject}')`,
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (11 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (17 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (11 ms)
+    ✕ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (25 ms)
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*)
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "services/auth/idp/__mut5.js:3 raw SQL → identity_links (provider จริง) await prisma.$executeRawUnsafe(",
+    + ]
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        1.203 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[AFTER (pin expanded in this session)] MUT-6 subject → providerIdHash via bracket  (services/auth/idp/__mut6.js)
+════════════════════════════════════════════════════════════════════════
+    patch['providerIdHash'] = link.subject;
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (12 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (19 ms)
+    ✕ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (18 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (12 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (16 ms)
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ)
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "services/auth/idp/__mut6.js:2 patch['providerIdHash'] = link.subject;",
+    + ]
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        1.205 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[AFTER (pin expanded in this session)] MUT-4 violation inside apps/backend/scripts/  (scripts/__mut4-backfill.js)
+════════════════════════════════════════════════════════════════════════
+        data: { providerId: profile.provider_id },
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (12 ms)
+    ✕ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (20 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (11 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (14 ms)
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "scripts/__mut4-backfill.js:4 provider_id → scripts/__mut4-backfill.js:4 data: { providerId: profile.provider_id },",
+    + ]
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        1.152 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[AFTER (pin expanded in this session)] MUT-3 cross-file dataflow  (services/auth/idp/__mut3a.js + __mut3b.js)
+════════════════════════════════════════════════════════════════════════
+__mut3a.js:1  function extractMophLicence(profile) { return profile.provider_id; }
+__mut3b.js:3      await prisma.user.update({ where: { id }, data: { providerId: extractMophLicence(profile) } });
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (11 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (16 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (12 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (15 ms)
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        1.191 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+[AFTER (pin expanded in this session)] tree restored
+════════════════════════════════════════════════════════════════════════
+ M apps/backend/__tests__/unit/identity-provider-naming-collision.test.js
+(empty above = restored)
+
+########################################################################
+#  PHASE 3 — N-2 sanity floor (mutate ตัว pin เอง แล้วคืนสภาพ)
+########################################################################
+
+════════════════════════════════════════════════════════════════════════
+MUT-N2a  SCAN_DIRS เหลือแค่ ['services'] + floor เดิม 200  → ควรจับได้แต่ไม่จับ
+════════════════════════════════════════════════════════════════════════
+176:const MIN_SCANNED_FILES = 200;   // ค่าเดิมก่อนแก้ N-2
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (10 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (8 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (8 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (6 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (11 ms)
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        1.296 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+MUT-N2b  SCAN_DIRS เหลือแค่ ['services'] + floor ใหม่ 560  → ต้องแดง
+════════════════════════════════════════════════════════════════════════
+176:const MIN_SCANNED_FILES = 560;
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✕ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (4 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (8 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (6 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (5 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (8 ms)
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด
+    expect(received).toBeGreaterThanOrEqual(expected)
+    Expected: >= 560
+    Received:    200
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        1.192 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+MUT-N2c  ชื่อ dir ใน SCAN_DIRS พิมพ์ผิด ('scripts' → 'scriptz') — floor รวมยังผ่าน แต่ต้องแดงที่ per-dir
+════════════════════════════════════════════════════════════════════════
+76:    'scriptz',
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✕ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (4 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (15 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (11 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (10 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (13 ms)
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด
+    expect(received).toBeGreaterThanOrEqual(expected)
+    Expected: >= 560
+    Received:    515
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        1.232 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.
+
+════════════════════════════════════════════════════════════════════════
+restored
+════════════════════════════════════════════════════════════════════════
+ .../identity-provider-naming-collision.test.js     | 122 +++++++++++++++++++--
+ 1 file changed, 115 insertions(+), 7 deletions(-)
+
+########################################################################
+#  PHASE 4 — MUT-N2d : ชื่อ dir เล็กเพี้ยน ('cron' → 'cronz')
+#            floor รวมยังผ่าน (592 ≥ 560) แต่ assertion per-dir ต้องจับได้
+########################################################################
+    ✕ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (8 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (15 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (11 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (14 ms)
+  ● [AUTH-01-A/A3] … › sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "cronz",
+    + ]
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+
+########################################################################
+#  PHASE 5 — คืนสภาพ + รัน pin บนทรีจริง (ต้องไม่มี false positive)
+########################################################################
+$ git status --porcelain   (หลังลบไฟล์ mutation ทุกตัว, ก่อนแก้ไฟล์ของงานนี้)
+  (ว่าง)
+
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (14 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (17 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (11 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (16 ms)
+Test Suites: 1 passed, 1 total
+Tests:       5 passed, 5 total
+Snapshots:   0 total
+Time:        1.143 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.

@@ -1,0 +1,244 @@
+# ============================================================
+# GACP Platform — staging slot on the demo host (119.59.105.140)
+# ============================================================
+# Operator order 164(3), 2026-11-07: the old staging machine is gone, so
+# staging.gacpth.com now runs on the SAME host as demo.gacpth.com, fully
+# separated from it. This file is the third layer of:
+#
+#   cd /opt/gacp-staging                     # NOT /opt/gacp-platform (that is demo)
+#   STAGING_IMAGE_TAG=local-<sha12> docker compose -p gacp-staging \
+#       --env-file .env.staging \
+#       -f docker-compose.production.yml \
+#       -f docker-compose.staging.yml \
+#       -f docker-compose.staging-on-demo-host.yml \
+#       up -d --no-deps <service...>
+#
+# Runbook: docs/operations/runbooks/staging-on-demo-host.md
+#
+# WHY AN OVERLAY AND NOT AN EDIT: docker-compose.production.yml and
+# docker-compose.staging.yml are shared with how demo was installed and with
+# the tests that pin the staging contract. Everything that has to differ on a
+# host where demo already owns the fixed names lives here, and only here.
+#
+# WHAT DEMO ALREADY OWNS ON THIS HOST (and so this file must never touch):
+#   containers  gacp-nginx gacp-redis gacp-minio gacp-backend-demo gacp-frontend-demo
+#               gacp-loki gacp-promtail gacp-grafana (compose project gacp-logging)
+#   networks    gacp-network (172.18.0.0/16, gw 172.18.0.1) gacp-demo-network
+#   volumes     gacp-uploads-data gacp-storage-data gacp-signing-keys
+#               gacp-minio-data gacp-redis-data
+#   loopback    8080 (gacp-nginx) 8003 3003 (demo) 9000 9001 (minio) 3100 3200 (logging)
+#
+# Every collision is resolved below by RENAMING, never by sharing. The staging
+# slot has its own postgres, redis, minio, Docker nginx, volumes and network,
+# and nothing in it can resolve a demo container by name.
+#
+# Requires Docker Compose >= 2.24.4 for the !reset / !override tags.
+# ============================================================
+
+# Project name. -p gacp-staging on the command line says the same thing; this
+# line makes the project gacp-staging even when someone forgets -p, so the
+# merged model can never be applied as project gacp-platform (demo's).
+name: gacp-staging
+
+services:
+  # ------------------------------------------------------------
+  # Production services this slot does NOT run.
+  # A profile nobody activates keeps them out of a bare `up -d`. Their
+  # production container names are taken on this host (gacp-grafana,
+  # gacp-loki and gacp-promtail belong to the demo host's logging project,
+  # which also holds 127.0.0.1:3200), so they are renamed and their host
+  # ports dropped as well: even `--profile not-on-staging-slot` could not
+  # collide with demo.
+  # ------------------------------------------------------------
+  backend:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-backend
+  frontend:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-frontend
+  pgadmin:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-pgadmin
+  prometheus:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-prometheus
+    ports: !reset []
+  grafana:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-grafana
+    ports: !reset []
+  cadvisor:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-cadvisor
+  node-exporter:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-node-exporter
+  loki:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-loki
+  promtail:
+    profiles: [ not-on-staging-slot ]
+    container_name: gacp-staging-off-promtail
+
+  # ------------------------------------------------------------
+  # Docker nginx of the staging slot.
+  # staging.gacpth.com goes host nginx → 127.0.0.1:8081 → here → backend-staging
+  # / frontend-staging, the same path staging always took through Docker nginx
+  # (docs/operations/runbooks/staging-through-docker-nginx.md). It cannot be
+  # demo's gacp-nginx: that container sits on demo's network, and joining
+  # backend-staging to that network would make `redis` and `minio` resolve to
+  # demo's containers.
+  #
+  # The config is nginx/gacp.production.conf from the repo with ONE line
+  # changed at deploy time: `set_real_ip_from 172.18.0.1;` becomes the gateway
+  # of the network below (172.29.18.1). The repo file trusts demo's gateway,
+  # which is not the address host nginx reaches this container from. The
+  # runbook generates the file, checks the substitution happened exactly once,
+  # and proves it with /__docker-nginx-real-ip-check.
+  # ------------------------------------------------------------
+  nginx:
+    container_name: gacp-staging-nginx
+    ports: !override
+      - "127.0.0.1:8081:80"
+    volumes:
+      # Same target as the production mount, so this entry replaces it.
+      - ./nginx/gacp.staging-on-demo-host.conf:/etc/nginx/conf.d/default.conf:ro
+    # Production waits on backend/frontend, which are switched off above.
+    # Docker nginx re-resolves upstreams per request (resolver 127.0.0.11), so
+    # it needs no start order.
+    depends_on: !reset []
+
+  # ------------------------------------------------------------
+  # Redis of the staging slot. Own container, own volume, no default password.
+  # ------------------------------------------------------------
+  redis:
+    container_name: gacp-staging-redis
+    command: redis-server --appendonly yes --maxmemory 96mb --maxmemory-policy allkeys-lru --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD_required}
+
+  # ------------------------------------------------------------
+  # MinIO of the staging slot. Own container and volume, and NO host ports:
+  # demo's minio holds 127.0.0.1:9000/9001. backend-staging stores files on
+  # its own volume (STORAGE_PROVIDER=local in docker-compose.staging.yml), so
+  # nothing in this slot needs to reach minio from the host.
+  # ------------------------------------------------------------
+  minio:
+    container_name: gacp-staging-minio
+    ports: !reset []
+
+  # ------------------------------------------------------------
+  # Postgres of the staging slot. The production file keeps this service
+  # behind `profiles: [legacy-db]` because demo's database is Supabase; here
+  # it is the staging database, so the profile is cleared. Starts EMPTY and is
+  # filled only by `prisma migrate deploy` — never from demo data.
+  # postgres:17-alpine: the client image the demo host already holds for its
+  # Supabase dumps (Supabase runs 17), so dumps from either slot use one tool.
+  # ------------------------------------------------------------
+  postgres:
+    image: postgres:17-alpine
+    container_name: gacp-staging-postgres
+    profiles: !reset []
+    environment:
+      - POSTGRES_USER=${DB_USER:-gacp}
+      # The production file falls back to a literal when DB_PASSWORD is unset,
+      # which on an empty volume would BECOME the password. Not here.
+      - POSTGRES_PASSWORD=${DB_PASSWORD:?DB_PASSWORD_required}
+      - POSTGRES_DB=${STAGING_DB_NAME:-gacp_staging}
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USER:-gacp} -d ${STAGING_DB_NAME:-gacp_staging}" ]
+
+  # ------------------------------------------------------------
+  # The staging application pair, as docker-compose.staging.yml defines it,
+  # with what this host needs on top.
+  # ------------------------------------------------------------
+  backend-staging:
+    # No `main-latest` fallback: nothing on this host pulls from a registry,
+    # so a missing tag must stop the command, not fetch something else.
+    image: ${BACKEND_IMAGE:-ghcr.io/jonmaxmore/gacp-backend}:${STAGING_IMAGE_TAG:?STAGING_IMAGE_TAG_required}
+    environment:
+      # Built here from its parts and pointed at THIS slot's postgres, so no
+      # value in the env file can aim staging at demo's Supabase project.
+      # DB_PASSWORD must be URL-safe (hex), see the runbook.
+      - DATABASE_URL=postgresql://${DB_USER:-gacp}:${DB_PASSWORD:?DB_PASSWORD_required}@postgres:5432/${STAGING_DB_NAME:-gacp_staging}?schema=public
+      # `redis` resolves to gacp-staging-redis: the only redis on this slot's network.
+      - REDIS_URL=redis://:${REDIS_PASSWORD:?REDIS_PASSWORD_required}@redis:6379/1
+      # Optional pin of sha256(public.pem) of THIS slot's key (empty = no pin).
+      - SIGNING_KEY_FINGERPRINT=${SIGNING_KEY_FINGERPRINT:-}
+      # docker-compose.staging.yml falls back to a literal that is in git
+      # (`staging-only-no-prod-secrets`), so any reader of the repo could call
+      # the partner trace API of a public host. Here it has no fallback: the
+      # runbook generates it (§4.3) and a missing value stops the command.
+      # Pinned by apps/backend/__tests__/unit/staging-on-demo-host-overlay.test.js.
+      - PARTNER_TRACE_API_KEY=${STAGING_PARTNER_TRACE_API_KEY:?STAGING_PARTNER_TRACE_API_KEY_required}
+    volumes:
+      # Read-only, as on demo: the pair is generated once at install
+      # (runbook), and the running backend must never be able to replace it.
+      - gacp_staging_signing_keys:/app/apps/backend/keys:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  frontend-staging:
+    image: ${FRONTEND_IMAGE:-ghcr.io/jonmaxmore/gacp-frontend}:${STAGING_IMAGE_TAG:?STAGING_IMAGE_TAG_required}
+
+# ------------------------------------------------------------
+# Networks. The production key `gacp-network` is what every service above is
+# attached to; on this host that NAME is demo's network, so the key is kept
+# and the Docker name changed. Pinned subnet: its gateway is the one address
+# host nginx reaches gacp-staging-nginx from, and the rendered nginx config
+# trusts exactly that address (see the nginx service above).
+# ------------------------------------------------------------
+networks:
+  gacp-network:
+    name: gacp-staging-internal
+    ipam:
+      config:
+        - subnet: 172.29.18.0/24
+          gateway: 172.29.18.1
+  # The app-pair network of docker-compose.staging.yml. Its name was already
+  # unique on this host, but its subnet was whatever Docker picked next, which
+  # on a host that also runs demo and the logging project can land on a range
+  # a later network (or a VPN route) wants. Pinned like the one above, and the
+  # runbook (§4.0) checks both ranges are free before install.
+  gacp-staging-network:
+    name: gacp-staging-network
+    ipam:
+      config:
+        - subnet: 172.29.19.0/24
+          gateway: 172.29.19.1
+
+# ------------------------------------------------------------
+# Volumes. Every name gets a gacp-staging- prefix — including the ones only
+# switched-off services use — so no command on this project, not even a
+# mistaken `down -v`, can address a demo volume (gacp-uploads-data,
+# gacp-signing-keys, gacp-redis-data, gacp-minio-data, ...).
+# ------------------------------------------------------------
+volumes:
+  postgres_data:
+    name: gacp-staging-postgres-data
+  redis_data:
+    name: gacp-staging-redis-data
+  gacp_minio_data:
+    name: gacp-staging-minio-data
+  gacp_staging_uploads:
+    name: gacp-staging-uploads-data
+  gacp_staging_storage:
+    name: gacp-staging-storage-data
+  gacp_staging_signing_keys:
+    name: gacp-staging-signing-keys
+  # Used only by services switched off above.
+  gacp_uploads:
+    name: gacp-staging-unused-uploads
+  gacp_storage:
+    name: gacp-staging-unused-storage
+  gacp_signing_keys:
+    name: gacp-staging-unused-signing-keys
+  prometheus_data:
+    name: gacp-staging-unused-prometheus
+  grafana_data:
+    name: gacp-staging-unused-grafana
+  pgadmin_data:
+    name: gacp-staging-unused-pgadmin
+  loki_data:
+    name: gacp-staging-unused-loki

@@ -1,0 +1,119 @@
+# T11 FIX ROUND 1 — RED / before-state, captured 2026-08-29T00:53:22Z
+
+## M1 — c07 second visit: one-shot count() right after a waitFor the SKELETON satisfies
+$ sed -n "168,178p" apps/web-app/e2e-g4/c07-quotation-gate.spec.ts
+  // ── the door, opened by the applicant's own press ──────────────────────────
+  await page.goto(`/health/payments?app=${APP}`);
+  await card.waitFor({ state: 'visible', timeout: 60_000 });
+  // Every acceptable card, not just the first: a pre-W14 application carries a
+  // DTAM row as well and the gate demands both.
+  const acceptCount = await acceptBtn.count();
+  expect(acceptCount, 'the card still offers the acceptance').toBeGreaterThan(0);
+  for (let i = 0; i < acceptCount; i++) {
+    await acceptBtn.first().click();
+    await page.waitForTimeout(1500);
+  }
+
+## M1/M2 — the loading branch carries the SAME data-testid as the loaded branch
+$ grep -n "data-testid=\"quotation-review-section\"\|aria-busy" apps/web-app/src/components/payments/QuotationReviewSection.tsx
+387:                data-testid="quotation-review-section"
+388:                aria-busy="true"
+411:        <section data-testid="quotation-review-section" className={SECTION_CLASS}>
+$ grep -n "useState<QuotationsBySide | null>(null)" apps/web-app/src/app/health/payments/client-view.tsx
+125:  const [quotations, setQuotations] = useState<QuotationsBySide | null>(null);
+
+## M2 — a03 decides the press/no-press branch on that same one-shot count
+$ sed -n "84,101p" apps/web-app/e2e-g4/a03-pay-phase1.spec.ts
+    const quotationCard = page.getByTestId('quotation-review-section');
+    await quotationCard.waitFor({ state: 'visible', timeout: 60_000 });
+    const acceptBtns = quotationCard.getByRole('button', { name: /ยอมรับใบเสนอราคา/ });
+    const acceptCount = await acceptBtns.count();
+    if (acceptCount > 0) {
+      // Always index 0: the pressed button is replaced by the ✓ ยอมรับแล้ว pill,
+      // so the next unpressed one becomes the first again.
+      for (let i = 0; i < acceptCount; i++) {
+        await acceptBtns.first().click();
+        await page.waitForTimeout(1500);
+      }
+    } else {
+      // Already accepted by an earlier run. Say so out loud — a step that
+      // silently becomes a no-op is how a walk starts reporting green for work
+      // it never did (the same rule this spec already applies to alreadyPaid).
+      // eslint-disable-next-line no-console
+      console.log('[A03] quotation already accepted by an earlier run — verifying, not re-accepting');
+    }
+
+## M3 — BACKLOG-FOUND.md names no e2e-phase0 checkout press
+$ grep -c "e2e-phase0" BACKLOG-FOUND.md
+2
+$ grep -n "เริ่มขั้นตอนชำระเงิน" apps/web-app/e2e-phase0/*.spec.ts
+apps/web-app/e2e-phase0/s04-pay-phase2.spec.ts:113:    const doorStart = page.getByRole('button', { name: /เริ่มขั้นตอนชำระเงิน/ });
+apps/web-app/e2e-phase0/s04-pay-phase2.spec.ts:129:        `screen text after pressing "เริ่มขั้นตอนชำระเงิน":\n${doorMessages.join('\n---\n')}\n`,
+apps/web-app/e2e-phase0/s04-pay-phase2.spec.ts:139:    const startBtn = page.getByRole('button', { name: /เริ่มขั้นตอนชำระเงิน/ });
+apps/web-app/e2e-phase0/s07-seams.spec.ts:377:    const startBtn = page.getByRole('button', { name: /เริ่มขั้นตอนชำระเงิน/ });
+apps/web-app/e2e-phase0/settlement-resilience.spec.ts:55:    const startBtn = page.getByRole('button', { name: /เริ่มขั้นตอนชำระเงิน/ });
+$ grep -n "api/payments/checkout" apps/web-app/e2e-phase0/s07-seams.spec.ts
+396:      const res = await page.request.post(`${BASE}/api/payments/checkout`, {
+401:      apiCheckout = `POST /api/payments/checkout (farmer bearer) → status ${res.status()} body ${JSON.stringify(body)}`;
+$ grep -n "disabled={creating || !termsAnswered}" apps/web-app/src/app/health/payments/checkout/client-view.tsx
+542:              disabled={creating || !termsAnswered}
+
+## m4 — the screen half is decided by the screen, so deleting T8 copy still passes
+$ sed -n "122,137p" apps/web-app/e2e-g4/c07-quotation-gate.spec.ts
+  const refusalNotice = page.getByText(/ยอมรับใบเสนอราคาก่อนจึงจะชำระเงินออนไลน์ได้/);
+  const explained = (await refusalNotice.count()) > 0;
+  writeFileSync(join(OUT, 'C07-pay-entry.txt'), JSON.stringify({
+    applicationId: APP,
+    payLinkOffered: false,
+    refusalExplainedOnScreen: explained,
+    note: explained
+      ? 'the payments screen named the quotation as the cause'
+      : 'no pay-entry block rendered at all: it is gated on ยอดรอชำระ > 0 and this application has no unpaid invoice (checkout rail mints the invoice with the order)',
+  }, null, 2));
+  if (explained) {
+    await expect(refusalNotice.first(), 'the screen names the cause in Thai').toBeVisible();
+  } else {
+    // eslint-disable-next-line no-console
+    console.log('[C07] no pay-entry block on the payments screen (฿0 owed) — the refusal proved below is the backend\'s');
+  }
+
+## m6 — the spec lowers the config budget from 30 min to 5 min
+$ grep -n "setTimeout" apps/web-app/e2e-g4/c07-quotation-gate.spec.ts ; grep -n "^  timeout:" apps/web-app/playwright.g4.config.ts
+72:  test.setTimeout(300_000);
+38:  timeout: 30 * 60 * 1000,
+
+## m7 — every quotation read is newest-first, while the product reads the PLATFORM row
+$ grep -n "FROM quotations" -A 1 apps/web-app/e2e-g4/a03-pay-phase1.spec.ts apps/web-app/e2e-g4/a05-pay-phase2.spec.ts apps/web-app/e2e-g4/c07-quotation-gate.spec.ts
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:107:        `SELECT status, "acceptedAt", "acceptedBy" AS accepted_by FROM quotations
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts-108-          WHERE "applicationId"='${APP}' AND "isDeleted"=false ORDER BY "createdAt" DESC LIMIT 1;`));
+--
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:201:        `SELECT status, "phase1InvoicedAt" AS p1, "phase2InvoicedAt" AS p2 FROM quotations
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts-202-          WHERE "applicationId"='${APP}' AND "isDeleted"=false ORDER BY "createdAt" DESC LIMIT 1;`));
+--
+apps/web-app/e2e-g4/a05-pay-phase2.spec.ts:145:           FROM quotations WHERE "applicationId"='${APP}' AND "isDeleted"=false ORDER BY "createdAt" DESC LIMIT 1;`));
+apps/web-app/e2e-g4/a05-pay-phase2.spec.ts-146-      closed = rows[0] ?? null;
+--
+apps/web-app/e2e-g4/c07-quotation-gate.spec.ts:183:      `SELECT status, "acceptedAt", "acceptedSnapshotHash" AS hash, "quotationNumber" AS qno FROM quotations
+apps/web-app/e2e-g4/c07-quotation-gate.spec.ts-184-        WHERE "applicationId"='${APP}' AND "isDeleted"=false ORDER BY "createdAt" DESC LIMIT 1;`));
+$ sed -n "158,161p;685,688p" apps/backend/services/billing/quotation-gate.js apps/backend/services/quotation-service.js  # the row the product picks
+    // record for the bundled charge.
+    const primary = rows.platform || rows.dtam;
+    return { quotation: primary, phase, snapshot: primary.acceptedSnapshot || null };
+}
+    const rows = await db.quotation.findMany({
+        where: {
+            applicationId,
+            isDeleted: false,
+        },
+        orderBy: { createdAt: 'asc' },
+    });
+    return {
+        dtam: rows.find((r) => r.issuerType === ISSUER.DTAM) || null,
+        platform: rows.find((r) => r.issuerType === ISSUER.PLATFORM) || null,
+    };
+## m5 — the version matcher accepts the SUPERSEDED document (executed with node)
+$ node -e "for (const v of [payment-terms-th-v1, payment-terms-th-v1.1]) test(/^payment-terms-th-v/)"
+the assertion c07:235 makes today:  expect(version).toMatch(/^payment-terms-th-v/)
+  version=payment-terms-th-v1      -> PASSES (walk stays green)
+  version=payment-terms-th-v1.1    -> PASSES (walk stays green)
+RED: a deployment pinned to the SUPERSEDED v1 must turn the walk red

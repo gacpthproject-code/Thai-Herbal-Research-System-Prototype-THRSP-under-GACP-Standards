@@ -1,0 +1,24 @@
+# R2 Task 12 re-review — one renewal/replacement in flight per certificate (2026-10-03)
+Real Postgres 17 :55439, jest -i, witness THROW, no header. Key mtime 1788623435 before/after every run.
+RED (code at 47c62dd7, new tests only): 3 failed / 1 passed
+  FAIL a second renewal by another member → 201 (expected 409 RENEWAL_ALREADY_IN_PROGRESS, nothing written)
+  FAIL two concurrent renewals → [201, 201], 2 renewals (expected [201, 409], exactly 1)
+  FAIL wizard: RENEWAL claim submitted while another renewal is in flight → 200 (expected 409, stays DRAFT, no quotation)
+  PIN  after the first renewal is CANCEL_EXPIRED a new renewal is allowed (201)
+GREEN:
+  - new catalogue code RENEWAL_ALREADY_IN_PROGRESS (409, no existing code fit); Thai copy: cause + next action
+    "ใบรับรองใบนี้มีคำขอต่ออายุหรือขอใบแทนที่กำลังดำเนินการอยู่แล้ว กรุณาเปิดคำขอนั้นจากรายการคำขอของคุณ"
+  - application-submit-guard.findInFlightSuccession: live application linking the certificate (renewalOf or
+    replacementOf) whose status is not in application-status-writer TERMINAL_STATUSES and not DRAFT
+    (an unfiled draft would otherwise block every member for good); holder fragment on the read
+  - renewal-service: check + create in one $transaction behind pg_advisory_xact_lock(hashtext('renewal:'+certId));
+    refusal writes the APPLICATION_SUBMIT_DENIED audit row, nothing else
+  - submit guard: same check for a same-holder RENEWAL/REPLACEMENT claim at every submit door (409 + audit row);
+    note: the submit path is a read-then-write without the lock (two drafts submitted at the same instant could
+    both pass); the renewal door is the locked one
+  - api-response default message for the code reads the catalogue (no "internal error" messageTh)
+  holder-scope + renewal-* + draft-renewal + walk + r1-*: 9 suites / 132 passed, 0 skipped
+  full integration: 31 failed / 9 suites = base cc87292a set (0 new); an earlier run in parallel with the unit
+  suite timed out r1-application-reads at 30 s (load), alone it passes
+  pointers: RENEWAL_HOLDER_MISMATCH 191→241, new code → application-submit-guard.js:237
+  ratchet 26/53/99/0 · retired-words · no-skip · no-secret · settle-webhook-only · green-mask · copy guard PASS

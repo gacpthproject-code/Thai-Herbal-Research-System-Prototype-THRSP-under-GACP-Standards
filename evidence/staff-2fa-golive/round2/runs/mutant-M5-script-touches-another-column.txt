@@ -1,0 +1,47 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-20T12:43:32.514Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-20T12:43:32.519Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-20T12:43:32.520Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-20T12:43:35.176Z"}
+FAIL __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js
+  order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres)
+    ✕ a DTAM admin of the same organization resets a reviewer whose codes are used up: only the three second-factor columns change, one audit row names requester, approver and confirmation, and the next sign-in yields the setup ticket only (311 ms)
+    ✓ the platform admin resets a company finance officer of another organization (that admin crosses organizations, order 17) (272 ms)
+    every refusal leaves the row byte-for-byte as it was and writes no audit row
+      ✓ refuses when the flag is off (240 ms)
+      ✓ refuses when the target is an applicant account (247 ms)
+      ✓ refuses when the requester is not an admin (245 ms)
+      ✓ refuses when the admin of the other side asks (236 ms)
+      ✓ refuses when the DTAM admin of another organization asks (246 ms)
+      ✓ refuses when the target still has an unused backup code (247 ms)
+      ✓ refuses when the target never enrolled (244 ms)
+      ✓ a missing input is refused with the usage line before the database is touched (56 ms)
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › a DTAM admin of the same organization resets a reviewer whose codes are used up: only the three second-factor columns change, one audit row names requester, approver and confirmation, and the next sign-in yields the setup ticket only
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+    @@ -20,11 +20,11 @@
+        "district": null,
+        "email": "s2fa-er-9-f88537fa@example.test",
+        "emailVerificationExpiry": null,
+        "emailVerificationToken": null,
+        "entityType": null,
+    -   "firstName": "ชื่อ9",
+    +   "firstName": "mutant",
+        "healthId": null,
+        "healthIdHash": null,
+        "healthIdHmac": null,
+        "id": "97ddaeef-c682-4110-9483-24dace30a194",
+        "idCard": null,
+      153 |
+      154 |         const after = await fullRow(target.id);
+    > 155 |         expect(after).toEqual({
+          |                       ^
+      156 |             ...before, twoFactorEnabled: false, twoFactorSecret: null, twoFactorBackupCodes: null, updatedAt: after.updatedAt,
+      157 |         });
+      158 |         expect(after.updatedAt.getTime()).toBeGreaterThanOrEqual(before.updatedAt.getTime());
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 9 passed, 10 total
+Snapshots:   0 total
+Time:        3.505 s, estimated 6 s
+Ran all test suites matching __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js.
+jest exit 1

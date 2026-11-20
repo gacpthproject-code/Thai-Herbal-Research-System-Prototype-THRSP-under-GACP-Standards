@@ -1,0 +1,49 @@
+PASS __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js
+  host table
+    ✓ names staging on this host locally and demo over ssh to 119.59.105.140, nothing else (4 ms)
+  every wrapper is bound to its host and logs every run
+    ✓ staff-mfa-roster.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (41 ms)
+    ✓ staff-first-signin-report.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (38 ms)
+    ✓ staff-2fa-emergency-reset.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (35 ms)
+    ✓ the roster on staging runs the file inside the image after the slot check, never copies from the checkout, and logs done (45 ms)
+    ✓ a container outside its slot, or an image without the script, is refused with the reason logged (85 ms)
+    ✓ the roster on demo goes over ssh to the fixed target with the fixed key and runs inside gacp-backend-demo (38 ms)
+    ✓ the emergency reset forwards its four references (Thai included) to the file in the image and logs the mfa-clear event; short usage is refused (74 ms)
+  mfa-flag-on-staging.sh
+    ✓ turns the flag on, revokes sessions with --event flag-on right after the flag reads on, writes the once-per-host marker, refuses a second apply, and rollback reopens it (128 ms)
+    ✓ when the revoke step refuses, the run exits 2, says the flag is on but sessions stand, writes no marker, and logs refused (57 ms)
+    ✓ refuses off this host before reading any file (72 ms)
+  mfa-flag-on-demo.sh
+    ✓ runs from this host over ssh to the fixed demo target, carries the revoke step with --event flag-on in the remote script, and keeps the once-per-host marker (122 ms)
+    ✓ a refused remote run leaves no marker and is logged as refused; a foreign host never reaches ssh (47 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (150 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (81 ms)
+    ✓ (c) on → rollback → on → on refuses the last (230 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (217 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (172 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (130 ms)
+    ✓ (c) on → rollback → on → on refuses the last (175 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (243 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-staging.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (104 ms)
+    ✓ a well-formed stamp restores that backup (90 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-demo.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (106 ms)
+    ✓ a well-formed stamp restores that backup (100 ms)
+  review L1: the caller cannot move the state or platform directory
+    ✓ the lib a production run sources names both directories as literals and reads no STAFF_2FA_ variable (2 ms)
+    ✓ STAFF_2FA_STATE_DIR and STAFF_2FA_PLATFORM_DIR from the caller move neither the marker, the log, nor the files edited (84 ms)
+  review L2: a slot the caller types reaches the log only after the host table names it
+    ✓ unknown slots, including one that would forge a log line or alias a real slot, are refused and logged as ? (83 ms)
+  review I1: every run logs its intent before it changes anything
+    ✓ each run writes a start line, then its outcome line, with the same script, slot and event (104 ms)
+    ✓ mfa-flag-on-staging.sh with a state directory it cannot write stops before docker, ssh or any file edit (15 ms)
+    ✓ mfa-flag-on-demo.sh with a state directory it cannot write stops before docker, ssh or any file edit (14 ms)
+Test Suites: 1 passed, 1 total
+Tests:       31 passed, 31 total
+Snapshots:   0 total
+Time:        3.596 s
+Ran all test suites matching __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js.
+jest exit 0

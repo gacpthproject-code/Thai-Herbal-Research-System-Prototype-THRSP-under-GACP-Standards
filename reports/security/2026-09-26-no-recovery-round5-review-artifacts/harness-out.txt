@@ -1,0 +1,49 @@
+# run 1: role=document_reviewer (privileged) — commit 3e3d5c3b, throwaway redis:7-alpine 127.0.0.1:16395
+redis target: redis://127.0.0.1:16395 status ready
+tokens: A.jti!=B.jti true role=document_reviewer
+S1 A /setup right code: 200  pending=true entry.session==A.jti true failures=0 ttl=600
+X1 B verify-setup VALID pending code: 403 MFA_REENROL_SESSION_MISMATCH backupCodes=false intact=true pending=true
+X2 B 40 wrong guesses, fresh IP each: {"403:MFA_REENROL_SESSION_MISMATCH":40} failures-after=0 intact=true
+D1 A 40 wrong guesses one IP: seq[0..6]=400,400,400,400,400:MFA_REENROL_RESTART,429,429 totals={"400":4,"429":35,"400:MFA_REENROL_RESTART":1} pending-after=false intact=true
+D2 A then VALID P1 code (fresh IP): 400  backupCodes=false intact=true
+D3 A 12 wrong sequential, fresh IP each: 400,400,400,400,400:MFA_REENROL_RESTART,400,400,400,400,400,400,400 pending-after=false
+R k=5 parallel/round: rounds-until-entry-gone=3 wrong-codes-actually-checked=11+4restart totals={"400":11,"400:MFA_REENROL_RESTART":4}
+R k=20 parallel/round: rounds-until-entry-gone=3 wrong-codes-actually-checked=42+18restart totals={"400":42,"400:MFA_REENROL_RESTART":18}
+R k=50 parallel/round: rounds-until-entry-gone=3 wrong-codes-actually-checked=102+48restart totals={"400":102,"400:MFA_REENROL_RESTART":48}
+R2 30 trials: clear() racing 3 in-flight wrong codes -> entry present AFTER clear in 0/30
+C1 revokeAllUserTokens: pending before=true after=false
+C2 logout of session B (a different session): pending before=true after=false
+C3 /disable: 200  pending before=true after=false
+T0 A /status before: 200  
+T1 A verify-setup VALID: 200  backupCodes=10 secret-now-P5=true sessionsRevokedAt=2026-09-26T12:05:48.000Z pending-cleared=true
+T2 fresh cookie: present=true body.token==cookie true flags=Max-Age=28800|Path=/|Expires=Sat, 26 Sep 2026 20:05:47 GMT|HttpOnly|SameSite=Lax
+T3 claims equal (minus iat/exp/jti): true fresh=["aud","authType","canonicalRole","email","exp","iat","id","iss","jti","organizationId","role","tokenType","userType","uuid"] old=["aud","authType","canonicalRole","email","exp","iat","id","iss","jti","organizationId","role","tokenType","userType","uuid"]
+T4 fresh.iat*1000==stamp true fresh.jti!=old.jti true fresh.exp-iat=43200s old.exp-iat=43200s
+T5 OLD token A (cookie) /status: 401 TOKEN_REVOKED 
+T6 OLD token A (Bearer, no cookie) /status: 401 TOKEN_REVOKED 
+T7 other session C /status: 401 TOKEN_REVOKED 
+T8 fresh token /status: 200  
+T9 OLD token A -> /setup (privileged door): 401 TOKEN_REVOKED 
+T10 OLD token A /status while DB lookup fails: 401 IDENTITY_UNVERIFIED 
+T11 old jti in any redis key: []
+G0 wrong code, count-write fails: 503 MFA_REENROL_UNAVAILABLE intact=true failures-now=0
+G1 /setup Redis down (right code): 503 MFA_REENROL_UNAVAILABLE row-unchanged=true
+G2 verify-setup Redis down (valid P6 code): 503 MFA_REENROL_UNAVAILABLE row-unchanged=true
+G3 verify-setup Redis down (wrong code): 503 MFA_REENROL_UNAVAILABLE row-unchanged=true
+G4 Redis down, 8 from one IP (limiter memory fallback): {"429":3,"503":5}
+audit actions: MFA_REENROL_INITIATED,MFA_REENROL_REFUSED,MFA_SETUP_FAILED,MFA_DISABLED,MFA_REENROLLED | metadata key named secret/code/backup/token: false
+
+# run 2: role=certificate_approver (non-privileged provider) — T section
+tokens: A.jti!=B.jti true role=certificate_approver
+T0 A /status before: 200  
+T1 A verify-setup VALID: 200  backupCodes=10 secret-now-P5=true sessionsRevokedAt=2026-09-26T12:06:22.000Z pending-cleared=true
+T2 fresh cookie: present=true body.token==cookie true flags=Max-Age=28800|Path=/|Expires=Sat, 26 Sep 2026 20:06:21 GMT|HttpOnly|SameSite=Lax
+T3 claims equal (minus iat/exp/jti): true fresh=["aud","authType","canonicalRole","email","exp","iat","id","iss","jti","organizationId","role","tokenType","userType","uuid"] old=["aud","authType","canonicalRole","email","exp","iat","id","iss","jti","organizationId","role","tokenType","userType","uuid"]
+T4 fresh.iat*1000==stamp true fresh.jti!=old.jti true fresh.exp-iat=43200s old.exp-iat=43200s
+T5 OLD token A (cookie) /status: 401 TOKEN_REVOKED 
+T6 OLD token A (Bearer, no cookie) /status: 401 TOKEN_REVOKED 
+T7 other session C /status: 401 TOKEN_REVOKED 
+T8 fresh token /status: 200  
+T9 OLD token A -> /setup (privileged door): 401 TOKEN_REVOKED 
+T10 OLD token A /status while DB lookup fails: 200  
+T11 old jti in any redis key: []

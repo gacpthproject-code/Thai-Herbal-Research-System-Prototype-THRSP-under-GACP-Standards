@@ -1,0 +1,86 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+[31merror[39m: Failed to initialize Tesseract: {"service":"gacp-backend","timestamp":"2026-09-29T11:17:21.058Z"}
+[32minfo[39m: Tesseract OCR initialized (Thai + English), langPath=/home/ubuntu/work/wt-pcfu/apps/backend/data/tessdata {"service":"gacp-backend","timestamp":"2026-09-29T11:17:21.269Z"}
+[32minfo[39m: Tesseract workers terminated {"service":"gacp-backend","timestamp":"2026-09-29T11:17:21.276Z"}
+[32minfo[39m: Tesseract service was terminated while its worker was starting {"service":"gacp-backend","timestamp":"2026-09-29T11:17:21.277Z"}
+[32minfo[39m: Tesseract service was terminated while its worker was starting {"service":"gacp-backend","timestamp":"2026-09-29T11:17:21.278Z"}
+FAIL __tests__/unit/document-precheck/tesseract-initialize-overlap.test.js
+  TesseractService.initialize() called twice before the first finishes
+    ✕ the second call awaits the first: one scheduler, one worker, both resolve (10 ms)
+    ✕ a failed initialisation fails both callers, and a later call tries again (225 ms)
+    ✕ terminate() mid-initialisation aborts BOTH waiting callers and still terminates the late worker (7 ms)
+
+  ● TesseractService.initialize() called twice before the first finishes › the second call awaits the first: one scheduler, one worker, both resolve
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 2
+
+      50 |         await flush();
+      51 |
+    > 52 |         expect(createWorkerSpy).toHaveBeenCalledTimes(1);
+         |                                 ^
+      53 |         expect(createSchedulerSpy).toHaveBeenCalledTimes(1);
+      54 |
+      55 |         pending.resolve(worker);
+
+
+  ● TesseractService.initialize() called twice before the first finishes › a failed initialisation fails both callers, and a later call tries again
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: [Error: worker failed to start]
+    Received: null
+
+      72 |         const [e1, e2] = await Promise.all([first, second]);
+      73 |         expect(e1).toBeInstanceOf(Error);
+    > 74 |         expect(e2).toBe(e1);
+         |                    ^
+      75 |         expect(createWorkerSpy).toHaveBeenCalledTimes(1);
+      76 |
+      77 |         const worker = fakeWorker();
+
+
+  ● TesseractService.initialize() called twice before the first finishes › terminate() mid-initialisation aborts BOTH waiting callers and still terminates the late worker
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 2
+
+       97 |         expect(e1 && e1.code).toBe('TESSERACT_TERMINATED');
+       98 |         expect(e2 && e2.code).toBe('TESSERACT_TERMINATED');
+    >  99 |         expect(worker.terminate).toHaveBeenCalledTimes(1);
+          |                                  ^
+      100 |         expect(createWorkerSpy).toHaveBeenCalledTimes(1);
+      101 |         expect(service.scheduler).toBeNull();
+      102 |     });
+
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 total
+Snapshots:   0 total
+Time:        0.895 s
+Ran all test suites matching __tests__/unit/document-precheck/tesseract-initialize-overlap.test.js.
+(RED run note: with the pre-fix code, test 2's second initialize() fell through the spy's mockReturnValueOnce to the REAL createWorker; its worker thread kept jest from exiting, so the run was stopped after the result lines above were written. The test now rejects any unexpected createWorker call.)

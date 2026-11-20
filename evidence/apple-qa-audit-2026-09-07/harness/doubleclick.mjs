@@ -1,0 +1,28 @@
+import { chromium } from './lib.mjs';
+const B='https://demo.gacpth.com', OUT=process.argv[2];
+const ID=process.env.QA_ID, PW=process.env.QA_PW;
+const b=await chromium.launch();
+const ctx=await b.newContext({viewport:{width:1440,height:900},locale:'th-TH'});
+const p=await ctx.newPage(); p.setDefaultTimeout(15000);
+const posts=[];
+p.on('response', r=>{ if(r.request().method()==='POST' && r.url().includes('/api/')) posts.push(`${r.status()} POST ${r.url().replace(B,'').slice(0,80)}`); });
+await p.goto(B+'/register',{waitUntil:'networkidle',timeout:40000}); await p.waitForTimeout(700);
+await p.locator('#reg-identifier').fill(ID);
+await p.locator('#reg-firstName').fill('ทดสอบกดซ้ำ');
+await p.locator('#reg-lastName').fill('ระบบจีเอซีพี');
+await p.locator('button:has-text("ถัดไป")').click(); await p.waitForTimeout(700);
+await p.locator('#reg-email').fill('qa.doubleclick@example.com');
+await p.locator('#reg-phone').fill('0898765432');
+await p.locator('button:has-text("ถัดไป")').click(); await p.waitForTimeout(700);
+await p.locator('#reg-password').fill(PW);
+await p.locator('#reg-confirm-password').fill(PW);
+await p.locator('button:has-text("ถัดไป")').click(); await p.waitForTimeout(900);
+await p.locator('#reg-consent').check();
+// กดปุ่มยืนยันรัวๆ 4 ครั้งเร็วที่สุด
+const btn=p.locator('button:has-text("ยืนยันสมัครสมาชิก")');
+await Promise.allSettled([btn.click(),btn.click({force:true}),btn.click({force:true}),btn.click({force:true})]);
+await p.waitForTimeout(5000);
+console.log('POSTs fired:');
+posts.forEach(x=>console.log('  ',x));
+console.log('final URL:', p.url().replace(B,''));
+await b.close();

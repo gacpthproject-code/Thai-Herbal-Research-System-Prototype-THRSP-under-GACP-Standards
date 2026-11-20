@@ -1,0 +1,162 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+    [0m [90m 110 |[39m
+     [90m 111 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mHEALTH_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mJWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 112 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 113 |[39m   }
+     [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/certificates/certificates.js:12:20)
+      at Object.require (__tests__/unit/certificate-download-cold-start-retry.test.js:48:28)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m   }
+     [90m 118 |[39m
+     [90m 119 |[39m   [36mconst[39m providerConfig [33m=[39m {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/certificates/certificates.js:12:20)
+      at Object.require (__tests__/unit/certificate-download-cold-start-retry.test.js:48:28)
+
+FAIL __tests__/unit/certificate-download-cold-start-retry.test.js (92.551 s)
+  F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry budget
+    √ happy path (already-warm browser, resolves immediately) → single call, 200, no retry log (7 ms)
+    √ genuine render/data error (not cold-start) → NO retry, called exactly once, 500 (2 ms)
+    √ (b) cold-start fails FAST (2s, well under the cutoff) → retry runs, succeeds → 200, two calls (6 ms)
+    × (a) cold-start fails SLOWLY (22s — past the 20s retry cutoff, still under the 25s attempt deadline so the real rejection is what fires) → NO retry, one call, 500 (30016 ms)
+    × (c) attempt hangs indefinitely (never settles) → the route's own attempt deadline fires at 25s, classified cold-start, no dangling request — same cutoff math as (a) → no retry, one call, 500 (30032 ms)
+    × (d) double cold-start failure (fast fail + hanging retry) → total elapsed NEVER exceeds PDF_TOTAL_BUDGET_MS (30014 ms)
+
+  ● F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry budget › (a) cold-start fails SLOWLY (22s — past the 20s retry cutoff, still under the 25s attempt deadline so the real rejection is what fires) → NO retry, one call, 500
+
+    thrown: "Exceeded timeout of 30000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+    [0m [90m 146 |[39m     })[33m;[39m
+     [90m 147 |[39m
+    [31m[1m>[22m[39m[90m 148 |[39m     test([32m'(a) cold-start fails SLOWLY (22s — past the 20s retry cutoff, still under the 25s attempt deadline so the real rejection is what fires) → NO retry, one call, 500'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 149 |[39m         mockGetCertificatePdf[33m.[39mmockImplementation(
+     [90m 150 |[39m             rejectsAfter([35m22[39m_000[33m,[39m coldStartError([32m'Timed out after 22000 ms while trying to connect to the browser!'[39m))[33m,[39m
+     [90m 151 |[39m         )[33m;[39m[0m
+
+      at test (__tests__/unit/certificate-download-cold-start-retry.test.js:148:5)
+      at Object.describe (__tests__/unit/certificate-download-cold-start-retry.test.js:101:1)
+
+  ● F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry budget › (c) attempt hangs indefinitely (never settles) → the route's own attempt deadline fires at 25s, classified cold-start, no dangling request — same cutoff math as (a) → no retry, one call, 500
+
+    thrown: "Exceeded timeout of 30000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+    [0m [90m 179 |[39m     [90m// correctly — the "no retry" outcome falls out of the same cutoff math[39m
+     [90m 180 |[39m     [90m// as (a), asserted here for consistency.[39m
+    [31m[1m>[22m[39m[90m 181 |[39m     test([32m'(c) attempt hangs indefinitely (never settles) → the route\'s own attempt deadline fires at 25s, classified cold-start, no dangling request — same cutoff math as (a) → no retry, one call, 500'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 182 |[39m         mockGetCertificatePdf[33m.[39mmockImplementation(hangsForever())[33m;[39m
+     [90m 183 |[39m         [36mconst[39m { req[33m,[39m res } [33m=[39m buildReqRes()[33m;[39m
+     [90m 184 |[39m[0m
+
+      at test (__tests__/unit/certificate-download-cold-start-retry.test.js:181:5)
+      at Object.describe (__tests__/unit/certificate-download-cold-start-retry.test.js:101:1)
+
+  ● F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry budget › (d) double cold-start failure (fast fail + hanging retry) → total elapsed NEVER exceeds PDF_TOTAL_BUDGET_MS
+
+    thrown: "Exceeded timeout of 30000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+    [0m [90m 192 |[39m     })[33m;[39m
+     [90m 193 |[39m
+    [31m[1m>[22m[39m[90m 194 |[39m     test([32m'(d) double cold-start failure (fast fail + hanging retry) → total elapsed NEVER exceeds PDF_TOTAL_BUDGET_MS'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m     |[39m     [31m[1m^[22m[39m
+     [90m 195 |[39m         mockGetCertificatePdf
+     [90m 196 |[39m             [33m.[39mmockImplementationOnce(rejectsAfter([35m2[39m_000[33m,[39m coldStartError([32m'Timed out after 2000 ms while trying to connect to the browser!'[39m)))
+     [90m 197 |[39m             [33m.[39mmockImplementation(hangsForever())[33m;[39m [90m// the retry attempt hangs too[39m[0m
+
+      at test (__tests__/unit/certificate-download-cold-start-retry.test.js:194:5)
+      at Object.describe (__tests__/unit/certificate-download-cold-start-retry.test.js:101:1)
+
+FAIL __tests__/unit/pdf-cold-start-classification.test.js
+  F-PDF-COLD-START-TIMEOUT — isColdStartError (narrowed)
+    √ puppeteer TimeoutError by .name (covers both launch AND setContent/navigation timeouts) → true (retry-worthy) (1 ms)
+    √ our own route-level attempt-deadline synthetic timeout (name=TimeoutError) → true (retry-worthy) (1 ms)
+    √ browser launch failure → true (retry-worthy) (1 ms)
+    √ launch-context "Timed out after Nms" phrasing → true (retry-worthy) (1 ms)
+    √ certificate not found (data error) → false (not retry-worthy) (1 ms)
+    √ template/render TypeError → false (not retry-worthy) (1 ms)
+    √ no error object → false (not retry-worthy) (1 ms)
+    √ undefined → false (not retry-worthy) (1 ms)
+    × generic unrelated "timeout" message, no TimeoutError name, no browser/launch context → false (not retry-worthy) (3 ms)
+    × "Timed out after Nms" WITHOUT browser/launch context → false (not retry-worthy) (1 ms)
+    × the word "timeout" alone is not enough → false (not retry-worthy) (1 ms)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError (narrowed) › generic unrelated "timeout" message, no TimeoutError name, no browser/launch context → false (not retry-worthy)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 49 |[39m         [[32m'the word "timeout" alone is not enough'[39m[33m,[39m [36mnew[39m [33mError[39m([32m'Payment gateway timeout'[39m)][33m,[39m
+     [90m 50 |[39m     ])([32m'%s → false (not retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 51 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                                                    [31m[1m^[22m[39m
+     [90m 52 |[39m     })[33m;[39m
+     [90m 53 |[39m })[33m;[39m
+     [90m 54 |[39m[0m
+
+      at toBe (__tests__/unit/pdf-cold-start-classification.test.js:51:52)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError (narrowed) › "Timed out after Nms" WITHOUT browser/launch context → false (not retry-worthy)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 49 |[39m         [[32m'the word "timeout" alone is not enough'[39m[33m,[39m [36mnew[39m [33mError[39m([32m'Payment gateway timeout'[39m)][33m,[39m
+     [90m 50 |[39m     ])([32m'%s → false (not retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 51 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                                                    [31m[1m^[22m[39m
+     [90m 52 |[39m     })[33m;[39m
+     [90m 53 |[39m })[33m;[39m
+     [90m 54 |[39m[0m
+
+      at toBe (__tests__/unit/pdf-cold-start-classification.test.js:51:52)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError (narrowed) › the word "timeout" alone is not enough → false (not retry-worthy)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 49 |[39m         [[32m'the word "timeout" alone is not enough'[39m[33m,[39m [36mnew[39m [33mError[39m([32m'Payment gateway timeout'[39m)][33m,[39m
+     [90m 50 |[39m     ])([32m'%s → false (not retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 51 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                                                    [31m[1m^[22m[39m
+     [90m 52 |[39m     })[33m;[39m
+     [90m 53 |[39m })[33m;[39m
+     [90m 54 |[39m[0m
+
+      at toBe (__tests__/unit/pdf-cold-start-classification.test.js:51:52)
+
+Test Suites: 2 failed, 2 total
+Tests:       6 failed, 11 passed, 17 total
+Snapshots:   0 total
+Time:        93.175 s
+Ran all test suites matching /pdf-cold-start-classification|certificate-download-cold-start-retry/i.

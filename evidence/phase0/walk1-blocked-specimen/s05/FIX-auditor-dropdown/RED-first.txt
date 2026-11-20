@@ -1,0 +1,31 @@
+RED-first record — F-AUDITOR-DROPDOWN-EMPTY (2026-08-19 ~01:05 Asia/Bangkok)
+
+RED ชั้นที่ 1 (จอจริง): s05 C11 บน stack จริง — AssignAuditorModal dropdown ว่าง
+  evidence/phase0/s05/C11-auditor-options.txt (19/8/2569 00:52:46):
+    [ { "value": "", "label": "เลือกผู้ตรวจ" } ]
+  spec assertion "the assign dropdown offers the mission's auditor (2222222222222)" → FAIL
+  (trace/video: evidence/phase0/red-2-auditor-dropdown/ ถ้าถูกย้ายเก็บ — ดู INDEX)
+
+RED ชั้นที่ 2 (unit, ก่อนแก้ service): npx jest __tests__/admin-user-service-tenant-scope.test.js
+  รันจริงใน session 2026-08-19 ~01:02 — ท่อนท้าย output (verbatim excerpt จากการรันจริง):
+    - Expected  - 2
+    + Received  + 0
+      Array [
+        "user-canonical-auditor",
+    -   "user-legacy-auditor",
+    -   "user-mixed-case-auditor",
+      ]
+    Test Suites: 1 failed, 1 total
+    Tests:       3 failed, 9 passed, 12 total
+  (3 ข้อที่ fail = block ใหม่ F-AUDITOR-DROPDOWN-EMPTY ทั้งหมด · 9 ข้อเดิม GREEN)
+
+สาเหตุ: services/provider-user-service.js listAuditorsForScheduler() กรอง SQL
+  role IN [CANONICAL_ROLES.AUDITOR] (canonical ตัวเล็กเท่านั้น) — Prisma `in` บน
+  Postgres เป็น case-sensitive · แถว seed จริงถือ legacy 'AUDITOR'
+  = พี่น้องของ F-REVIEWER-DROPDOWN-EMPTY (db3e6480) ที่ fix รอบก่อนพลาดตัวนี้
+
+FIX: mirror pattern เดิมของ db3e6480 — อ่าน roster ACTIVE PROVIDER ไม่ใส่ role
+  predicate ใน SQL แล้วกรองใน JS ด้วย normalizeRole() (ROLE_ALIASES SSOT)
+  REVIEWER_AUDITOR → document_reviewer ถูกกันออกถูกต้อง (asserted ใน test)
+
+GREEN: test-green.txt (12/12) · diff-stat.txt

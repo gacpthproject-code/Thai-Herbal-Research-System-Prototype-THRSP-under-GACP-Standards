@@ -1,0 +1,15 @@
+# W1-2 reproduction re-verified — 2026-08-21 (backend :8000, real Supabase DB)
+
+$ curl -s -X POST http://localhost:8000/api/auth/health/me/avatar -H 'Authorization: Bearer <token>' -F 'avatar=@up-proof.png;type=image/png'
+{"success":true,"message":"อัปโหลดรูปโปรไฟล์สำเร็จ","data":{"profileImage":"/uploads/1787283122887-5591b610-37b1-4e9c-a7cf-d8ead4c460b7.png"},...}
+HTTP:200
+
+$ ls apps/backend/public/uploads/1787283122887-5591b610-37b1-4e9c-a7cf-d8ead4c460b7.png
+-rw-r--r-- 67 bytes  (file really written)
+
+$ curl -o /dev/null -w 'status=%{http_code} type=%{content_type} size=%{size_download}' -H 'Authorization: Bearer <token>' http://localhost:8000/uploads/1787283122887-5591b610-37b1-4e9c-a7cf-d8ead4c460b7.png
+status=200 type=image/png size=67
+
+$ curl http://localhost:8000/uploads/1787283122887-5591b610-37b1-4e9c-a7cf-d8ead4c460b7.png   # no header = what a browser <img> does
+{"success":false,"error":"Unauthorized","message":"No token provided","code":"NO_TOKEN"}
+status=401

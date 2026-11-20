@@ -1,0 +1,14 @@
+demo MinIO — are generated PDFs public there?  ANSWER: NO.  Checked 2026-10-09, read-only, no keys or values printed.
+
+- MinIO listens on 127.0.0.1:9000/9001 only (docker port binding and ss); no firewalld zone opens 9000/9001.
+- No nginx route points at MinIO (host nginx and the gacp-nginx container configs grep clean).
+- Anonymous GET of gacp-pdfs/, a gacp-pdfs object path, gacp-uploads/ and gacp-certificates/ → 403 AccessDenied.
+- With the server's own credentials, used inside the MinIO container only and never printed:
+  the MinIO holds NO buckets at all (gacp-pdfs, gacp-certificates and gacp-uploads do not exist).
+  initializeStorage() is never called at boot, so the buckets were never created; every upload of a
+  generated file on demo has been failing and falling back to "returning buffer anyway".
+- backend-demo: STORAGE_PROVIDER=minio, S3 keys set, S3_PUBLIC_ENDPOINT unset, NODE_ENV=production,
+  local fallback not allowed. Its local uploads volume has no gacp-pdfs folder (application-drafts 116,
+  lab-results 1).
+- Nothing to move on demo, and nothing to change there: this branch removes the write itself, so no
+  generated finance PDF will be stored in MinIO or on disk.

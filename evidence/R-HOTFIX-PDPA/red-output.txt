@@ -1,0 +1,193 @@
+===== RED phase 1: legal-hold guard missing from pdpa-retention-job (2026-08-03) =====
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/pdpa-retention-job.test.js
+  [Sprint6] PDPA Retention Sweep
+    ✓ anonymises users whose retainUntil is past, leaving future users alone (10 ms)
+    ✓ anonymisation nulls ALL identity + PII fields and sets password to PDPA_ANONYMIZED (12 ms)
+    ✓ retries without isAnonymized/anonymizedAt when schema lacks those columns (4 ms)
+    ✓ error in a single user update is recorded but does not halt the sweep (3 ms)
+    ✓ exits the loop cleanly when findMany returns empty batch (3 ms)
+  [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold
+    ✕ filters legalHold rows out at the query layer and selects the column (5 ms)
+    ✕ never anonymises a legal-hold user whose retainUntil is in the past (4 ms)
+    ✕ fails closed when the isAnonymized column is missing — no unfiltered fallback re-query (3 ms)
+    ✓ fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody (3 ms)
+
+  ● [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold › filters legalHold rows out at the query layer and selects the column
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      198 |
+      199 |         const args = mockFindMany.mock.calls[0][0];
+    > 200 |         expect(args.where.legalHold).toBe(false);
+          |                                      ^
+      201 |         // The column must be selected so the in-loop guard below has something to read.
+      202 |         expect(args.select.legalHold).toBe(true);
+      203 |     });
+
+      at Object.toBe (__tests__/unit/pdpa-retention-job.test.js:200:38)
+
+  ● [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold › never anonymises a legal-hold user whose retainUntil is in the past
+
+    expect(jest.fn()).not.toHaveBeenCalledWith(...expected)
+
+    Expected: not ObjectContaining {"where": {"id": "user-hold-1"}}
+    Received
+           1:     {"data": {"address": null, "anonymizedAt": 2026-05-15T12:00:00.000Z, "communityName": null, "communityRegistrationNo": null, "communityRegistrationNoHash": null, "companyName": null, "district": null, "email": null, "firstName": null, "healthId": null, "healthIdHash": null, "idCard": null, "idCardHash": null, "isAnonymized": true, "lastName": null, "password": "PDPA_ANONYMIZED", "phoneNumber": null, "providerId": null, "providerIdHash": null, "province": null, "representativeName": null, "representativePosition": null, "sessionsRevokedAt": 2026-05-15T12:00:01.000Z, "subdistrict": null, "taxId": null, "taxIdHash": null, "twoFactorBackupCodes": null, "twoFactorEnabled": false, "twoFactorSecret": null, "zipCode": null}, "where": {"id": "user-hold-1"}}
+
+    Number of calls: 2
+
+      214 |         const stats = await runPdpaRetentionSweep();
+      215 |
+    > 216 |         expect(mockUpdate).not.toHaveBeenCalledWith(
+          |                                ^
+      217 |             expect.objectContaining({ where: { id: 'user-hold-1' } }),
+      218 |         );
+      219 |         expect(mockUpdate).toHaveBeenCalledWith(
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/pdpa-retention-job.test.js:216:32)
+
+  ● [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold › fails closed when the isAnonymized column is missing — no unfiltered fallback re-query
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 2
+
+      234 |         // The old fallback re-queried on retainUntil alone, dropping BOTH the
+      235 |         // isAnonymized filter and the legalHold filter. It must not run at all.
+    > 236 |         expect(mockFindMany).toHaveBeenCalledTimes(1);
+          |                              ^
+      237 |         expect(caught).not.toBeNull();
+      238 |         expect(String(caught.message)).toContain('isAnonymized');
+      239 |         expect(mockUpdate).not.toHaveBeenCalled();
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/pdpa-retention-job.test.js:236:30)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 6 passed, 9 total
+Snapshots:   0 total
+Time:        1.267 s
+Ran all test suites matching /__tests__\/unit\/pdpa-retention-job.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+===== RED phase 2: shared/legal-hold-guard + integration test do not exist yet =====
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/legal-hold-guard.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../shared/legal-hold-guard' from '__tests__/unit/legal-hold-guard.test.js'
+
+      23 |     legalHoldSelection,
+      24 |     isUnderLegalHold,
+    > 25 | } = require('../../shared/legal-hold-guard');
+         |     ^
+      26 |
+      27 | describe('[R-HOTFIX-PDPA] legal-hold-guard — Prisma fragments', () => {
+      28 |     it('legalHoldExclusion() is the where-fragment that skips held rows', () => {
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/legal-hold-guard.test.js:25:5)
+
+FAIL __tests__/integration/pdpa-retention-legal-hold.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../shared/legal-hold-guard' from '__tests__/integration/pdpa-retention-legal-hold.test.js'
+
+      26 | const { PrismaClient } = require('@prisma/client');
+      27 | const { runPdpaRetentionSweep } = require('../../jobs/pdpa-retention-job');
+    > 28 | const { legalHoldExclusion } = require('../../shared/legal-hold-guard');
+         |                                ^
+      29 |
+      30 | const HAS_DB = Boolean(process.env.DATABASE_URL);
+      31 | const d = HAS_DB ? describe : describe.skip;
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/integration/pdpa-retention-legal-hold.test.js:28:32)
+
+Test Suites: 2 failed, 2 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        0.836 s
+Ran all test suites matching /__tests__\/unit\/legal-hold-guard.test.js|__tests__\/integration\/pdpa-retention-legal-hold.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+===== RED phase 3: operator policy 2026-08-03 — hold is permanent, not a deferral =====
+(both guard layers reverted to pre-fix state to reproduce)
+FAIL __tests__/unit/pdpa-retention-job.test.js
+  [Sprint6] PDPA Retention Sweep
+    ○ skipped anonymises users whose retainUntil is past, leaving future users alone
+    ○ skipped anonymisation nulls ALL identity + PII fields and sets password to PDPA_ANONYMIZED
+    ○ skipped retries without isAnonymized/anonymizedAt when schema lacks those columns
+    ○ skipped error in a single user update is recorded but does not halt the sweep
+    ○ skipped exits the loop cleanly when findMany returns empty batch
+  [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold
+    ○ skipped filters legalHold rows out at the query layer and selects the column
+    ○ skipped never anonymises a legal-hold user whose retainUntil is in the past
+    ○ skipped fails closed when the isAnonymized column is missing — no unfiltered fallback re-query
+    ○ skipped fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody
+  [R-HOTFIX-PDPA] legal hold is permanent, not a deferral
+    ✕ skips a held row whose retainUntil elapsed 36 years ago (10 ms)
+    ✕ the query excludes held rows unconditionally, not by shifting the date window (6 ms)
+    ✓ never writes retainUntil or legalHold — the sweep cannot defer or clear a hold (4 ms)
+
+  ● [R-HOTFIX-PDPA] legal hold is permanent, not a deferral › skips a held row whose retainUntil elapsed 36 years ago
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: {"data": {"address": null, "anonymizedAt": 2026-05-15T12:00:00.000Z, "communityName": null, "communityRegistrationNo": null, "communityRegistrationNoHash": null, "companyName": null, "district": null, "email": null, "firstName": null, "healthId": null, "healthIdHash": null, "idCard": null, "idCardHash": null, "isAnonymized": true, "lastName": null, "password": "PDPA_ANONYMIZED", "phoneNumber": null, "providerId": null, "providerIdHash": null, "province": null, "representativeName": null, "representativePosition": null, "sessionsRevokedAt": 2026-05-15T12:00:01.000Z, "subdistrict": null, "taxId": null, "taxIdHash": null, "twoFactorBackupCodes": null, "twoFactorEnabled": false, "twoFactorSecret": null, "zipCode": null}, "where": {"id": "user-ancient-hold"}}
+
+      285 |         const stats = await runPdpaRetentionSweep();
+      286 |
+    > 287 |         expect(mockUpdate).not.toHaveBeenCalled();
+          |                                ^
+      288 |         expect(stats.anonymized).toBe(0);
+      289 |         expect(stats.legalHoldSkipped).toBe(1);
+      290 |     });
+
+      at Object.toHaveBeenCalled (__tests__/unit/pdpa-retention-job.test.js:287:32)
+
+  ● [R-HOTFIX-PDPA] legal hold is permanent, not a deferral › the query excludes held rows unconditionally, not by shifting the date window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      298 |         // `legalHold: false` sits alongside the date predicate, ANDed with it — so
+      299 |         // no retainUntil value can ever bring a held row back into the candidate set.
+    > 300 |         expect(where.legalHold).toBe(false);
+          |                                 ^
+      301 |         expect(where.retainUntil).toEqual({ lte: NOW });
+      302 |     });
+      303 |
+
+      at Object.toBe (__tests__/unit/pdpa-retention-job.test.js:300:33)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 9 skipped, 1 passed, 12 total
+Snapshots:   0 total
+Time:        1.15 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/pdpa-retention-job.test.js/i with tests matching "permanent".
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

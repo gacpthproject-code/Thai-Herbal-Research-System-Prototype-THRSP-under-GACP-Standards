@@ -1,0 +1,25 @@
+== walk green-final 2026-10-13T15:49:28Z audit=98fa007e-1929-45fa-ab97-c5ad612a5f7f photo=photo-3.jpg bytes=275912 sha256=23a57d63cdad27539844ae898bda79d3de7814de51df0f9f89bc1dd76682b6ac
+-- 0. GET /api/audit/onsite/98fa007e-1929-45fa-ab97-c5ad612a5f7f/context (inspector session)
+HTTP 404
+   success: false startedAt: null savedAnswers: 0 photoIds: 0
+-- 1. POST /api/audit/onsite/98fa007e-1929-45fa-ab97-c5ad612a5f7f/photo (multipart photo + gps json + itemId 1.1)
+HTTP 200
+   success: true code: - error: -
+   photoId: 43eb44d3-00e8-4e26-9b82-900d15f9aae2
+   url: /uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791906569049-43deb6e3-8d40-4edd-8eb1-7ea06d675666.jpg
+   fileHash: 23a57d63cdad27539844ae898bda79d3de7814de51df0f9f89bc1dd76682b6ac
+-- 2. POST /api/files/signed-url {fileUrl} (what the web SignedImage does)
+HTTP 200
+   success: true code: - error: -
+   minted: /uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791906569049-43deb6e3-8d40-4edd-8eb1-7ea06d675666.jpg?exp=1791906869&sub=<masked>&sig=<masked> expiresAt: 2026-10-13T15:54:29.000Z
+-- 3. GET the signed url with no session (how <img src> loads it)
+HTTP 200 bytes 275912 type image/jpeg
+   body sha256: 23a57d63cdad27539844ae898bda79d3de7814de51df0f9f89bc1dd76682b6ac
+-- 4. GET the stored url with the inspector session (unsigned)
+HTTP 200 bytes 275912 type image/jpeg
+-- 5. disk: files under apps/backend/public/uploads written since the upload
+public/uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791906569049-43deb6e3-8d40-4edd-8eb1-7ea06d675666.jpg
+   count: 1
+-- 6. database rows for this url
+   attachment: {"id":"6e43f139-d6b6-4a9d-ba16-2b2932faa75a","resModel":"FarmAuditPhoto","resId":"98fa007e-1929-45fa-ab97-c5ad612a5f7f","fileName":"photo-3.jpg","fileSize":275912,"fileHash":"23a57d63cdad27539844ae898bda79d3de7814de51df0f9f89bc1dd76682b6ac","mimeType":"image/jpeg"}
+   farmAuditPhoto: {"id":"43eb44d3-00e8-4e26-9b82-900d15f9aae2","fileHash":"23a57d63cdad27539844ae898bda79d3de7814de51df0f9f89bc1dd76682b6ac","checklistItemId":null}

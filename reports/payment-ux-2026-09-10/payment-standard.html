@@ -1,0 +1,484 @@
+<title>มาตรฐานการชำระเงิน</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@300;400;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+
+<style>
+  :root {
+    --paper:#fbfaf7; --card:#ffffff; --ink:#14201a; --ink-soft:#3d4d45;
+    --muted:#6b7a71; --line:#e4e8e3; --line-strong:#cdd5cf;
+    --gacp:#006633; --gacp-lift:#0a7d43; --gold:#9c7a1e; --gold-fill:#fdf6e3;
+    --due:#9c7a1e; --due-fill:#fdf6e3;
+    --wait:#1d6079; --wait-fill:#eaf4f8;
+    --done:#006633; --done-fill:#e9f4ed;
+    --fail:#9c3327; --fail-fill:#fbeeec;
+    --stop:#5a6660; --stop-fill:#f0f2f0;
+    --shadow:0 1px 2px rgba(20,32,26,.05), 0 12px 28px -20px rgba(20,32,26,.35);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --paper:#0e1512; --card:#151d19; --ink:#f0f2f0; --ink-soft:#c3ccc6;
+      --muted:#8fa096; --line:#26302b; --line-strong:#36423b;
+      --gacp:#34b56a; --gacp-lift:#4cc77e; --gold:#d9b45f; --gold-fill:#2a2417;
+      --due:#d9b45f; --due-fill:#2a2417;
+      --wait:#79c0d8; --wait-fill:#122630;
+      --done:#4cc77e; --done-fill:#10261a;
+      --fail:#e08a7d; --fail-fill:#2b1613;
+      --stop:#9aa8a1; --stop-fill:#1c2320;
+      --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 28px -20px rgba(0,0,0,.8);
+    }
+  }
+  :root[data-theme="dark"] {
+    --paper:#0e1512; --card:#151d19; --ink:#f0f2f0; --ink-soft:#c3ccc6;
+    --muted:#8fa096; --line:#26302b; --line-strong:#36423b;
+    --gacp:#34b56a; --gacp-lift:#4cc77e; --gold:#d9b45f; --gold-fill:#2a2417;
+    --due:#d9b45f; --due-fill:#2a2417;
+    --wait:#79c0d8; --wait-fill:#122630;
+    --done:#4cc77e; --done-fill:#10261a;
+    --fail:#e08a7d; --fail-fill:#2b1613;
+    --stop:#9aa8a1; --stop-fill:#1c2320;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 12px 28px -20px rgba(0,0,0,.8);
+  }
+
+  * { box-sizing:border-box; }
+  body {
+    margin:0; background:var(--paper); color:var(--ink);
+    font-family:'Sarabun', system-ui, sans-serif; font-weight:400;
+    font-size:16.5px; line-height:1.75; -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:53rem; margin:0 auto; padding:3.5rem 1.5rem 6rem; }
+  h1,h2,h3 { font-family:'IBM Plex Sans Thai', sans-serif; text-wrap:balance; line-height:1.3; margin:0; }
+  h1 { font-size:2.3rem; font-weight:700; letter-spacing:-.015em; }
+  h2 { font-size:1.4rem; font-weight:600; margin:3.5rem 0 .35rem; }
+  h3 { font-size:1.06rem; font-weight:600; margin:1.75rem 0 .4rem; }
+  p { margin:.7rem 0; color:var(--ink-soft); }
+  strong { color:var(--ink); font-weight:600; }
+  code, .mono { font-family:'IBM Plex Mono', ui-monospace, monospace; font-size:.86em; }
+  code { background:var(--stop-fill); border:1px solid var(--line); border-radius:4px; padding:.08em .35em; color:var(--ink); }
+  a { color:var(--gacp); text-underline-offset:3px; }
+  a:focus-visible, summary:focus-visible { outline:2px solid var(--gacp); outline-offset:3px; border-radius:3px; }
+
+  .eyebrow {
+    font-family:'IBM Plex Mono', monospace; font-size:.72rem; letter-spacing:.16em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 .9rem;
+  }
+  .lede { font-size:1.12rem; color:var(--ink-soft); margin-top:1rem; max-width:44rem; }
+  .rule { height:2px; background:var(--gacp); width:3.5rem; margin:1.75rem 0 0; border-radius:2px; }
+  .sub { color:var(--muted); font-size:.94rem; margin-top:.3rem; }
+
+  /* ── state track ── */
+  .track { display:grid; gap:.55rem; margin:1.5rem 0 .5rem; }
+  @media (min-width:52rem) { .track { grid-template-columns:repeat(6,1fr); gap:.5rem; } }
+  .st {
+    border:1px solid var(--line-strong); border-radius:12px; padding:.85rem .8rem;
+    background:var(--card); box-shadow:var(--shadow); position:relative;
+  }
+  .st .n { font-family:'IBM Plex Mono',monospace; font-size:.68rem; color:var(--muted); letter-spacing:.08em; }
+  .st .t { font-family:'IBM Plex Sans Thai',sans-serif; font-weight:600; font-size:.95rem; margin-top:.15rem; line-height:1.35; }
+  .st .d { font-size:.8rem; color:var(--muted); margin-top:.3rem; line-height:1.5; }
+  .st::before { content:''; position:absolute; inset:0 auto 0 0; width:3px; border-radius:12px 0 0 12px; background:var(--tone,var(--line-strong)); }
+  .st.due  { --tone:var(--due);  background:var(--due-fill); }
+  .st.wait { --tone:var(--wait); background:var(--wait-fill); }
+  .st.done { --tone:var(--done); background:var(--done-fill); }
+  .st.fail { --tone:var(--fail); background:var(--fail-fill); }
+  .st.stop { --tone:var(--stop); background:var(--stop-fill); }
+  .st.missing { border-style:dashed; border-width:2px; }
+  .flag {
+    display:inline-block; font-family:'IBM Plex Mono',monospace; font-size:.63rem; letter-spacing:.09em;
+    text-transform:uppercase; padding:.12rem .4rem; border-radius:4px; margin-top:.45rem;
+    background:var(--fail); color:var(--paper); font-weight:500;
+  }
+
+  /* ── have/need comparison ── */
+  .cmp { display:grid; gap:1rem; margin-top:1.25rem; }
+  @media (min-width:44rem) { .cmp { grid-template-columns:1fr 1fr; } }
+  .box { border:1px solid var(--line); border-radius:14px; padding:1.1rem 1.2rem; background:var(--card); box-shadow:var(--shadow); }
+  .box h3 { margin-top:0; }
+  .box.bad { border-color:color-mix(in srgb, var(--fail) 40%, var(--line)); }
+  .tags { display:flex; flex-wrap:wrap; gap:.35rem; margin-top:.6rem; }
+  .tag {
+    font-size:.82rem; padding:.2rem .6rem; border-radius:999px;
+    border:1px solid var(--line-strong); background:var(--paper); color:var(--ink-soft);
+  }
+  .tag.on { background:var(--done-fill); border-color:var(--done); color:var(--done); font-weight:600; }
+  .tag.off { background:transparent; border-style:dashed; color:var(--muted); }
+
+  /* ── law cards ── */
+  .laws { display:grid; gap:.75rem; margin-top:1.25rem; counter-reset:law; }
+  .law {
+    border:1px solid var(--line); border-left:3px solid var(--gacp); border-radius:0 12px 12px 0;
+    padding:.9rem 1.1rem; background:var(--card); box-shadow:var(--shadow);
+  }
+  .law .h { font-family:'IBM Plex Sans Thai',sans-serif; font-weight:600; font-size:1rem; color:var(--ink); }
+  .law p { margin:.35rem 0 0; font-size:.93rem; }
+  .law .src { font-size:.8rem; color:var(--muted); margin-top:.4rem; font-style:italic; }
+
+  /* ── table ── */
+  .scroll { overflow-x:auto; margin-top:1rem; border:1px solid var(--line); border-radius:12px; background:var(--card); }
+  table { border-collapse:collapse; width:100%; min-width:36rem; font-size:.92rem; }
+  th, td { text-align:left; padding:.7rem .9rem; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-family:'IBM Plex Sans Thai',sans-serif; font-weight:600; font-size:.85rem; color:var(--muted); background:var(--stop-fill); }
+  tbody tr:last-child td { border-bottom:none; }
+  td.pick { background:var(--done-fill); }
+  .yes { color:var(--done); font-weight:600; }
+  .no  { color:var(--muted); }
+
+  /* ── recommendation ── */
+  .rec {
+    border:2px solid var(--gacp); border-radius:14px; padding:1.2rem 1.35rem;
+    background:var(--done-fill); margin-top:1.25rem;
+  }
+  .rec .lbl {
+    font-family:'IBM Plex Mono',monospace; font-size:.7rem; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--gacp); font-weight:500;
+  }
+  .rec h3 { margin:.3rem 0 .1rem; font-size:1.2rem; }
+  .rec p { color:var(--ink-soft); }
+
+  /* ── copy blocks ── */
+  .screens { display:grid; gap:.8rem; margin-top:1.1rem; }
+  @media (min-width:44rem) { .screens { grid-template-columns:1fr 1fr; } }
+  .scr { border:1px solid var(--line); border-radius:12px; overflow:hidden; background:var(--card); box-shadow:var(--shadow); }
+  .scr .bar { padding:.5rem .9rem; font-family:'IBM Plex Mono',monospace; font-size:.72rem; letter-spacing:.08em; text-transform:uppercase; border-bottom:1px solid var(--line); }
+  .scr.due  .bar { background:var(--due-fill);  color:var(--due); }
+  .scr.wait .bar { background:var(--wait-fill); color:var(--wait); }
+  .scr.done .bar { background:var(--done-fill); color:var(--done); }
+  .scr.fail .bar { background:var(--fail-fill); color:var(--fail); }
+  .scr .body { padding:.85rem .95rem; }
+  .scr .title { font-family:'IBM Plex Sans Thai',sans-serif; font-weight:600; font-size:1rem; }
+  .scr .msg { font-size:.9rem; color:var(--ink-soft); margin-top:.3rem; }
+  .btn {
+    display:inline-block; margin-top:.7rem; padding:.42rem .95rem; border-radius:8px;
+    font-family:'IBM Plex Sans Thai',sans-serif; font-weight:600; font-size:.88rem;
+  }
+  .btn.solid { background:var(--gacp); color:#fff; }
+  .btn.ghost { border:1px solid var(--line-strong); color:var(--ink-soft); }
+  .btn.dead  { background:var(--stop-fill); color:var(--muted); border:1px dashed var(--line-strong); }
+
+  ol.steps { padding-left:0; list-style:none; counter-reset:s; margin-top:1rem; }
+  ol.steps li { counter-increment:s; position:relative; padding-left:2.4rem; margin-bottom:1rem; }
+  ol.steps li::before {
+    content:counter(s); position:absolute; left:0; top:.1rem;
+    width:1.65rem; height:1.65rem; border-radius:50%; background:var(--gacp); color:#fff;
+    font-family:'IBM Plex Mono',monospace; font-size:.8rem; display:grid; place-items:center; font-weight:500;
+  }
+  ol.steps .h { font-family:'IBM Plex Sans Thai',sans-serif; font-weight:600; color:var(--ink); }
+  ol.steps p { margin:.2rem 0 0; font-size:.93rem; }
+
+  footer { margin-top:4rem; padding-top:1.5rem; border-top:1px solid var(--line); font-size:.86rem; color:var(--muted); }
+  footer a { color:var(--muted); }
+  footer ul { padding-left:1.1rem; margin:.5rem 0 0; }
+  footer li { margin:.2rem 0; }
+</style>
+
+<div class="wrap">
+
+  <p class="eyebrow">GACP · หน้าชำระเงิน · 10 กันยายน 2569</p>
+  <h1>มาตรฐานการชำระเงิน<br>และสิ่งที่ระบบเราขาดอยู่</h1>
+  <div class="rule"></div>
+  <p class="lede">
+    ระบบเรามองการจ่ายเงินเป็นสองสถานะ คือ <strong>ค้างจ่าย</strong> กับ <strong>จ่ายแล้ว</strong>
+    แต่ทุกระบบที่รับเงินจริงมองเป็นหกสถานะ · สถานะที่หายไปสถานะหนึ่ง คือคำตอบทั้งหมดของ
+    “ปุ่มขึ้นตลอด จ่ายซ้ำได้อีก”
+  </p>
+
+  <h2>เส้นทางมาตรฐาน หกสถานะ</h2>
+  <p class="sub">แถวนี้คือสิ่งที่ Stripe, ร้านค้าออนไลน์ และระบบ e-Service ทุกเจ้าใช้เหมือนกันหมด</p>
+
+  <div class="track">
+    <div class="st stop">
+      <div class="n">01</div>
+      <div class="t">ยังไม่ถึงคิว</div>
+      <div class="d">ตั้งยอดไว้แล้ว แต่ประตูยังไม่เปิด ไม่มีปุ่ม</div>
+    </div>
+    <div class="st due">
+      <div class="n">02</div>
+      <div class="t">รอชำระ</div>
+      <div class="d">จ่ายได้ตอนนี้ · มีปุ่มเดียว กดได้ครั้งเดียว</div>
+    </div>
+    <div class="st wait missing">
+      <div class="n">03</div>
+      <div class="t">กำลังตรวจสอบการชำระเงิน</div>
+      <div class="d">เงินถูกส่งแล้ว แต่ยังไม่ยืนยัน · <strong>ไม่มีปุ่มจ่าย</strong></div>
+      <span class="flag">ระบบเราไม่มีสถานะนี้</span>
+    </div>
+    <div class="st done">
+      <div class="n">04</div>
+      <div class="t">ชำระแล้ว</div>
+      <div class="d">ยืนยันจาก webhook เท่านั้น · ออกใบเสร็จ</div>
+    </div>
+    <div class="st fail">
+      <div class="n">05</div>
+      <div class="t">ชำระไม่สำเร็จ</div>
+      <div class="d">บอกสาเหตุ แล้วให้ลองใหม่ได้</div>
+    </div>
+    <div class="st stop missing">
+      <div class="n">06</div>
+      <div class="t">รายการหมดอายุ</div>
+      <div class="d">QR/ลิงก์เก่าใช้ไม่ได้แล้ว ต้องสร้างใหม่</div>
+      <span class="flag">ระบบเราไม่มีสถานะนี้</span>
+    </div>
+  </div>
+
+  <div class="cmp">
+    <div class="box bad">
+      <h3>ระบบเราตอนนี้</h3>
+      <div class="tags">
+        <span class="tag off">ยังไม่ถึงคิว</span>
+        <span class="tag on">รอชำระ</span>
+        <span class="tag off">— ไม่มี —</span>
+        <span class="tag on">จ่ายแล้ว</span>
+        <span class="tag off">— ไม่มี —</span>
+        <span class="tag off">— ไม่มี —</span>
+      </div>
+      <p>
+        เมื่อไม่มีสถานะ “กำลังตรวจสอบ” เงินที่จ่ายไปแล้วแต่ webhook ยังไม่ถึง
+        จะถูกนับเป็น <strong>ค้างจ่าย</strong> ⇒ ปุ่มขึ้นอีก ⇒ จ่ายซ้ำได้
+        และเมื่อไม่มี “หมดอายุ” รายการเก่าก็ยังจ่ายได้ตลอดกาล
+      </p>
+    </div>
+    <div class="box">
+      <h3>สิ่งที่ต้องเพิ่ม</h3>
+      <p>
+        ไม่ต้องรื้อทั้งระบบ · เพิ่ม <strong>สองสถานะ</strong> เข้าไปในตัวที่ตัดสินว่า
+        “ยังเป็นหนี้อยู่ไหม” แล้วให้หน้าจอกับปุ่มอ่านจากตัวเดียวกัน
+      </p>
+      <div class="tags">
+        <span class="tag on">+ กำลังตรวจสอบการชำระเงิน</span>
+        <span class="tag on">+ รายการหมดอายุ</span>
+      </div>
+      <p class="sub" style="margin-top:.7rem">
+        นี่คือกฎเดียวกับที่ป้าย “ถึงกำหนดชำระตอนนี้” ที่เพิ่งทำเสร็จใช้อยู่ — ต่อยอดจากของเดิมได้เลย
+      </p>
+    </div>
+  </div>
+
+  <h2>กฎสี่ข้อที่ทุกระบบใช้เหมือนกัน</h2>
+  <p class="sub">ข้อ 1 กับ 2 เป็นคำแนะนำที่ Stripe เขียนไว้ตรง ๆ ในเอกสารตัวเอง</p>
+
+  <div class="laws">
+    <div class="law">
+      <div class="h">1 · webhook เท่านั้นที่เขียนคำว่า “จ่ายแล้ว”</div>
+      <p>
+        หน้าเว็บที่เด้งกลับมาหลังจ่าย <strong>ไม่ใช่หลักฐานการจ่าย</strong> เพราะผู้ใช้อาจปิดเบราว์เซอร์
+        หรือเน็ตหลุดก่อนกลับมาถึง · ระบบเราทำข้อนี้ถูกอยู่แล้วฝั่งหลังบ้าน แต่หน้าจอไม่ได้สะท้อนช่องว่างนี้
+      </p>
+      <p class="src">“You can’t rely on triggering fulfilment only from your checkout landing page, because it’s not guaranteed customers visit that page.” — Stripe</p>
+    </div>
+    <div class="law">
+      <div class="h">2 · ตัวรับเงินต้องทนถูกเรียกซ้ำ</div>
+      <p>
+        webhook ถูกส่งซ้ำได้ และถูกส่งพร้อมกันสองครั้งได้ · ตัวจัดการต้องให้ผลเหมือนเดิมทุกครั้ง
+        <strong>และต้องแยกให้ออกว่า “ส่งซ้ำ” ต่างจาก “เงินก้อนที่สอง”</strong> — จุดนี้คือบั๊ก C3 ที่เจอ
+      </p>
+      <p class="src">“Perform fulfilment only once per payment … your function might be called multiple times, possibly concurrently.” — Stripe</p>
+    </div>
+    <div class="law">
+      <div class="h">3 · หนึ่งงวด เปิดรายการจ่ายได้ทีละหนึ่ง</div>
+      <p>
+        ตราบใดที่ยังมีรายการเปิดค้างอยู่ ปุ่มต้องไม่ให้สร้างใบใหม่ · ต้องพากลับไปที่ใบเดิม
+        หรือบอกว่ากำลังตรวจสอบอยู่ · ปัจจุบันเรากดสร้างใหม่ได้ไม่จำกัด
+      </p>
+    </div>
+    <div class="law">
+      <div class="h">4 · ทุกรายการต้องมีวันหมดอายุ</div>
+      <p>
+        QR ที่ค้างข้ามวันคือ QR ที่ยังเรียกเก็บเงินได้ · ถ้าไม่มีวันหมดอายุ ใบเก่ากับใบใหม่
+        จะเรียกเก็บได้พร้อมกัน — คือบั๊ก C4 · Stripe Checkout บังคับข้อนี้ให้เอง (ค่าเริ่มต้น 24 ชม. สูงสุด 24 ชม.)
+      </p>
+    </div>
+  </div>
+
+  <h2>ทางเลือกการต่อ Stripe</h2>
+  <p>
+    ตอนนี้หลังบ้านเราสร้าง <code>PaymentIntent</code> เองแบบดิบ ๆ แล้วส่ง <code>clientSecret</code> มาให้หน้าเว็บ —
+    ซึ่งหน้าเว็บไม่มีใครใช้ต่อเลย · Stripe เองแนะนำให้เลิกใช้วิธีนี้:
+    <em>“Stripe recommends using the Checkout Sessions API … Don’t use the Payment Intent API unless the user explicitly asks, because it requires significantly more code.”</em>
+  </p>
+
+  <div class="scroll">
+    <table>
+      <thead>
+        <tr>
+          <th>หัวข้อ</th>
+          <th>Checkout แบบ Stripe โฮสต์ (redirect)</th>
+          <th>ฝัง Payment Element ในหน้าเรา</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>งานที่ต้องเขียน</td>
+          <td class="pick"><span class="yes">น้อยที่สุด</span> — สร้าง session แล้ว redirect</td>
+          <td>ต้องทำฟอร์ม สถานะ error การ retry เอง</td>
+        </tr>
+        <tr>
+          <td>PromptPay QR</td>
+          <td class="pick"><span class="yes">ได้เลย</span> Stripe วาด QR ให้</td>
+          <td>ได้ แต่ต้องจัดการจอ QR + การรอเอง</td>
+        </tr>
+        <tr>
+          <td>วันหมดอายุรายการ</td>
+          <td class="pick"><span class="yes">มีให้ในตัว</span> <code>expires_at</code></td>
+          <td>ต้องเขียนเองทั้งหมด</td>
+        </tr>
+        <tr>
+          <td>ภาษาไทย / มือถือ</td>
+          <td class="pick"><span class="yes">Stripe จัดให้</span></td>
+          <td>เราดูแลเอง</td>
+        </tr>
+        <tr>
+          <td>ขอบเขต PCI</td>
+          <td class="pick"><span class="yes">ต่ำสุด</span> ข้อมูลบัตรไม่แตะเครื่องเรา</td>
+          <td>ต่ำ แต่ฟอร์มอยู่บนโดเมนเรา</td>
+        </tr>
+        <tr>
+          <td>ผู้ใช้ออกจากโดเมนเรา</td>
+          <td><span class="no">ใช่ — ไป checkout.stripe.com</span></td>
+          <td class="pick"><span class="yes">ไม่ออก</span></td>
+        </tr>
+        <tr>
+          <td>คุมหน้าตาให้เข้ากับ CI</td>
+          <td><span class="no">ปรับได้จำกัด (โลโก้ สี)</span></td>
+          <td class="pick"><span class="yes">เต็มที่</span></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="rec">
+    <div class="lbl">ข้อเสนอ</div>
+    <h3>เริ่มด้วยแบบ Stripe โฮสต์ก่อน แล้วค่อยย้ายมาฝังทีหลัง</h3>
+    <p>
+      เหตุผล: เกษตรกรส่วนใหญ่จ่ายด้วย <strong>PromptPay บนมือถือ</strong> ซึ่งเป็นวิธีที่คนไทย
+      คุ้นเคยที่สุดอยู่แล้ว และ Stripe วาดจอ QR + จัดการการรอให้ครบ · เราได้วันหมดอายุมาฟรี
+      ซึ่งปิดบั๊กจ่ายซ้ำไปหนึ่งข้อทันที · ที่สำคัญคือ <strong>ย้ายทีหลังได้โดยไม่ต้องรื้อหลังบ้าน</strong>
+      เพราะเป็น API ตัวเดียวกัน เปลี่ยนแค่ <code>ui_mode</code>
+    </p>
+    <p style="margin-bottom:0">
+      ข้อแลก: ผู้ใช้จะเห็นว่าออกจากเว็บเราไปหน้า Stripe · แก้ด้วยการบอกล่วงหน้าบนปุ่ม
+      และใส่โลโก้กรมฯ ในหน้า Stripe ได้
+    </p>
+  </div>
+
+  <h2>คนอื่นทำกันแบบไหน</h2>
+
+  <h3>Anthropic (เจ้าของ Claude)</h3>
+  <p>
+    ใช้ Stripe เหมือนกัน และเลือกแบบ <strong>ฝัง Stripe Elements ในหน้าตัวเอง</strong>
+    (Optimized Checkout Suite) เพื่อรองรับบัตร, Apple Pay, Cash App Pay และวิธีจ่ายท้องถิ่น ·
+    ใบเสร็จส่งเข้าอีเมลอัตโนมัติ และมีหน้า Settings › Billing ให้เปลี่ยนวิธีจ่ายได้เอง
+  </p>
+  <p class="sub">
+    หมายเหตุ: เขาเลือกแบบฝังเพราะเป็นสินค้า subscription ระดับโลกที่แบรนด์สำคัญมาก
+    และมีทีมดูแลเต็มเวลา — บริบทต่างจากเรา จึงไม่ใช่แบบที่ควรลอกตรง ๆ ในรอบแรก
+  </p>
+
+  <h3>คนไทยคุ้นกับอะไร</h3>
+  <p>
+    PromptPay เปิดใช้ตั้งแต่ปี 2560 และปี 2567 มีผู้ใช้ระบบชำระเงินดิจิทัลในไทยราว 33.6 ล้านคน ·
+    ท่าที่คนไทยคุ้นที่สุดคือ <strong>เห็นยอด → กดจ่าย → สแกน QR ด้วยแอปธนาคาร → กลับมาเห็นว่าสำเร็จ</strong>
+    การให้กรอกเลขบัญชีเองหรือให้อัปโหลดสลิปถือเป็นท่าเก่าที่ระบบสมัยใหม่เลิกใช้แล้ว
+    (และเราเองก็ยกเลิกสลิปไปแล้ว)
+  </p>
+
+  <h2>หน้าจอที่ผู้ใช้ควรเห็น</h2>
+  <p class="sub">ข้อความไทยที่เสนอ ต่อหนึ่งสถานะ — จุดสำคัญคือทุกจอบอก “ต้องทำอะไรต่อ” ไม่ใช่บอกแค่สถานะ</p>
+
+  <div class="screens">
+    <div class="scr due">
+      <div class="bar">รอชำระ</div>
+      <div class="body">
+        <div class="title">งวดที่ 1 · ค่าธรรมเนียมเอกสาร</div>
+        <div class="msg">฿17,655 · ถึงกำหนดชำระตอนนี้<br>คำขอจะเดินต่อเมื่อระบบได้รับเงินแล้ว</div>
+        <span class="btn solid">ชำระเงิน</span>
+      </div>
+    </div>
+
+    <div class="scr wait">
+      <div class="bar">กำลังตรวจสอบ</div>
+      <div class="body">
+        <div class="title">ได้รับคำสั่งชำระเงินแล้ว</div>
+        <div class="msg">
+          ระบบกำลังรอธนาคารยืนยัน ปกติไม่เกิน 5 นาที<br>
+          <strong>ไม่ต้องจ่ายซ้ำ</strong> · ถ้าเกิน 30 นาทีแล้วยังไม่เปลี่ยน ติดต่อเจ้าหน้าที่พร้อมเลขที่รายการ
+        </div>
+        <span class="btn dead">ชำระเงิน (ปิดไว้ระหว่างตรวจสอบ)</span>
+      </div>
+    </div>
+
+    <div class="scr done">
+      <div class="bar">ชำระแล้ว</div>
+      <div class="body">
+        <div class="title">งวดที่ 1 ชำระครบแล้ว</div>
+        <div class="msg">รับเงินเมื่อ 10 ก.ย. 2569 14:32 · ใบเสร็จเลขที่ RCP-2569-0041</div>
+        <span class="btn ghost">ดาวน์โหลดใบเสร็จ</span>
+      </div>
+    </div>
+
+    <div class="scr fail">
+      <div class="bar">ไม่สำเร็จ</div>
+      <div class="body">
+        <div class="title">การชำระเงินไม่สำเร็จ</div>
+        <div class="msg">ธนาคารปฏิเสธรายการนี้ ยังไม่มีการตัดเงินจากบัญชีของท่าน<br>ลองใหม่ได้ทันที หรือเปลี่ยนวิธีชำระเงิน</div>
+        <span class="btn solid">ลองชำระอีกครั้ง</span>
+      </div>
+    </div>
+  </div>
+
+  <h2>ลำดับงานที่เสนอ</h2>
+
+  <ol class="steps">
+    <li>
+      <div class="h">เอาปุ่มที่จ่ายไม่ได้ออกก่อน หรืออย่างน้อยอย่าให้มันสร้างหนี้</div>
+      <p>
+        วันนี้กดปุ่มแล้วระบบออกใบแจ้งหนี้ทันที ทั้งที่จ่ายต่อไม่ได้เลย — หนี้ใบนั้นเองคือสิ่งที่ทำให้ปุ่มขึ้นซ้ำ ·
+        ทำได้เร็วที่สุดและหยุดอาการที่คุณเจอได้ทันที
+      </p>
+    </li>
+    <li>
+      <div class="h">ต่อ Stripe Checkout ให้จ่ายจบได้จริง</div>
+      <p>
+        หลังบ้านเปลี่ยนจากสร้าง PaymentIntent ดิบ เป็นสร้าง Checkout Session (ใส่ line item
+        ค่าธรรมเนียมรัฐ + ค่าแพลตฟอร์ม + VAT ได้ตรง ๆ) แล้ว redirect · ตั้ง <code>expires_at</code> ทุกใบ
+      </p>
+    </li>
+    <li>
+      <div class="h">เพิ่มสถานะ “กำลังตรวจสอบ” และ “หมดอายุ”</div>
+      <p>
+        ต่อยอดจากกฎที่เพิ่งทำเสร็จ (<code>phase-due-state.ts</code>) · ป้ายกับปุ่มอ่านจากตัวเดียวกันอยู่แล้ว
+        จึงขัดกันไม่ได้
+      </p>
+    </li>
+    <li>
+      <div class="h">ปิดสองบั๊กเงินที่ค้างอยู่</div>
+      <p>
+        เทียบ <code>paymentIntent.id</code> ก่อนตอบว่า “ส่งซ้ำ” (C3) และส่ง <code>assertTransition: true</code>
+        กันคำขอที่ปิดไปแล้วฟื้นกลับมา (C7) · เป็น diff เล็กทั้งคู่ ผมเขียนให้ได้ทันทีที่สั่ง
+      </p>
+    </li>
+    <li>
+      <div class="h">แยกกลุ่มตามคำขอ ไม่ใช่ตามงวดอย่างเดียว</div>
+      <p>
+        ผู้ยื่นที่มีหลายคำขอตอนนี้เห็นบิลกองรวมกัน และปุ่มอาจพาไปจ่ายผิดคำขอ (C5) ·
+        ต้องพิมพ์เลขที่คำขอจริงบนการ์ด ไม่ใช่ UUID
+      </p>
+    </li>
+  </ol>
+
+  <footer>
+    <p><strong>แหล่งอ้างอิง</strong> — ดึงเมื่อ 10 กันยายน 2569</p>
+    <ul>
+      <li><a href="https://docs.stripe.com/checkout/fulfillment">Stripe — Fulfil orders</a> (webhook เป็นสิ่งบังคับ · ตัวรับต้องทนถูกเรียกซ้ำ)</li>
+      <li><a href="https://docs.stripe.com/payments/paymentintents/lifecycle">Stripe — PaymentIntent lifecycle</a> (สถานะ <code>processing</code>)</li>
+      <li><a href="https://docs.stripe.com/payments/payment-intents/verifying-status">Stripe — Payment status updates</a> (ห้ามยืนยันการจ่ายจากฝั่ง client)</li>
+      <li><a href="https://docs.stripe.com/payments/promptpay/accept-a-payment">Stripe — Accept a PromptPay payment</a></li>
+      <li><a href="https://docs.stripe.com/payments/checkout/managing-limited-inventory">Stripe — Expiring Checkout Sessions</a> (ค่าเริ่มต้น 24 ชม.)</li>
+      <li><a href="https://stripe.com/customers/anthropic">Stripe — How Anthropic built a scalable revenue model</a></li>
+      <li><a href="https://en.wikipedia.org/wiki/PromptPay">PromptPay</a> · <a href="https://stripe.com/resources/more/e-payment-system-in-thailand">Thailand’s e-payment system</a></li>
+    </ul>
+    <p style="margin-top:1rem">
+      รายละเอียดบั๊ก C3–C7 พร้อมเลขบรรทัด อยู่ที่ <code>reports/payment-ux-2026-09-10/FINDINGS.md</code>
+    </p>
+  </footer>
+
+</div>

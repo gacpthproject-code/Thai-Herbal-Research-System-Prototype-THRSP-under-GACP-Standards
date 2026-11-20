@@ -1,0 +1,32 @@
+F-N1: who reads verification.verifiedBy, and which sibling fields could say the department verifies today.
+git grep over the whole tree at a690fa8d7 (the round-4 base).
+
+Readers of the removed field
+  producer   apps/backend/services/trace-service/resolve-generic.js:193, the only public body that set it
+             (generic door, planting-cycle branch, every 200 answer)
+  web        apps/web-app/src/app/trace/[qr-code]/trace-page-types.ts:127, a type only; removed with the field.
+             The page reads data.verification?.valid and nothing else of that block (client-view.tsx:120).
+  mobile     apps/mobile-app: no reader
+  tests      no test or snapshot asserted it
+  docs       docs/api/openapi.json and docs/: no description of it
+  Other verifiedBy hits in the tree are database columns of other models (farm, site analysis, GPS
+  verification log, batch lab results, onsite evidence) and shared/staff-actor-keys.js; none of them
+  reaches a public trace body.
+
+Sibling fields checked for the same class (a public body saying or implying the department verifies or
+certifies today, operator order 56(0))
+  resolve-generic.js        planting-cycle, batch and lot bodies: certificate.standard is the row's
+                            standardName ('GACP Thailand' at issuance, certificate-service.js:651) or 'GACP';
+                            verification carries valid/signatureValid/sealed/applicable/reason/certified/
+                            scannedAt only; no department word after the fix
+  common.js                 SAFETY_DISCLAIMER, FDA_REFERRAL (the FDA, 1556), TRACE_NOT_FOUND_MESSAGE, the 410
+                            minimal body and buildIntegrityPayload messages: no department
+  resolve-plot-cycle.js     plot-cycle, dormant-plot and revoked-sign bodies: certificate state is
+                            status + isValid only; no department
+  trace-batch-lot-routes.js lot and batch door bodies; issuingAuthority is the order-56(0) sentence from
+                            services/certificate/public-facts.js
+  lab-evidence-service.js   verificationStatus is FARMER_UPLOADED unless a row says otherwise; no server
+                            path writes OFFICER_VERIFIED, and neither value names the department
+  lot-recall-service.js     the recall message names the seller and the farm only
+  public-farm.js, public-plant.js: farm and plant projections, no department
+Runtime check: the seven-door test in public-verify-scope-real-postgres.test.js (red-green.txt).

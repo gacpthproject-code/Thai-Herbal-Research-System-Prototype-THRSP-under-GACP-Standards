@@ -1,0 +1,101 @@
+# RED round 5 — production code at 07f1617f, three cases from the round-4 review's non-blocking notes
+  console.error
+    [AuthService] Failed to decode JWT
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at decodeJwtToken (src/lib/services/auth-service-jwt.ts:16:17)
+      at getJwtExpiry (src/lib/services/auth-service-jwt.ts:22:21)
+      at getMsUntilJwtExpiry (src/lib/services/auth-service-jwt.ts:34:20)
+      at AuthServiceClass.getTimeUntilExpiry (src/lib/services/auth-service.ts:289:35)
+      at AuthServiceClass.scheduleTokenRefresh (src/lib/services/auth-service.ts:547:38)
+      at AuthServiceClass.saveSession (src/lib/services/auth-service.ts:343:14)
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:187:9)
+
+FAIL src/lib/api/__tests__/sign-out-leaves-once.test.ts
+  marker บน https
+    ✓ ตั้งเป็น __Host-signed_out_reason ไม่ใช่ชื่อธรรมดา (9 ms)
+    ✓ หน้าล็อกอินรับเฉพาะชื่อ __Host- และลบทิ้งหลังอ่าน (2 ms)
+    ✓ ชื่อธรรมดาที่ใครตั้งไว้ ไม่ทำให้หน้าล็อกอินขึ้นข้อความว่าบัญชีถูกระงับ (1 ms)
+  พาออกครั้งเดียว
+    ✓ หลังเริ่มพาออกเพราะถูกระงับ 401 ที่ตามมาไม่พาไป ?expired=true (13 ms)
+    ✓ 401 ที่มาก่อน แล้วตามด้วย ACCOUNT_INACTIVE ระหว่างรอ — ปลายทางคือหน้าที่บอกเหตุผล ครั้งเดียว (8 ms)
+    ✓ 401 พร้อมกันหลายคำขอ ยิง clear-cookie ครั้งเดียวและนำทางครั้งเดียว (8 ms)
+  เหตุผลของ session ไม่อ่อนลง และหน้าต่างกันซ้ำไม่ค้าง (รีวิวรอบสามและสี่)
+    ✓ ผู้ใช้กดอยู่ต่อ (หน้าไม่ถูกปิด) — 401 ที่มาภายหลังพาออกได้อีกครั้ง (8 ms)
+    ✓ ล็อกอินใหม่ในหน้าเดิม — session ใหม่เริ่มสะอาด ไม่รับสถานะของ session ก่อน (38 ms)
+    ✓ ระหว่างที่กำลังออกอยู่ 401 ที่ตามมายังล้าง session ฝั่งเครื่อง แม้ไม่นำทางซ้ำ (7 ms)
+    ✓ กล่องถาม "ออกจากหน้านี้?" ค้างนานกว่าหน้าต่าง — 401 ที่ตามมาไม่พาไปหน้าหมดเวลา (7 ms)
+    ✓ อยู่ต่อหลังถูกพาออกเพราะบัญชีถูกระงับ — 401 ภายหลังพาไปหน้าที่บอกเหตุผลเดิม ไม่ใช่ "หมดเวลา" (7 ms)
+    ✓ หน้าหมดเวลากำลังนำทางอยู่ แล้ว ACCOUNT_INACTIVE มาถึง — เปลี่ยนปลายทางเป็นหน้าที่บอกเหตุผล พร้อม marker (7 ms)
+    ✓ เครือข่ายช้า หน้าต่างหมดก่อนหน้าเปลี่ยน — การนำทางซ้ำไปที่เดิมเท่านั้น ไม่อ่อนลงเป็น "หมดเวลา" (8 ms)
+    ✓ นาฬิกาเครื่องถูกตั้งย้อน — ไม่ทำให้หน้าต่างยืดออก (ใช้นาฬิกา monotonic) (7 ms)
+  ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่)
+    ✕ อีกคนล็อกอินจากแท็บอื่นหลังบัญชีเดิมถูกระงับ — session ของเขาหมดเวลาก็ไปหน้าหมดเวลา ไม่ใช่หน้า "ถูกระงับ" (11 ms)
+    ✕ หน้าล็อกอินที่เปิดโดยไม่มี reason ก็ลบ marker ทิ้ง — marker ใช้ได้ครั้งเดียวเสมอ (1 ms)
+    ✕ เครือข่ายช้ามาก + 401 ถี่ — การนำทางซ้ำเว้นห่างขึ้นทุกครั้ง หน้ามีโอกาสได้เปลี่ยนจริง (8 ms)
+
+  ● ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่) › อีกคนล็อกอินจากแท็บอื่นหลังบัญชีเดิมถูกระงับ — session ของเขาหมดเวลาก็ไปหน้าหมดเวลา ไม่ใช่หน้า "ถูกระงับ"
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "/auth/provider/login?expired=true"
+    Received: "/auth/provider/login?reason=account_inactive"
+
+      307 |         await settle();
+      308 |
+    > 309 |         expect(urls()[urls().length - 1]).toBe('/auth/provider/login?expired=true');
+          |                                           ^
+      310 |         expect(cookieNames()).not.toContain('__Host-signed_out_reason');
+      311 |     });
+      312 |
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:309:43)
+
+  ● ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่) › หน้าล็อกอินที่เปิดโดยไม่มี reason ก็ลบ marker ทิ้ง — marker ใช้ได้ครั้งเดียวเสมอ
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "__Host-signed_out_reason"
+    Received array:     ["__Host-signed_out_reason"]
+
+      315 |
+      316 |         expect(consumeAccountInactiveSignOut(params('expired=true'))).toBe(false);
+    > 317 |         expect(cookieNames()).not.toContain('__Host-signed_out_reason');
+          |                                   ^
+      318 |         expect(consumeAccountInactiveSignOut(params('reason=account_inactive'))).toBe(false);
+      319 |     });
+      320 |
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:317:35)
+
+  ● ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่) › เครือข่ายช้ามาก + 401 ถี่ — การนำทางซ้ำเว้นห่างขึ้นทุกครั้ง หน้ามีโอกาสได้เปลี่ยนจริง
+
+    expect(received).toBeLessThanOrEqual(expected)
+
+    Expected: <= 3
+    Received:    6
+
+      331 |
+      332 |         // ไม่เว้นห่าง: นำทางที่ 0, 12, 24, 36, 48, 60 วินาที (6 ครั้ง) — ทุกครั้งเริ่มโหลดหน้าใหม่ จึงไม่เคยถึง
+    > 333 |         expect(urls().length).toBeLessThanOrEqual(3);
+          |                               ^
+      334 |         expect(urls().every((url) => url === '/auth/provider/login?reason=account_inactive')).toBe(true);
+      335 |     });
+      336 | });
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:333:31)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 14 passed, 17 total
+Snapshots:   0 total
+Time:        1.052 s
+Ran all test suites matching src/lib/api/__tests__/sign-out-leaves-once.test.ts.
+EXIT=1

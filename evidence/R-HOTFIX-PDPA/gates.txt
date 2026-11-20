@@ -1,0 +1,60 @@
+===== R-HOTFIX-PDPA GATES — 2026-08-03 — branch fix/pdpa-retention-legal-hold =====
+(final state, after operator policy decision 2026-08-03: hold is permanent, not a deferral)
+
+----- GATE 1: npx jest (full, from apps/backend) -----
+baseline declared: 7122 passed / 1 failed
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 6 skipped, 529 passed, 530 of 536 total
+Tests:       1 failed, 66 skipped, 7137 passed, 7204 total
+Snapshots:   0 total
+Time:        271.02 s
+Ran all test suites.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+NOTE: 7137 passed = 7122 baseline + 15 new unit tests (7 job legal-hold + 8 guard).
+NOTE: the 1 failure is __tests__/unit/dataset-export-service.test.js:81 (Prisma.dmmf), pre-existing, outside this diff.
+NOTE: 3 of the 66 skipped are the new integration suite (no DATABASE_URL in this container).
+
+----- GATE 2: bash scripts/probes/ratchet.sh (repo root) -----
+baseline: hardcode=43 todo=59 env-direct=169 dup-source=4
+  dup [fee-table] 3 sources: /home/user/GACP-Certification-Application/apps/backend/modules/billing/internal/fee-service.js /home/user/GACP-Certification-Application/apps/backend/config/business-rules.js /home/user/GACP-Certification-Application/apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4 (/home/user/GACP-Certification-Application/evidence/ratchet-current.txt)
+
+----- GATE 3: npx eslint <changed files> (from apps/backend) -----
+eslint exit=0 (0 = clean, no findings printed above)
+
+----- GATE 4: node scripts/ci/check-thai-copy-style.js (repo root) -----
+[thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+
+----- GATE 5: npm run check:banned-terms (repo root) -----
+> node scripts/ci/check-banned-terms.js
+
+[banned-terms] Repository scan passed
+
+----- EXTRA: bash scripts/probes/no-secret.sh -----
+PASS: 0 grep hits (gitleaks not installed in this environment — grep only)
+
+----- EXTRA: bash scripts/probes/no-skip.sh -----
+/home/user/GACP-Certification-Application/apps/web-app/playwright/account-split-journey.spec.ts:138:        test.skip(
+/home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:58:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+/home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:77:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+/home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:100:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+/home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:141:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+/home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:90:        test.skip(!ApplicantToken, 'No Applicant token');
+/home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:117:            test.skip(true, `Farm API returned ${response.status()}`);
+/home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:123:        test.skip(!ApplicantToken || !farmId, 'Missing dependencies');
+/home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:162:            test.skip(true, `submit gated (${submitResponse.status()}) — draft incomplete by design; downstream payment/review stages skipped`);
+NOTE: FAILS only on pre-existing test.skip(...) in apps/web-app/e2e/*. No file from this diff appears.
+NOTE: the integration suite uses 'const d = HAS_DB ? describe : describe.skip' — a value reference,
+      not a '.skip(' call, which is the repo's existing pattern and is not matched by this probe.

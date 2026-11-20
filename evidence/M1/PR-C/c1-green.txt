@@ -1,0 +1,40 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.error
+    [submit-guard] denial audit write failed {
+      applicationId: 'a1',
+      code: 'ENTITY_PERMISSION_DENIED',
+      error: 'audit chain down'
+    }
+
+    [0m [90m 109 |[39m         [90m// auditLogger.log() already console-falls-back internally; this catch[39m
+     [90m 110 |[39m         [90m// only covers a failure of the call itself (e.g. the module missing).[39m
+    [31m[1m>[22m[39m[90m 111 |[39m         console[33m.[39merror([32m'[submit-guard] denial audit write failed'[39m[33m,[39m {
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 112 |[39m             applicationId[33m:[39m application[33m?[39m[33m.[39mid [33m||[39m [36mnull[39m[33m,[39m
+     [90m 113 |[39m             code[33m,[39m
+     [90m 114 |[39m             error[33m:[39m auditErr[33m?[39m[33m.[39mmessage[33m,[39m[0m
+
+      at error (services/application-submit-guard.js:111:17)
+      at assertSubmitAllowed (services/application-submit-guard.js:165:9)
+      at Object.<anonymous> (__tests__/unit/application-submit-guard.test.js:133:9)
+
+PASS __tests__/unit/application-submit-guard.test.js
+  M1 assertSubmitAllowed
+    √ exports the SUBMIT_APPLICATION permission string it gates on (5 ms)
+    √ 400 VALIDATION_ERROR when application has no entityId (4 ms)
+    √ 403 ENTITY_PERMISSION_DENIED + audit FAILURE when neither ACTIVE member nor grant-holder (2 ms)
+    √ passes when the engine allows (role default / GRANT row — REVOKE-wins lives in the engine) (2 ms)
+    √ keys off the APPLICATION row entityId — an x-active-entity header for another entity changes nothing (2 ms)
+    √ fails CLOSED when the engine throws something that is not the canonical denial (2 ms)
+    √ a missing userId is a denial, not a pass (2 ms)
+    √ the audit write is best-effort — a failing auditLogger never converts a 403 into a 500 (20 ms)
+    √ carries the denial through as an http-shaped error (statusCode/httpStatus) for sendServiceError (1 ms)
+    √ the FAILURE row is insertable when the caller passes no auditContext (no null NOT-NULL column) (3 ms)
+    √ the FAILURE row is insertable for an actor-less attempt (actorId still a string) (2 ms)
+    √ works without an auditContext at all (guard must not depend on the caller remembering it) (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       12 passed, 12 total
+Snapshots:   0 total
+Time:        2.004 s
+Ran all test suites matching /__tests__\\unit\\application-submit-guard.test.js/i.

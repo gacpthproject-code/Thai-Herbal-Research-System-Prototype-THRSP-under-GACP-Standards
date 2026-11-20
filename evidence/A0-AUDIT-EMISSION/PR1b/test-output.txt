@@ -1,0 +1,77 @@
+# PR-A0-1b — full backend suite, diff vs clean-tree baseline (same sandbox, same node_modules)
+# command (both runs, from apps/backend):
+#   node node_modules/jest/bin/jest.js --config jest.config.cjs --forceExit
+#
+# NOTE on environment (Law 3.8 — reported as-is): this worktree had NO node_modules.
+# node_modules/ and apps/backend/node_modules are SYMLINKS to the sibling worktree
+# .claude/worktrees/agent-af83f1241f0725d4b (identical package.json + apps/backend/package.json,
+# verified by `diff` before linking). `@prisma/client` is NOT generated there
+# (`Cannot find module '.prisma/client/default'`), which is the known sandbox trap
+# (.claude/skills/gacp-debug/SKILL.md:21) — every @prisma/client-loading suite fails to LOAD
+# here, in the baseline exactly as in the diff run.
+
+== WITH DIFF (evidence/A0-AUDIT-EMISSION/PR1b/full-suite-raw.txt) ==
+Test Suites: 14 failed, 3 skipped, 538 passed, 552 of 555 total
+Tests:       35 failed, 58 skipped, 7260 passed, 7353 total
+
+== CLEAN TREE BASELINE (evidence/A0-AUDIT-EMISSION/PR1b/baseline-clean-tree-raw.txt) ==
+# produced by: git stash push -- <3 modified files> + moving the new test file aside
+Test Suites: 14 failed, 3 skipped, 537 passed, 551 of 554 total
+Tests:       35 failed, 58 skipped, 7247 passed, 7340 total
+
+== DELTA ==
+failed suites   14 → 14   (SAME LIST, byte-identical — see below)
+failed tests    35 → 35   (0 regressions from this diff)
+passed suites  537 → 538  (+1 = the new file __tests__/unit/application-status-writer-audit-tx-semantics.test.js)
+passed tests  7247 → 7260 (+13 = 12 new in the new file + 1 new in application-status-writer-audit-default.test.js)
+
+== FAILING SUITES — IDENTICAL IN BOTH RUNS ==
+FAIL __tests__/integration/cert-issuance-atomicity-be-t1.test.js
+FAIL __tests__/integration/correction-append-only-be.test.js
+FAIL __tests__/integration/correction-deadline-expired-be.test.js
+FAIL __tests__/integration/identity-links.test.js
+FAIL __tests__/integration/optimistic-lock-wf-f7.test.js
+FAIL __tests__/integration/payment-closure-be.test.js
+FAIL __tests__/integration/pdpa-retention-legal-hold.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+FAIL __tests__/integration/tenant-isolation-cross-org-be.test.js
+FAIL __tests__/unit/dataset-export-service.test.js
+FAIL __tests__/unit/i18n-reachability-gate.test.js
+FAIL __tests__/unit/provider-legacy-alias-flag.test.js
+FAIL __tests__/unit/thai-copy-style-gate.test.js
+FAIL __tests__/unit/trace-plant-cert-revocation.test.js
+
+# On the 12-vs-14 count: PR-A0-1's commit message recorded a 12-suite Prisma-client
+# baseline measured in ITS environment. Measured here, in THIS sandbox, the clean-tree
+# baseline is 14 suites / 35 tests — so the comparison used above is the clean-tree run
+# from this same sandbox, not the number carried over from the other worktree.
+# status-writer-audit-default-invariant.test.js is in BOTH lists for the same reason it
+# was in PR-A0-1's: it requires @prisma/client at load time. Its RED/GREEN counts only
+# on a runner with a generated client + DATABASE_URL (design-decision.md §4, R-R2-1).
+
+################################################################################
+# CYCLE 2 (F-A / F-B / CERT_AUTO_GEN_ROLLBACK marker) — same commands, same env
+################################################################################
+
+== WITH CYCLE-2 DIFF (full-suite-raw-cycle2.txt) ==
+Test Suites: 14 failed, 3 skipped, 538 passed, 552 of 555 total
+Tests:       35 failed, 58 skipped, 7262 passed, 7355 total
+
+== SAME CLEAN-TREE BASELINE AS CYCLE 1 (baseline-clean-tree-raw.txt, HEAD 2074444e) ==
+Test Suites: 14 failed, 3 skipped, 537 passed, 551 of 554 total
+Tests:       35 failed, 58 skipped, 7247 passed, 7340 total
+
+== DELTA ==
+failed suites  14 → 14  (same list, byte-identical to the cycle-1 comparison above)
+failed tests   35 → 35  (0 regressions)
+passed tests 7247 → 7262 (+15 = 13 from cycle 1 + 2 new cycle-2 cases)
+
+== CYCLE-2 RED (red-raw-jest-cycle2.txt, run on commit 5e45df43 before the fix) ==
+✕ [F-B] bare client: the cert revert and its compensating row commit in ONE internal tx
+    - "BEGIN", "tx:UPDATE application", "tx:SELECT pg_advisory_xact_lock(1, 2)", "tx:INSERT auditLog", "COMMIT"
+    + "autocommit:UPDATE application", "autocommit:SELECT pg_advisory_xact_lock(1, 2)", "autocommit:INSERT auditLog"
+✕ [cycle2-3] the CERT_AUTO_GEN_ROLLBACK marker must not poison the caller tx either
+Tests:       2 failed, 12 passed, 14 total
+
+== CYCLE-2 GREEN (green-raw-jest-cycle2.txt) ==
+Tests:       25 passed, 25 total   (integration suite still fails to LOAD — no generated @prisma/client)

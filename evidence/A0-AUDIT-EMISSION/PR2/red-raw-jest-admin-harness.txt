@@ -1,0 +1,82 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/integration/admin-applications.test.js
+  Admin Application Override API
+    ✓ returns 403 for non-admin role (53 ms)
+    ✓ returns 400 when reason is too short (15 ms)
+    ✓ returns 404 when application does not exist (18 ms)
+    ✕ updates status and writes audit event for admin override (27 ms)
+    ✕ retries the whole transaction on P2002 audit-chain conflict and succeeds (16 ms)
+    ✕ returns 500 when transaction retries are exhausted (11 ms)
+
+  ● Admin Application Override API › updates status and writes audit event for admin override
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      142 |       });
+      143 |
+    > 144 |     expect(response.status).toBe(200);
+          |                             ^
+      145 |     expect(response.body.success).toBe(true);
+      146 |
+      147 |     // Everything must run INSIDE one $transaction with Serializable isolation.
+
+      at Object.toBe (__tests__/integration/admin-applications.test.js:144:29)
+
+  ● Admin Application Override API › retries the whole transaction on P2002 audit-chain conflict and succeeds
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+      209 |       });
+      210 |
+    > 211 |     expect(response.status).toBe(200);
+          |                             ^
+      212 |     // Two $transaction attempts: first rolls back on P2002, second commits.
+      213 |     // Each attempt opens its own tx — the rolled-back loser leaves no partial
+      214 |     // row behind (no duplicate audit rows).
+
+      at Object.toBe (__tests__/integration/admin-applications.test.js:211:29)
+
+  ● Admin Application Override API › returns 500 when transaction retries are exhausted
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 3
+    Received number of calls: 1
+
+      253 |
+      254 |     expect(response.status).toBe(500);
+    > 255 |     expect(prisma.$transaction).toHaveBeenCalledTimes(3);
+          |                                 ^
+      256 |   });
+      257 | });
+      258 |
+
+      at Object.toHaveBeenCalledTimes (__tests__/integration/admin-applications.test.js:255:33)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 passed, 6 total
+Snapshots:   0 total
+Time:        1.195 s
+Ran all test suites matching /__tests__\/integration\/admin-applications.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

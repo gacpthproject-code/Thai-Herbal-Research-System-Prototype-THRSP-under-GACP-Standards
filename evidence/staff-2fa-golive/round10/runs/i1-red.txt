@@ -1,0 +1,203 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+FAIL __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js
+  host table
+    ✓ names staging on this host locally and demo over ssh to 119.59.105.140, nothing else (4 ms)
+  every wrapper is bound to its host and logs every run
+    ✓ staff-mfa-roster.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (44 ms)
+    ✓ staff-first-signin-report.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (38 ms)
+    ✓ staff-2fa-emergency-reset.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (59 ms)
+    ✓ the roster on staging runs the file inside the image after the slot check, never copies from the checkout, and logs done (58 ms)
+    ✓ a container outside its slot, or an image without the script, is refused with the reason logged (54 ms)
+    ✓ the roster on demo goes over ssh to the fixed target with the fixed key and runs inside gacp-backend-demo (45 ms)
+    ✓ the emergency reset forwards its four references (Thai included) to the file in the image and logs the mfa-clear event; short usage is refused (91 ms)
+  mfa-flag-on-staging.sh
+    ✓ turns the flag on, revokes sessions with --event flag-on right after the flag reads on, writes the once-per-host marker, refuses a second apply, and rollback reopens it (126 ms)
+    ✓ when the revoke step refuses, the run exits 2, says the flag is on but sessions stand, writes no marker, and logs refused (57 ms)
+    ✓ refuses off this host before reading any file (19 ms)
+  mfa-flag-on-demo.sh
+    ✓ runs from this host over ssh to the fixed demo target, carries the revoke step with --event flag-on in the remote script, and keeps the once-per-host marker (135 ms)
+    ✓ a refused remote run leaves no marker and is logged as refused; a foreign host never reaches ssh (49 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (164 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (98 ms)
+    ✓ (c) on → rollback → on → on refuses the last (183 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (226 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (185 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (87 ms)
+    ✓ (c) on → rollback → on → on refuses the last (205 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (248 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-staging.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (108 ms)
+    ✓ a well-formed stamp restores that backup (106 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-demo.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (107 ms)
+    ✓ a well-formed stamp restores that backup (117 ms)
+  review L1: the caller cannot move the state or platform directory
+    ✓ the lib a production run sources names both directories as literals and reads no STAFF_2FA_ variable (1 ms)
+    ✓ STAFF_2FA_STATE_DIR and STAFF_2FA_PLATFORM_DIR from the caller move neither the marker, the log, nor the files edited (95 ms)
+  review L2: a slot the caller types reaches the log only after the host table names it
+    ✓ unknown slots, including one that would forge a log line or alias a real slot, are refused and logged as ? (105 ms)
+  review I1: every run logs its intent before it changes anything
+    ✕ each run writes a start line, then its outcome line, with the same script, slot and event (119 ms)
+    ✕ mfa-flag-on-staging.sh with a state directory it cannot write stops before docker, ssh or any file edit (93 ms)
+    ✕ mfa-flag-on-demo.sh with a state directory it cannot write stops before docker, ssh or any file edit (62 ms)
+
+  ● review I1: every run logs its intent before it changes anything › each run writes a start line, then its outcome line, with the same script, slot and event
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 21
+    + Received  +  0
+
+    @@ -1,40 +1,19 @@
+      Array [
+        Array [
+          "staff-mfa-roster.sh",
+          "staging",
+          "roster",
+    -     "start",
+    -     "-",
+    -   ],
+    -   Array [
+    -     "staff-mfa-roster.sh",
+    -     "staging",
+    -     "roster",
+          "done",
+          "exit=0",
+        ],
+        Array [
+          "staff-mfa-roster.sh",
+          "?",
+          "roster",
+    -     "start",
+    -     "-",
+    -   ],
+    -   Array [
+    -     "staff-mfa-roster.sh",
+    -     "?",
+    -     "roster",
+          "refused",
+          "exit=2 unknown slot",
+    -   ],
+    -   Array [
+    -     "mfa-flag-on-demo.sh",
+    -     "demo",
+    -     "flag-on",
+    -     "start",
+    -     "-",
+        ],
+        Array [
+          "mfa-flag-on-demo.sh",
+          "demo",
+          "flag-on",
+
+      442 |         run(env, 'staff-mfa-roster.sh', ['nowhere']);
+      443 |         run(env, 'mfa-flag-on-demo.sh', [], { FAKE_TAG: 'main-def' });
+    > 444 |         expect(logRows(env).map((row) => [row[1], row[3], row[4], row[5], row[6]])).toEqual([
+          |                                                                                     ^
+      445 |             ['staff-mfa-roster.sh', 'staging', 'roster', 'start', '-'],
+      446 |             ['staff-mfa-roster.sh', 'staging', 'roster', 'done', 'exit=0'],
+      447 |             ['staff-mfa-roster.sh', '?', 'roster', 'start', '-'],
+
+
+  ● review I1: every run logs its intent before it changes anything › mfa-flag-on-staging.sh with a state directory it cannot write stops before docker, ssh or any file edit
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  2
+    + Received  + 14
+
+      Object {
+    -   "calls": Array [],
+    -   "edited": false,
+    +   "calls": Array [
+    +     "ps --filter name=^gacp-backend-staging$ --filter status=running -q",
+    +     "exec gacp-backend-staging node -e process.exit(process.env.GACP_DEPLOY_SLOT==='staging'?0:1)",
+    +     "inspect -f {{.Config.Image}} gacp-backend-staging",
+    +     "compose --env-file .env.staging -f docker-compose.production.yml -f docker-compose.staging.yml config -q",
+    +     "compose --env-file .env.staging -f docker-compose.production.yml -f docker-compose.staging.yml up -d --no-deps backend-staging",
+    +     "inspect -f {{.State.Health.Status}} gacp-backend-staging",
+    +     "inspect -f {{.RestartCount}} gacp-backend-staging",
+    +     "exec gacp-backend-staging node -e process.exit(process.env.REQUIRE_MFA_FOR_PRIVILEGED===\"true\"?0:1)",
+    +     "exec gacp-backend-staging node -e process.exit(process.env.REQUIRE_MFA_FOR_PRIVILEGED===\"true\"?0:1)",
+    +     "exec gacp-backend-staging test -f /app/apps/backend/scripts/ops/staff-sessions-revoke-at-flag-on.js",
+    +     "exec -w /app/apps/backend gacp-backend-staging node scripts/ops/staff-sessions-revoke-at-flag-on.js --event flag-on --note flag-on staging tag main-abc 2026-10-21T09:17:25Z",
+    +   ],
+    +   "edited": true,
+        "status": 1,
+      }
+
+      460 |         const result = run(env, script, [], { FAKE_TAG: 'main-abc' });
+      461 |         expect({ status: result.status, calls: dockerCalls(env), edited: fs.readFileSync(envFile, 'utf8') !== before })
+    > 462 |             .toEqual({ status: 1, calls: [], edited: false });
+          |              ^
+      463 |         expect(result.stderr).toContain('/runs.log');
+      464 |     });
+      465 | });
+
+
+  ● review I1: every run logs its intent before it changes anything › mfa-flag-on-demo.sh with a state directory it cannot write stops before docker, ssh or any file edit
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  2
+    + Received  + 17
+
+      Object {
+    -   "calls": Array [],
+    -   "edited": false,
+    +   "calls": Array [
+    +     "ssh -i /home/ubuntu/.ssh/id_ed25519_newhost -o IdentitiesOnly=yes deploy@119.59.105.140 echo ZG9ja2VyIHBzIC0tZmlsdGVyIG5hbWU9XF5nYWNwLWJhY2tlbmQtZGVtb1wkIC0tZmlsdGVyIHN0YXR1cz1ydW5uaW5nIC1xIA== | base64 -d | bash",
+    +     "ssh-decoded docker ps --filter name=^gacp-backend-demo$ --filter status=running -q",
+    +     "ssh -i /home/ubuntu/.ssh/id_ed25519_newhost -o IdentitiesOnly=yes deploy@119.59.105.140 echo ZG9ja2VyIGluc3BlY3QgLWYgXHtcey5Db25maWcuSW1hZ2VcfVx9IGdhY3AtYmFja2VuZC1kZW1vIA== | base64 -d | bash",
+    +     "ssh-decoded docker inspect -f {{.Config.Image}} gacp-backend-demo",
+    +     "ssh -i /home/ubuntu/.ssh/id_ed25519_newhost -o IdentitiesOnly=yes deploy@119.59.105.140 MODE=apply STAMP='' NOTE='flag-on demo tag main-abc 2026-10-21T09:17:25Z' bash -s",
+    +     "inspect -f {{.Config.Image}} gacp-backend-demo",
+    +     "compose --env-file .env.demo -f docker-compose.production.yml -f docker-compose.demo.yml config -q",
+    +     "compose --env-file .env.demo -f docker-compose.production.yml -f docker-compose.demo.yml up -d --no-deps backend-demo",
+    +     "inspect -f {{.State.Health.Status}} gacp-backend-demo",
+    +     "inspect -f {{.RestartCount}} gacp-backend-demo",
+    +     "exec gacp-backend-demo node -e process.exit(process.env.REQUIRE_MFA_FOR_PRIVILEGED===\"true\"?0:1)",
+    +     "exec gacp-backend-demo node -e process.exit(process.env.REQUIRE_MFA_FOR_PRIVILEGED===\"true\"?0:1)",
+    +     "exec gacp-backend-demo test -f /app/apps/backend/scripts/ops/staff-sessions-revoke-at-flag-on.js",
+    +     "exec -w /app/apps/backend gacp-backend-demo node scripts/ops/staff-sessions-revoke-at-flag-on.js --event flag-on --note flag-on demo tag main-abc 2026-10-21T09:17:25Z",
+    +   ],
+    +   "edited": true,
+        "status": 1,
+      }
+
+      460 |         const result = run(env, script, [], { FAKE_TAG: 'main-abc' });
+      461 |         expect({ status: result.status, calls: dockerCalls(env), edited: fs.readFileSync(envFile, 'utf8') !== before })
+    > 462 |             .toEqual({ status: 1, calls: [], edited: false });
+          |              ^
+      463 |         expect(result.stderr).toContain('/runs.log');
+      464 |     });
+      465 | });
+
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 28 passed, 31 total
+Snapshots:   0 total
+Time:        3.947 s, estimated 4 s
+Ran all test suites matching __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js.

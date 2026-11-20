@@ -1,0 +1,106 @@
+/**
+ * MARKER-LIVE PRESS TEST (one-off, 2026-08-19) — proves migration
+ * 20260819000000_add_gps_verification_log END TO END on the running stack:
+ *
+ *   1. auditor opens the walk-1 specimen's inspection (audit bf24275a,
+ *      IN_PROGRESS — no AUDIT_INSPECTION_START marker yet) → field app opens
+ *      on the START screen (startedAt null — the honest pre-check-in state)
+ *   2. press เริ่มตรวจ → GPS check-in → gps_verification_logs row EXISTS with
+ *      coordinates + organizationId (the row the pilot-descope guard used to
+ *      swallow)
+ *   3. RELOAD → the field app must NOT bounce back to the check-in screen:
+ *      /context now reports the marker as startedAt → stage resumes at the
+ *      checklist, seeded with the 24 answers persisted by walk-1.
+ *
+ * VERIFICATION ONLY on the non-money rail: the press writes exactly what a
+ * real auditor's press writes (one GpsVerificationLog row); no decision is
+ * submitted, no status moves. psql() stays SELECT-only.
+ */
+import { test, expect, type Page } from '@playwright/test';
+import { join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { login, psql, EV } from './helpers';
+
+const OUT = join(EV, 'marker-live-2026-08-19');
+mkdirSync(OUT, { recursive: true });
+const shot = (p: Page, name: string) => p.screenshot({ path: join(OUT, name), fullPage: true });
+const rows = <T>(sql: string): T[] => JSON.parse(psql(sql)) as T[];
+const bkk = () => new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+
+const APP = 'f866374a-8f6b-4c7a-b850-bd09491db042';
+const AUDIT = 'bf24275a-6f9e-46a2-97a3-7b5637f6464d';
+const AUDITOR_LOGIN_ID = '2222222222222';
+
+test('start marker survives a reload — check-in is remembered, not re-demanded', async ({ browser }) => {
+  const OFFICER_PW = process.env.PHASE0_SEED_PW_OFFICER || '';
+  expect(OFFICER_PW, 'PHASE0_SEED_PW_OFFICER set in the run command (G-3)').toBeTruthy();
+
+  const markersBefore = rows<{ id: string }>(
+    `SELECT id FROM gps_verification_logs WHERE "entityType"='AUDIT_INSPECTION_START' AND "entityId"='${AUDIT}';`,
+  );
+  writeFileSync(join(OUT, '00-precondition.txt'),
+    `${bkk()}\naudit ${AUDIT} (app ${APP})\nAUDIT_INSPECTION_START markers before the press: ${markersBefore.length}\n`);
+
+  const ctx = await browser.newContext({
+    permissions: ['geolocation'],
+    geolocation: { latitude: 18.7883, longitude: 98.9853 },
+    recordVideo: { dir: join(OUT, 'video') },
+  });
+  const aud = await ctx.newPage();
+  await login(aud, { kind: 'provider', id: AUDITOR_LOGIN_ID, pw: OFFICER_PW });
+  await aud.waitForURL(/\/provider\/(dashboard|audits|scheduler|applications|work|coordinator)/, { timeout: 120_000 });
+  await aud.waitForLoadState('domcontentloaded');
+
+  await aud.goto(`/provider/audits/${APP}/inspect`, { timeout: 200_000 });
+  await aud.waitForLoadState('domcontentloaded');
+
+  const startBtn = aud.getByRole('button', { name: /^เริ่มตรวจ$|กำลังอ่านพิกัด/ });
+  const articles = aud.locator('article[data-checklist-id]');
+
+  // (1) fresh open, no marker yet → the start screen (honest pre-check-in state)
+  await expect(startBtn.or(articles.first()), 'field app opened').toBeVisible({ timeout: 120_000 });
+  const startShownFirst = await startBtn.isVisible().catch(() => false);
+  await shot(aud, '01-first-open.png');
+  expect(startShownFirst, 'no marker yet → the field app opens on the START screen').toBe(true);
+
+  // (2) press เริ่มตรวจ → GPS check-in → marker row persisted
+  const startResp = aud
+    .waitForResponse((r) => /\/audit\/onsite\/.+\/start$/.test(r.url()) && r.request().method() === 'POST', { timeout: 120_000 })
+    .catch(() => null);
+  await startBtn.click();
+  const sr = await startResp;
+  await expect(articles.first(), 'checklist appears after check-in').toBeVisible({ timeout: 120_000 });
+  await shot(aud, '02-after-checkin.png');
+  expect(Boolean(sr && sr.status() === 200), 'POST /start accepted').toBe(true);
+
+  const markers = rows<{ id: string; reportedLatitude: unknown; reportedLongitude: unknown; organizationId: string | null; verifiedAt: string }>(
+    `SELECT id, "reportedLatitude", "reportedLongitude", "organizationId", "verifiedAt"
+     FROM gps_verification_logs WHERE "entityType"='AUDIT_INSPECTION_START' AND "entityId"='${AUDIT}' ORDER BY "verifiedAt";`,
+  );
+  writeFileSync(join(OUT, '03-marker-rows.txt'), `${bkk()}\n${JSON.stringify(markers, null, 2)}\n`);
+  expect(markers.length, 'the check-in persisted a real AUDIT_INSPECTION_START row').toBeGreaterThan(markersBefore.length);
+  const m = markers[markers.length - 1]!;
+  expect(Number(m.reportedLatitude), 'the marker carries the device latitude').toBeCloseTo(18.7883, 3);
+  expect(Number(m.reportedLongitude), 'the marker carries the device longitude').toBeCloseTo(98.9853, 3);
+  expect(m.organizationId, 'the marker carries organizationId (tenant thread)').toBeTruthy();
+
+  // (3) RELOAD — must resume at the checklist, NOT bounce to check-in
+  await aud.reload({ timeout: 200_000 });
+  await aud.waitForLoadState('domcontentloaded');
+  await expect(startBtn.or(articles.first()), 'field app back after reload').toBeVisible({ timeout: 120_000 });
+  const startShownAfterReload = await startBtn.isVisible().catch(() => false);
+  await aud.waitForTimeout(2000);
+  const answered = await articles.evaluateAll((els) =>
+    els.filter((el) => el.querySelector('button[role="radio"][aria-checked="true"]')).length,
+  ).catch(() => -1);
+  await shot(aud, '04-after-reload.png');
+  writeFileSync(join(OUT, '05-verdict.txt'),
+    `${bkk()}\nstart screen on first open: ${startShownFirst}\n` +
+    `POST /start: ${sr ? sr.status() : 'none'}\nmarker rows: ${markersBefore.length} → ${markers.length}\n` +
+    `start screen after RELOAD: ${startShownAfterReload}  ← must be false\n` +
+    `checklist answers visible after reload (walk-1 persisted 24): ${answered}\n`);
+  expect(startShownAfterReload, 'RELOAD must NOT bounce back to the check-in screen — the marker is remembered').toBe(false);
+  await expect(articles.first(), 'checklist is the resumed stage').toBeVisible({ timeout: 30_000 });
+
+  await ctx.close();
+});

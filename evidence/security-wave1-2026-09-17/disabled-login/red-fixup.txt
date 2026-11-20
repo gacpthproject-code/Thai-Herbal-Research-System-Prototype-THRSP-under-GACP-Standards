@@ -1,0 +1,904 @@
+# SECU-03 review fix-up — RED
+# Branch wave1/disabled-login was fast-forwarded 0ca0eb52 -> df49fc82 (the follow-up the reviewer named as the
+# required fix: status read in every access-token guard + MFA verify rule applied in JS).
+# New tests were then added to __tests__/unit/disabled-account-cannot-hold-session.test.js before any production edit.
+#
+# RUN A: production code = df49fc82, new tests. Expected failures = the gaps this fix-up closes:
+#   - staff (provider role) tokens / MFA challenges / mint accepted while PENDING_VERIFICATION (staff login admits ACTIVE only)
+#   - an MFA challenge minted before a session-epoch stamp (password change) still completes
+#   The two login-vs-disable race tests PASS here, because df49fc82's guard status read already closes that bypass.
+#
+# RUN B: auth-middleware.js + identity-service.js restored to 0ca0eb52 (df49fc82's production change removed),
+#   same tests. Expected: the race tests FAIL too — proof that the reviewer's blocking bypass is real at 0ca0eb52
+#   and is what df49fc82 closes.
+
+## RUN A — production code at df49fc82 + new tests (2026-09-17T10:25:08+07:00)
+$ npx jest __tests__/unit/disabled-account-cannot-hold-session.test.js
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/disabled-account-cannot-hold-session.test.js
+  SECU-03 — password login refuses a disabled applicant
+    ✓ an applicant disabled by an admin cannot log back in with the correct password (32 ms)
+    ✓ status SUSPENDED is refused (5 ms)
+    ✓ status LOCKED is refused (5 ms)
+    ✓ status INACTIVE is refused (5 ms)
+    ✓ a soft-deleted account is refused even when its status still reads ACTIVE (5 ms)
+    ✓ a disabled account with 2FA enrolled is refused, not handed an MFA challenge (6 ms)
+    ✓ a wrong password on a disabled account still answers INVALID_CREDENTIALS (no status oracle) (5 ms)
+    ✓ a newly registered applicant (PENDING_VERIFICATION) still logs in (11 ms)
+    ✓ re-enabling the account lets the applicant log in again (8 ms)
+  SECU-03 — tokens issued before the account was disabled stop working
+    ✓ refresh token issued before disableUser is refused (session-epoch stamp) (10 ms)
+    ✓ refresh token is refused when the account was deactivated by a write that did not stamp the epoch (8 ms)
+    ✓ refresh token minted after the disable stamp is still refused while the account is disabled (3 ms)
+    ✓ refresh token of a PDPA-erased account (isDeleted, status untouched) is refused (6 ms)
+    ✓ an ACTIVE applicant can still refresh (8 ms)
+    ✓ access token issued before disableUser is refused by authenticateHealth (7 ms)
+  SECU-03 — every access-token guard reads the owner's status itself
+    ✓ authenticateHealth refuses a token once the owner is SUSPENDED without an epoch stamp (5 ms)
+    ✓ authenticateProvider refuses a token once the owner is SUSPENDED without an epoch stamp (6 ms)
+    ✓ authenticateAny (staff token) refuses a token once the owner is SUSPENDED without an epoch stamp (8 ms)
+    ✓ authenticateAny (applicant token) refuses a token once the owner is SUSPENDED without an epoch stamp (7 ms)
+    ✓ authenticateHealth refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateProvider refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateAny (staff token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateAny (applicant token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateHealth refuses a token whose owner row no longer exists (4 ms)
+    ✓ authenticateProvider refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateAny (staff token) refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateAny (applicant token) refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateHealth still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateProvider still admits a legacy lowercase "active" status (2 ms)
+    ✓ authenticateAny (staff token) still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateAny (applicant token) still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateHealth still admits a PENDING_VERIFICATION applicant (new registrations must log in) (2 ms)
+    ✓ authenticateAny (applicant token) still admits a PENDING_VERIFICATION applicant (new registrations must log in) (3 ms)
+    ✕ authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (11 ms)
+    ✕ authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (5 ms)
+    ✓ a database outage keeps the applicant keep-alive (status cannot be read, the token is not refused) (3 ms)
+  SECU-03 — MFA completion and the shared mint site refuse a disabled account
+    ✓ an MFA challenge issued before the disable cannot be completed into a session (4 ms)
+    ✓ an MFA challenge for an ACTIVE account still completes (3 ms)
+    ✓ a 2FA account whose legacy status reads lowercase "active" can complete MFA (6 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a disabled or deleted account (2 ms)
+    ✕ issueTokensForAuthenticatedUser will not mint for a staff account that is not ACTIVE (4 ms)
+  SECU-03 — staff complete MFA only while ACTIVE (the staff login rule)
+    ✕ a staff challenge cannot complete once the account is PENDING_VERIFICATION (2 ms)
+    ✓ an ACTIVE staff challenge still completes into a provider session (2 ms)
+  SECU-03 — an MFA challenge minted before a session revocation cannot complete
+    ✕ a challenge minted before the owner changed the password is refused, before any code is checked (381 ms)
+    ✓ a challenge minted after the password change still completes (350 ms)
+  SECU-03 — a login that races the disable button yields nothing usable
+    ✓ password login: the token minted while disableUser ran is refused by the guards and by /refresh (11 ms)
+    ✓ MFA completion: the token minted while disableUser ran is refused by authenticateHealth (7 ms)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-9",
+      }
+
+      571 |             mockUsers.get(row.id).status = 'PENDING_VERIFICATION'; // written straight, no epoch stamp
+      572 |
+    > 573 |             expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                      ^
+      574 |         },
+      575 |     );
+      576 |
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:573:54)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-10",
+      }
+
+      571 |             mockUsers.get(row.id).status = 'PENDING_VERIFICATION'; // written straight, no epoch stamp
+      572 |
+    > 573 |             expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                      ^
+      574 |         },
+      575 |     );
+      576 |
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:573:54)
+
+  ● SECU-03 — MFA completion and the shared mint site refuse a disabled account › issueTokensForAuthenticatedUser will not mint for a staff account that is not ACTIVE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ACCOUNT_INACTIVE"
+    Received: "minted"
+
+      651 |             .then(() => 'minted', (err) => err.code);
+      652 |
+    > 653 |         expect(outcome).toBe('ACCOUNT_INACTIVE');
+          |                         ^
+      654 |         expect(tokenRevocation.issueRefreshToken).not.toHaveBeenCalled();
+      655 |     });
+      656 | });
+
+      at Object.toBe (__tests__/unit/disabled-account-cannot-hold-session.test.js:653:25)
+
+  ● SECU-03 — staff complete MFA only while ACTIVE (the staff login rule) › a staff challenge cannot complete once the account is PENDING_VERIFICATION
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not 200
+
+      668 |         const res = await callRouter(mfaRouter, 'POST', '/verify', { body: { mfa_session: mfaSession, code: '123456' } });
+      669 |
+    > 670 |         expect(res.status).not.toBe(200);
+          |                                ^
+      671 |         expect(res.body.success).toBe(false);
+      672 |         noSessionIssued(res);
+      673 |     });
+
+      at Object.toBe (__tests__/unit/disabled-account-cannot-hold-session.test.js:670:32)
+
+  ● SECU-03 — an MFA challenge minted before a session revocation cannot complete › a challenge minted before the owner changed the password is refused, before any code is checked
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      704 |         const res = await verify(mfaSession);
+      705 |
+    > 706 |         expect(res.status).toBe(401);
+          |                            ^
+      707 |         expect(res.body.code).toBe('TOKEN_REVOKED');
+      708 |         noSessionIssued(res);
+      709 |         const { mfaService } = require('../../middleware/mfa-service');
+
+      at Object.toBe (__tests__/unit/disabled-account-cannot-hold-session.test.js:706:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 42 passed, 47 total
+Snapshots:   0 total
+Time:        1.925 s, estimated 4 s
+Ran all test suites matching /__tests__\/unit\/disabled-account-cannot-hold-session.test.js/i.
+exit=1
+
+## RUN B — auth-middleware.js + identity-service.js restored to 0ca0eb52, same tests (2026-09-17T10:25:22+07:00)
+$ npx jest __tests__/unit/disabled-account-cannot-hold-session.test.js
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/disabled-account-cannot-hold-session.test.js
+  SECU-03 — password login refuses a disabled applicant
+    ✓ an applicant disabled by an admin cannot log back in with the correct password (29 ms)
+    ✓ status SUSPENDED is refused (4 ms)
+    ✓ status LOCKED is refused (5 ms)
+    ✓ status INACTIVE is refused (5 ms)
+    ✓ a soft-deleted account is refused even when its status still reads ACTIVE (17 ms)
+    ✓ a disabled account with 2FA enrolled is refused, not handed an MFA challenge (6 ms)
+    ✓ a wrong password on a disabled account still answers INVALID_CREDENTIALS (no status oracle) (5 ms)
+    ✓ a newly registered applicant (PENDING_VERIFICATION) still logs in (6 ms)
+    ✓ re-enabling the account lets the applicant log in again (8 ms)
+  SECU-03 — tokens issued before the account was disabled stop working
+    ✓ refresh token issued before disableUser is refused (session-epoch stamp) (8 ms)
+    ✓ refresh token is refused when the account was deactivated by a write that did not stamp the epoch (7 ms)
+    ✓ refresh token minted after the disable stamp is still refused while the account is disabled (3 ms)
+    ✓ refresh token of a PDPA-erased account (isDeleted, status untouched) is refused (5 ms)
+    ✓ an ACTIVE applicant can still refresh (8 ms)
+    ✓ access token issued before disableUser is refused by authenticateHealth (7 ms)
+  SECU-03 — every access-token guard reads the owner's status itself
+    ✕ authenticateHealth refuses a token once the owner is SUSPENDED without an epoch stamp (8 ms)
+    ✕ authenticateProvider refuses a token once the owner is SUSPENDED without an epoch stamp (5 ms)
+    ✕ authenticateAny (staff token) refuses a token once the owner is SUSPENDED without an epoch stamp (6 ms)
+    ✕ authenticateAny (applicant token) refuses a token once the owner is SUSPENDED without an epoch stamp (6 ms)
+    ✕ authenticateHealth refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✕ authenticateProvider refuses the token of a soft-deleted owner whose status still reads ACTIVE (4 ms)
+    ✕ authenticateAny (staff token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✕ authenticateAny (applicant token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (4 ms)
+    ✕ authenticateHealth refuses a token whose owner row no longer exists (3 ms)
+    ✕ authenticateProvider refuses a token whose owner row no longer exists (3 ms)
+    ✕ authenticateAny (staff token) refuses a token whose owner row no longer exists (3 ms)
+    ✕ authenticateAny (applicant token) refuses a token whose owner row no longer exists (4 ms)
+    ✓ authenticateHealth still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateProvider still admits a legacy lowercase "active" status (5 ms)
+    ✓ authenticateAny (staff token) still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateAny (applicant token) still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateHealth still admits a PENDING_VERIFICATION applicant (new registrations must log in) (2 ms)
+    ✓ authenticateAny (applicant token) still admits a PENDING_VERIFICATION applicant (new registrations must log in) (3 ms)
+    ✕ authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (3 ms)
+    ✕ authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (3 ms)
+    ✓ a database outage keeps the applicant keep-alive (status cannot be read, the token is not refused) (2 ms)
+  SECU-03 — MFA completion and the shared mint site refuse a disabled account
+    ✓ an MFA challenge issued before the disable cannot be completed into a session (3 ms)
+    ✓ an MFA challenge for an ACTIVE account still completes (4 ms)
+    ✕ a 2FA account whose legacy status reads lowercase "active" can complete MFA (6 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a disabled or deleted account (1 ms)
+    ✕ issueTokensForAuthenticatedUser will not mint for a staff account that is not ACTIVE (4 ms)
+  SECU-03 — staff complete MFA only while ACTIVE (the staff login rule)
+    ✕ a staff challenge cannot complete once the account is PENDING_VERIFICATION (4 ms)
+    ✓ an ACTIVE staff challenge still completes into a provider session (4 ms)
+  SECU-03 — an MFA challenge minted before a session revocation cannot complete
+    ✕ a challenge minted before the owner changed the password is refused, before any code is checked (354 ms)
+    ✓ a challenge minted after the password change still completes (358 ms)
+  SECU-03 — a login that races the disable button yields nothing usable
+    ✕ password login: the token minted while disableUser ran is refused by the guards and by /refresh (6 ms)
+    ✕ MFA completion: the token minted while disableUser ran is refused by authenticateHealth (5 ms)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateHealth refuses a token once the owner is SUSPENDED without an epoch stamp
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-16",
+      }
+
+      529 |         expect(mockUsers.get(row.id).sessionsRevokedAt).toBeNull();
+      530 |
+    > 531 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      532 |     });
+      533 |
+      534 |     it.each(GUARDS)('%s refuses the token of a soft-deleted owner whose status still reads ACTIVE', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:531:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateProvider refuses a token once the owner is SUSPENDED without an epoch stamp
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-1",
+      }
+
+      529 |         expect(mockUsers.get(row.id).sessionsRevokedAt).toBeNull();
+      530 |
+    > 531 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      532 |     });
+      533 |
+      534 |     it.each(GUARDS)('%s refuses the token of a soft-deleted owner whose status still reads ACTIVE', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:531:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (staff token) refuses a token once the owner is SUSPENDED without an epoch stamp
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-2",
+      }
+
+      529 |         expect(mockUsers.get(row.id).sessionsRevokedAt).toBeNull();
+      530 |
+    > 531 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      532 |     });
+      533 |
+      534 |     it.each(GUARDS)('%s refuses the token of a soft-deleted owner whose status still reads ACTIVE', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:531:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (applicant token) refuses a token once the owner is SUSPENDED without an epoch stamp
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-19",
+      }
+
+      529 |         expect(mockUsers.get(row.id).sessionsRevokedAt).toBeNull();
+      530 |
+    > 531 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      532 |     });
+      533 |
+      534 |     it.each(GUARDS)('%s refuses the token of a soft-deleted owner whose status still reads ACTIVE', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:531:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateHealth refuses the token of a soft-deleted owner whose status still reads ACTIVE
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-20",
+      }
+
+      537 |         mockUsers.get(row.id).isDeleted = true; // DELETE /me / PDPA erasure do not touch status
+      538 |
+    > 539 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      540 |     });
+      541 |
+      542 |     it.each(GUARDS)('%s refuses a token whose owner row no longer exists', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:539:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateProvider refuses the token of a soft-deleted owner whose status still reads ACTIVE
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-3",
+      }
+
+      537 |         mockUsers.get(row.id).isDeleted = true; // DELETE /me / PDPA erasure do not touch status
+      538 |
+    > 539 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      540 |     });
+      541 |
+      542 |     it.each(GUARDS)('%s refuses a token whose owner row no longer exists', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:539:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (staff token) refuses the token of a soft-deleted owner whose status still reads ACTIVE
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-4",
+      }
+
+      537 |         mockUsers.get(row.id).isDeleted = true; // DELETE /me / PDPA erasure do not touch status
+      538 |
+    > 539 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      540 |     });
+      541 |
+      542 |     it.each(GUARDS)('%s refuses a token whose owner row no longer exists', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:539:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (applicant token) refuses the token of a soft-deleted owner whose status still reads ACTIVE
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-23",
+      }
+
+      537 |         mockUsers.get(row.id).isDeleted = true; // DELETE /me / PDPA erasure do not touch status
+      538 |
+    > 539 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      540 |     });
+      541 |
+      542 |     it.each(GUARDS)('%s refuses a token whose owner row no longer exists', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:539:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateHealth refuses a token whose owner row no longer exists
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-24",
+      }
+
+      545 |         mockUsers.delete(row.id);
+      546 |
+    > 547 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      548 |     });
+      549 |
+      550 |     it.each(GUARDS)('%s still admits a legacy lowercase "active" status', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:547:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateProvider refuses a token whose owner row no longer exists
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-5",
+      }
+
+      545 |         mockUsers.delete(row.id);
+      546 |
+    > 547 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      548 |     });
+      549 |
+      550 |     it.each(GUARDS)('%s still admits a legacy lowercase "active" status', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:547:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (staff token) refuses a token whose owner row no longer exists
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-6",
+      }
+
+      545 |         mockUsers.delete(row.id);
+      546 |
+    > 547 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      548 |     });
+      549 |
+      550 |     it.each(GUARDS)('%s still admits a legacy lowercase "active" status', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:547:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (applicant token) refuses a token whose owner row no longer exists
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-27",
+      }
+
+      545 |         mockUsers.delete(row.id);
+      546 |
+    > 547 |         expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                  ^
+      548 |     });
+      549 |
+      550 |     it.each(GUARDS)('%s still admits a legacy lowercase "active" status', async (_label, middleware, portal) => {
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:547:50)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-9",
+      }
+
+      571 |             mockUsers.get(row.id).status = 'PENDING_VERIFICATION'; // written straight, no epoch stamp
+      572 |
+    > 573 |             expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                      ^
+      574 |         },
+      575 |     );
+      576 |
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:573:54)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-10",
+      }
+
+      571 |             mockUsers.get(row.id).status = 'PENDING_VERIFICATION'; // written straight, no epoch stamp
+      572 |
+    > 573 |             expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                      ^
+      574 |         },
+      575 |     );
+      576 |
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:573:54)
+
+  ● SECU-03 — MFA completion and the shared mint site refuse a disabled account › a 2FA account whose legacy status reads lowercase "active" can complete MFA
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "error": undefined,
+    -   "status": 200,
+    +   "error": "MFA not enabled for this user",
+    +   "status": 400,
+      }
+
+      627 |         });
+      628 |
+    > 629 |         expect({ status: res.status, error: res.body && res.body.error }).toEqual({ status: 200, error: undefined });
+          |                                                                           ^
+      630 |         expect(res.cookies.auth_token).toEqual(expect.any(String));
+      631 |         expect(res.body.data.user.id).toBe(row.id);
+      632 |     });
+
+      at Object.toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:629:75)
+
+  ● SECU-03 — MFA completion and the shared mint site refuse a disabled account › issueTokensForAuthenticatedUser will not mint for a staff account that is not ACTIVE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ACCOUNT_INACTIVE"
+    Received: "minted"
+
+      651 |             .then(() => 'minted', (err) => err.code);
+      652 |
+    > 653 |         expect(outcome).toBe('ACCOUNT_INACTIVE');
+          |                         ^
+      654 |         expect(tokenRevocation.issueRefreshToken).not.toHaveBeenCalled();
+      655 |     });
+      656 | });
+
+      at Object.toBe (__tests__/unit/disabled-account-cannot-hold-session.test.js:653:25)
+
+  ● SECU-03 — staff complete MFA only while ACTIVE (the staff login rule) › a staff challenge cannot complete once the account is PENDING_VERIFICATION
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not 200
+
+      668 |         const res = await callRouter(mfaRouter, 'POST', '/verify', { body: { mfa_session: mfaSession, code: '123456' } });
+      669 |
+    > 670 |         expect(res.status).not.toBe(200);
+          |                                ^
+      671 |         expect(res.body.success).toBe(false);
+      672 |         noSessionIssued(res);
+      673 |     });
+
+      at Object.toBe (__tests__/unit/disabled-account-cannot-hold-session.test.js:670:32)
+
+  ● SECU-03 — an MFA challenge minted before a session revocation cannot complete › a challenge minted before the owner changed the password is refused, before any code is checked
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      704 |         const res = await verify(mfaSession);
+      705 |
+    > 706 |         expect(res.status).toBe(401);
+          |                            ^
+      707 |         expect(res.body.code).toBe('TOKEN_REVOKED');
+      708 |         noSessionIssued(res);
+      709 |         const { mfaService } = require('../../middleware/mfa-service');
+
+      at Object.toBe (__tests__/unit/disabled-account-cannot-hold-session.test.js:706:28)
+
+  ● SECU-03 — a login that races the disable button yields nothing usable › password login: the token minted while disableUser ran is refused by the guards and by /refresh
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-47",
+      }
+
+      754 |
+      755 |             expect(await guard(authenticateHealth, { auth_token: accessToken }))
+    > 756 |                 .toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                  ^
+      757 |             expect(await guard(authenticateAny, { auth_token: accessToken }))
+      758 |                 .toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+      759 |             const renewed = await refresh(refreshToken);
+
+      at Object.toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:756:18)
+
+  ● SECU-03 — a login that races the disable button yields nothing usable › MFA completion: the token minted while disableUser ran is refused by authenticateHealth
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "applicant-48",
+      }
+
+      788 |
+      789 |             expect(await guard(authenticateHealth, { auth_token: accessToken }))
+    > 790 |                 .toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                  ^
+      791 |         } finally {
+      792 |             clock.restore();
+      793 |         }
+
+      at Object.toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:790:18)
+
+Test Suites: 1 failed, 1 total
+Tests:       20 failed, 27 passed, 47 total
+Snapshots:   0 total
+Time:        2.125 s
+Ran all test suites matching /__tests__\/unit\/disabled-account-cannot-hold-session.test.js/i.
+exit=1
+
+# RUN C (mutation, after the fix): auth-middleware.js with only `role: true` removed from the identity select.
+# Expected: the staff-guard PENDING_VERIFICATION tests fail (the guard falls back to the applicant rule).
+
+## RUN C — mutation: role removed from the guard's identity select (2026-09-17T10:33:43+07:00)
+$ npx jest __tests__/unit/disabled-account-cannot-hold-session.test.js
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/disabled-account-cannot-hold-session.test.js
+  SECU-03 — password login refuses a disabled applicant
+    ✓ an applicant disabled by an admin cannot log back in with the correct password (29 ms)
+    ✓ status SUSPENDED is refused (4 ms)
+    ✓ status LOCKED is refused (4 ms)
+    ✓ status INACTIVE is refused (6 ms)
+    ✓ a soft-deleted account is refused even when its status still reads ACTIVE (4 ms)
+    ✓ a disabled account with 2FA enrolled is refused, not handed an MFA challenge (8 ms)
+    ✓ a wrong password on a disabled account still answers INVALID_CREDENTIALS (no status oracle) (5 ms)
+    ✓ a newly registered applicant (PENDING_VERIFICATION) still logs in (7 ms)
+    ✓ re-enabling the account lets the applicant log in again (7 ms)
+  SECU-03 — tokens issued before the account was disabled stop working
+    ✓ refresh token issued before disableUser is refused (session-epoch stamp) (7 ms)
+    ✓ refresh token is refused when the account was deactivated by a write that did not stamp the epoch (6 ms)
+    ✓ refresh token minted after the disable stamp is still refused while the account is disabled (2 ms)
+    ✓ refresh token of a PDPA-erased account (isDeleted, status untouched) is refused (6 ms)
+    ✓ an ACTIVE applicant can still refresh (10 ms)
+    ✓ access token issued before disableUser is refused by authenticateHealth (9 ms)
+  SECU-03 — every access-token guard reads the owner's status itself
+    ✓ authenticateHealth refuses a token once the owner is SUSPENDED without an epoch stamp (5 ms)
+    ✓ authenticateProvider refuses a token once the owner is SUSPENDED without an epoch stamp (4 ms)
+    ✓ authenticateAny (staff token) refuses a token once the owner is SUSPENDED without an epoch stamp (5 ms)
+    ✓ authenticateAny (applicant token) refuses a token once the owner is SUSPENDED without an epoch stamp (5 ms)
+    ✓ authenticateHealth refuses the token of a soft-deleted owner whose status still reads ACTIVE (4 ms)
+    ✓ authenticateProvider refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateAny (staff token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateAny (applicant token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateHealth refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateProvider refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateAny (staff token) refuses a token whose owner row no longer exists (4 ms)
+    ✓ authenticateAny (applicant token) refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateHealth still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateProvider still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateAny (staff token) still admits a legacy lowercase "active" status (3 ms)
+    ✓ authenticateAny (applicant token) still admits a legacy lowercase "active" status (6 ms)
+    ✓ authenticateHealth still admits a PENDING_VERIFICATION applicant (new registrations must log in) (2 ms)
+    ✓ authenticateAny (applicant token) still admits a PENDING_VERIFICATION applicant (new registrations must log in) (3 ms)
+    ✕ authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (6 ms)
+    ✕ authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (5 ms)
+    ✓ a database outage keeps the applicant keep-alive (status cannot be read, the token is not refused) (3 ms)
+  SECU-03 — MFA completion and the shared mint site refuse a disabled account
+    ✓ an MFA challenge issued before the disable cannot be completed into a session (4 ms)
+    ✓ an MFA challenge for an ACTIVE account still completes (3 ms)
+    ✓ a 2FA account whose legacy status reads lowercase "active" can complete MFA (7 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a disabled or deleted account (2 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a staff account that is not ACTIVE (1 ms)
+  SECU-03 — staff complete MFA only while ACTIVE (the staff login rule)
+    ✓ a staff challenge cannot complete once the account is PENDING_VERIFICATION (4 ms)
+    ✓ an ACTIVE staff challenge still completes into a provider session (3 ms)
+  SECU-03 — an MFA challenge minted before a session revocation cannot complete
+    ✓ a challenge minted before the owner changed the password is refused, before any code is checked (348 ms)
+    ✓ a challenge minted after the password change still completes (347 ms)
+  SECU-03 — a login that races the disable button yields nothing usable
+    ✓ password login: the token minted while disableUser ran is refused by the guards and by /refresh (8 ms)
+    ✓ MFA completion: the token minted while disableUser ran is refused by authenticateHealth (4 ms)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-9",
+      }
+
+      571 |             mockUsers.get(row.id).status = 'PENDING_VERIFICATION'; // written straight, no epoch stamp
+      572 |
+    > 573 |             expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                      ^
+      574 |         },
+      575 |     );
+      576 |
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:573:54)
+
+  ● SECU-03 — every access-token guard reads the owner's status itself › authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 2
+
+      Object {
+    -   "code": "ACCOUNT_INACTIVE",
+    -   "passed": false,
+    -   "status": 403,
+    +   "passed": true,
+    +   "userId": "staff-10",
+      }
+
+      571 |             mockUsers.get(row.id).status = 'PENDING_VERIFICATION'; // written straight, no epoch stamp
+      572 |
+    > 573 |             expect(await guard(middleware, cookies)).toEqual({ passed: false, status: 403, code: 'ACCOUNT_INACTIVE' });
+          |                                                      ^
+      574 |         },
+      575 |     );
+      576 |
+
+      at toEqual (__tests__/unit/disabled-account-cannot-hold-session.test.js:573:54)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 45 passed, 47 total
+Snapshots:   0 total
+Time:        2.001 s
+Ran all test suites matching /__tests__\/unit\/disabled-account-cannot-hold-session.test.js/i.
+exit=1

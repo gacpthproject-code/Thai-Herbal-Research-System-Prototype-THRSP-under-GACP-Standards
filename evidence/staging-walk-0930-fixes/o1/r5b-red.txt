@@ -1,0 +1,48 @@
+# Round 5b RED, against de667fd1 + 1d25ea96 code
+
+## P2 (reviewer): an idle timeout wiped the wizard, so the same user's unsent edit was lost
+# src/lib/services/__tests__/auth-service-wizard-privacy.test.ts (real AuthService + real setupActivityTracking + real store + real autosave hook)
+    ✓ logout empties the wizard store and removes its persisted copy
+    ✓ a sign-in as a DIFFERENT account empties it too (no logout in between)
+    ✓ the same account signing in again keeps the wizard
+    ✕ idle timeout, then the SAME user signs in: the unsent edit is still there and is sent once
+    ✓ idle timeout, then a DIFFERENT user signs in: emptied
+    ✓ an explicit logout still empties it
+    Expected: "app-of-A"
+    Received: undefined
+Tests:       1 failed, 5 passed, 6 total
+(the ✓ ones are guards: a different user and an explicit logout must still empty the wizard)
+
+## P1 wording: the notice promised a NEW draft; an id-less save lands on the latest open DRAFT when one exists
+# use-auto-save.test.tsx + submit-and-hand-over.test.ts, -t 'round 5'
+        ✕ drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+        ✕ drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+    Expected: "คำขอนี้ยื่นไปแล้ว ระบบจะบันทึกคำตอบของคุณเป็นร่างคำขอ"
+    Received: "คำขอนี้ยื่นไปแล้ว ระบบจะบันทึกคำตอบของคุณเป็นร่างใหม่"
+    Expected: "ไม่พบคำขอเดิมในบัญชีของคุณ ระบบจะบันทึกคำตอบของคุณเป็นร่างคำขอ"
+    Received: "ไม่พบคำขอเดิมในบัญชีของคุณ ระบบจะบันทึกคำตอบของคุณเป็นร่างใหม่"
+    ✕ blocks the filing and says the answers become a new draft
+    Expected: "คำขอนี้แก้ไขต่อไม่ได้แล้ว ระบบจะบันทึกคำตอบของคุณเป็นร่างคำขอ"
+    Received: "คำขอนี้แก้ไขต่อไม่ได้แล้ว ระบบจะบันทึกคำตอบของคุณเป็นร่างใหม่"
+Tests:       3 failed, 48 skipped, 9 passed, 60 total
+
+## Found by the view-pack walk: the detach never fired against the REAL error envelope
+# The rendered wizard showed 'บันทึกไม่สำเร็จ' and no id-less retry left (1 POST, naming X).
+# Cause: the /draft catch answers {code:'APPLICATION_NOT_EDITABLE', error:'Failed to save application'};
+# api-client harvests rawCode = data.error || data.code, so the hook saw code 'Failed to save application'.
+# src/lib/services/__tests__/wizard-detach-real-envelope.test.tsx (REAL api-client, only fetch stubbed with that envelope)
+    ✕ autosave: the refused id is dropped and the next save carries no id
+    ✕ submit gate, no wizard on screen: DETACHED, not "try again"
+    ✕ autosave: the refused id is dropped and the next save carries no id
+    ✕ submit gate, no wizard on screen: DETACHED, not "try again"
+  ● round 5b: the real 409 envelope (APPLICATION_NOT_EDITABLE) reaches the detach › autosave: the refused id is dropped and the next save carries no id
+    Received: "app-X"
+  ● round 5b: the real 409 envelope (APPLICATION_NOT_EDITABLE) reaches the detach › submit gate, no wizard on screen: DETACHED, not "try again"
+    Expected: "DETACHED"
+    Received: "NOT_SAVED"
+  ● round 5b: the real 404 envelope (APPLICATION_NOT_FOUND) reaches the detach › autosave: the refused id is dropped and the next save carries no id
+    Received: "app-X"
+  ● round 5b: the real 404 envelope (APPLICATION_NOT_FOUND) reaches the detach › submit gate, no wizard on screen: DETACHED, not "try again"
+    Expected: "DETACHED"
+    Received: "NOT_SAVED"
+Tests:       4 failed, 4 total

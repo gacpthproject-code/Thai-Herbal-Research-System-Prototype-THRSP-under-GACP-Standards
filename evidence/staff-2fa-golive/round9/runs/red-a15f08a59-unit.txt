@@ -1,0 +1,216 @@
+tree: a15f08a59 code + round-9 tests (uncommitted) 2026-10-21T04:58:27Z
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+FAIL __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js
+  host table
+    ✓ names staging on this host locally and demo over ssh to 119.59.105.140, nothing else (4 ms)
+  every wrapper is bound to its host and logs every run
+    ✓ staff-mfa-roster.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (33 ms)
+    ✓ staff-first-signin-report.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (36 ms)
+    ✓ staff-2fa-emergency-reset.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (30 ms)
+    ✓ the roster on staging runs the file inside the image after the slot check, never copies from the checkout, and logs done (38 ms)
+    ✓ a container outside its slot, or an image without the script, is refused with the reason logged (41 ms)
+    ✓ the roster on demo goes over ssh to the fixed target with the fixed key and runs inside gacp-backend-demo (57 ms)
+    ✓ the emergency reset forwards its four references (Thai included) to the file in the image and logs the mfa-clear event; short usage is refused (89 ms)
+  mfa-flag-on-staging.sh
+    ✓ turns the flag on, revokes sessions with --event flag-on right after the flag reads on, writes the once-per-host marker, refuses a second apply, and rollback reopens it (129 ms)
+    ✓ when the revoke step refuses, the run exits 2, says the flag is on but sessions stand, writes no marker, and logs refused (72 ms)
+    ✓ refuses off this host before reading any file (23 ms)
+  mfa-flag-on-demo.sh
+    ✓ runs from this host over ssh to the fixed demo target, carries the revoke step with --event flag-on in the remote script, and keeps the once-per-host marker (141 ms)
+    ✓ a refused remote run leaves no marker and is logged as refused; a foreign host never reaches ssh (52 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh)
+    ✕ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (189 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (102 ms)
+    ✕ (c) on → rollback → on → on refuses the last (591 ms)
+    ✕ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (109 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh)
+    ✕ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (343 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (103 ms)
+    ✕ (c) on → rollback → on → on refuses the last (208 ms)
+    ✕ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (111 ms)
+
+  ● order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh) › (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 0
+
+      Array [
+        "flag-on",
+    -   "flag-off",
+        "flag-on",
+      ]
+
+      288 |         expect(fs.existsSync(marker(env, slot))).toBe(false);
+      289 |         expect(ok(apply(env))).toEqual({ status: 0, stderr: '' });
+    > 290 |         expect(flagEvents(env)).toEqual(['flag-on', 'flag-off', 'flag-on']);
+          |                                 ^
+      291 |         expect(dockerCalls(env).filter((call) => /--event flag-off --note flag-on-rollback \S+ tag main-abc \d{4}-/.test(call))).toHaveLength(1);
+      292 |         expect(fs.existsSync(marker(env, slot))).toBe(true);
+      293 |         expect(logged(env)).toEqual([
+
+
+  ● order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh) › (c) on → rollback → on → on refuses the last
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 0
+
+      Array [
+        "flag-on",
+    -   "flag-off",
+        "flag-on",
+      ]
+
+      316 |         const last = apply(env);
+      317 |         expect(last.status).toBe(2);
+    > 318 |         expect(flagEvents(env)).toEqual(['flag-on', 'flag-off', 'flag-on']);
+          |                                 ^
+      319 |         expect(logged(env).map((row) => row[2])).toEqual(['done', 'done', 'done', 'refused']);
+      320 |     });
+      321 |
+
+
+  ● order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh) › a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+      324 |         expect(ok(apply(env))).toEqual({ status: 0, stderr: '' });
+      325 |         const back = rollback(env, { FAKE_FLAG_OFF_EXIT: '1' });
+    > 326 |         expect(back.status).toBe(1);
+          |                             ^
+      327 |         expect(back.stderr).toMatch(/บันทึกการย้อนธงในฐานข้อมูลไม่สำเร็จ/);
+      328 |         expect(fs.existsSync(marker(env, slot))).toBe(true);
+      329 |         expect(apply(env).status).toBe(2);
+
+
+  ● order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh) › (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 0
+
+      Array [
+        "flag-on",
+    -   "flag-off",
+        "flag-on",
+      ]
+
+      288 |         expect(fs.existsSync(marker(env, slot))).toBe(false);
+      289 |         expect(ok(apply(env))).toEqual({ status: 0, stderr: '' });
+    > 290 |         expect(flagEvents(env)).toEqual(['flag-on', 'flag-off', 'flag-on']);
+          |                                 ^
+      291 |         expect(dockerCalls(env).filter((call) => /--event flag-off --note flag-on-rollback \S+ tag main-abc \d{4}-/.test(call))).toHaveLength(1);
+      292 |         expect(fs.existsSync(marker(env, slot))).toBe(true);
+      293 |         expect(logged(env)).toEqual([
+
+
+  ● order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh) › (c) on → rollback → on → on refuses the last
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 0
+
+      Array [
+        "flag-on",
+    -   "flag-off",
+        "flag-on",
+      ]
+
+      316 |         const last = apply(env);
+      317 |         expect(last.status).toBe(2);
+    > 318 |         expect(flagEvents(env)).toEqual(['flag-on', 'flag-off', 'flag-on']);
+          |                                 ^
+      319 |         expect(logged(env).map((row) => row[2])).toEqual(['done', 'done', 'done', 'refused']);
+      320 |     });
+      321 |
+
+
+  ● order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh) › a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 0
+
+      324 |         expect(ok(apply(env))).toEqual({ status: 0, stderr: '' });
+      325 |         const back = rollback(env, { FAKE_FLAG_OFF_EXIT: '1' });
+    > 326 |         expect(back.status).toBe(1);
+          |                             ^
+      327 |         expect(back.stderr).toMatch(/บันทึกการย้อนธงในฐานข้อมูลไม่สำเร็จ/);
+      328 |         expect(fs.existsSync(marker(env, slot))).toBe(true);
+      329 |         expect(apply(env).status).toBe(2);
+
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+FAIL __tests__/unit/staff-sessions-revoke-approved-events.test.js
+  approved session-revoke events
+    ✓ are exactly the three the operator named, each owned by one place (4 ms)
+    ✓ flag-on with the flag on is the only run this script accepts (1 ms)
+    ✓ event "" is refused even with the flag on (2 ms)
+    ✓ event "deploy" is refused even with the flag on (2 ms)
+    ✓ event "mfa-clear" is refused even with the flag on (11 ms)
+    ✓ event "mfa-move" is refused even with the flag on (1 ms)
+    ✕ order 108(1): flag-off records a rollback only once the flag reads off, and is not a session-revoke event (2 ms)
+    ✓ --event and --note are the only options and both need a value (2 ms)
+
+  ● approved session-revoke events › order 108(1): flag-off records a rollback only once the flag reads off, and is not a session-revoke event
+
+    expect(received).toBeNull()
+
+    Received: "เหตุการณ์ flag-off ไม่อยู่ในรายการที่อนุมัติ (flag-on mfa-clear mfa-move)"
+
+      34 |
+      35 |     test('order 108(1): flag-off records a rollback only once the flag reads off, and is not a session-revoke event', () => {
+    > 36 |         expect(refusal({ REQUIRE_MFA_FOR_PRIVILEGED: 'false' }, 'flag-off')).toBeNull();
+         |                                                                              ^
+      37 |         expect(refusal({}, 'flag-off')).toBeNull();
+      38 |         expect(refusal(on, 'flag-off')).toMatch(/REQUIRE_MFA_FOR_PRIVILEGED ยังเปิดอยู่/);
+      39 |         expect(SESSION_REVOKE_EVENTS['flag-off']).toBeUndefined();
+
+
+Test Suites: 2 failed, 2 total
+Tests:       7 failed, 22 passed, 29 total
+Snapshots:   0 total
+Time:        3.537 s, estimated 4 s
+Ran all test suites matching __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js|__tests__/unit/staff-sessions-revoke-approved-events.test.js.
+jest exit 1

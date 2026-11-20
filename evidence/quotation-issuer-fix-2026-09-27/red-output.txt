@@ -1,0 +1,82 @@
+# RED — base 87b197bf, services/quotation-service.js unchanged, new tests only
+# Postgres: throwaway docker postgres:17-alpine (gacp-qtfix-pg) on 127.0.0.1:5434, prisma migrate deploy: 144 migrations applied
+# command: SIGNING_KEY_DIR=$(mktemp -d) DATABASE_URL=<redacted local url> npx jest --config jest.config.cjs __tests__/integration/quotation-issuance-real-postgres.test.js __tests__/unit/quotation-issuer-maps-have-no-undefined.test.js -i
+# exit=1 · excerpt of the raw log (raw kept outside the repo: raw jest logs trip gitleaks)
+
+    ✕ submit hook issues ONE PLATFORM quotation, and the M1 gate passes once it is accepted (253 ms)
+    ✕ a legacy pre-W14 pair is still read: no re-issue, and its unaccepted DTAM row still gates payment (21 ms)
+    ✕ ISSUER has no undefined value and issues the company only (3 ms)
+    ✕ QT_PREFIX has no undefined key or value, and admits only issuers in ISSUER (1 ms)
+    ✕ the legacy DTAM reader value is an explicit string, not a lookup (2 ms)
+Test Suites: 2 failed, 2 total
+Tests:       5 failed, 5 total
+
+## failure 1 (submit hook, real Postgres)
+  ● quotation issuance on a real Postgres (issuer map regression 2026-09-27) › submit hook issues ONE PLATFORM quotation, and the M1 gate passes once it is accepted
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 2
+
+      Object {
+    -   "issued": true,
+    +   "error": "QUOTATION_ISSUE_FAILED",
+    +   "issued": false,
+      }
+
+      90 |
+
+## failure 2 (legacy pair, real Postgres) — the Prisma refusal itself
+  ● quotation issuance on a real Postgres (issuer map regression 2026-09-27) › a legacy pre-W14 pair is still read: no re-issue, and its unaccepted DTAM row still gates payment
+
+    PrismaClientValidationError: 
+    Invalid `client.quotation.findMany()` invocation in
+    /home/ubuntu/work/wt-qtfix/apps/backend/services/quotation-service.js:489:29
+
+      486  * @private
+      487  */
+      488 async function _readLiveQuotationRows(client, applicationId) {
+    → 489     return client.quotation.findMany({
+                where: {
+                  applicationId: "f8ae6453-2dff-44d8-b4b9-a29aceb548ee",
+                  isDeleted: false,
+                  issuerType: {
+                    in: [
+                      undefined,
+                      ~~~~~~~~~
+                      "PLATFORM"
+                    ]
+                  }
+                }
+              })
+
+    Invalid value for argument `in[0]`: Can not use `undefined` value within array. Use `null` or filter out `undefined` values.
+
+## unit failures
+  ● quotation-service issuer maps › ISSUER has no undefined value and issues the company only
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "key": "DTAM",
+    -   "value": Any<String>,
+    +   "value": undefined,
+      }
+
+      15 |         const { ISSUER } = quotationService;
+      16 |         for (const [key, value] of Object.entries(ISSUER)) {
+    > 17 |             expect({ key, value }).toEqual({ key, value: expect.any(String) });
+         |                                    ^
+      18 |         }
+      19 |         expect(Object.values(ISSUER)).toEqual(['PLATFORM']);
+      20 |     });
+
+      at Object.toEqual (__tests__/unit/quotation-issuer-maps-have-no-undefined.test.js:17:36)
+
+## cause logged by the submit hook for failure 1 (logger line, trimmed)
+[quotation-issuance] issue failed at submit {"applicationId":"a3023915-4aba-4ed3-ac
+      3 Invalid value for argument `in[0]`: Can not use `undefined` value within array

@@ -1,0 +1,25 @@
+# R2 Task 12 re-review decision 2 — succession submits run under the renewal door's lock (2026-10-03)
+Real Postgres 17 :55439, jest -i, witness THROW, no header. Key mtime 1788623435 before/after every run.
+RED (code at 788f5128), renewal-wizard-holder-gate -t "concurrent successions", 3 runs, each 2 failed:
+  two drafts claiming a RENEWAL of the same certificate submitted together → [200, 200] (expected one 200, one 409)
+  a draft submit racing POST /renewals on the same certificate → succeeded 2 (expected exactly 1)
+GREEN (3 runs, each 2/2): application-submit-guard.lockCertificateSuccessions + lockAndAssertNoSuccessionInFlight,
+  called as the FIRST statement of every transaction that can move a succession claim out of DRAFT:
+  POST /applications/submit, POST /applications/bundles/:id/submit (union of every case's claims), and the
+  DRAFT leg of PUT /applications/:id/revision; the renewal door uses the same helper (same key).
+Lock ordering (why no deadlock):
+  - key = pg_advisory_xact_lock(hashtext('renewal:' || certificateId)), released at commit/rollback;
+  - taken FIRST in each of those transactions, before any row lock (fan-out, farm create, status UPDATEs,
+    the writer's audit/work-activity rows); a bundle takes all its keys in one call;
+  - several keys are always taken in ascending certificate-id order;
+  - the ordered-draft autosave (SELECT … FOR UPDATE on the application row) and the checkout locks run in other
+    transactions that never request these keys, so no transaction holds a row lock while waiting for an advisory
+    key, and two holders of advisory keys acquire them in the same order: no wait cycle is possible.
+  - the in-flight check runs after the lock, inside the same transaction as the status transition, so the second
+    transaction sees the first one's committed SUBMITTED/PENDING_* row (or the renewal door's new row) and gets 409.
+Runs: focused real-PG (holder-scope, renewal-*, r1-cert-doc, walk, write-doors witness) 129 passed; r1-application
+  matrix alone 3/3 (its read test takes 25-30 s, now given 120 s so load cannot time it out); 0 skipped
+  full integration: 32 failed / 10 suites = base cc87292a set (comm: 0 new)
+  unit (no DB) renewal/submit/bundle/pointer suites 138/138; pointers RENEWAL_HOLDER_MISMATCH →289, RENEWAL_ALREADY_IN_PROGRESS →285
+  ratchet 26/53/99/0 · retired-words · no-skip · no-secret · settle-webhook-only · green-mask (the two race assertions
+  rewritten as exact counts, also the one from 788f5128) · copy guard PASS

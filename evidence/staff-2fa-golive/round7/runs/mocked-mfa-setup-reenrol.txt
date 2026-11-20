@@ -1,0 +1,27 @@
+PASS __tests__/unit/mfa-setup-reenrol.test.js
+  enabled 2FA: /setup needs the current code
+    ✓ a session without a code cannot re-run setup — 401, the enabled factor is untouched (60 ms)
+    ✓ a wrong current code → 401, untouched (same verifier and answer as /disable) (14 ms)
+    ✓ the right current code starts a re-enrol with a new secret and new backup codes, but the old factor stays active until the new one is confirmed (13 ms)
+    ✓ verify-setup with a code from the NEW secret swaps the factor and the backup codes shown at /setup, in one service call that carries the audit event and the owner notice (27 ms)
+    ✓ verify-setup with a wrong code keeps the old factor (37 ms)
+    ✓ verify-setup with no re-enrol in progress changes nothing (8 ms)
+    ✓ the store for the pending secret is down → 503, nothing changed (10 ms)
+    ✓ the store goes down between /setup and /verify-setup → 503 at verify, the old factor stays (round 6: the attempt counter is a store write too) (17 ms)
+    ✓ a /setup that carries a code or a backup code goes through the MFA limiter (the one /disable uses) (18 ms)
+  order 89 ก: one backup code moves the factor to a new device
+    ✓ one unused backup code starts the move and is used up; the same code is refused the second time (20 ms)
+    ✓ a backup code is read with or without its dash (9 ms)
+    ✓ an unknown or non-string backup code is refused, counts in the limiter, and changes nothing (41 ms)
+    ✓ when the store is down the backup code is not used up (8 ms)
+    ✓ the move finishes only with the saved-codes confirmation, which spends no attempt, and the audit event and the notice name the backup-code method and a masked address (22 ms)
+  control: 2FA not enabled — first enrolment
+    ✓ /setup shows the backup codes once; /verify-setup enables only with the saved-codes confirmation, and nothing goes through the limiter (22 ms)
+    ✓ first enrolment never touches the pending store: it completes with the store down (31 ms)
+    ✓ the confirmation must be exactly true (23 ms)
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        1.021 s, estimated 2 s
+Ran all test suites matching __tests__/unit/mfa-setup-reenrol.test.js.
+jest exit 0

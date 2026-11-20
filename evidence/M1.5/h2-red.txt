@@ -1,0 +1,204 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/entity-detail-pii-mask.test.js (12.679 s)
+  M1.5 H2 — presentEntityForMember masks both national-ID carriers
+    × masks thaiCitizenId and payload.director.idCard for EVERY role including OWNER (13 ms)
+    × survives INDIVIDUAL shape: payload null / no director (46 ms)
+    × does not mutate the row it was handed (the caller may still hold the Prisma object) (59 ms)
+    × leaves a null / absent id card alone rather than masking it into a string (5 ms)
+  M1.5 H2 — GET /api/entities/:id masks for every role
+    × role VIEWER receives masked national IDs (332 ms)
+    × role MANAGER receives masked national IDs (13 ms)
+    × role ADMIN receives masked national IDs (11 ms)
+    × role OWNER receives masked national IDs (13 ms)
+    × an INDIVIDUAL entity with a null payload still answers 200 (13 ms)
+  M1.5 H2 — the create / update echoes are masked too (same helper, three endpoints)
+    × PATCH /api/entities/:id echoes the updated row masked (59 ms)
+    × POST /api/entities echoes the created workspace masked (39 ms)
+
+  ● M1.5 H2 — presentEntityForMember masks both national-ID carriers › masks thaiCitizenId and payload.director.idCard for EVERY role including OWNER
+
+    TypeError: entityService.presentEntityForMember is not a function
+
+    [0m [90m 113 |[39m describe([32m'M1.5 H2 — presentEntityForMember masks both national-ID carriers'[39m[33m,[39m () [33m=>[39m {
+     [90m 114 |[39m     it([32m'masks thaiCitizenId and payload.director.idCard for EVERY role including OWNER'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 115 |[39m         [36mconst[39m out [33m=[39m entityService[33m.[39mpresentEntityForMember({
+     [90m     |[39m                                   [31m[1m^[22m[39m
+     [90m 116 |[39m             id[33m:[39m [32m'e1'[39m[33m,[39m type[33m:[39m [32m'JURISTIC'[39m[33m,[39m thaiCitizenId[33m:[39m [32m'1234567890123'[39m[33m,[39m
+     [90m 117 |[39m             payload[33m:[39m { director[33m:[39m { name[33m:[39m [32m'สมชาย'[39m[33m,[39m idCard[33m:[39m [32m'1234567890123'[39m }[33m,[39m registeredCapital[33m:[39m [35m1000000[39m }[33m,[39m
+     [90m 118 |[39m         })[33m;[39m[0m
+
+      at Object.presentEntityForMember (__tests__/unit/entity-detail-pii-mask.test.js:115:35)
+
+  ● M1.5 H2 — presentEntityForMember masks both national-ID carriers › survives INDIVIDUAL shape: payload null / no director
+
+    expect(received).not.toThrow()
+
+    Error name:    "TypeError"
+    Error message: "entityService.presentEntityForMember is not a function"
+
+        [0m [90m 131 |[39m
+         [90m 132 |[39m     it([32m'survives INDIVIDUAL shape: payload null / no director'[39m[33m,[39m () [33m=>[39m {
+        [31m[1m>[22m[39m[90m 133 |[39m         expect(() [33m=>[39m entityService[33m.[39mpresentEntityForMember({ id[33m:[39m [32m'e2'[39m[33m,[39m thaiCitizenId[33m:[39m [36mnull[39m[33m,[39m payload[33m:[39m [36mnull[39m }))[33m.[39mnot[33m.[39mtoThrow()[33m;[39m
+         [90m     |[39m                                    [31m[1m^[22m[39m
+         [90m 134 |[39m
+         [90m 135 |[39m         [36mconst[39m out [33m=[39m entityService[33m.[39mpresentEntityForMember({ id[33m:[39m [32m'e2'[39m[33m,[39m thaiCitizenId[33m:[39m [36mnull[39m[33m,[39m payload[33m:[39m [36mnull[39m })[33m;[39m
+         [90m 136 |[39m         expect(out[33m.[39mthaiCitizenId)[33m.[39mtoBeNull()[33m;[39m[0m
+
+      at presentEntityForMember (__tests__/unit/entity-detail-pii-mask.test.js:133:36)
+      at Object.<anonymous> (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/toThrowMatchers.js:74:11)
+      at Object.throwingMatcher [as toThrow] (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:320:21)
+      at Object.toThrow (__tests__/unit/entity-detail-pii-mask.test.js:133:114)
+      at Object.toThrow (__tests__/unit/entity-detail-pii-mask.test.js:133:114)
+
+  ● M1.5 H2 — presentEntityForMember masks both national-ID carriers › does not mutate the row it was handed (the caller may still hold the Prisma object)
+
+    TypeError: entityService.presentEntityForMember is not a function
+
+    [0m [90m 150 |[39m     it([32m'does not mutate the row it was handed (the caller may still hold the Prisma object)'[39m[33m,[39m () [33m=>[39m {
+     [90m 151 |[39m         [36mconst[39m row [33m=[39m juristicEntity()[33m;[39m
+    [31m[1m>[22m[39m[90m 152 |[39m         entityService[33m.[39mpresentEntityForMember(row)[33m;[39m
+     [90m     |[39m                       [31m[1m^[22m[39m
+     [90m 153 |[39m
+     [90m 154 |[39m         expect(row[33m.[39mthaiCitizenId)[33m.[39mtoBe([33mOWNER_ID[39m)[33m;[39m
+     [90m 155 |[39m         expect(row[33m.[39mpayload[33m.[39mdirector[33m.[39midCard)[33m.[39mtoBe([33mDIRECTOR_ID[39m)[33m;[39m[0m
+
+      at Object.presentEntityForMember (__tests__/unit/entity-detail-pii-mask.test.js:152:23)
+
+  ● M1.5 H2 — presentEntityForMember masks both national-ID carriers › leaves a null / absent id card alone rather than masking it into a string
+
+    TypeError: entityService.presentEntityForMember is not a function
+
+    [0m [90m 157 |[39m
+     [90m 158 |[39m     it([32m'leaves a null / absent id card alone rather than masking it into a string'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 159 |[39m         [36mconst[39m out [33m=[39m entityService[33m.[39mpresentEntityForMember({
+     [90m     |[39m                                   [31m[1m^[22m[39m
+     [90m 160 |[39m             id[33m:[39m [32m'e4'[39m[33m,[39m thaiCitizenId[33m:[39m [36mnull[39m[33m,[39m
+     [90m 161 |[39m             payload[33m:[39m { director[33m:[39m { name[33m:[39m [32m'สมชาย'[39m[33m,[39m idCard[33m:[39m [36mnull[39m } }[33m,[39m
+     [90m 162 |[39m         })[33m;[39m[0m
+
+      at Object.presentEntityForMember (__tests__/unit/entity-detail-pii-mask.test.js:159:35)
+
+  ● M1.5 H2 — GET /api/entities/:id masks for every role › role VIEWER receives masked national IDs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "1-XXXX-XXXX-X-0008"
+    Received: "1100000000008"
+
+    [0m [90m 182 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 183 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mrole)[33m.[39mtoBe(role)[33m;[39m
+    [31m[1m>[22m[39m[90m 184 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mthaiCitizenId)[33m.[39mtoBe([33mMASKED_OWNER_ID[39m)[33m;[39m
+     [90m     |[39m                                           [31m[1m^[22m[39m
+     [90m 185 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mpayload[33m.[39mdirector[33m.[39midCard)[33m.[39mtoBe([33mMASKED_DIRECTOR_ID[39m)[33m;[39m
+     [90m 186 |[39m         [90m// Nothing anywhere in the response carries a raw 13-digit ID.[39m
+     [90m 187 |[39m         expect([33mJSON[39m[33m.[39mstringify(r[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([33mOWNER_ID[39m)[33m;[39m[0m
+
+      at toBe (__tests__/unit/entity-detail-pii-mask.test.js:184:43)
+
+  ● M1.5 H2 — GET /api/entities/:id masks for every role › role MANAGER receives masked national IDs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "1-XXXX-XXXX-X-0008"
+    Received: "1100000000008"
+
+    [0m [90m 182 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 183 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mrole)[33m.[39mtoBe(role)[33m;[39m
+    [31m[1m>[22m[39m[90m 184 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mthaiCitizenId)[33m.[39mtoBe([33mMASKED_OWNER_ID[39m)[33m;[39m
+     [90m     |[39m                                           [31m[1m^[22m[39m
+     [90m 185 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mpayload[33m.[39mdirector[33m.[39midCard)[33m.[39mtoBe([33mMASKED_DIRECTOR_ID[39m)[33m;[39m
+     [90m 186 |[39m         [90m// Nothing anywhere in the response carries a raw 13-digit ID.[39m
+     [90m 187 |[39m         expect([33mJSON[39m[33m.[39mstringify(r[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([33mOWNER_ID[39m)[33m;[39m[0m
+
+      at toBe (__tests__/unit/entity-detail-pii-mask.test.js:184:43)
+
+  ● M1.5 H2 — GET /api/entities/:id masks for every role › role ADMIN receives masked national IDs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "1-XXXX-XXXX-X-0008"
+    Received: "1100000000008"
+
+    [0m [90m 182 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 183 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mrole)[33m.[39mtoBe(role)[33m;[39m
+    [31m[1m>[22m[39m[90m 184 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mthaiCitizenId)[33m.[39mtoBe([33mMASKED_OWNER_ID[39m)[33m;[39m
+     [90m     |[39m                                           [31m[1m^[22m[39m
+     [90m 185 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mpayload[33m.[39mdirector[33m.[39midCard)[33m.[39mtoBe([33mMASKED_DIRECTOR_ID[39m)[33m;[39m
+     [90m 186 |[39m         [90m// Nothing anywhere in the response carries a raw 13-digit ID.[39m
+     [90m 187 |[39m         expect([33mJSON[39m[33m.[39mstringify(r[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([33mOWNER_ID[39m)[33m;[39m[0m
+
+      at toBe (__tests__/unit/entity-detail-pii-mask.test.js:184:43)
+
+  ● M1.5 H2 — GET /api/entities/:id masks for every role › role OWNER receives masked national IDs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "1-XXXX-XXXX-X-0008"
+    Received: "1100000000008"
+
+    [0m [90m 182 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 183 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mrole)[33m.[39mtoBe(role)[33m;[39m
+    [31m[1m>[22m[39m[90m 184 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mthaiCitizenId)[33m.[39mtoBe([33mMASKED_OWNER_ID[39m)[33m;[39m
+     [90m     |[39m                                           [31m[1m^[22m[39m
+     [90m 185 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mpayload[33m.[39mdirector[33m.[39midCard)[33m.[39mtoBe([33mMASKED_DIRECTOR_ID[39m)[33m;[39m
+     [90m 186 |[39m         [90m// Nothing anywhere in the response carries a raw 13-digit ID.[39m
+     [90m 187 |[39m         expect([33mJSON[39m[33m.[39mstringify(r[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([33mOWNER_ID[39m)[33m;[39m[0m
+
+      at toBe (__tests__/unit/entity-detail-pii-mask.test.js:184:43)
+
+  ● M1.5 H2 — GET /api/entities/:id masks for every role › an INDIVIDUAL entity with a null payload still answers 200
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "1-XXXX-XXXX-X-0008"
+    Received: "1100000000008"
+
+    [0m [90m 206 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 207 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mpayload)[33m.[39mtoBeNull()[33m;[39m
+    [31m[1m>[22m[39m[90m 208 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mthaiCitizenId)[33m.[39mtoBe([33mMASKED_OWNER_ID[39m)[33m;[39m
+     [90m     |[39m                                           [31m[1m^[22m[39m
+     [90m 209 |[39m         expect([33mJSON[39m[33m.[39mstringify(r[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([33mOWNER_ID[39m)[33m;[39m
+     [90m 210 |[39m     })[33m;[39m
+     [90m 211 |[39m })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/entity-detail-pii-mask.test.js:208:43)
+
+  ● M1.5 H2 — the create / update echoes are masked too (same helper, three endpoints) › PATCH /api/entities/:id echoes the updated row masked
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "1-XXXX-XXXX-X-0008"
+    Received: "1100000000008"
+
+    [0m [90m 228 |[39m
+     [90m 229 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 230 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mthaiCitizenId)[33m.[39mtoBe([33mMASKED_OWNER_ID[39m)[33m;[39m
+     [90m     |[39m                                           [31m[1m^[22m[39m
+     [90m 231 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mpayload[33m.[39mdirector[33m.[39midCard)[33m.[39mtoBe([33mMASKED_DIRECTOR_ID[39m)[33m;[39m
+     [90m 232 |[39m         expect([33mJSON[39m[33m.[39mstringify(r[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([33mDIRECTOR_ID[39m)[33m;[39m
+     [90m 233 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/entity-detail-pii-mask.test.js:230:43)
+
+  ● M1.5 H2 — the create / update echoes are masked too (same helper, three endpoints) › POST /api/entities echoes the created workspace masked
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "1-XXXX-XXXX-X-0009"
+    Received: "1100000000009"
+
+    [0m [90m 252 |[39m
+     [90m 253 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 254 |[39m         expect(r[33m.[39mbody[33m.[39mdata[33m.[39mpayload[33m.[39mdirector[33m.[39midCard)[33m.[39mtoBe([33mMASKED_DIRECTOR_ID[39m)[33m;[39m
+     [90m     |[39m                                                     [31m[1m^[22m[39m
+     [90m 255 |[39m         expect([33mJSON[39m[33m.[39mstringify(r[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([33mDIRECTOR_ID[39m)[33m;[39m
+     [90m 256 |[39m         [90m// The create path is unchanged otherwise.[39m
+     [90m 257 |[39m         expect(r[33m.[39mbody[33m.[39mdata)[33m.[39mtoMatchObject({ type[33m:[39m [32m'JURISTIC'[39m[33m,[39m role[33m:[39m [32m'OWNER'[39m })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/entity-detail-pii-mask.test.js:254:53)
+
+Test Suites: 1 failed, 1 total
+Tests:       11 failed, 11 total
+Snapshots:   0 total
+Time:        13.361 s
+Ran all test suites matching /__tests__\\unit\\entity-detail-pii-mask.test.js/i.

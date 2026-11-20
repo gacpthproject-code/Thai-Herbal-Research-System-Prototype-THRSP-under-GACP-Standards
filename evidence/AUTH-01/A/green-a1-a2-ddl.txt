@@ -1,0 +1,41 @@
+=== IDEMPOTENCY: re-apply the whole migration file a second time ===
+BEGIN
+psql:/home/user/GACP-Certification-Application/apps/backend/prisma/migrations/20260804013000_add_identity_links/migration.sql:90: NOTICE:  relation "identity_links" already exists, skipping
+CREATE TABLE
+psql:/home/user/GACP-Certification-Application/apps/backend/prisma/migrations/20260804013000_add_identity_links/migration.sql:96: NOTICE:  relation "identity_links_provider_subject_key" already exists, skipping
+CREATE INDEX
+psql:/home/user/GACP-Certification-Application/apps/backend/prisma/migrations/20260804013000_add_identity_links/migration.sql:100: NOTICE:  relation "identity_links_userId_idx" already exists, skipping
+CREATE INDEX
+DO
+INSERT 0 0
+COMMIT
+-- counts after replay --
+7 users | 7 local links
+
+=== DDL as Postgres actually stored it ===
+                              Table "public.identity_links"
+   Column    |              Type              | Collation | Nullable |      Default      
+-------------+--------------------------------+-----------+----------+-------------------
+ id          | text                           |           | not null | 
+ userId      | text                           |           | not null | 
+ provider    | text                           |           | not null | 
+ subject     | text                           |           | not null | 
+ linkedAt    | timestamp(3) without time zone |           | not null | CURRENT_TIMESTAMP
+ lastLoginAt | timestamp(3) without time zone |           |          | 
+ isActive    | boolean                        |           | not null | true
+Indexes:
+    "identity_links_pkey" PRIMARY KEY, btree (id)
+    "identity_links_provider_subject_key" UNIQUE, btree (provider, subject)
+    "identity_links_userId_idx" btree ("userId")
+Check constraints:
+    "identity_links_provider_ck" CHECK (provider = ANY (ARRAY['local'::text, 'healthid'::text, 'providerid'::text, 'thaid'::text]))
+Foreign-key constraints:
+    "identity_links_userId_fkey" FOREIGN KEY ("userId") REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
+
+=== FK action ===
+identity_links_pkey| | |PRIMARY KEY (id)
+identity_links_provider_ck| | |CHECK ((provider = ANY (ARRAY['local'::text, 'healthid'::text, 'providerid'::text, 'thaid'::text])))
+identity_links_userId_fkey|c|c|FOREIGN KEY ("userId") REFERENCES users(id) ON UPDATE CASCADE ON DELETE CASCADE
+=== users constraints untouched (byte-identical to pre-migration definition) ===
+users_auth_type_identity_ck :: CHECK (((("authType" = 'HEALTH_ID'::text) AND ("healthId" IS NOT NULL) AND ("providerId" IS NULL)) OR (("authType" = 'PROVIDER_ID'::text) AND ("providerId" IS NOT NULL) AND ("healthId" IS NULL)) OR ("authType" = 'EMAIL_LEGACY'::text)))
+users_single_identity_ck :: CHECK ((NOT (("healthId" IS NOT NULL) AND ("providerId" IS NOT NULL))))

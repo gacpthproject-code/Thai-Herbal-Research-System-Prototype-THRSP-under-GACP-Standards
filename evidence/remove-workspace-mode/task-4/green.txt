@@ -1,0 +1,41 @@
+# Task 4 GREEN — 2026-10-02 · tree = c26c9529 + Task 4 · real Postgres 17 on 127.0.0.1:5447 · Node v24.21.0, plain jest
+
+## New suites
+- unit/cert-finance-reads-carry-holder-marker.test.js ............ 24 passed / 24
+- integration/holder-write-doors-witness-real-postgres.test.js .... 3 passed / 3, 0 skipped
+  (witness THROW; every door 200/201; rows proven: 2 application_documents synced, 1 document_precheck queued,
+   filing PENDING_DOC_FEE, quotation ACCEPTED, checkout order PENDING_PAYMENT and the re-entry press returns it,
+   bundle linked, revision-resubmit status + formData.workflowState stamped, CAR moved; witness log empty)
+- integration/r1-cert-doc-finance-reads-neutral-real-postgres.test.js ... 2 passed / 2, 0 skipped
+  723 actor x header x door results equal the table recorded on e46ceba0 (pre-R1, separate worktree).
+  The same file on c26c9529 (pre-Task-4) also gave 0 differences from e46ceba0.
+  QUALIFIED (fix round 1): this covered only actors with ACTIVE memberships and a membership row on their
+  personal entity. The reviewer proved two shapes it did not seed narrowed on this commit (a filer whose
+  membership was REVOKED; a personal entity matched by citizen-id hash with no membership row).
+  See fix1-red.txt / fix1-green.txt: the matrix now seeds both (1474 results + the QT-PRD counter).
+
+## Related suites (193 files that require a touched module), real PG, -i
+- this tree:  189 passed, 3 failed, 1 skipped suites · 2312 passed, 10 failed, 13 skipped tests
+- c26c9529 (same failing files re-run): the same 10 failing test names
+  officer-review-round-trip x4, m2a-submit-enforcement x5, status-writer-audit-default-invariant x1 — no new failures
+
+## Probes
+- ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0
+- retired-words PASS · no-skip PASS · no-secret PASS (layer1 0 hits, gitleaks clean)
+- error-codes-source-pointers + env-example-documents-config: 10 passed (18 pointers re-pointed to their shifted lines)
+- check-green-mask-assertions PASS (no net-new masks)
+- signing key mtime 1788623435 before and after every backend jest run
+
+## Mutation check (the matrix can go red)
+Swapping r1HolderScopeAllWorkspaces -> holderScope (workspace-intersected) in certificates.js and quotes.js:
+read-doors test FAILED with 25 changed results (e.g. A|C GET /certificates/my "cert-aC,cert-aP" -> "cert-aC",
+A|C GET /certificates/:id|aP 200 -> 404). Reverted; the committed tree passes.
+
+## Full local gate (LOCAL_GATE_FULL=1 scripts/ci/local-gate.sh, no DATABASE_URL — same conditions as the Task 2/3 rounds)
+- jest: 900 passed, 1 failed, 52 skipped suites · 12049 passed, 15 failed, 389 skipped tests
+  the one failing suite is integration/payer-block-matrix (needs a DB) — the same suite failed in the Task 2 and Task 3 rounds
+- banned-terms PASS · mojibake PASS · green-mask PASS · tier-check TIER=C
+- probe-gate FAIL on host/attestation probes, as in Task 3: deploy-drift (demo unreachable), gate-attestation
+  (newest attestation predates this branch), main-attestation-audit, nginx-config-drift — plus dependency-audit
+  (12 high advisories: axios, basic-ftp, brace-expansion). No dependency or lockfile is changed by this task.
+- Baseline note: the plan's evidence/gate/8f0f99a2*.json does not exist (Task 3 concern 6); compared with the Task 3 round.

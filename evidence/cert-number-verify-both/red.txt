@@ -1,0 +1,73 @@
+RED 2026-10-05T09:32:45Z — certificate-number-printed-form.test.js (หลังสร้างโมดูล normaliser แต่ก่อนต่อเข้าประตู)
+    ✕ /api/certificates/verify (815 ms)
+    ✓ canonical, ids and junk are left unchanged (3 ms)
+    ✓ canonical still works (28 ms)
+    ✓ exact inverses of buildDtamCertNumberDisplay, both ways (2 ms)
+    ✕ fetchCertificateByLookup (partner verify + /v1/resolve) (94 ms)
+    ✕ JSON door finds the certificate by GACP-DTAM and answers with the canonical number (48 ms)
+    ✓ malformed input is refused as before (not found, not an error) (11 ms)
+    ✓ printed form -> canonical (4 ms)
+    ✓ printed form with an unknown suffix is still not found (41 ms)
+Tests:       3 failed, 8 passed, 11 total
+    ✓ the PDF template still exports the same builder (1 ms)
+    ✓ trims and uppercases the printed form (2 ms)
+  ● public verify doors accept the printed number › JSON door finds the certificate by GACP-DTAM and answers with the canonical number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      74 |         const res = await request(app).get('/api/v1/public/verify/GACP-DTAM-2569-A3F7B2');
+      75 |         expect(res.status).toBe(200);
+
+=== round 2 — RED 2026-10-05T09:40:59Z (ก่อนเขียนโค้ดจริง: โมดูลยังเป็นของรอบ 1, ไม่มี allocator, ไม่มี slug) ===
+backend certificate-number-be-format.test.js:
+    ✓ TH-GACP 87/2568 -> stored (4 ms)
+    ✕ TH-GACP-87-2568 -> stored (5 ms)
+    ✕ th-gacp 87/2568 -> stored (2 ms)
+    ✕   TH-GACP   87 / 2568  -> stored (1 ms)
+    ✕ Th-Gacp-87-2568 -> stored (2 ms)
+    ✕ legacy forms, any case, map to GACP-TH (2 ms)
+    ✕ slug and display round-trip (1 ms)
+    ✕ slug leaves legacy numbers and ids alone; new numbers pass the legacy projection unchanged (1 ms)
+    ✓ junk is left unchanged (1 ms)
+    ✕ first of 2569 is 1, the next is 2, a new year restarts at 1, no padding (18 ms)
+    ✕ the year boundary is Bangkok midnight, not UTC (39 ms)
+    ✕ concurrent allocations never share a number (12 ms)
+    ✕ buildCertVerifyUrl uses the slug; legacy unchanged (3 ms)
+    ✕ publicVerifyUrlFor fallback uses the slug (5 ms)
+    ✕ the QR url path resolves through the partner resolver (198 ms)
+    ✕ partner links carry the slug (1 ms)
+    ✕ TH-GACP-87-2568 (106 ms)
+    ✓ TH-GACP%2087%2F2568 (13 ms)
+    ✕ th-gacp-87-2568 (11 ms)
+    ✓ gacp-dtam-2569-a3f7b2 (7 ms)
+    ✕ gacp-th-2569-a3f7b2 (9 ms)
+    ✓ unknown numbers are still not found (8 ms)
+Tests:       17 failed, 5 passed, 22 total
+web verify-printed-number.test.tsx: 2 failed, 3 passed, 5 total (แดง: แสดงเลขที่เก็บจริง, slug ของ buildPublicVerifyPageUrl/buildPublicVerifyUrl)
+pin ไม่ใช่ fix (เขียวแต่กำเนิด): 'TH-GACP 87/2568 -> stored', 'junk is left unchanged', '%2F' door, gacp-dtam door, unknown-not-found, web slug-to-backend (encodeURIComponent ของ slug ที่ไม่มีอักขระพิเศษ)
+
+=== round 3 — RED 2026-10-05 (ก่อนแก้โค้ด) ===
+    ✕ /api/certificates/verify/TH-GACP-7-2569 -> 404 (4023 ms)
+    ✕ /api/interoperability/v1/certificates/TH-GACP-7-2569/verify -> 404 (576 ms)
+    ✕ /api/interoperability/v1/verification/certificate/TH-GACP-7-2569 -> 404 (32 ms)
+    ✕ 31st request in a minute -> 429 (305 ms)
+    ✕ active certificate answers only the public-verify facts (11 ms)
+    ✕ not-active certificate hides farm facts like the public door does (23 ms)
+    ✕ public.js and interoperability.js use middleware/public-verify-limiter (3 ms)
+    ✕ trust registry search by slug searches the stored number (17 ms)
+    ✕ trust record link uses the slug, never the raw number (3 ms)
+    ✕ retries P2034 then succeeds (12 ms)
+    ✕ retries P2002 then succeeds (1 ms)
+    ✕ gives up after 3 attempts and throws the conflict (2 ms)
+    ✓ other errors are not retried (1 ms)
+    ✓ inside a caller tx the conflict propagates at once (2 ms)
+Test Suites: 2 failed, 2 total
+Tests:       12 failed, 2 passed, 14 total
+pin ไม่ใช่ fix: 'other errors are not retried', 'inside a caller tx propagates' (เขียวแต่กำเนิด)
+
+## round 4 (RED) interop-envelope-links-resolve.test.js: envelope links.verify -> .../certificates/GACP-TH-2569-A3F7B2/verify mounted:false (1 failed, 2 passed)
+
+## round 5 (RED) certificate-number-allocation-real-postgres.test.js (ฉบับเดิม ใช้ prisma ร่วม) บน Postgres max_connections=20 ที่ถูกถือไว้ 13 connection: "Too many database connections opened: FATAL: sorry, too many clients already" (1 failed, 1 total)

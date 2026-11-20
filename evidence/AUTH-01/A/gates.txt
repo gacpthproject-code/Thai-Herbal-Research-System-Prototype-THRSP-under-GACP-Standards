@@ -1,0 +1,172 @@
+AUTH-01-A — GATES (รันจริงใน session นี้ 2026-08-04)
+==================================================
+
+### GATE 1 — npx prisma validate / migrate diff  →  BLOCKED (infra ไม่ใช่ schema)
+$ cd apps/backend && npx prisma validate --schema prisma/schema
+  Error: Failed to fetch the engine file at https://binaries.prisma.sh/all_commits/
+         605197351a3c8bdd595af2d2a9bc3025bca48ea2/debian-openssl-3.0.x/schema-engine.gz
+         - 403 Forbidden
+$ cd apps/backend && npx prisma migrate deploy --schema prisma/schema
+  Error: Failed to fetch the engine file at .../libquery_engine.so.node.gz - 403 Forbidden
+$ curl -sS "$HTTPS_PROXY/__agentproxy/status"   → "connect_rejected" … host binaries.prisma.sh:443
+  (ยืนยันว่าไม่ใช่ผลจากงานนี้: รัน prisma validate ตั้งแต่ก่อนแตะไฟล์ใด ๆ ในทรีสะอาด
+   ก็ได้ error ตัวเดียวกัน · npm registry เข้าถึงได้ปกติ แต่ @prisma/engines@5.22.0
+   tarball ไม่มี binary อยู่ข้างใน — ดาวน์โหลดตอน postinstall เท่านั้น)
+
+  แทนที่ด้วย: replay migration ทั้ง 111 ตัวผ่าน psql ลง PostgreSQL 16.13 จริง
+  $ for d in prisma/migrations/*/; do psql -v ON_ERROR_STOP=1 -f $d/migration.sql; done
+    total_failed=0
+  แล้วรัน migration ใหม่ + behaviour checks — ดู red-a1-a2-a5-sql.txt / green-a1-a2-a5-sql.txt
+  / green-a1-a2-ddl.txt (DDL ที่ Postgres เก็บจริง + idempotency replay)
+
+### GATE 2 — full jest suite (apps/backend, ไม่ใช่เฉพาะไฟล์ที่แก้)
+  baseline (origin/main @ 7dc25a22, วัดเองก่อนเริ่ม):
+    Test Suites: 1 failed, 6 skipped, 529 passed, 530 of 536 total
+    Tests:       1 failed, 68 skipped, 7142 passed, 7211 total
+  after:
+    Test Suites: 1 failed, 7 skipped, 530 passed, 531 of 538 total
+    Tests:       1 failed, 74 skipped, 7146 passed, 7221 total
+  after (รอบแก้ finding จาก audit PR #744 — ดูหัวข้อ "GATES รอบแก้ finding" ท้ายไฟล์):
+    Test Suites: 1 failed, 7 skipped, 530 passed, 531 of 538 total
+    Tests:       1 failed, 74 skipped, 7147 passed, 7222 total
+    (+1 = เทสต์ raw SQL ตัวใหม่ในไฟล์ pin เดิม · failed ยังเป็น 1 ตัวเดิม ไม่เพิ่ม)
+  delta: passed +4 (unit/identity-provider-naming-collision 4 tests)
+         skipped +6 (integration/identity-links self-skip เพราะไม่มี DATABASE_URL
+                     — idiom เดียวกับ integration/pdpa-retention-legal-hold)
+         failed  +0 — ตัวที่ fail ยังเป็น __tests__/unit/dataset-export-service.test.js
+                     ตัวเดิม (Prisma.dmmf, pre-existing บน main)
+  log: baseline-full-suite.txt / full-suite-after.txt
+
+### GATE 3 — scripts/probes/ratchet.sh
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4 (/home/user/GACP-Certification-Application/evidence/ratchet-current.txt)
+
+### GATE 4 — eslint (จาก apps/backend) ไฟล์ที่แก้/เพิ่ม
+  exit=0 (ไม่มี output = ไม่มี error/warning)
+
+### GATE 5 — node scripts/ci/check-thai-copy-style.js
+[thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+
+### GATE 6 — npm run check:banned-terms
+
+[banned-terms] Repository scan passed
+
+### GATE เสริมที่รันด้วย (CI job เดียวกันแตะไฟล์ที่แก้)
+  check-identity-field-usage             exit=0 PASS
+  check-mojibake-encoding                exit=0 PASS
+  check-prisma-migration-consistency     exit=0 PASS
+  validate-workflow-paths                exit=0 PASS
+  check-enforcement-guardrails           G-06: Prisma schema validation failed Results: 6 passed, 1 failed 
+    → G-06 คือ 'npx prisma validate' ตัวเดียวกับ GATE 1 (403 engine) ไม่ใช่ schema ผิด
+  probes/no-skip.sh:
+  ⚠️ แก้ไขบันทึกตาม audit PR #744 (M-2 — Law 3.2/3.9): เวอร์ชันก่อนหน้าของไฟล์นี้
+     แปะ output แค่ 4 บรรทัดแล้วสรุปว่า "4 hit ทั้งหมดอยู่ใน e2e-golden-scenario.spec.ts"
+     ซึ่ง**ไม่ตรงกับ output จริง** ของจริงคือ 10 hit ใน 4 ไฟล์ (ตัวเลข 10 ตรงกับที่
+     evidence/AUTH-01/probe-results.json บันทึกไว้ในคอมมิตเดียวกันอยู่แล้ว — สองไฟล์
+     ขัดกันเอง ตอนนี้ตรงกันแล้ว) output เต็มที่รันจริงในเซสชันแก้ finding:
+
+  $ bash scripts/probes/no-skip.sh       # บน feat/auth-01-a-identity-links @ eae9f47e
+  FAIL: /home/user/GACP-Certification-Application/apps/web-app/playwright/farmer-full-journey.spec.ts:425:        test.skip(
+  /home/user/GACP-Certification-Application/apps/web-app/playwright/account-split-journey.spec.ts:138:        test.skip(
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:58:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:77:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:100:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/farmer-services-carpet.spec.ts:141:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:90:        test.skip(!ApplicantToken, 'No Applicant token');
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:117:            test.skip(true, `Farm API returned ${response.status()}`);
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:123:        test.skip(!ApplicantToken || !farmId, 'Missing dependencies');
+  /home/user/GACP-Certification-Application/apps/web-app/e2e/e2e-golden-scenario.spec.ts:162:            test.skip(true, `submit gated (${submitResponse.status()}) — draft incomplete by design; downstream payment/review stages skipped`);
+  exit=1
+  → รวม 10 hit ใน 4 ไฟล์: farmer-full-journey.spec.ts (1) · account-split-journey.spec.ts (1)
+    · farmer-services-carpet.spec.ts (4) · e2e-golden-scenario.spec.ts (4)
+
+  พิสูจน์ว่า pre-existing ไม่ได้เกิดจาก PR นี้ — รันตัวเดียวกันบน origin/main:
+  $ git checkout --detach origin/main      # 71707c67
+  $ bash scripts/probes/no-skip.sh
+    → output **เหมือนกันทุกบรรทัด** 10 hit ใน 4 ไฟล์เดิม exit=1
+  $ git checkout feat/auth-01-a-identity-links     # กลับมาที่ eae9f47e, git status --porcelain ว่าง
+    เทียบตัวเลขสองฝั่ง: origin/main = 10 · branch นี้ = 10 · delta = 0
+    ไฟล์ทั้ง 4 อยู่ใน apps/web-app (playwright/e2e) — PR นี้ไม่ได้แตะสักไฟล์
+    ไฟล์ของงานนี้ไม่มี hit: grep -c identity → 0
+
+
+==================================================================
+GATES รอบแก้ finding จาก audit ของ PR #744 (รันจริงใน session 2026-08-04)
+==================================================================
+ไฟล์ที่แก้ในรอบนี้:
+  apps/backend/__tests__/unit/identity-provider-naming-collision.test.js   (M-1, N-2)
+  apps/backend/__tests__/integration/identity-links.test.js                (N-1)
+  apps/backend/prisma/migrations/20260804013000_add_identity_links/migration.sql  (M-1 #4 claim)
+  evidence/AUTH-01/A/contract-cid-demotion.md                              (M-1 #4 claim, M-3)
+  evidence/AUTH-01/A/gates.txt                                             (M-2 — ไฟล์นี้)
+  evidence/AUTH-01/probe-results.json                                      (N-3)
+  evidence/AUTH-01/A/red-a3-escapes.txt                                    (ใหม่ — RED evidence)
+  evidence/AUTH-01/A/n1-negative-control-sql.txt                           (ใหม่ — N-1 SQL proof)
+ไม่ได้แตะโค้ด runtime แม้แต่ไฟล์เดียว (services/ routes/ middleware/ scripts/ ฯลฯ)
+
+### G1 — pin suite เดี่ยว
+$ cd apps/backend && npx jest --config jest.config.cjs \
+    --testPathPattern 'unit/identity-provider-naming-collision' --no-coverage
+  PASS __tests__/unit/identity-provider-naming-collision.test.js
+    ✓ sanity: scanner อ่านไฟล์โค้ดจริงได้ และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (14 ms)
+    ✓ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (17 ms)
+    ✓ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+    ✓ ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID (11 ms)
+    ✓ ไม่มีโค้ดเขียน identity_links ของ provider จริงผ่าน raw SQL ($executeRaw* / $queryRaw*) (16 ms)
+  Test Suites: 1 passed, 1 total
+  Tests:       5 passed, 5 total
+  → ไม่มี false positive จากไฟล์เดิมในทรีหลังขยาย regex + เพิ่ม 'scripts' ใน SCAN_DIRS
+    (ตรวจล่วงหน้าด้วยว่าเพิ่ม scripts แล้วมี hit ในของเดิมหรือไม่ → 0 hit ทั้งสาม
+     assertion ที่นับ violation จึงไม่ต้องแตะโค้ดใน scripts/ เลย)
+
+### G2 — full suite (apps/backend ทั้งชุด)
+$ cd apps/backend && npx jest --config jest.config.cjs --no-coverage
+  FAIL __tests__/unit/dataset-export-service.test.js
+  Test Suites: 1 failed, 7 skipped, 530 passed, 531 of 538 total
+  Tests:       1 failed, 74 skipped, 7147 passed, 7222 total
+  เทียบ baseline ของ branch นี้ (7146 passed / 1 failed / 74 skipped):
+    passed +1 (เทสต์ raw SQL ตัวใหม่) · failed +0 · skipped +0
+  ตัวที่ fail ยังเป็น dataset-export-service (Prisma.dmmf) — pre-existing L-005
+
+### G3 — scripts/probes/ratchet.sh
+  hardcode: 43
+  todo: 59
+  env-direct: 169
+  dup-source: 4
+  dead-route: DRAFT (no mechanical counter yet)
+  PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4
+  → 43/59/169/4 ไม่ขยับแม้แต่ตัวเดียว
+
+### G4 — eslint ไฟล์ที่แก้
+$ cd apps/backend && npx eslint __tests__/unit/identity-provider-naming-collision.test.js \
+    __tests__/integration/identity-links.test.js
+  exit=0 (ไม่มี output = ไม่มี error/warning)
+
+### G5 — node scripts/ci/check-thai-copy-style.js
+  [thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+  exit=0
+
+### G6 — npm run check:banned-terms
+  [banned-terms] Repository scan passed
+
+### G7 — WORK_ITEM=AUTH-01 bash scripts/probes/evidence-complete.sh
+  PASS: pack complete: /home/user/GACP-Certification-Application/evidence/AUTH-01
+  exit=0
+
+### G เสริม — CI job เดียวกันที่แตะไฟล์ที่แก้ (รวม migration.sql)
+  check-identity-field-usage           exit=0  [identity-field-usage] OK
+  check-mojibake-encoding              exit=0  [encoding-check] PASS
+  check-prisma-migration-consistency   exit=0  [prisma-consistency] Strict drift check skipped (SHADOW_DATABASE_URL not set)
+  validate-workflow-paths              exit=0  all 30 script reference(s) across 12 workflow(s) resolve
+
+### สิ่งที่ยืนยันในเครื่องนี้ไม่ได้ (ตามจริง — Law 3.8)
+  __tests__/integration/identity-links.test.js เทสต์ (6) ที่แก้ตาม N-1 **รันด้วย jest
+  บนเครื่องนี้ไม่ได้** — @prisma/client generate ไม่ได้ (engine 403 ตาม GATE 1) และ
+  suite self-skip เพราะไม่มี DATABASE_URL ⇒ ในเครื่องนี้พิสูจน์ได้แค่ชั้น SQL บน
+  PostgreSQL จริง (evidence/AUTH-01/A/n1-negative-control-sql.txt) ส่วนการรันผ่าน
+  Prisma client ต้องรอ CI job ที่ wiring postgres ไว้ (.github/workflows/ci.yml
+  step "Assert real-Postgres suites actually ran (not skipped)")

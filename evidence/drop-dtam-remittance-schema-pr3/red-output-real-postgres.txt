@@ -1,0 +1,148 @@
+RED — real Postgres 17.11 scratch (127.0.0.1:5443), tree = 07a3aa60 + this test only (no drop migration, no guard script, old schema) · node v24.21.0
+cmd: TEST_DATABASE_URL=<scratch> npx jest --config jest.config.cjs __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js -i
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T15:50:10.226Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T15:50:10.230Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T15:50:10.231Z"}
+[32minfo[39m: [checkout] intent ready {"actorId":"af59b68c-7c01-4e79-b43a-3d32a0b28d0a","applicationId":"daa734c0-a08c-469a-9bef-2341da4e511c","checkoutOrderId":"655d7d2b-8881-4346-924f-48aa245de1d0","milestone":"M1","service":"gacp-backend","timestamp":"2026-09-29T15:50:13.326Z"}
+FAIL __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js (6.471 s)
+  PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง
+    1. ฐานที่ยังมี order ค้างส่วนของกรมฯ
+      ✕ ตัวตรวจก่อน deploy: exit 1 พร้อมตัวเลขต่อสถานะ และไม่พิมพ์รหัสผ่านฐาน (33 ms)
+      ✕ migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย (850 ms)
+    2. ฐานที่ order เก่าถูกปลดแล้ว
+      ✕ ตัวตรวจก่อน deploy: exit 0 (46 ms)
+      ✕ migrate deploy ผ่าน: ตารางและคอลัมน์หาย, CHECK ใหม่อยู่, แถวเก่ายังอยู่และยอดไม่ถูกแตะ (782 ms)
+      ✕ CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้ (18 ms)
+      ✕ mint + settle ใหม่ทั้งเส้นบนคำขอเดียวกับ order เก่า: ลง 1110-001 / 4110-001 / 2131-001 เท่านั้น (190 ms)
+      ✕ หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้ (30 ms)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 1. ฐานที่ยังมี order ค้างส่วนของกรมฯ › ตัวตรวจก่อน deploy: exit 1 พร้อมตัวเลขต่อสถานะ และไม่พิมพ์รหัสผ่านฐาน
+
+    SyntaxError: Expected property name or '}' in JSON at position 4 (line 2 column 3)
+        at JSON.parse (<anonymous>)
+
+      197 |             const r = run(process.execPath, [GUARD], urls.refuse);
+      198 |             expect(r.status).toBe(1);
+    > 199 |             const report = JSON.parse(r.out.slice(r.out.indexOf('{'), r.out.lastIndexOf('}') + 1));
+          |                                 ^
+      200 |             expect(report.verdict).toBe('BLOCKED');
+      201 |             expect(report.blockingOrdersByStatus).toEqual({ PENDING_PAYMENT: 1 });
+      202 |             expect(report.blockingOrders.map((o) => o.id)).toEqual([ids.refuse.oldOrderId]);
+
+      at Object.parse (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:199:33)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 1. ฐานที่ยังมี order ค้างส่วนของกรมฯ › migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not 0
+
+      209 |         test('migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย', async () => {
+      210 |             const r = run(PRISMA_BIN, ['migrate', 'deploy', '--schema', SCHEMA], urls.refuse);
+    > 211 |             expect(r.status).not.toBe(0);
+          |                                  ^
+      212 |             expect(r.out).toContain('DTAM_SCHEMA_DROP_REFUSED');
+      213 |             expect(r.out).toMatch(/1 checkout_orders row\(s\) carry dtam_fee_amount > 0 and are not CANCELLED \(PENDING_PAYMENT=1\)/);
+      214 |             expect(r.out).toMatch(/1 dtam_remittance_batches row\(s\) are not OPEN \(REMITTED=1\)/);
+
+      at Object.toBe (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:211:34)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 2. ฐานที่ order เก่าถูกปลดแล้ว › ตัวตรวจก่อน deploy: exit 0
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      227 |         test('ตัวตรวจก่อน deploy: exit 0', () => {
+      228 |             const r = run(process.execPath, [GUARD], urls.ok);
+    > 229 |             expect(r.status).toBe(0);
+          |                              ^
+      230 |             const report = JSON.parse(r.out.slice(r.out.indexOf('{'), r.out.lastIndexOf('}') + 1));
+      231 |             expect(report.verdict).toBe('SAFE_TO_DROP');
+      232 |             expect(report.blockingOrdersByStatus).toEqual({});
+
+      at Object.toBe (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:229:30)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 2. ฐานที่ order เก่าถูกปลดแล้ว › migrate deploy ผ่าน: ตารางและคอลัมน์หาย, CHECK ใหม่อยู่, แถวเก่ายังอยู่และยอดไม่ถูกแตะ
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      240 |
+      241 |             const c = clients.ok;
+    > 242 |             expect(await tableExists(c, 'dtam_remittance_batches')).toBe(false);
+          |                                                                     ^
+      243 |             const cols = await columnsOf(c, 'checkout_orders');
+      244 |             for (const gone of ['dtam_fee_amount', 'dtam_remittance_status', 'remittanceBatchId']) {
+      245 |                 expect({ gone, present: cols.includes(gone) }).toEqual({ gone, present: false });
+
+      at Object.toBe (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:242:69)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 2. ฐานที่ order เก่าถูกปลดแล้ว › CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้
+
+    expect(received).rejects.toThrow(expected)
+
+    Expected pattern: /checkout_orders_total_arithmetic_check/
+    Received message: "
+    Invalid `prisma.$executeRawUnsafe()` invocation:··
+    Raw query failed. Code: `23502`. Message: `Failing row contains (pr3-bad-1790697007862_p6p4u9, 2026-09-29 15:50:13.143, 2026-09-29 15:50:13.143, daa734c0-a08c-469a-9bef-2341da4e511c, M2, null, 500.00, 385.00, 885.00, 5885.00, PENDING_PAYMENT, null, null, null, null, null, null, null, d211ac42-c2a8-4bb4-9981-6329a5f04fac, null, null, null, null).`"
+
+          260 |         test('CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้', async () => {
+          261 |             const c = clients.ok;
+        > 262 |             await expect(c.$executeRawUnsafe(
+              |             ^
+          263 |                 `INSERT INTO checkout_orders (id, "updatedAt", "applicationId", milestone, platform_fee_net, platform_fee_vat,
+          264 |                     platform_fee_gross, total_payable_amount, status, "organizationId")
+          265 |                  VALUES ($1, now(), $2, 'M2', 500, 385, 885, 5885, 'PENDING_PAYMENT', $3)`,
+
+      at $n.handleRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7315)
+      at $n.handleAndLogRequestError (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)
+      at $n.request (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)
+      at l (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)
+      at Object.<anonymous> (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:262:13)
+      at Object.toThrow (../../node_modules/.pnpm/expect@30.2.0/node_modules/expect/build/index.js:2155:20)
+      at Object.toThrow (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:267:24)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 2. ฐานที่ order เก่าถูกปลดแล้ว › mint + settle ใหม่ทั้งเส้นบนคำขอเดียวกับ order เก่า: ลง 1110-001 / 4110-001 / 2131-001 เท่านั้น
+
+    expect(received).not.toHaveProperty(path)
+
+    Expected path: not "dtamPayableAmount"
+
+    Received value: "0"
+
+      304 |                 gross: Number(order.platformFeeGross), total: Number(order.totalPayableAmount),
+      305 |             }).toEqual({ status: 'PENDING_PAYMENT', net: 5500, vat: 385, gross: 5885, total: 5885 });
+    > 306 |             expect(order).not.toHaveProperty('dtamPayableAmount');
+          |                               ^
+      307 |
+      308 |             const eventId = `evt_pr3_${suffix}`;
+      309 |             await c.stripeWebhookEvent.create({
+
+      at Object.toHaveProperty (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:306:31)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 2. ฐานที่ order เก่าถูกปลดแล้ว › หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      334 |         test('หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้', () => {
+      335 |             const r = run(process.execPath, [GUARD], urls.ok);
+    > 336 |             expect(r.status).toBe(0);
+          |                              ^
+      337 |             const report = JSON.parse(r.out.slice(r.out.indexOf('{'), r.out.lastIndexOf('}') + 1));
+      338 |             expect(report.verdict).toBe('ALREADY_DROPPED');
+      339 |
+
+      at Object.toBe (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:336:30)
+
+Test Suites: 1 failed, 1 total
+Tests:       7 failed, 7 total
+Snapshots:   0 total
+Time:        6.521 s
+Ran all test suites matching __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js.

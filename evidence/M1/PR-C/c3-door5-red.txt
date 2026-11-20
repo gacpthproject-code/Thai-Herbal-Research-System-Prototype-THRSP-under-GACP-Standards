@@ -1,0 +1,100 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/m1-submit-guard-doors.test.js
+  M1 — POST /bundles/:id/submit asks the guard about EVERY linked case
+    √ a linked case with no entityId (nothing to heal) → 400 VALIDATION_ERROR, no transaction opened (101 ms)
+    √ a linked case the caller may not act for → 403 ENTITY_PERMISSION_DENIED + audit FAILURE, nothing written (18 ms)
+    √ every allowed case is asked about by its OWN entityId, then submitted (14 ms)
+    √ heals a pre-Phase-66 linked case from the personal entity instead of refusing it (11 ms)
+  M1 — PUT /revision-deadline/:id/submit
+    √ health user who may not act for the application entity → 403, deadline row untouched (15 ms)
+    √ health user who may act → submits, and the row records in whose name (11 ms)
+    √ provider bypass survives, but ALWAYS writes an actorType PROVIDER row naming the entity (11 ms)
+  M1 — POST /applications/:id/car
+    √ refuses with 403 when the caller may not act for the application entity — nothing written (15 ms)
+    √ refuses with 400 when the row names no entity and nothing can be healed (12 ms)
+    √ allows the owner through, asking about the application row entity (22 ms)
+  M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too
+    × no entityId and nothing to heal → 400 VALIDATION_ERROR, submitRevision never runs (194 ms)
+    × caller who may not act for the entity → 403 + audit FAILURE, submitRevision never runs (11 ms)
+    × allowed → asks about the row entity, submits, and records the accepted act (AC3) (11 ms)
+    × heals a pre-Phase-66 row from the personal entity before deciding (10 ms)
+  M1 — POST /applications/renewals seeds entityId or refuses
+    √ carried an entityId from the source application → 201 (119 ms)
+    √ source had none → heals from the personal entity → 201 (46 ms)
+    √ nothing to seed and nothing to heal → 400 VALIDATION_ERROR (never a draft that can never be submitted) (13 ms)
+
+  ● M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too › no entityId and nothing to heal → 400 VALIDATION_ERROR, submitRevision never runs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+    [0m [90m 428 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m put()[33m;[39m
+     [90m 429 |[39m
+    [31m[1m>[22m[39m[90m 430 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 431 |[39m         expect(r[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'VALIDATION_ERROR'[39m)[33m;[39m
+     [90m 432 |[39m         expect(applicationService[33m.[39msubmitRevision)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 433 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/m1-submit-guard-doors.test.js:430:26)
+
+  ● M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too › caller who may not act for the entity → 403 + audit FAILURE, submitRevision never runs
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 200
+
+    [0m [90m 438 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m put()[33m;[39m
+     [90m 439 |[39m
+    [31m[1m>[22m[39m[90m 440 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m403[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 441 |[39m         expect(r[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'ENTITY_PERMISSION_DENIED'[39m)[33m;[39m
+     [90m 442 |[39m         expect(applicationService[33m.[39msubmitRevision)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 443 |[39m         expect(auditCalls())[33m.[39mtoContainEqual(expect[33m.[39mobjectContaining({[0m
+
+      at Object.toBe (__tests__/unit/m1-submit-guard-doors.test.js:440:26)
+
+  ● M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too › allowed → asks about the row entity, submits, and records the accepted act (AC3)
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"entityId": "ent-1", "permission": "SUBMIT_APPLICATION", "userId": "user-1"}
+
+    Number of calls: 0
+
+    [0m [90m 451 |[39m
+     [90m 452 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 453 |[39m         expect(assertEntityActionPermission)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mobjectContaining({
+     [90m     |[39m                                              [31m[1m^[22m[39m
+     [90m 454 |[39m             entityId[33m:[39m [32m'ent-1'[39m[33m,[39m userId[33m:[39m [32m'user-1'[39m[33m,[39m permission[33m:[39m [32m'SUBMIT_APPLICATION'[39m[33m,[39m
+     [90m 455 |[39m         }))[33m;[39m
+     [90m 456 |[39m         expect(applicationService[33m.[39msubmitRevision)[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/m1-submit-guard-doors.test.js:453:46)
+
+  ● M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too › heals a pre-Phase-66 row from the personal entity before deciding
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"entityId": "ent-personal"}
+
+    Number of calls: 0
+
+    [0m [90m 471 |[39m
+     [90m 472 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 473 |[39m         expect(assertEntityActionPermission)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mobjectContaining({
+     [90m     |[39m                                              [31m[1m^[22m[39m
+     [90m 474 |[39m             entityId[33m:[39m [32m'ent-personal'[39m[33m,[39m
+     [90m 475 |[39m         }))[33m;[39m
+     [90m 476 |[39m     })[33m;[39m[0m
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/m1-submit-guard-doors.test.js:473:46)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 13 passed, 17 total
+Snapshots:   0 total
+Time:        4.061 s
+Ran all test suites matching /m1-submit-guard-doors/i.

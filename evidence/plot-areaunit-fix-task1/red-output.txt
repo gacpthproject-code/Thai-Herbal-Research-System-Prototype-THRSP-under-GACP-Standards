@@ -1,0 +1,200 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/application-review-revision-plot-areaunit.test.js
+  submitRevision — plot areaUnit validated on the REVISION_REQUESTED resubmit door (F-PLOT-AREAUNIT-DEADEND fix, Task 1)
+    × resubmit whose plot has NO areaUnit → 422 errorsByStep[5], no transition written, no quotation (9 ms)
+    √ resubmit whose plot HAS a valid (UI-cased) areaUnit still succeeds — byte-identical success path (2 ms)
+
+  ● submitRevision — plot areaUnit validated on the REVISION_REQUESTED resubmit door (F-PLOT-AREAUNIT-DEADEND fix, Task 1) › resubmit whose plot has NO areaUnit → 422 errorsByStep[5], no transition written, no quotation
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 422
+    Received: 200
+
+    [0m [90m 127 |[39m         [36mconst[39m result [33m=[39m [36mawait[39m methods[33m.[39msubmitRevision([32m'app-1'[39m[33m,[39m { formData[33m:[39m {}[33m,[39m notes[33m:[39m [32m'fixed'[39m }[33m,[39m actor)[33m;[39m
+     [90m 128 |[39m
+    [31m[1m>[22m[39m[90m 129 |[39m         expect(result[33m.[39mstatus)[33m.[39mtoBe([35m422[39m)[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 130 |[39m         expect(result[33m.[39mbody)[33m.[39mtoMatchObject({ success[33m:[39m [36mfalse[39m[33m,[39m error[33m:[39m [32m'APPLICATION_INCOMPLETE'[39m })[33m;[39m
+     [90m 131 |[39m         expect(result[33m.[39mbody[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 132 |[39m         expect(writeApplicationStatus)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/application-review-revision-plot-areaunit.test.js:129:31)
+
+FAIL __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (100 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (14 ms)
+    × (b3) plot missing areaUnit → 422 with step-5 error (F-PLOT-AREAUNIT-DEADEND fix) (12 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (12 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (16 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (11 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (13 ms)
+
+  ● C2 — canonical /submit with REAL validators (no mock) › (b3) plot missing areaUnit → 422 with step-5 error (F-PLOT-AREAUNIT-DEADEND fix)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 422
+    Received: 500
+
+    [0m [90m 217 |[39m         mockDraft(fd)[33m;[39m
+     [90m 218 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/applications/submit'[39m)[33m.[39msend({})[33m;[39m
+    [31m[1m>[22m[39m[90m 219 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m422[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 220 |[39m         expect(r[33m.[39mbody[33m.[39merror)[33m.[39mtoBe([32m'APPLICATION_INCOMPLETE'[39m)[33m;[39m
+     [90m 221 |[39m         expect(r[33m.[39mbody[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 222 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/applications-submit-canonical-validation.test.js:219:26)
+
+FAIL __tests__/unit/canonical-application-validator.test.js
+  C2 — normalizeCanonicalToSteps (canonical → step shape)
+    √ maps farm/plot canonical fields into STEP 5 (plot=step5, not step2) (2 ms)
+    √ maps applicantData into STEP 4 (1 ms)
+    √ maps harvest/quality canonical fields into STEP 7 (1 ms)
+    √ maps production canonical fields into STEP 6 (11 ms)
+  C2 — validateCanonicalSubmission (real Zod, complete payload)
+    √ ACCEPTS a complete canonical INDIVIDUAL application (3 ms)
+    √ ACCEPTS a complete canonical JURISTIC application (2 ms)
+  C2 — validateCanonicalSubmission (real Zod, INCOMPLETE payloads reject)
+    √ REJECTS when plots are missing (no plot = step 5 error) (1 ms)
+    √ REJECTS when farmData.farmName is missing (step 5 error) (1 ms)
+    √ REJECTS when applicant data is missing (step 4 error) (1 ms)
+    √ REJECTS when production data (propagation/plantParts) is missing (step 6 error) (2 ms)
+    √ REJECTS when harvestMethod is missing (step 7 error) (1 ms)
+    √ REJECTS when no documents are uploaded (step 8 error) (1 ms)
+    √ REJECTS when plant selection is missing (step 2 error) (1 ms)
+    √ REJECTS a totally empty canonical payload with multiple step errors (2 ms)
+  C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1)
+    × REJECTS when the only plot has no areaUnit at all (step 5 error, names the plot) (1 ms)
+    × REJECTS plots[1] missing a unit even when plots[0] is valid — the plots[0]-blindness bug (1 ms)
+    √ ACCEPTS areaUnit "sqm" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "rai" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ngan" from the closed enum
+    √ ACCEPTS areaUnit "sqwa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "square_wa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "squarewa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "sqw" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "wa2" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ตารางวา" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ตารางเมตร" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ไร่" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "งาน" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "Sqm" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "SQM" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "Rai" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "RAI" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "Ngan" case-insensitively (UI casing) (1 ms)
+    × REJECTS areaUnit "ไร่ครึ่ง" (not in the closed enum) (2 ms)
+    × REJECTS areaUnit "acres" (not in the closed enum) (2 ms)
+    × REJECTS areaUnit "hectare" (not in the closed enum) (1 ms)
+    × REJECTS areaUnit "  " (not in the closed enum) (1 ms)
+
+  ● C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1) › REJECTS when the only plot has no areaUnit at all (step 5 error, names the plot)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 221 |[39m         [36mdelete[39m fd[33m.[39mplots[[35m0[39m][33m.[39mareaUnit[33m;[39m
+     [90m 222 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 223 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 224 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 225 |[39m         [36mconst[39m messages [33m=[39m result[33m.[39merrorsByStep[[32m'5'[39m][33m.[39mmap((e) [33m=>[39m e[33m.[39mmessage)[33m.[39mjoin([32m' '[39m)[33m;[39m
+     [90m 226 |[39m         [90m// Actionable Thai message names the plot (by its own name/index).[39m[0m
+
+      at Object.toBe (__tests__/unit/canonical-application-validator.test.js:223:32)
+
+  ● C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1) › REJECTS plots[1] missing a unit even when plots[0] is valid — the plots[0]-blindness bug
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 235 |[39m         ][33m;[39m
+     [90m 236 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 237 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 238 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 239 |[39m         [36mconst[39m messages [33m=[39m result[33m.[39merrorsByStep[[32m'5'[39m][33m.[39mmap((e) [33m=>[39m e[33m.[39mmessage)[33m.[39mjoin([32m' '[39m)[33m;[39m
+     [90m 240 |[39m         expect(messages)[33m.[39mtoContain([32m'แปลงที่ 2'[39m)[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/canonical-application-validator.test.js:237:32)
+
+  ● C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1) › REJECTS areaUnit "ไร่ครึ่ง" (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 262 |[39m         fd[33m.[39mplots[[35m0[39m][33m.[39mareaUnit [33m=[39m unit[33m;[39m
+     [90m 263 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 264 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 265 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 266 |[39m     })[33m;[39m
+     [90m 267 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:264:32)
+
+  ● C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1) › REJECTS areaUnit "acres" (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 262 |[39m         fd[33m.[39mplots[[35m0[39m][33m.[39mareaUnit [33m=[39m unit[33m;[39m
+     [90m 263 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 264 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 265 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 266 |[39m     })[33m;[39m
+     [90m 267 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:264:32)
+
+  ● C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1) › REJECTS areaUnit "hectare" (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 262 |[39m         fd[33m.[39mplots[[35m0[39m][33m.[39mareaUnit [33m=[39m unit[33m;[39m
+     [90m 263 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 264 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 265 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 266 |[39m     })[33m;[39m
+     [90m 267 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:264:32)
+
+  ● C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1) › REJECTS areaUnit "  " (not in the closed enum)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 262 |[39m         fd[33m.[39mplots[[35m0[39m][33m.[39mareaUnit [33m=[39m unit[33m;[39m
+     [90m 263 |[39m         [36mconst[39m result [33m=[39m validateCanonicalSubmission(fd[33m,[39m completeDocuments())[33m;[39m
+    [31m[1m>[22m[39m[90m 264 |[39m         expect(result[33m.[39misValid)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 265 |[39m         expect(result[33m.[39merrorsByStep[[32m'5'[39m])[33m.[39mtoBeDefined()[33m;[39m
+     [90m 266 |[39m     })[33m;[39m
+     [90m 267 |[39m })[33m;[39m[0m
+
+      at toBe (__tests__/unit/canonical-application-validator.test.js:264:32)
+
+Test Suites: 3 failed, 3 total
+Tests:       8 failed, 38 passed, 46 total
+Snapshots:   0 total
+Time:        3.627 s, estimated 21 s
+Ran all test suites matching /__tests__\\unit\\canonical-application-validator.test.js|__tests__\\unit\\applications-submit-canonical-validation.test.js|__tests__\\unit\\application-review-revision-plot-areaunit.test.js/i.

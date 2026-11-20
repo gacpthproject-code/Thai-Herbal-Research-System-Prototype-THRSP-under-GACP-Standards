@@ -1,0 +1,127 @@
+# E2E Staging Nightly — runs the web-app Playwright suites against STAGING.
+#
+# Why this exists: the portal e2e specs were NOT in CI and silently drifted from
+# the live app for months (selector/endpoint/response-shape staleness found by the
+# 2026-06-10 carpet sweep, PR #403). A nightly run keeps them honest.
+#
+# Design notes (lessons from the carpet sweep):
+#   - Suites run SEQUENTIALLY with --workers=1: staging shares the prod droplet's
+#     strict rate-limiter; parallel suites from one IP cause 429s on login and
+#     false failures. Do NOT parallelize this.
+#   - E2E_API_BASE_URL is intentionally NOT set: specs default API_BASE='/api',
+#     riding E2E_BASE_URL through the frontend proxy (the supported mode).
+#   - These tests MUTATE staging (register users, create drafts) — staging only,
+#     never point E2E_BASE_URL at production.
+#   - Skips green when secrets are absent so forks/pre-setup repos don't go red.
+#
+# Required repository secrets (owner: Settings → Secrets → Actions):
+#   E2E_TEST_IDENTIFIER  — seeded HEALTH applicant 13-digit id
+#   E2E_TEST_PASSWORD    — its password
+#   E2E_PROVIDER_USERNAME / E2E_PROVIDER_PASSWORD — seeded provider (ADMIN works)
+# Optional:
+#   E2E_BASE_URL — defaults to https://staging.gacpth.com
+
+name: E2E Staging Nightly
+
+on:
+  schedule:
+    - cron: '30 21 * * *' # 04:30 Asia/Bangkok, before the workday
+  workflow_dispatch: {}
+
+concurrency:
+  group: e2e-staging-nightly
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24.x'
+
+jobs:
+  e2e-staging:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - name: Gate on secrets
+        id: gate
+        env:
+          HAS_SECRETS: ${{ secrets.E2E_TEST_IDENTIFIER != '' && secrets.E2E_TEST_PASSWORD != '' && secrets.E2E_PROVIDER_USERNAME != '' && secrets.E2E_PROVIDER_PASSWORD != '' }}
+        run: |
+          echo "enabled=${HAS_SECRETS}" >> "$GITHUB_OUTPUT"
+          if [ "${HAS_SECRETS}" != "true" ]; then
+            echo "::notice::E2E staging secrets not configured — skipping nightly run (see workflow header for the required secret names)."
+          fi
+
+      - name: Checkout
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        if: steps.gate.outputs.enabled == 'true'
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        if: steps.gate.outputs.enabled == 'true'
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        if: steps.gate.outputs.enabled == 'true'
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright browsers
+        if: steps.gate.outputs.enabled == 'true'
+        # Scoped bootstrap (same rationale as ci.yml): workspace install keeps
+        # --ignore-scripts for supply-chain safety; this is the explicit browser step.
+        run: pnpm --filter web-app exec playwright install --with-deps chromium
+
+      - name: Run Playwright suites sequentially vs staging
+        if: steps.gate.outputs.enabled == 'true'
+        working-directory: apps/web-app
+        env:
+          E2E_BASE_URL: ${{ secrets.E2E_BASE_URL || 'https://staging.gacpth.com' }}
+          E2E_TEST_IDENTIFIER: ${{ secrets.E2E_TEST_IDENTIFIER }}
+          E2E_TEST_PASSWORD: ${{ secrets.E2E_TEST_PASSWORD }}
+          E2E_PROVIDER_USERNAME: ${{ secrets.E2E_PROVIDER_USERNAME }}
+          E2E_PROVIDER_PASSWORD: ${{ secrets.E2E_PROVIDER_PASSWORD }}
+          # P1-e2e: shared secret for the gated /e2e/golden-scenario route. Must
+          # match E2E_SECRET set on the staging backend container; if absent the
+          # golden-scenario step tolerates 401 (route fail-closed).
+          E2E_SECRET: ${{ secrets.E2E_SECRET }}
+        run: |
+          set +e
+          FAILED=""
+          # Order: fast gate first, page sweep, then API/portal flows, mutating flows last.
+          for SPEC in \
+            e2e/smoke.spec.ts \
+            e2e/carpet-pages.spec.ts \
+            e2e/e2e-trace.spec.ts \
+            e2e/e2e-health-portal.spec.ts \
+            e2e/e2e-provider-portal.spec.ts \
+            e2e/e2e-admin-portal.spec.ts \
+            e2e/e2e-golden-scenario.spec.ts \
+            e2e/uat-business-rules.spec.ts
+          do
+            echo "::group::${SPEC}"
+            npx playwright test "${SPEC}" --project=chromium --workers=1 --reporter=line
+            CODE=$?
+            echo "::endgroup::"
+            if [ "${CODE}" -ne 0 ]; then FAILED="${FAILED} ${SPEC}"; fi
+          done
+          if [ -n "${FAILED}" ]; then
+            echo "::error::Failed suites:${FAILED}"
+            exit 1
+          fi
+
+      - name: Upload Playwright artifacts
+        if: steps.gate.outputs.enabled == 'true' && always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-staging-nightly-artifacts
+          path: |
+            apps/web-app/playwright-report
+            apps/web-app/test-results
+          if-no-files-found: ignore
+          retention-days: 14

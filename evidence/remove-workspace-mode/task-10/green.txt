@@ -1,0 +1,125 @@
+# R2 Task 10 — GREEN — 2026-10-03
+Tree: feat/remove-workspace-mode, on top of 5b0594be (side fix, see fix-farm-refusal-photo.txt).
+Real Postgres: throwaway postgres:17 on :55437 (migrate deploy, jest -i). Never staging/demo.
+Signing key mtime 1788623435 before and after every run (unit, integration, focused, isolated reruns).
+
+## 1. touched suites (real PG for the integration files): 12 suites, 137 passed, 0 failed, 0 skipped
+  integration/farm-create-holder-real-postgres.test.js 11/11 (real server, real permission engine):
+    v no entityId -> 400 APPLICATION_HOLDER_REQUIRED (spec §3.6 copy); farms/plots/files unchanged
+    v MANAGER B on C -> 403 ENTITY_PERMISSION_DENIED FARM_CREATE; farms/plots/files unchanged
+    v VIEWER V on C -> 403; unchanged · v stranger S names C -> 403; unchanged
+    v missing fields with a photo -> 400; unchanged
+    v A (OWNER) on personal PA -> 201 entityId PA, photo kept · v A on C -> 201 entityId C
+    v header PA + body C -> farm on C (header never decides)
+    v GET /api/wizard/{config,draft,admin/steps} -> 404 with ENABLE_PROVIDER_LEGACY_ALIAS=true
+    v POST /api/wizard/{submit,prepare,draft} -> 404, applications/farms/plots/files unchanged
+    v the same flag still mounts /provider-cms (Deprecation header)
+  unit/farm-permission-gates 13/13 · unit/farm-entityid-stamp 8/8 (see red.txt for the case names)
+  unit/applications-draft-formdata-allowlist, draft-document-delete-removes-bytes, plot-code-extension,
+  n-plus-one-batching, phase-amount-canonical-writers, status-writer-canonical-vocabulary,
+  submit-materialises-the-farm-the-certificate-names, error-codes-source-pointers,
+  integration/phase-amount-canonical: all PASS.
+
+## 2. deleted / moved test cases, one by one
+  unit/wizard-draft-document-path-confinement.test.js (file deleted with controllers/wizard-controller.js):
+    - "refuses to unlink an absolute path outside the uploads root" -> moved to the live delete door:
+      unit/draft-document-delete-removes-bytes.test.js "moved: a fileUrl that is an absolute path outside /uploads is REFUSED"
+    - "refuses to unlink a traversal path that escapes the uploads root" -> already pinned there:
+      "a fileUrl pointing outside the uploads root is REFUSED, not unlinked"
+    - "refuses a sibling directory that merely shares the root prefix" -> moved: "moved: a sibling directory ... REFUSED"
+    - "still unlinks a genuine upload inside the root" -> already pinned: "unlinks the stored file inside the uploads root"
+    - "removes the record from formData even when the path is refused" -> moved: "moved: the record is removed ... refused"
+    - "keeps the stored uploadedDocuments when the client sends its own" -> moved to the live /draft door:
+      unit/applications-draft-formdata-allowlist.test.js "does not let an autosave author the uploadedDocuments record"
+    - "keeps the stored uploadedDocuments on the version-checked update path" -> pins only the wizard door
+      (ApplicationDraft.updateMany version path exists only in the deleted controller) — deleted
+  unit/farm-entityid-stamp.test.js:
+    - executeWizardSubmission x4 (farm entityId from ALS, null-safe; application entityId from ALS, null-safe)
+      -> pin only the wizard door — deleted. The live /submit stamps draft.entityId
+      (submit-materialises-the-farm-the-certificate-names "carries the area in square metres and the workspace it belongs to").
+    - "stamps entityId from the active-entity ALS context" / "is null-safe without any entity context"
+      -> rewritten to the R2 rule: "createFarm without entityId throws ..." (x2) — the fallback is gone.
+  unit/farm-permission-gates.test.js: the 4 "workspace context only" POST cases -> rewritten (7 cases, section 1).
+  integration/phase-amount-canonical.test.js "writer: application-submission-methods.executeWizardSubmission"
+    -> pins only the wizard door — deleted (saveDraft writer case stays).
+  unit/n-plus-one-batching.test.js "wizard submission — N plots cost one insert" -> pins only the wizard door
+    (the live /submit creates no plots) — deleted.
+  unit/plot-code-extension.test.js "wizard path — executeWizardSubmission gives every submitted plot its own code"
+    -> moved to the hook: "createMany gives every row in the batch its own valid code".
+  unit/phase-amount-canonical-writers.test.js: the deleted file left WRITER_FILES.
+  Moved cases on the live doors are PINS (green from birth): the live doors already behaved this way.
+
+## 3. focused real-PG set (23 suites matching real-postgres|neutral|door-walk): 231 passed, 0 skipped.
+  R1 neutrality expected files: no row moved (git diff of __tests__/fixtures/*.expected.json empty).
+  No R1 legacy pin touched (Task 12 owns them).
+
+## 4. full backend suite on scratch PG
+  non-integration (parallel): Suites 2 failed / 1 skipped / 856 passed (859) · Tests 2 failed / 41 skipped / 11928 passed
+    - document-precheck/extract.test.js "a timeout ... leaves no child process behind" (sawChildRunning false under
+      full-parallel load; alone: 13/13 PASS) — timing flake
+    - renewal-fast-path.test.js "an audit-trail row records the skip..." — known (BACKLOG Task 9: fails with DATABASE_URL
+      on an empty DB; alone without DATABASE_URL: 16/16 PASS)
+    - skipped suite = __tests__/smoke-all-endpoints.test.js:16 (SMOKE_ENABLED off), untouched
+  integration (-i): Suites 10 failed / 1 skipped / 101 passed (112) · Tests 32 failed / 13 skipped / 797 passed (842)
+    - 31 failure names identical to the known base set (comm -3 against the base name list = one line, below);
+      9 suites: a0-pr2-per-hop-invariant, m1-erasure-holder-survives, m1-submit-enforcement, m2a-submit-enforcement,
+      officer-review-round-trip, onsite-decision-mint-e2e, staff-chain-assign-then-see, staff-scope-contract,
+      status-writer-audit-default-invariant
+    - 32nd: onsite-evidence-unfreeze HEADLINE (shared-DB plant-master order); alone: 6/6 PASS
+    - skipped: cross-system-audit-to-cert-flow.test.js:317 conditional describe.skip, untouched
+  -> no new failures. payer-block-matrix rewrote evidence/payer-block/after/* (known backlog); restored, not committed.
+
+## 5. probes / gate
+  ratchet hardcode=26 todo=53 env-direct=101 dup-source=0 PASS · retired-words PASS · no-skip PASS
+  no-secret PASS (layer1 0 hits, gitleaks clean) · green-mask PASS (baseline 15, no net-new)
+  error-codes-source-pointers PASS (no pointer moved; APPLICATION_HOLDER_REQUIRED remediation now names POST /api/farms)
+  local-gate (light): banned-terms PASS · mojibake PASS · green-mask PASS · probe-gate FAIL on 3 probes, none from this diff:
+    gate-attestation (branch has no full-gate attestation yet: coordinator) · main-attestation-audit (main history)
+    · nginx-config-drift (host nginx vs repo). tier-check: TIER=C.
+  eslint on changed backend files: 0 errors (4 pre-existing unused-disable warnings in applications.js).
+
+## ROUND 1 (review I1, M1, M2, M3) — GREEN — 2026-10-03
+Real PG :55437 (fresh postgres:17, migrate deploy, -i). Key mtime 1788623435 before/after every run.
+Touched set: 9 suites, 92 passed, 0 failed, 0 skipped — entity-permission-denied-copy (14: catalogue = ruled copy,
+  no em dash/emoji, each of 11 doors reads ENTITY_PERMISSION_DENIED_TH, no พื้นที่ทำงาน/เวิร์กสเปซ in any runtime
+  backend dir), farm-permission-gates 13, a-company-holds-its-own-certificate (spec §3.7 copy), farm-create-holder-real-postgres
+  12 (incl. M1 500 path), error-codes-source-pointers, renewal-issues-quotation, certificate-farm-areaunit-strict,
+  farm-ownership-middleware, application-submit-guard.
+M1 mutation: catch-block discard removed → the 500 case fails (files +1); restored → passes (see red.txt ROUND 1).
+Pointers: ENTITY_PERMISSION_DENIED → entity-effective-permissions-service.js:261 (left the drift baseline: the list
+  shrank by one), CERTIFICATE_HOLDER_MISMATCH → certificate-service.js:2445.
+Full suite: non-integration 11943 passed, 1 failed = renewal-fast-path "an audit-trail row records the skip..."
+  (known, BACKLOG Task 9: DATABASE_URL on an empty DB; earlier shown 16/16 alone without it), skipped = smoke-all-endpoints.
+  The extract.test.js timing flake of the first run did not recur.
+  Integration: 32 failed / 13 skipped / 798 passed (843); 31 names identical to the base list (comm -3 = one line),
+  32nd = onsite-evidence-unfreeze HEADLINE order flake, alone 6/6 → no new failures. payer-block evidence restored.
+Probes: ratchet 26/53/101/0 PASS · retired-words · no-skip · no-secret · green-mask PASS. Scripts: node --check OK on the 6 edited.
+
+## ROUND 2 (review I1a, I1b) — GREEN — 2026-10-03
+Real PG :55437 (fresh postgres:17, migrate deploy, -i). Key mtime 1788623435 before/after every run.
+Round-2 set: 6 suites, 102 passed, 0 failed, 0 skipped (entity-permission-denied-copy incl. the all-runtime scan,
+  body shape, sendErrorResponse override; a-company-holds-its-own-certificate; holder-scope-real-postgres with
+  expectDenied on draft create, submit, renewal, bundle unlink/delete, draft delete, checkout ×2, /payments/create ×2,
+  /payments/phase1 ×2; farm-create-holder-real-postgres; farm-permission-gates; error-codes-source-pointers).
+Focused real-PG (23 suites real-postgres|neutral|door-walk): 232 passed, 0 skipped.
+R1 neutrality rows re-recorded (R1_NEUTRAL_RECORD), 9 of r1-cert-doc-finance-reads-neutral.expected.json, all
+  POST /payments/checkout refusals: G|none gP, M|C aC/fC/mC, V|C aC/fC/mC, W|P aP/wP:
+  "403 ENTITY_PERMISSION_DENIED" → "403 <catalogue Thai>". Same status, same actors refused; the recorder reads
+  body.error, which now carries the catalogue copy (the code moved to body.code). Intended R2 answer (ruling I1a).
+  No other expected file moved.
+Pointers: ENTITY_PERMISSION_DENIED → entity-effective-permissions-service.js:263, CERTIFICATE_HOLDER_MISMATCH →
+  certificate-service.js:2444, SOURCE_APP_NOT_FOUND → renewal-service.js:376 (shifted by this diff).
+Full suite: non-integration 11946 passed, 1 failed = known renewal-fast-path (DATABASE_URL on empty DB).
+  Integration: 33 failed before the re-record = 31 known names + onsite HEADLINE order flake (alone 6/6) +
+  r1-cert-doc-finance write doors (the 9 rows above, re-recorded; suite then passes) → no new failures.
+Probes: ratchet 26/53/101/0 PASS · retired-words · no-skip · no-secret · green-mask PASS.
+
+## ROUND 3 — GREEN — 2026-10-03 (key mtime 1788623435 before/after every run)
+Targeted: backend entity-permission-denied-copy + a-company-holds-its-own-certificate + error-codes pointers/catalog
+  62/62 (incl. 10 guard samples flagged, 4 single-source shapes passed, real tree 0 hits); web 2 files 30/30.
+CERTIFICATE_HOLDER_MISMATCH messageTh = the corrected ruling (type mismatch), fixed sentence: the catalogue holds
+  static strings only (no parameter mechanism), so the two type words are not interpolated. messageEn matches.
+Web: ENTITY_PERMISSION_DENIED_FALLBACK_TH = the catalogue sentence. Web suite 438 suites / 3625 passed; tsc --noEmit exit 0.
+Backend full (scratch PG :55437): non-integration 11961 passed, 1 failed = known renewal-fast-path; integration 32 failed =
+  31 known names (comm -3 = one line) + onsite HEADLINE order flake (alone 6/6) → no new failures.
+Probes: ratchet 26/53/101/0 PASS · retired-words · no-skip · no-secret · green-mask PASS.

@@ -1,0 +1,342 @@
+RED — branch chore/remove-dtam-accounting-layer @ 8e0706f9 + new/changed test files only (service code unchanged) · node v24.21.0 · NODE_OPTIONS unset
+== unit: cmd npx jest --config jest.config.cjs __tests__/unit/canceled-webhook-retires-the-order-invoice-and-charge.test.js __tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js __tests__/unit/gov-remittance-export-is-refused.test.js
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+  console.warn
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/canceled-webhook-retires-the-order-invoice-and-charge.test.js
+  ✕ the current intent canceled → order CANCELLED, unpaid invoice soft-deleted, PENDING charge CANCELLED, one transaction (5 ms)
+  ✕ an order already CANCELLED (e.g. by the old handler, or the retire guard) still has its invoice retired on redelivery (2 ms)
+  ✓ a SETTLED order is never retired by a canceled event (1 ms)
+  ✓ the order moved to another intent under us (compare-and-set matched nothing) → invoice and charge untouched (2 ms)
+  ✕ no write in the retire carries an amount column (2 ms)
+
+  ● the current intent canceled → order CANCELLED, unpaid invoice soft-deleted, PENDING charge CANCELLED, one transaction
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      53 |
+      54 |     expect(result.handled).toBe(true);
+    > 55 |     expect(mockDb.$transaction).toHaveBeenCalledTimes(1);
+         |                                 ^
+      56 |     expect(mockDb.checkoutOrder.updateMany).toHaveBeenCalledWith({
+      57 |         where: { id: 'co-1', status: { in: ['PENDING_PAYMENT', 'CANCELLED'] }, stripePaymentIntentId: 'pi_B' },
+      58 |         data: { status: 'CANCELLED' },
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/canceled-webhook-retires-the-order-invoice-and-charge.test.js:55:33)
+
+  ● an order already CANCELLED (e.g. by the old handler, or the retire guard) still has its invoice retired on redelivery
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      80 |     await handleStripeEvent(canceled());
+      81 |
+    > 82 |     expect(mockDb.invoice.updateMany).toHaveBeenCalled();
+         |                                       ^
+      83 | });
+      84 |
+      85 | test('a SETTLED order is never retired by a canceled event', async () => {
+
+      at Object.toHaveBeenCalled (__tests__/unit/canceled-webhook-retires-the-order-invoice-and-charge.test.js:82:39)
+
+  ● no write in the retire carries an amount column
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 3
+    Received: 0
+
+      110 |         ...mockDb.paymentTransaction.updateMany.mock.calls,
+      111 |     ];
+    > 112 |     expect(writes.length).toBe(3);
+          |                           ^
+      113 |     for (const [{ data }] of writes) {
+      114 |         for (const k of Object.keys(data)) {
+      115 |             expect(k).not.toMatch(/amount|fee|vat|total|subtotal/i);
+
+      at Object.toBe (__tests__/unit/canceled-webhook-retires-the-order-invoice-and-charge.test.js:112:27)
+
+  console.warn
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: [Export] Generated gov_remittance CSV: monthly_revenue_2026_09.csv (0 rows) {"service":"financial-export","timestamp":"2026-09-29T13:41:43.913Z"}
+[32minfo[39m: [Export] Generated monthly CSV: monthly_revenue_2026_09.csv (0 rows) {"service":"financial-export","timestamp":"2026-09-29T13:41:43.923Z"}
+[32minfo[39m: [Export] Generated tax CSV: tax_report_2026_09.csv (0 rows) {"service":"financial-export","timestamp":"2026-09-29T13:41:43.926Z"}
+FAIL __tests__/unit/gov-remittance-export-is-refused.test.js
+  ✕ type=gov_remittance → 400 EXPORT_REPORT_TYPE_RETIRED, no file (22 ms)
+  ✕ the code is catalogued as a 400 (1 ms)
+  ✓ type=monthly still exports (2 ms)
+  ✓ type=tax still exports (3 ms)
+
+  ● type=gov_remittance → 400 EXPORT_REPORT_TYPE_RETIRED, no file
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"buffer": {"data": [239, 187, 191, 224, 184, 165, 224, 184, 179, 224, …], "type": "Buffer"}, "contentType": "text/csv; charset=utf-8", "filename": "monthly_revenue_2026_09.csv"}
+
+      16 |
+      17 | test('type=gov_remittance → 400 EXPORT_REPORT_TYPE_RETIRED, no file', async () => {
+    > 18 |     await expect(exportCSV('gov_remittance', 9, 2026, {}))
+         |           ^
+      19 |         .rejects.toMatchObject({ code: 'EXPORT_REPORT_TYPE_RETIRED', status: 400, statusCode: 400 });
+      20 | });
+      21 |
+
+      at expect (../../node_modules/.pnpm/expect@30.2.0/node_modules/expect/build/index.js:2116:15)
+      at Object.expect (__tests__/unit/gov-remittance-export-is-refused.test.js:18:11)
+
+  ● the code is catalogued as a 400
+
+    expect(received).toMatchObject(expected)
+
+    Matcher error: received value must be a non-null object
+
+    Received has value: undefined
+
+      21 |
+      22 | test('the code is catalogued as a 400', () => {
+    > 23 |     expect(ERROR_CODES.EXPORT_REPORT_TYPE_RETIRED).toMatchObject({ code: 'EXPORT_REPORT_TYPE_RETIRED', httpStatus: 400 });
+         |                                                    ^
+      24 | });
+      25 |
+      26 | test.each([['monthly', /^monthly_revenue_2026_09\.csv$/], ['tax', /^tax_report_2026_09\.csv$/]])(
+
+      at Object.toMatchObject (__tests__/unit/gov-remittance-export-is-refused.test.js:23:52)
+
+  console.warn
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js
+  the refusal is certain, whatever the accepted document says
+    ✓ one-fee snapshot (would otherwise be CHECKOUT_PRICE_DRIFT, a dead end) → CHECKOUT_ORDER_HAS_DTAM_PORTION, no client secret handed out (5 ms)
+    ✓ old-split snapshot whose figures match the order (would otherwise re-enter PI_A) → CHECKOUT_ORDER_HAS_DTAM_PORTION, no client secret handed out (2 ms)
+    ✓ no snapshot on the accepted row (would otherwise re-enter PI_A) → CHECKOUT_ORDER_HAS_DTAM_PORTION, no client secret handed out (2 ms)
+  the refused order is retired so the applicant can proceed
+    ✕ a payable intent is canceled at the gateway, then order CANCELLED + invoice soft-deleted, both compare-and-set (3 ms)
+    ✓ an intent already canceled is not canceled again; the order is still retired (2 ms)
+    ✓ an order that never got an intent is retired without asking the gateway (2 ms)
+    ✓ PI_A succeeded (money may already be captured) → CHECKOUT_INTENT_UNUSABLE, nothing retired, nothing canceled (2 ms)
+    ✓ PI_A processing (money may already be captured) → CHECKOUT_INTENT_UNUSABLE, nothing retired, nothing canceled (2 ms)
+    ✕ cancel refused because the intent is ALREADY canceled (double press / webhook raced) → the retire continues (4 ms)
+    ✕ cancel refused because the intent was PAID in between (now succeeded) → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error (2 ms)
+    ✕ cancel refused because the intent was PAID in between (now processing) → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error (1 ms)
+    ✕ cancel fails and the intent cannot even be re-read → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error (2 ms)
+    ✓ the order moved under us (compare-and-set matched nothing) → CHECKOUT_ORDER_CHANGED, invoice untouched (1 ms)
+    ✓ the next press finds no open order and mints a fresh one priced from the quotation, with no DTAM portion (7 ms)
+  the refusal is catalogued with applicant copy
+    ✓ CHECKOUT_ORDER_HAS_DTAM_PORTION is a 409 with Thai copy that names the next action (1 ms)
+
+  ● the refused order is retired so the applicant can proceed › a payable intent is canceled at the gateway, then order CANCELLED + invoice soft-deleted, both compare-and-set
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"data": ObjectContaining {"deleteReason": "DTAM_PORTION_RETIRED", "deletedAt": Any<Date>, "deletedBy": "system:checkout-order-retired", "isDeleted": true, "status": "cancelled"}, "where": {"id": "inv-old", "isDeleted": false, "paidAt": null}}
+    Received: {"data": {"deletedAt": 2026-09-29T13:41:44.329Z, "isDeleted": true, "status": "cancelled"}, "where": {"id": "inv-old", "isDeleted": false, "paidAt": null}}
+
+    Number of calls: 1
+
+      176 |             data: { status: 'CANCELLED' },
+      177 |         });
+    > 178 |         expect(mockDb.invoice.updateMany).toHaveBeenCalledWith(expect.objectContaining({
+          |                                           ^
+      179 |             where: { id: 'inv-old', isDeleted: false, paidAt: null },
+      180 |             data: expect.objectContaining({
+      181 |                 isDeleted: true,
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js:178:43)
+
+  ● the refused order is retired so the applicant can proceed › cancel refused because the intent is ALREADY canceled (double press / webhook raced) → the retire continues
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "code": "CHECKOUT_ORDER_HAS_DTAM_PORTION",
+    -   "status": 409,
+    +   "code": "payment_intent_unexpected_state",
+      }
+
+      252 |         const out = await outcomeOf(call());
+      253 |
+    > 254 |         expect(out.rejected).toMatchObject({ code: 'CHECKOUT_ORDER_HAS_DTAM_PORTION', status: 409 });
+          |                              ^
+      255 |         expect(mockDb.checkoutOrder.updateMany).toHaveBeenCalled();
+      256 |         expect(mockDb.invoice.updateMany).toHaveBeenCalled();
+      257 |     });
+
+      at Object.toMatchObject (__tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js:254:30)
+
+  ● the refused order is retired so the applicant can proceed › cancel refused because the intent was PAID in between (now succeeded) → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "code": "CHECKOUT_INTENT_UNUSABLE",
+    -   "status": 409,
+    +   "code": "payment_intent_unexpected_state",
+      }
+
+      267 |             const out = await outcomeOf(call());
+      268 |
+    > 269 |             expect(out.rejected).toMatchObject({ code: 'CHECKOUT_INTENT_UNUSABLE', status: 409 });
+          |                                  ^
+      270 |             expect(out.rejected.code).not.toBe('payment_intent_unexpected_state');
+      271 |             expect(out.rejected.type).toBeUndefined();
+      272 |             expect(mockDb.checkoutOrder.updateMany).not.toHaveBeenCalled();
+
+      at toMatchObject (__tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js:269:34)
+
+  ● the refused order is retired so the applicant can proceed › cancel refused because the intent was PAID in between (now processing) → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "code": "CHECKOUT_INTENT_UNUSABLE",
+    -   "status": 409,
+    +   "code": "payment_intent_unexpected_state",
+      }
+
+      267 |             const out = await outcomeOf(call());
+      268 |
+    > 269 |             expect(out.rejected).toMatchObject({ code: 'CHECKOUT_INTENT_UNUSABLE', status: 409 });
+          |                                  ^
+      270 |             expect(out.rejected.code).not.toBe('payment_intent_unexpected_state');
+      271 |             expect(out.rejected.type).toBeUndefined();
+      272 |             expect(mockDb.checkoutOrder.updateMany).not.toHaveBeenCalled();
+
+      at toMatchObject (__tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js:269:34)
+
+  ● the refused order is retired so the applicant can proceed › cancel fails and the intent cannot even be re-read → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Object {
+    -   "code": "CHECKOUT_INTENT_UNUSABLE",
+    - }
+    + [Error: api down]
+
+      283 |         const out = await outcomeOf(call());
+      284 |
+    > 285 |         expect(out.rejected).toMatchObject({ code: 'CHECKOUT_INTENT_UNUSABLE' });
+          |                              ^
+      286 |         expect(out.rejected.type).toBeUndefined();
+      287 |         expect(mockDb.checkoutOrder.updateMany).not.toHaveBeenCalled();
+      288 |     });
+
+      at Object.toMatchObject (__tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js:285:30)
+
+Test Suites: 3 failed, 3 total
+Tests:       10 failed, 14 passed, 24 total
+Snapshots:   0 total
+Time:        1.534 s
+Ran all test suites matching __tests__/unit/canceled-webhook-retires-the-order-invoice-and-charge.test.js|__tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js|__tests__/unit/gov-remittance-export-is-refused.test.js.
+== real Postgres 17 scratch (docker remit2-pr2-scratch-pg, all migrations applied): cmd DATABASE_URL=TEST_DATABASE_URL=<127.0.0.1:55433 scratch> npx jest --config jest.config.cjs __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js -i
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T13:41:46.312Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T13:41:46.316Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T13:41:46.317Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.507Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.547Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.575Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.587Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.595Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"UserConsent","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.606Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.610Z"}
+[32minfo[39m: [checkout] intent ready {"actorId":"7b75a686-d55e-4767-b584-d458b52150d1","applicationId":"30b6086f-4583-4e37-94ba-808dc17288df","checkoutOrderId":"aeed917b-8a86-4e9a-b76b-4153e89c7eb7","milestone":"M1","service":"gacp-backend","timestamp":"2026-09-29T13:41:46.641Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.645Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.651Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.681Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.684Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.694Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Quotation","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.702Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.724Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"UserConsent","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.730Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.732Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T13:41:46.754Z"}
+FAIL __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js
+  payment_intent.canceled lets the applicant pay again, on a real Postgres
+    ✕ A. ordinary order: canceled webhook → order CANCELLED + invoice retired (deletedBy/deleteReason) + charge CANCELLED → next press mints afresh (168 ms)
+    ✕ B. retire guard recovery: Stripe cancel succeeded, retire tx failed, canceled webhook lands → next press mints afresh (90 ms)
+
+  ● payment_intent.canceled lets the applicant pay again, on a real Postgres › A. ordinary order: canceled webhook → order CANCELLED + invoice retired (deletedBy/deleteReason) + charge CANCELLED → next press mints afresh
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      118 |         expect((await prisma.checkoutOrder.findUnique({ where: { id: firstOrder.id } })).status).toBe('CANCELLED');
+      119 |         const inv = await prisma.invoice.findUnique({ where: { id: firstOrder.invoiceId } });
+    > 120 |         expect(inv.isDeleted).toBe(true);
+          |                               ^
+      121 |         expect(inv.deletedBy).toBe('system:checkout-order-retired');
+      122 |         expect(inv.deleteReason).toBe('PAYMENT_INTENT_CANCELED');
+      123 |         expect(Number(inv.totalAmount)).toBe(5885);
+
+      at Object.toBe (__tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js:120:31)
+
+  ● payment_intent.canceled lets the applicant pay again, on a real Postgres › B. retire guard recovery: Stripe cancel succeeded, retire tx failed, canceled webhook lands → next press mints afresh
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      178 |
+      179 |         expect((await prisma.checkoutOrder.findUnique({ where: { id: order.id } })).status).toBe('CANCELLED');
+    > 180 |         expect((await prisma.invoice.findUnique({ where: { id: invoice.id } })).isDeleted).toBe(true);
+          |                                                                                            ^
+      181 |
+      182 |         // Press 2 recovers.
+      183 |         const next = await press(app);
+
+      at Object.toBe (__tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js:180:92)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        1.192 s
+Ran all test suites matching __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js.

@@ -1,0 +1,32 @@
+Files already in the public folder, and the move (counts only; file names carry document numbers).
+
+Tool: apps/backend/scripts/ops/move-generated-pdfs-out-of-public.js (node built-ins only)
+Dry runs, 2026-10-09, each in a throwaway container from the deployed backend image with the
+uploads volume mounted READ-ONLY and no network (the running containers were not touched):
+
+staging (volume gacp-platform_gacp_staging_uploads)
+  public folder: <uploads>/gacp-pdfs
+    receipts: 1
+    total: 1
+  dry run: would move 1 file(s); nothing changed
+
+demo (host 119.59.105.140, volume gacp-uploads-data)
+  public folder: <uploads>/gacp-pdfs (absent)
+    total: 0
+  dry run: would move 0 file(s); nothing changed
+
+After the deploy that carries this branch, on staging (operator):
+  docker exec gacp-backend-staging node scripts/ops/move-generated-pdfs-out-of-public.js --dry-run
+  docker exec gacp-backend-staging node scripts/ops/move-generated-pdfs-out-of-public.js --apply --to /app/storage/quarantine
+  (/app/storage is the gacp_staging_storage volume: persistent, never served)
+Then the probe confirms it on the host, as root (only root reads /var/lib/docker; without root the
+probe answers BLOCKED, never PASS, since round 2):
+  sudo env "PATH=$PATH" PROBE_UPLOADS_DIR=/var/lib/docker/volumes/gacp-platform_gacp_staging_uploads/_data \
+      bash scripts/probes/no-public-financial-pdfs.sh
+  (measured 2026-10-09, before the move: FAIL "1 file(s) still under <uploads>/gacp-pdfs ... 0 finance
+  paper(s) in public folders"; after the move it must read "PASS ... the uploads root read in full")
+Round 2: the script refuses a --to that resolves into the uploads folder through a symlink, never
+unlinks a file that is the same file as its destination (a symlink or an alias mount), and refuses an
+--uploads-dir that does not exist instead of answering "total: 0".
+Until the move runs, the deployed code already refuses that path (401 / 404), so the file is not
+reachable; the move removes the dependence on that one gate.

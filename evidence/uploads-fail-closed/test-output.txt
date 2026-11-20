@@ -1,0 +1,38 @@
+Full suites — fix/uploads-fail-closed at 1a7bbb882 (the final code; later commits add evidence and the log only)
+Run through ~/work/state/heavy.sh on 2026-10-13 (Bangkok), NODE_OPTIONS=--max-old-space-size=3072, --maxWorkers=2,
+private SIGNING_KEY_DIR and passphrase, own Postgres 17 container uploads-fc-pg migrated from empty.
+Every run sourced /tmp/uploads-fc/env.sh, which refuses to start unless DATABASE_URL is 127.0.0.1:<uploads-fc-pg port>/gacp_ufc
+(proved: a wrong URL exits 3 before anything runs). The URL is read inside the script from a 0600 file, never argv (order 70).
+evidence/payer-block restored after each half; git status clean afterwards.
+
+Why the adapter differs per half: the worktree's @prisma/client loads the main checkout's apps/backend/.env for anything not
+exported, and that file sets PAYMENT_ADAPTER to a non-mock value. Integration tests take mock only when the variable is unset,
+so the integration half exports PAYMENT_ADAPTER=mock (coordinator rule 2026-10-13). Unit checkout tests mock the Stripe SDK under
+the default adapter, so the unit half leaves it unset, as the gate does. (One run with mock exported for the unit half too gave
+13 failures in 4 checkout suites: stripe-checkout-engine, checkout-hands-the-browser-a-publishable-key,
+checkout-requires-accepted-quotation, checkout-renewal-price — the adapter, not this branch.)
+
+backend unit   (every suite except __tests__/integration; PAYMENT_ADAPTER unset)
+  909 suites · 12,596 tests · 12,557 passed · 0 failed · 39 skipped · exit 0
+
+backend integration   (__tests__/integration, real Postgres, PAYMENT_ADAPTER=mock)
+  174 suites · 1,799 tests · 1,763 passed · 23 failed · 13 skipped
+  by name against the 23-name baseline (integration-failures-baseline-23.txt; byte-equal to the failing names of main's latest
+  full gate 63305b5f, the merge attested by d02815e51): 23 of 23 still fail · new 0 · fixed 0
+  (integration-failures-branch-1a7bbb882.txt)
+  count: main's gate ran 1,791 integration tests; this branch 1,799 = +8, the new uploads-acl-follows-read-model-real-postgres.
+
+web jest (at 7335f6ee0)   487 suites · 3,951 tests · 3,951 passed · 0 failed
+web tsc --noEmit (at 7335f6ee0)   exit 0, no output
+(this branch changes no file under apps/web-app, so the web results hold for the final head)
+
+The first full run (2026-10-10, at 7335f6ee0, without the guard and with the .env's adapter leaking into integration) gave
+unit 12,556 passed 0 failed and integration 25 failed: the 23 baseline names plus 2 in holder-scope-real-postgres › Q3 checkout
+gate. Those 2 fail identically on base d02815e51 under the leaked adapter (holder-scope-env-check.txt) and pass with mock
+(76/76), so they were the environment.
+
+Every test this branch adds or changes ran and passed (none skipped; the bind-mount cases ran):
+  uploads-closed-by-default 30 · uploads-access-draft-acl 12 · every-sensitive-upload-is-decided-by-ownership 17 ·
+  uploads-signed-url-route 10 · uploads-access 6 · certificate-template-service 34 · certificate-template-revision-line 10 ·
+  nginx-never-serves-uploads-from-disk 13 · move-generated-pdfs-out-of-public 25 ·
+  uploads-acl-follows-read-model-real-postgres 8 (integration)

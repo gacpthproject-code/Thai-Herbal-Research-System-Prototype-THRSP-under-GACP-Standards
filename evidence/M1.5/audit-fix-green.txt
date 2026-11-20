@@ -1,0 +1,134 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/entity-claim-guard.test.js
+  M1.5 H1 — an existing org workspace cannot be claimed by its registration number
+    √ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row with membershipStatus:null (9 ms)
+    √ the refusal audit row carries a HASH, never the raw registration number (3 ms)
+    √ PENDING invitee → 409 with the "accept your invitation" message (2 ms)
+    √ ACTIVE non-OWNER → 409 telling them to switch workspace, and NO silent upgrade to OWNER (2 ms)
+    √ an OWNER row that is NOT ACTIVE (REVOKED ex-owner / PENDING invite) → 409, NO write (M1.5 audit MEDIUM-1 pin) (2 ms)
+    √ the real OWNER retrying → idempotent success, NO write (1 ms)
+    √ a brand-new registration number → create entity + OWNER membership (unchanged) (2 ms)
+  M1.5 H1 — the same guard on ensureCommunityEntity
+    √ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row (3 ms)
+    √ PENDING invitee → 409 with the "accept your invitation" message (1 ms)
+    √ the real OWNER retrying → idempotent success, NO write (1 ms)
+    √ a brand-new DOAE number → create entity + OWNER membership (unchanged) (2 ms)
+  M1.5 H1 — POST /api/entities surfaces the refusal as 409, not 500
+    √ someone else already registered the tax ID → HTTP 409 + code, no membership write (71 ms)
+    √ a free registration number still creates the workspace (200) (18 ms)
+
+PASS __tests__/unit/entity-detail-pii-mask.test.js
+  M1.5 H2 — presentEntityForMember masks both national-ID carriers
+    √ masks thaiCitizenId and payload.director.idCard for EVERY role including OWNER (2 ms)
+    √ survives INDIVIDUAL shape: payload null / no director (1 ms)
+    √ does not mutate the row it was handed (the caller may still hold the Prisma object) (1 ms)
+    √ leaves a null / absent id card alone rather than masking it into a string (1 ms)
+  M1.5 H2 — GET /api/entities/:id masks for every role
+    √ role VIEWER receives masked national IDs (14 ms)
+    √ role MANAGER receives masked national IDs (21 ms)
+    √ role ADMIN receives masked national IDs (11 ms)
+    √ role OWNER receives masked national IDs (13 ms)
+    √ an INDIVIDUAL entity with a null payload still answers 200 (12 ms)
+  M1.5 H2 — the create / update echoes are masked too (same helper, three endpoints)
+    √ PATCH /api/entities/:id echoes the updated row masked (15 ms)
+    √ POST /api/entities echoes the created workspace masked (11 ms)
+
+PASS __tests__/unit/thaid-identity-service.test.js
+  decodeIdTokenSubject
+    √ returns the opaque sub for a valid JWT (2 ms)
+    √ returns null for garbage / missing sub / non-string input (never throws) (16 ms)
+  assertAutoProvisionableRole
+    √ throws AUTH_AUTOPROVISION_ROLE_FORBIDDEN for a provider role (15 ms)
+    √ passes for a citizen (non-provider) role (2 ms)
+    √ throws AUTH_AUTOPROVISION_ROLE_FORBIDDEN for an unknown/foreign role (allow-list, fail-closed) (3 ms)
+  resolveThaidLogin
+    √ missing subject → throws AUTH_IDP_PROFILE_INCOMPLETE (2 ms)
+    √ new subject + new national id (NODE_ENV=test) → register once, link, return user (5 ms)
+    √ NEGATIVE (operator-required): national id matches an EXISTING PROVIDER-role user → REJECT + no link (2 ms)
+    √ national id matches an existing CITIZEN user → link + return (no register) (1 ms)
+    √ NEGATIVE (operator-required): no link + no national-id match + NODE_ENV=production → REJECT + no register (1 ms)
+    √ existing link → return the linked user WITHOUT provisioning (any role — the link was deliberate) (2 ms)
+
+PASS __tests__/unit/entities-mine-route.test.js
+  Wave C PR C-1 — /api/entities
+    GET /mine
+      √ returns the user's active memberships, flagging the personal INDIVIDUAL (18 ms)
+      √ filters out PENDING by default; ?include=pending shows them (21 ms)
+      √ drops soft-deleted entities even if a stale membership row points at them (11 ms)
+    POST /me/switch
+      √ records a switch and returns 200 (15 ms)
+      √ rejects with 400 when toEntityId is missing (11 ms)
+      √ rejects with 403 when user is not a member of toEntityId (11 ms)
+      √ returns recorded:false when the audit insert silently fails (23 ms)
+      √ coerces unknown source to HEADER (12 ms)
+
+PASS __tests__/unit/entities-management-routes.test.js
+  Wave C PR-4 — POST /api/entities (create workspace)
+    √ creates a JURISTIC workspace (31 ms)
+    √ rejects INDIVIDUAL with 400 (10 ms)
+    √ rejects with 400 on validation failure (10 ms)
+  Wave C PR-4 — GET /api/entities/:id
+    √ returns the entity when caller is a member (by uuid) (10 ms)
+    √ returns the entity when caller is a member (by slug) (10 ms)
+    √ returns 404 when not a member (no membership probing) (10 ms)
+  Wave C PR-4 — PATCH /api/entities/:id (rename)
+    √ OWNER can rename (12 ms)
+    √ VIEWER gets 403 (13 ms)
+    √ 400 when no fields supplied (22 ms)
+  Wave C PR-4 — POST /api/entities/:id/members (invite)
+    √ OWNER invites a MANAGER by healthId (12 ms)
+    √ rejects role=OWNER (transfer-ownership only) (10 ms)
+    √ ADMIN cannot invite another ADMIN (10 ms)
+    √ returns 404 when invitee not found (10 ms)
+    √ returns 409 AMBIGUOUS_INVITEE on email collision (10 ms)
+    √ sends invitation email when invitee has email on file (12 ms)
+    √ skips invitation email when invitee has no email on file (10 ms)
+    √ does not fail the invite request when email send rejects (10 ms)
+    √ VIEWER cannot invite (403) (17 ms)
+    √ writes an INVITED audit row when inviting a fresh member (16 ms)
+    √ writes a ROLE_CHANGED audit row when promoting an existing member (15 ms)
+    √ writes NO audit row on idempotent re-invite (same role, no change) (24 ms)
+  Wave C PR-4 — DELETE /api/entities/:id/members/:memberUserId
+    √ OWNER revokes a MANAGER (10 ms)
+    √ writes a REVOKED audit row alongside the membership update (10 ms)
+    √ writes NO audit row on idempotent re-revoke (already REVOKED) (11 ms)
+    √ blocks revoking OWNER (transfer-ownership only) (10 ms)
+    √ VIEWER cannot revoke (11 ms)
+
+PASS __tests__/unit/backfill-entities.test.js
+  backfill-entities / parseArgs
+    √ defaults to a live run (2 ms)
+    √ --dry-run sets dryRun (1 ms)
+    √ --verbose sets verbose
+  backfill-entities / resolveUserPersonalEntity
+    √ resolves to the existing OWNER INDIVIDUAL membership entity — does NOT create a duplicate (2 ms)
+    √ dry-run never writes even when the user has NO entity yet (1 ms)
+  backfill-entities / step1BackfillEntities
+    √ re-run with everyone already owning an entity is a no-op (idempotent) (1 ms)
+    √ dry-run performs zero writes across all users (2 ms)
+  backfill-entities / step2BackfillApplications
+    √ maps app.entityId via the owner user (canonicalId=token) → membership entity, NOT a hash (2 ms)
+    √ dry-run performs zero application writes (2 ms)
+  backfill-entities / step3BackfillFarms
+    √ maps farm.entityId via ownerId (User.id) → membership entity, NOT a hash (1 ms)
+    √ dry-run performs zero farm writes (1 ms)
+
+PASS __tests__/unit/entity-service.test.js
+  entity-service.ensureJuristicEntity
+    √ creates the entity + OWNER membership when none exists (3 ms)
+    √ refuses to attach a non-member to an existing entity found by tax ID (409) (1 ms)
+    √ reuses an existing entity for its real OWNER (idempotent) and does not call create (2 ms)
+    √ rejects with APPLICANT_VALIDATION_FAILED when validation fails (1 ms)
+    √ rejects when user.id is missing (27 ms)
+    √ rejects when organizationId is missing (ADR-014) (2 ms)
+  entity-service.ensureCommunityEntity
+    √ creates the entity + OWNER membership for an 11-digit DOAE number (1 ms)
+    √ rejects on a 10-digit (wrong length) registration number (2 ms)
+  entity-service — the legacy applicantData dispatcher stays deleted (M1.5 H1)
+    √ does not export ensureEntityFromApplicantData (1 ms)
+
+Test Suites: 7 passed, 7 total
+Tests:       89 passed, 89 total
+Snapshots:   0 total
+Time:        5.961 s, estimated 12 s
+Ran all test suites matching /entity-detail-pii-mask|entity-claim-guard|entity-service|entities/i.

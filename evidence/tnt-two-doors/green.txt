@@ -1,0 +1,49 @@
+# GREEN — tnt-two-doors (fix/tnt-two-doors บน main a0ee3b68) · scratch postgres:17 :55447 migrate deploy · SIGNING_KEY_DIR ใหม่ (scratchpad)
+
+## new suite (real Postgres, real server)
+    ✓ VIEWER: POST lab-results → 403 ENTITY_PERMISSION_DENIED, no row and no stored file (69 ms)
+    ✓ A OWNER: POST lab-results → 201 and one row (72 ms)
+    ✓ B MANAGER (holds HARVEST_RECORD by role default): POST lab-results → 201 and one row (47 ms)
+    ✓ VIEWER may still READ the lab results (GET is a read, gated like GET /:id) (28 ms)
+    ✓ lot owner: GET qr/print → 200 JSON, QR encodes the buyer's public trace URL (428 ms)
+
+## touched suites (tnt-two-doors · coa-upload-door-wire · health-door-walk · lots-utility-routes-rbac · a-qr-never-points-at-localhost)
+Test Suites: 5 passed, 5 total
+Tests:       44 passed, 44 total
+
+## full backend suite — branch vs main a0ee3b68 (same box, separate scratch DBs, run sequentially)
+branch: Test Suites: 10 failed, 2 skipped, 965 passed, 975 of 977 total
+branch: Tests:       32 failed, 54 skipped, 12728 passed, 12814 total
+main:   Test Suites: 11 failed, 2 skipped, 963 passed, 974 of 976 total
+main:   Tests:       33 failed, 54 skipped, 12721 passed, 12808 total
+failing test titles only on branch: 0  (branch set ⊆ main set)
+only on main (flake, passed on branch): Phase B — onsite evidence models unfreeze certificate issuance › onsite-evidence-gate 
+branch failing suites: a0-pr2-per-hop-invariant.test.js m1-erasure-holder-survives.test.js m1-submit-enforcement.test.js m2a-submit-enforcement.test.js officer-review-round-trip.test.js onsite-decision-mint-e2e.test.js staff-chain-assign-then-see.test.js staff-scope-contract.test.js status-writer-audit-default-invariant.test.js renewal-fast-path.test.js 
+  = 9 integration suites / 31 tests + unit renewal-fast-path 1 (known set)
+
+## eslint (touched files)
+main: routes/api/helpers/lots-utility-routes.js 229:22 error 'publicTraceUrlFor' is not defined no-undef (1 problem)
+branch: 0 problems (exit 0)
+
+## probes (scripts/check-done.sh บน branch)
+suite-green FAIL FAIL: jest exit 1 (12804 tests) — log: evidence/suite-green.log
+no-skip PASS PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+no-secret PASS PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+ratchet PASS PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (evidence/ratchet-current.txt)
+stripe-sdk-isolated PASS PASS: stripe SDK only in services/payment/stripe-adapter.js
+webhook-idempotent PASS PASS: replay dedup test green — evidence/webhook-idempotent.log
+settle-webhook-only PASS PASS: only services/checkout/checkout-settlement-service.js writes SETTLED; settle test green
+holiday-single-source PASS PASS: single calendar source: apps/backend/utils/working-days.js
+(suite-green FAIL = main ก็แดง — เทียบด้านบน)
+
+## signing key ของ main checkout
+before: 2026-09-05 22:50:35.069951192 +0700 /home/ubuntu/work/GACP-Certification-Application/apps/backend/keys/private.pem
+after:  2026-09-05 22:50:35.069951192 +0700 /home/ubuntu/work/GACP-Certification-Application/apps/backend/keys/private.pem
+
+## round 2 (2026-10-04) — door walk + new suite on real PG
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+skipped: 0
+## sibling doors probe (ไม่ commit เทส) — status ต่อ actor
+PROBE mode=throw {"A POST /":403,"A PUT /:id":403,"A POST /:id/harvest":403,"B POST /":403,"B PUT /:id":403,"B POST /:id/harvest":403,"V POST /":403,"V PUT /:id":403,"V POST /:id/harvest":403}
+PROBE mode=shadow {"A POST /":201,"A PUT /:id":200,"A POST /:id/harvest":500,"B POST /":201,"B PUT /:id":200,"B POST /:id/harvest":500,"V POST /":403,"V PUT /:id":403,"V POST /:id/harvest":403}

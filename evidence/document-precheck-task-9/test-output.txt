@@ -1,0 +1,81 @@
+# Task 9 GREEN — 2026-09-27T18:30:33Z · node v24.21.0 · NODE_OPTIONS unset · SIGNING_KEY_DIR=mktemp -d
+
+## 1. thresholds parameter (was RED: red-output-thresholds-parameter.txt)
+$ npx jest --config jest.config.cjs __tests__/unit/document-precheck/thresholds-parameter.test.js
+    ✓ the pair sits between the two thresholds used below (4 ms)
+    ✓ a lower minSimilarity reads the near name as CLOSE, a higher one as DIFFERENT (1 ms)
+    ✓ omitting minSimilarity is the same as passing NAME_SIMILARITY_MIN (1 ms)
+    ✓ thresholds.ocrConfidenceMin decides READABILITY (3 ms)
+    ✓ thresholds.nameSimilarityMin decides whether a near name is a CROSS_MATCH (7 ms)
+    ✓ omitting thresholds is the same as passing the two constants (8 ms)
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+exit=0
+
+## 2. accuracy ratchet (was RED: red-output.txt) — tesseract 'OCR completed'/'initialized'/'terminated' info lines removed (61x3 lines of logger noise)
+$ npx jest --config jest.config.cjs __tests__/integration/document-precheck-accuracy.test.js
+  console.log
+    document-precheck accuracy — OCR_CONFIDENCE_MIN=60 NAME_SIMILARITY_MIN=0.85
+    files: 61   extraction wall time: 41192 ms
+    
+    check        n  problems warnings  TP  FP  FN  precision  recall  exact
+    READABILITY  61       14       14  14   0   0     100.0%  100.0% 100.0%
+    DOC_TYPE     53       18       19  17   2   1      89.5%   94.4%  94.3%
+    CROSS_MATCH  53       21       23  19   4   2      82.6%   90.5%  79.3%
+    VALIDITY     11        5        6   5   1   0      83.3%  100.0%  81.8%
+    overall     178       58       62  55   7   3      88.7%   94.8%  91.0%
+    UNREADABLE rate:  22.9% of files
+    
+    disagreements with the labels (file: check expected -> actual):
+      land_deed--scan-blur.png: DOC_TYPE MATCH -> NOT_FOUND   [OCR conf 90]
+      land_deed--scan-blur.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 90]
+      land_deed--wrong-type.pdf: DOC_TYPE NOT_FOUND -> MATCH   [TEXT_LAYER conf 100]
+      land_deed--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      land_lease--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+      land_consent--scan-blur.png: DOC_TYPE MATCH -> NOT_FOUND   [OCR conf 91]
+      land_consent--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      company_reg--scan-blur.png: VALIDITY PASS -> DATE_NOT_FOUND   [OCR conf 91]
+      company_reg--scan-rotate3.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 93]
+      company_reg--wrong-type.pdf: CROSS_MATCH NOT_FOUND -> MISMATCH   [TEXT_LAYER conf 100]
+      company_reg--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      company_reg--no-date.pdf: VALIDITY DATE_NOT_FOUND -> EXPIRED   [TEXT_LAYER conf 100]
+      id_card--scan-blur.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 90]
+      id_card--scan-rotate3.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 93]
+      id_card--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      house_reg--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+    
+    floor breaches: []
+
+      at Object.log (__tests__/integration/document-precheck-accuracy.test.js:84:17)
+
+PASS __tests__/integration/document-precheck-accuracy.test.js (43.813 s)
+  ✓ reads the committed corpus directory (1 ms)
+  corpus
+    ✓ every labelled file exists and every corpus file is labelled (4 ms)
+    ✓ each of the 7 types has at least 6 variants (1 ms)
+    ✓ the rule layer produced exactly the flags the labels expect (no missing, no extra) (2 ms)
+  floors (thresholds.json)
+    ✓ thresholds.json has a floor for every check and the overall pool (1 ms)
+    ✓ no metric is below its floor (or above its ceiling) (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+Snapshots:   0 total
+Time:        43.861 s, estimated 44 s
+Ran all test suites matching __tests__/integration/document-precheck-accuracy.test.js.
+
+## 3. whole document-precheck unit folder
+$ npx jest --config jest.config.cjs __tests__/unit/document-precheck
+PASS __tests__/unit/document-precheck/service.test.js (6.866 s)
+PASS __tests__/unit/document-precheck/extract.test.js
+PASS __tests__/unit/document-precheck/routes.test.js
+PASS __tests__/unit/document-precheck/thresholds-parameter.test.js
+PASS __tests__/unit/document-precheck/rules.test.js
+PASS __tests__/unit/document-precheck/normalize.test.js
+PASS __tests__/unit/document-precheck/tesseract-terminate-race.test.js
+Test Suites: 7 passed, 7 total
+Tests:       181 passed, 181 total
+
+## 4. leftover pdf-extract-worker processes after the runs
+$ ps aux | grep -c '[p]df-extract-worker'
+2

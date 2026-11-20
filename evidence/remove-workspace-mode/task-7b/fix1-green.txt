@@ -1,0 +1,12 @@
+Task 7b fix round 1 — M1 + M2 (tests only; these are PINS, green from birth — not fixes)
+Date: 2026-10-03 · Real Postgres 17 on 127.0.0.1:55438 (throwaway) · key mtime 1788623435 before/after (unchanged)
+
+planting-attachment-door-real-postgres.test.js (jest -i, witness throw): Tests 8 passed, 8 total · 0 skipped
+  M1: VIEWER / stranger / fake-PDF tests now also count files in public/uploads/application-drafts before and after (must be equal)
+  M2: NEW — attachment of cycle B deleted through cycle A by a member who may write both → 404 'Attachment not found';
+      the row stays (resId=cycleB, isDeleted=false) and the file stays on disk
+
+Mutation proof that the pins can fail (route/service edited, run, restored with git checkout of the committed file):
+  mut1 multer before the permission gate  → ✕ VIEWER test: file count Expected 8, Received 9 (Tests: 1 failed, 7 passed)
+  mut2 drop resId from findLiveCycleAttachment → ✕ cross-cycle test: Expected 404, Received 200 (Tests: 1 failed, 7 passed)
+  (the stranger file-count assert is not reachable by mut1: ensureCycleReachable 404s before multer either way)

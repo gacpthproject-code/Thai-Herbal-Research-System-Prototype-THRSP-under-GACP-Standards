@@ -1,0 +1,25 @@
+== 1. fresh scratch Postgres + migrate deploy
+All migrations have been successfully applied.
+== 2. backend from this tree on :8099
+backend /api/health 200
+== 3. register two farmers through POST /api/auth/health/register
+register True ลงทะเบียนสำเร็จ
+register True ลงทะเบียนสำเร็จ
+== 4. seed one payable application each; issue quotations (see issue-quotation-around-F-QT-ISSUER-UNDEFINED.js)
+A {"entityId":"b906ff9a-49ea-40d9-aac9-6eb2fbeadf84","applicationId":"9dd35133-9924-4dc0-8931-65d3b61e03bf","applicationNumber":"APP-QRWALK-1790484334636"}
+B {"entityId":"79c86f5d-f1eb-430e-a80f-707039d24d4b","applicationId":"6b558877-c7dc-42e5-a494-53067655fa59","applicationNumber":"APP-QRWALK-1790484334791"}
+{"quotationNumber":"QT-PRD-2026-000001","status":"PENDING","subtotal":"33000","vat":"2310","totalAmount":"35310"}
+{"quotationNumber":"QT-PRD-2026-000002","status":"PENDING","subtotal":"33000","vat":"2310","totalAmount":"35310"}
+== 5. walk A (full) and walk B (email input)
+== 6. what the database holds afterwards (walk A application)
+ application_status | order_status | settled_at_set | invoice_status |    receiptNumber    | receiptStatus | receiptIssuedBy | charge_status | charge_satang |  quotationNumber   | quotation_status 
+--------------------+--------------+----------------+----------------+---------------------+---------------+-----------------+---------------+---------------+--------------------+------------------
+ DOC_FEE_PAID       | SETTLED      | t              | paid           | TAX-PRD-2026-000001 | ISSUED        | stripe-webhook  | SUCCESS       |        588500 | QT-PRD-2026-000001 | ACCEPTED
+(1 row)
+
+              type              |  status   | count 
+--------------------------------+-----------+-------
+ payment_intent.requires_action | PROCESSED |     2
+ payment_intent.succeeded       | PROCESSED |     1
+(2 rows)
+

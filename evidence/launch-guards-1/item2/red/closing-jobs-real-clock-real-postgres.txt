@@ -1,0 +1,53 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-21T11:26:16.196Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-21T11:26:16.200Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-21T11:26:16.201Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-21T11:26:16.709Z"}
+FAIL __tests__/integration/closing-jobs-real-clock-real-postgres.test.js
+  run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres)
+    ✕ in process: the entry calls the scheduler's three closing jobs once each with no clock argument, no other job, and closes only what is overdue (366 ms)
+    ✕ the command line closes what is overdue on the real clock, exits 0, and its last line is names and counts (98 ms)
+
+  ● run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres) › in process: the entry calls the scheduler's three closing jobs once each with no clock argument, no other job, and closes only what is overdue
+
+    Cannot find module '/home/ubuntu/work/wt-guards1-closing/apps/backend/scripts/ops/run-closing-jobs.js' from '__tests__/integration/closing-jobs-real-clock-real-postgres.test.js'
+
+      102 |         const spies = Object.fromEntries(Object.entries(jobs).map(([name, mod]) => [name, jest.spyOn(mod, name)]));
+      103 |
+    > 104 |         const result = await require(ENTRY).runClosingJobs();
+          |                              ^
+      105 |
+      106 |         expect(result.ok).toBe(true);
+      107 |         expect(result.summary).toMatch(/^closing-jobs revisionDeadlineChecker:\S+ correctionDeadlineSweep:\S+ paymentClosureSweep:\S+$/);
+
+
+  ● run-closing-jobs: the scheduler's closing jobs on the real clock (real Postgres) › the command line closes what is overdue on the real clock, exits 0, and its last line is names and counts
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 4
+
+      Object {
+    -   "status": 0,
+    -   "stderr": Array [],
+    +   "status": 1,
+    +   "stderr": Array [
+    +     "Error: Cannot find module '/home/ubuntu/work/wt-guards1-closing/apps/backend/scripts/ops/run-closing-jobs.js'",
+    +   ],
+      }
+
+      125 |         const env = { ...process.env, DATABASE_URL: getTestDatabase().url };
+      126 |         const run = spawnSync(process.execPath, [ENTRY], { env, encoding: 'utf8', timeout: 120000 });
+    > 127 |         expect({ status: run.status, stderr: run.stderr.split('\n').filter((line) => /failed|Error/.test(line)) }).toEqual({ status: 0, stderr: [] });
+          |                                                                                                                    ^
+      128 |         const last = run.stdout.trim().split('\n').pop();
+      129 |         expect(last).toMatch(/^closing-jobs revisionDeadlineChecker:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)* correctionDeadlineSweep:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)* paymentClosureSweep:[a-zA-Z]+=\d+(,[a-zA-Z]+=\d+)*$/);
+      130 |         expect(last).toMatch(/paymentClosureSweep:\S*closed=[1-9]/);
+
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        1.286 s, estimated 4 s
+Ran all test suites matching __tests__/integration/closing-jobs-real-clock-real-postgres.test.js.
+jest exit 1

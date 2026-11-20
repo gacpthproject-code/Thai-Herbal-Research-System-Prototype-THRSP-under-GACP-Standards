@@ -1,0 +1,143 @@
+{
+  "uid": "gacp-demo-logs",
+  "title": "GACP demo logs",
+  "tags": [
+    "gacp",
+    "demo",
+    "logs"
+  ],
+  "timezone": "Asia/Bangkok",
+  "schemaVersion": 39,
+  "version": 1,
+  "editable": false,
+  "time": {
+    "from": "now-24h",
+    "to": "now"
+  },
+  "templating": {
+    "list": [
+      {
+        "name": "container",
+        "type": "query",
+        "datasource": {
+          "type": "loki",
+          "uid": "gacp-demo-loki"
+        },
+        "query": {
+          "label": "container",
+          "type": 1,
+          "stream": "{host=\"demo\"}",
+          "refId": "c"
+        },
+        "definition": "label_values({host=\"demo\"}, container)",
+        "refresh": 2,
+        "includeAll": true,
+        "multi": true,
+        "current": {
+          "text": "gacp-backend-demo",
+          "value": [
+            "gacp-backend-demo"
+          ]
+        }
+      },
+      {
+        "name": "search",
+        "type": "textbox",
+        "label": "ค้นข้อความ (regex)",
+        "query": "",
+        "current": {
+          "text": "",
+          "value": ""
+        }
+      }
+    ]
+  },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "warn / error ต่อ container (ระดับจาก winston)",
+      "gridPos": {
+        "h": 8,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "gacp-demo-loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "gacp-demo-loki"
+          },
+          "expr": "sum by (container, level) (count_over_time({host=\"demo\", level=~\"warn|error\"} [$__auto]))",
+          "legendFormat": "{{container}} {{level}}"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "type": "logs",
+      "title": "การอัปโหลดไฟล์ (POST/PUT ที่ endpoint อัปโหลด)",
+      "gridPos": {
+        "h": 10,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "gacp-demo-loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "gacp-demo-loki"
+          },
+          "expr": "{host=\"demo\", container=\"gacp-backend-demo\"} |~ \"\\\"(POST|PUT) /api/[^ \\\"]*(draft-documents|/car/files|/photo|/upload|/evidence|/avatar)\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    },
+    {
+      "id": 3,
+      "type": "logs",
+      "title": "log ของ container ที่เลือก",
+      "gridPos": {
+        "h": 12,
+        "w": 24,
+        "x": 0,
+        "y": 18
+      },
+      "datasource": {
+        "type": "loki",
+        "uid": "gacp-demo-loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "gacp-demo-loki"
+          },
+          "expr": "{host=\"demo\", container=~\"$container\"} |~ \"$search\""
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "sortOrder": "Descending",
+        "wrapLogMessage": true
+      }
+    }
+  ]
+}

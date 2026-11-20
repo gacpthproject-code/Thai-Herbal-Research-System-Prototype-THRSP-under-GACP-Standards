@@ -1,0 +1,44 @@
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T08:17:43.480Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T08:17:43.484Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T08:17:43.485Z"}
+warn: [application-parties] no recipient for application e4fed4c9-3f83-469d-a4f9-350085452464 (AUDIT_VISIT_REMINDER) {"service":"gacp-backend","timestamp":"2026-10-09T08:17:44.266Z"}
+warn: [visit-reminder] reminder for APP-vrm-14-afd9f163 reached nobody; released for the next run {"service":"gacp-backend","timestamp":"2026-10-09T08:17:44.268Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T08:17:44.426Z"}
+PASS __tests__/integration/visit-reminder-real-postgres.test.js
+  the reminder before a field visit (real Postgres)
+    ✓ from two working days before the visit the applicant and the holder are told once, in the approved words (265 ms)
+    ✓ a member who muted visit reminders still gets this one (112 ms)
+    ✓ a visit moved to another day is reminded again for the new day (154 ms)
+    ✓ a visit booked on its reminder day is not reminded: the booking notice has just told them (45 ms)
+    ✓ with no place typed, the site the filing names is told (81 ms)
+    ✓ a reminder that reached nobody leaves no record, and the next run sends it (107 ms)
+
+PASS __tests__/unit/notification-preferences-service.test.js
+  normalize
+    ✓ returns empty channels for null/undefined input (6 ms)
+    ✓ drops legacy email/sms keys plus any other unknown key (channel concept removed — in-app only) (2 ms)
+    ✓ drops non-boolean channel values (2 ms)
+  getPrefs
+    ✓ returns empty channels for unknown user, and still names the always-on types for the screen (2 ms)
+    ✓ returns normalized notificationSettings (in-app only) (2 ms)
+    ✓ legacy-shaped stored value (email/sms only, no inApp ever written) does not crash — normalizes to empty entry (2 ms)
+  updatePrefs
+    ✓ writes normalized JSON (in-app only — email/sms are dropped on write) (11 ms)
+  isAllowed
+    ✓ default-allow when no settings (2 ms)
+    ✓ default-allow when type missing (2 ms)
+    ✓ default-allow when channel missing for the type (2 ms)
+    ✓ returns false when explicitly opted out (1 ms)
+    ✓ falls back to DB lookup when only userId is given (1 ms)
+    ✓ returns true when channel is unknown (1 ms)
+    ✓ email/sms channels no longer supported — always default-allow, even when the legacy value says opted-out (1 ms)
+
+PASS __tests__/unit/visit-reminder-scheduled.test.js
+  ✓ an hourly block runs the visit reminder on the Bangkok clock (7 ms)
+  ✓ nobody can mute it (43 ms)
+
+Test Suites: 3 passed, 3 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        2.555 s, estimated 4 s
+Ran all test suites matching __tests__/integration/visit-reminder-real-postgres.test.js|__tests__/unit/visit-reminder-scheduled.test.js|__tests__/unit/notification-preferences-service.test.js.

@@ -1,0 +1,37 @@
+# gate-step.txt: the ratchet-selftest step of scripts/ci/local-gate.sh, run alone.
+# Gate script at 188328bb3d24d4255b3b91790ae8cee15fa22bf7. The runner is built from the gate file itself, so the step() function and the step line are the gate's own:
+#   { echo 'set -u; cd "$1"; fail=0'; sed -n '/^step() {/,/^}/p' scripts/ci/local-gate.sh; grep '^step ratchet-selftest ' scripts/ci/local-gate.sh; echo 'echo "gate-fail-flag=$fail"; exit "$fail"'; } > run-gate-step.sh
+# Not the whole gate: the other steps and probe-gate are not run here (see gate-light-vs-base.txt for those).
+# tools: grep (GNU grep) 3.7 / bash 5.1.16(1)-release
+
+## runner body
+set -u; cd "$1"; fail=0
+step() {
+  local name="$1"; shift
+  echo ""; echo "===== [local-gate] ${name} ====="
+  if "$@"; then echo "[local-gate] ${name}: PASS"; else echo "[local-gate] ${name}: FAIL"; fail=1; fi
+}
+step ratchet-selftest bash scripts/probes/ratchet.sh --selftest
+echo "gate-fail-flag=$fail"; exit "$fail"
+
+## PASS: bash run-gate-step.sh <this tree>
+===== [local-gate] ratchet-selftest =====
+==================================================
+ratchet --selftest: 17/17 cases PASS
+[local-gate] ratchet-selftest: PASS
+gate-fail-flag=0
+runner exit=0
+
+## FAIL: bash run-gate-step.sh <temp root whose probe has the round-1 pattern, mutation M16>
+===== [local-gate] ratchet-selftest =====
+*** P FAILED: todo count 0 != 1
+*** Q FAILED: todo count 0 != 2
+==================================================
+ratchet --selftest: 2 assertion(s) FAILED
+[local-gate] ratchet-selftest: FAIL
+gate-fail-flag=1
+runner exit=1
+
+## before this change
+git show 07085f20b:scripts/ci/local-gate.sh | grep -n ratchet
+(no match: the gate had no ratchet step, so a red selftest could not turn it red)

@@ -1,0 +1,19 @@
+# wave2/no-recovery — lint and type check, 2026-09-17, on the fixed tree
+
+$ cd apps/backend && npx eslint routes/api/auth/auth-health.js routes/api/provider/handlers/admin-user-actions-helpers.js routes/api/system/provider.js server.js services/auth/password-management.js services/prisma-auth-service.js shared/error-codes.js shared/schemas/auth-schemas.js controllers/auth-controller/auth-session-security-handlers.js __tests__/admin-user-actions-helpers.test.js __tests__/unit/auth-service-audit-fixes.test.js __tests__/unit/auth-service.test.js __tests__/unit/no-self-service-password-reset.test.js __tests__/unit/password-reset-routes-behaviour.test.js __tests__/unit/provider-directory-hardening.test.js __tests__/unit/session-epoch-refresh.test.js
+(no output)
+EXIT=0
+
+$ cd apps/web-app && npx eslint src/app/provider/management/page.tsx src/app/provider/management/__tests__/no-password-reset-action.test.tsx src/app/provider/management/__tests__/x5-fix-c-confirm-dialog.test.ts src/components/admin/__tests__/x5-fix-b.test.tsx src/app/health/profile/security/page.tsx src/app/health/profile/security/__tests__/page.test.tsx src/app/health/profile/privacy/page.tsx src/app/health/profile/privacy/__tests__/no-recovery-promise.test.tsx src/app/auth/_components/health-login-page.tsx
+(no output)
+EXIT=0
+
+$ cd apps/web-app && npx tsc --noEmit -p tsconfig.json
+(no output)
+EXIT=0
+
+$ cd apps/backend && node scripts/extract-error-codes.js --markdown
+EXIT=0 — docs/api/error-codes.md changed by exactly one line (the INVALID_PASSWORD remediation row)
+
+$ python3 -c "import yaml; d=yaml.safe_load(open('openapi/auth-health.yaml')); print(list(d['paths']))"
+['/api/auth/health/register', '/api/auth/health/login', '/api/auth/health/profile']

@@ -1,0 +1,28 @@
+const { open, shot, note, BASE, S } = require(process.env.S + '/lib.js');
+(async () => {
+  const { browser, ctx, page } = await open({ storage: S + '/applicant.json' });
+  page.on('response', (r) => { if (r.url().includes('/api/applications') && r.request().method() !== 'GET') note(`${r.request().method()} ${r.url().replace(/^.*\/api/, '/api')} -> ${r.status()}`); });
+  await page.goto(BASE + '/health/applications/new', { waitUntil: 'networkidle', timeout: 180000 });
+  await page.waitForTimeout(2000);
+  await page.getByRole('button', { name: /^ขอใหม่/ }).click();
+  await page.getByRole('button', { name: /^นิติบุคคล/ }).click();
+  await page.getByRole('button', { name: /^ขิง/ }).click();
+  await page.waitForTimeout(6000);
+  await page.getByRole('button', { name: /ถัดไป/ }).click();
+  await page.waitForURL(/step\/2/, { timeout: 60000 });
+  await page.waitForLoadState('networkidle'); await page.waitForTimeout(2000);
+  const fill = async (label, v) => { const l = page.getByLabel(label, { exact: false }).first(); await l.fill(v); };
+  await fill('ชื่อนิติบุคคล', 'บริษัท สมุนไพรทดสอบ จำกัด');
+  await fill('ผู้มีอำนาจลงนาม', 'วีระ ทองคำ');
+  await fill('เลขทะเบียนนิติบุคคล', '0999911111221');
+  await fill('ที่อยู่', '99 หมู่ 1 ตำบลทดสอบ อำเภอเมือง จังหวัดนนทบุรี 11000');
+  await fill('โทรศัพท์มือถือ', '0812345678');
+  await page.waitForTimeout(9000);
+  await page.waitForLoadState('networkidle');
+  await shot(page, '10-step2-filled-slots', { full: true });
+  note('html class: ' + await page.evaluate(() => document.documentElement.className));
+  const cards = await page.locator('div.rounded-xl.border-2').allInnerTexts();
+  cards.forEach((t, i) => note(`card ${i}: ${t.replace(/\s+/g, ' ').slice(0, 160)}`));
+  await ctx.storageState({ path: S + '/applicant.json' });
+  await browser.close();
+})().catch((e) => { console.error(e); process.exit(1); });

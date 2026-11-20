@@ -1,0 +1,84 @@
+name: Runner Dispatch Probe
+
+# ONE QUESTION: can a self-hosted job still START while the account carries an
+# unpaid Actions balance? That is all this proves. Read the limits below before
+# using the result to decide anything.
+#
+# WHY IT IS WORTH ASKING: HARNESS_LOG.md:174 and GOALS.md:19 record a $51.91
+# unpaid Actions balance, and staging-walkthrough.yml:5-11 asserts the resulting
+# lock blocks self-hosted runs too. Nothing in the repo records a self-hosted
+# dispatch being attempted and refused — that is an assertion, not an
+# observation, and it is currently load-bearing for a spending decision.
+#
+# WHAT THIS DOES NOT SETTLE — three things, stated plainly because an earlier
+# draft of this file got all three wrong:
+#
+# 1. It is NOT a contradiction that setup-self-hosted-runner.md:5 says our own
+#    runner is unmetered. Metering and dispatch authorization are different
+#    mechanisms. GitHub can decline to schedule ANY workflow on a delinquent
+#    account while still never charging for self-hosted minutes. Both statements
+#    can be true at once, so this probe is not adjudicating between them.
+#
+# 2. A job that never starts does NOT identify the cause. For a repo-level
+#    runner that is offline, GitHub QUEUES the job (documented max ~24h) rather
+#    than failing it — the same observable as a billing block. So if this queues,
+#    open Settings → Actions → Runners in the same minute and record whether
+#    gacp-staging-runner shows Idle or Offline. Without that, "queued" is
+#    ambiguous and must not be reported as "the account is locked".
+#
+# 3. A green run here does NOT mean the other 23 ubuntu-latest declarations can
+#    be relabelled safely. It proves a trivial job starts. Those jobs need node,
+#    pnpm, java, flutter and Playwright browsers, and ci.yml's suite has OOMed on
+#    this box before (2 cores, 7.1 GiB, no swap). The second step below reports
+#    what is actually installed so that question can be answered separately.
+#
+# HOW TO READ THE RESULT
+#   runs + prints banner   → a self-hosted job can start today. Nothing more.
+#   queues, runner Idle    → dispatch is being withheld; billing is the likely cause.
+#   queues, runner Offline → the runner is down. Fix that first, then re-run.
+#
+# Costs nothing to keep: workflow_dispatch only, never fires by itself. Delete it
+# once the answer is recorded in GOALS.md.
+#
+# Context: reports/risk-assessment/2026-08-13.md §4 R6.
+
+on:
+  workflow_dispatch:
+
+jobs:
+  probe:
+    name: Can a self-hosted job start?
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 5
+
+    steps:
+      - name: Report that we got here at all
+        run: |
+          echo "=================================================="
+          echo " SELF-HOSTED DISPATCH: WORKING"
+          echo "=================================================="
+          echo "runner name : ${RUNNER_NAME:-unknown}"
+          echo "runner os   : ${RUNNER_OS:-unknown}"
+          echo "workspace   : ${GITHUB_WORKSPACE:-unknown}"
+          echo "date (utc)  : $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          echo ""
+          echo "PROVEN: a self-hosted job can start on this account today."
+          echo "NOT PROVEN: that the 23 remaining ubuntu-latest jobs would pass"
+          echo "here. They need node, pnpm, java, flutter and Playwright, and"
+          echo "ci.yml's suite has run out of memory on this box before. See the"
+          echo "toolchain and headroom below, and the limits in this file's header."
+
+      - name: Report toolchain the migrated jobs would need
+        run: |
+          echo "--- what a relabelled job would find here ---"
+          for t in node pnpm docker git; do
+            if command -v "$t" >/dev/null 2>&1; then
+              printf '%-8s %s\n' "$t" "$($t --version 2>&1 | head -1)"
+            else
+              printf '%-8s MISSING\n' "$t"
+            fi
+          done
+          echo ""
+          echo "--- headroom (ci.yml's suite has OOMed here before) ---"
+          nproc 2>/dev/null | sed 's/^/cores: /' || true
+          free -h 2>/dev/null | sed -n '1,3p' || true

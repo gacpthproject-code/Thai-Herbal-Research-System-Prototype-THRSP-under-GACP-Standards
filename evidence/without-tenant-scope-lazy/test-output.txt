@@ -1,0 +1,82 @@
+GREEN run — tree 2ea201bf + review M1/M2 pins
+node v24.21.0 · NODE_OPTIONS=<unset> · SIGNING_KEY_DIR=<mktemp -d> · TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5441 (password redacted)
+$ npx jest --config jest.config.cjs __tests__/unit/without-tenant-scope-lazy.test.js __tests__/integration/without-tenant-scope-lazy.int.test.js
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T12:51:42.525Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T12:51:42.529Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T12:51:42.531Z"}
+[32minfo[39m: [org-user-create] org=wts-B-mumoe1zkb1498e userId=85561ef3-0182-47e7-84dd-1bda9d7ceee9 role=system_admin_dtam by=e64ab32a-6231-484f-80a7-18b52ffddadf {"service":"platform-admin-organizations","timestamp":"2026-09-29T12:51:43.341Z"}
+[33mwarn[39m: Unauthorized role access attempt {"normalizedUserRole":"system_admin_dtam","path":"/b3c7de83-9bce-4661-8c08-657d5e047060/users","requiredRoles":["system_admin_platform"],"service":"gacp-backend","timestamp":"2026-09-29T12:51:43.468Z","userId":"a433ce20-7a1a-4c76-975f-81314d27112e","userRole":"system_admin_dtam"}
+[32minfo[39m: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-09-29T12:51:43.594Z"}
+[32minfo[39m: [Revision Deadline Checker] Found 1 active deadlines {"service":"gacp-backend","timestamp":"2026-09-29T12:51:43.602Z"}
+[32minfo[39m: [Revision Deadline Checker] Auto-cancelled: WTS-RD-mumoe1zkb1498e (deadline: 2026-08-30T12:51:43.588Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-09-29T12:51:43.679Z"}
+[32minfo[39m: [Revision Deadline Checker] Completed: 1 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-09-29T12:51:43.708Z"}
+[32minfo[39m: [reconcile] settlement reconcile complete {"deadLettered":0,"errors":0,"reDrivenOrders":0,"retriedEvents":0,"service":"settlement-reconcile","timestamp":"2026-09-29T12:51:43.750Z"}
+PASS __tests__/integration/without-tenant-scope-lazy.int.test.js
+  withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres)
+    S6 — last-admin guard, caller bound to org A, target in org B
+      ✓ service: assertNotLastActiveAdmin refuses to remove org B's only admin (44 ms)
+      ✓ real door: PATCH disabling org B's only admin answers 409 and the row stays ACTIVE (93 ms)
+      ✓ control: org C has two admins, so disabling one of them succeeds (41 ms)
+    platform-admin provisioning — caller bound to org A creates a user in org B
+      ✓ POST /api/platform-admin/organizations/:orgB/users answers 201 and the row lands in org B (447 ms)
+    M1 pin — a tenant admin of org A cannot reach org B's staff (provider.js :92 / :705)
+      ✓ :92 PATCH on org B's staff answers 404 and org B's row is unchanged (38 ms)
+      ✓ :92 DELETE on org B's staff answers 404 and org B's row is unchanged (19 ms)
+      ✓ :705 unlock on org B's staff answers 404 and the account stays locked (18 ms)
+      ✓ control: the same admin unlocks a staff member of its own org A (27 ms)
+    M2 pin — organizations POST /:id/users refuses a non-platform admin
+      ✓ tenant admin of org A → 403 AUTHORIZATION_ERROR, no user created in org B (15 ms)
+    S7 — a REVOKE stored under org B, caller bound to org A
+      ✓ the fixture really is a default MANAGER permission (1 ms)
+      ✓ effective permissions honour the REVOKE (6 ms)
+      ✓ revoking the member removes its grant rows (no resurrect on re-invite) (29 ms)
+    revision-deadline fan-out stays in the deadline's org
+      ✓ an expired deadline in org B notifies org B's dispatcher and not org C's (188 ms)
+    money path — settlement-reconcile runs with no tenant (behaviour unchanged)
+      ✓ stale PENDING_PAYMENT orders from every org reach the gateway question (38 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/without-tenant-scope-lazy.test.js
+  withoutTenantScope — lazy thenable returned by the callback
+    ✓ the lazy work runs with no tenant bound, even when the caller holds org A (3 ms)
+    ✓ the lazy work is started exactly once (1 ms)
+    ✓ a rejection from the lazy work reaches the caller unchanged (2 ms)
+    ✓ a non-thenable return value comes back synchronously and unchanged (1 ms)
+    ✓ a synchronous throw still propagates synchronously (14 ms)
+    ✓ an async callback still runs every await with no tenant bound (26 ms)
+  withoutTenantScope — a real PrismaPromise (no database needed)
+    ✓ prisma.user.count returned un-awaited runs its extension hooks with no tenant (2 ms)
+    ✓ control: the same call made directly under org A sees org A (1 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       22 passed, 22 total
+Snapshots:   0 total
+Time:        2.372 s
+Ran all test suites matching __tests__/unit/without-tenant-scope-lazy.test.js|__tests__/integration/without-tenant-scope-lazy.int.test.js.

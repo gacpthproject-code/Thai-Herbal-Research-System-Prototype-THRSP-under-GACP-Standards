@@ -1,0 +1,95 @@
+# RED — fees-from-server (branch fix/fees-from-server, base 34b2d924, before any implementation)
+# command: cd apps/web-app && npx jest src/__tests__/fees-from-server.test.tsx src/__tests__/no-screen-imports-a-literal-fee.test.ts
+# mocked server response: renewalFee 40000 / renewalTotalPerScope 42800 / phase1TotalPerScope 6420 / phase2TotalPerScope 32100 (differs from every literal)
+
+    ✕ exports only the phase-guess threshold (12 ms)
+    ✓ has no re-export form either (1 ms)
+    ✕ only payment-service.ts imports '@/constants/fees' (6 ms)
+    ✕ the '@/constants' barrel does not re-export it (1 ms)
+    ✓ the threshold is read by payment-service.ts alone (2 ms)
+    ✕ GACP_APPLICATION_FEE appears nowhere under src/ (tests aside) (3 ms)
+    ✕ GACP_INSPECTION_FEE appears nowhere under src/ (tests aside) (4 ms)
+    ✕ GACP_RENEWAL_FEE appears nowhere under src/ (tests aside) (3 ms)
+    ✕ GACP_RENEWAL_PAYABLE_PER_SCOPE appears nowhere under src/ (tests aside) (3 ms)
+    ✕ GACP_RENEWAL_CHARGE_COUNT appears nowhere under src/ (tests aside) (4 ms)
+    ✕ GACP_VAT_RATE appears nowhere under src/ (tests aside) (3 ms)
+    ✕ GACP_PHASE1_TOTAL appears nowhere under src/ (tests aside) (3 ms)
+    ✕ GACP_PHASE2_TOTAL appears nowhere under src/ (tests aside) (4 ms)
+    ✕ GACP_PER_TYPE_TOTAL appears nowhere under src/ (tests aside) (5 ms)
+    ✕ GACP_FEE_LINE_ITEMS appears nowhere under src/ (tests aside) (3 ms)
+    ✕ DEFAULT_FEES appears nowhere under src/ (tests aside) (3 ms)
+    ✕ CULTIVATION_FEE_PER_METHOD appears nowhere under src/ (tests aside) (3 ms)
+    ✕ app/(marketing)/pricing/page.tsx fetches the fees on the server (1 ms)
+    ✕ app/(marketing)/terms-of-service/page.tsx fetches the fees on the server (1 ms)
+    ✕ components/onboarding/OnboardingModal.tsx reads the fees through the pricing hook (2 ms)
+    ✕ app/help/faq/faq-client.tsx reads the fees through the pricing hook (1 ms)
+    ✕ app/health/onboarding/onboarding-client.tsx reads the fees through the pricing hook
+    ✕ app/health/applications/[id]/client-view.tsx reads the fees through the pricing hook (1 ms)
+    ✓ app/health/applications/renewal/invoice-step.tsx reads the fees through the pricing hook
+    ✓ app/health/applications/renewal/payment-step.tsx reads the fees through the pricing hook (1 ms)
+    ✕ prints every figure the server serves, and no retired literal (44 ms)
+    ✕ when the fetch fails it prints no amount at all and says where the price is (26 ms)
+    ✕ states the served amounts in the fee clause (12 ms)
+    ✕ when the fetch fails the clause carries no amount (10 ms)
+    ✕ the fee step names the served phase totals (28 ms)
+    ✕ the validity step names the served renewal amount (7 ms)
+    ✕ when the fetch fails the fee step shows no number (7 ms)
+    ✕ the per-scope answer names the served phase totals (60 ms)
+    ✕ the renewal answer names the served renewal amount (22 ms)
+    ✕ when the fetch fails the answers carry no amount (18 ms)
+    ✓ payment step prints the served payable (8 ms)
+    ✓ invoice step prints the served payable (14 ms)
+    ✕ when the fetch fails neither step prints an amount (3 ms)
+    ✕ phase 1 button (2 ms)
+    ✕ phase 2 button (1 ms)
+    ✕ without served fees the buttons carry no amount (2 ms)
+Test Suites: 2 failed, 2 total
+Tests:       35 failed, 6 passed, 41 total
+
+## what the current screens print against that response (excerpts from the failure output)
+  ● pricing page (server component) reads GET /api/pricing/fees › prints every figure the server serves, and no retired literal
+    Expected substring: "6,420 บาท"
+    Received string:    "ค่าบริการค่าบริการการรับรอง GACPค่าบริการทุกรายการชำระให้บริษ�
+  ● pricing page (server component) reads GET /api/pricing/fees › when the fetch fails it prints no amount at all and says where the price is
+    Expected substring: "ดูอัตราค่าบริการล่าสุดได้ที่ใบเสนอราคาในระบบ"
+    Received string:    "ค่าบริการค่าบริการการรับรอง GACPค่าบริการทุกรายการชำระให้บริษ�
+  ● terms of service (server component) reads GET /api/pricing/fees › states the served amounts in the fee clause
+    Expected substring: "ค่าบริการตรวจสอบเอกสาร 6,000 บาท"
+    Received string:    "เอกสารทางสัญญาข้อกำหนดและเงื่อนไขการใช้บริการเวอร์ชัน:1.0วันท
+  ● terms of service (server component) reads GET /api/pricing/fees › when the fetch fails the clause carries no amount
+    Expected substring: "ดูอัตราค่าบริการล่าสุดได้ที่ใบเสนอราคาในระบบ"
+    Received string:    "เอกสารทางสัญญาข้อกำหนดและเงื่อนไขการใช้บริการเวอร์ชัน:1.0วันท
+  ● onboarding modal reads the served fees › the fee step names the served phase totals
+    Expected: "/api/pricing/fees"
+  ● onboarding modal reads the served fees › the validity step names the served renewal amount
+    Expected substring: "ค่าต่ออายุ 42,800 บาท"
+    Received string:    "เริ่มต้นใช้งาน · GACP THAILANDขั้นที่ 4 / 51 ปีใบรับรองมีอายุ 1 ปีใบรับรองมี
+  ● onboarding modal reads the served fees › when the fetch fails the fee step shows no number
+    Expected substring: "ดูอัตราค่าบริการล่าสุดได้ที่ใบเสนอราคาในระบบ"
+    Received string:    "เริ่มต้นใช้งาน · GACP THAILANDขั้นที่ 3 / 5฿฿ค่าบริการ (ชำระ 2 งวด)คิดตามจำน�
+  ● help-centre FAQ reads the served fees › the per-scope answer names the served phase totals
+    Expected substring: "6,420 บาทต่อขอบเขต"
+    Received string:    "งวดที่ 1 ค่าตรวจเอกสาร 5,885 บาทต่อขอบเขต และงวดที่ 2 ค่าตรวจประเมิ�
+  ● help-centre FAQ reads the served fees › the renewal answer names the served renewal amount
+    Expected substring: "42,800 บาทต่อรูปแบบการปลูก"
+    Received string:    "ไม่ ระบบดึงข้อมูลฟาร์มจากคำขอเดิมมาให้ การต่ออายุไม่มีการตร�
+  ● help-centre FAQ reads the served fees › when the fetch fails the answers carry no amount
+    Expected substring: "ดูอัตราค่าบริการล่าสุดได้ที่ใบเสนอราคาในระบบ"
+    Received string:    "งวดที่ 1 ค่าตรวจเอกสาร 5,885 บาทต่อขอบเขต และงวดที่ 2 ค่าตรวจประเมิ�
+  ● renewal wizard reads the served renewal amount › when the fetch fails neither step prints an amount
+    Expected substring: "ดูอัตราค่าบริการล่าสุดได้ที่ใบเสนอราคาในระบบ"
+    Received string:    "← ย้อนกลับชำระเงินค่าต่อสัญญาตรวจสอบยอดค่าต่ออายุที่ต้องชำร
+  ● application detail: the pay buttons name the served amount › phase 1 button
+    Expected substring: "6,420"
+    Received string:    "ชำระค่าตรวจเอกสาร ฿5,885 ต่อขอบเขต"
+  ● application detail: the pay buttons name the served amount › phase 2 button
+    Expected substring: "32,100"
+    Received string:    "ชำระค่าประเมินหน้างาน ฿29,425 ต่อขอบเขต"
+  ● application detail: the pay buttons name the served amount › without served fees the buttons carry no amount
+    Expected: "ชำระค่าตรวจเอกสาร"
+    Received: "ชำระค่าตรวจเอกสาร ฿5,885 ต่อขอบเขต"
+
+## pricing page amounts on base code with server renewalTotalPerScope=42800 (scratch render, deleted after run):
+AMOUNTS_ON_PRICING_PAGE ["35,310 บาท","5,885 บาท","29,425 บาท","35,310 บาท"]
+
+## pins (green on base code, not fixes): renewal payment/invoice steps already read the served payable when the fetch succeeds; their defect was the literal fallback on failure (case 'when the fetch fails neither step prints an amount' is RED).

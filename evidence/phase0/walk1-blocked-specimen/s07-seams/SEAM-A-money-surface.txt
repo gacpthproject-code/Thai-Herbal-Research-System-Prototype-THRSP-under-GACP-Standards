@@ -1,0 +1,15 @@
+APPLICATION a0720a9f-fd40-49cc-b2a3-799d541adaaa (APP-2569-MSYY8THT-2986AE) status=PENDING_DOC_FEE workflowState=PENDING_DOC_FEE
+
+Q1 payments screen: quotation-review-section nodes=1
+Q2 preview money button: present=false enabled=false label="(no button)"
+   (this row is already PENDING_DOC_FEE — see the SEAM A assertions below;
+    pressing this button calls POST /payments/create, which accepts
+    PENDING_DOC_FEE directly, payment-service-phase-flow.js:83. That press
+    is performed in SEAM C, on purpose AFTER this evidence write, so it
+    does not destroy anything SEAM C still needs.)
+Q3 stripe checkout UI: UI press → POST /payments/checkout status 200 body {"success":true,"data":{"checkoutOrderId":"e5b1bcc1-9c02-4f2f-90d6-d87af7d2ffbe","paymentIntentId":"pi_3U5r1bQ4HsQ2Gmd52lsJFTXN","clientSecret":"pi_3U5r1bQ4HsQ2Gmd52lsJFTXN_secret_dxdG8p89NWc9FOEnkPLQVOg2R","milestone":"M1","breakdown":{"dtamFeeAmount":5000,"platformFeeNet":500,"platformFeeVat":35,"platformFeeGross":535,"totalPayableAmount":5535}}}
+Q4 stripe checkout API: not attempted (UI door answered)
+
+DB quotations: 2 rows [{"id":"dd047b85-c8ed-4954-a92f-07c5f2dd4254","issuerType":"DTAM","status":"PENDING","totalAmount":"30000"},{"id":"ae859b5a-bd43-415e-b629-c0eb083da16a","issuerType":"PLATFORM","status":"PENDING","totalAmount":"3210"}]
+DB checkout_orders: 1 rows [{"id":"e5b1bcc1-9c02-4f2f-90d6-d87af7d2ffbe","milestone":"M1","status":"PENDING_PAYMENT","total_payable_amount":"5535"}]
+DB invoices: 3 rows [{"id":"4667386a-1700-4815-98c7-b66728ff6e3f","invoiceNumber":"INV-202608180047","status":"pending","totalAmount":"5000"},{"id":"1fdc577f-4196-4000-8df4-954e2accc465","invoiceNumber":"INV-202608180048","status":"pending","totalAmount":"535"},{"id":"b33ac41a-48ab-4bb4-9e75-84d5d3b81b8e","invoiceNumber":"INV-CO-E5B1BCC1-M1","status":"pending","totalAmount":"5535"}]

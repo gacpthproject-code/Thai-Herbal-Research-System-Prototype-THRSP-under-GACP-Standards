@@ -1,0 +1,349 @@
+/**
+ * PHASE 0 — C14+C15 RESUME DRIVER (one-off, walk-2 2026-08-19 — DELETED after
+ * the run; source preserved at evidence/phase0/s06/C14-resume-driver-source.txt).
+ *
+ * Why: walk-2's s06 run completed C13 through the real UI (final-approval POST
+ * 200, row AUDIT_PASSED → APPROVED — s06/C13-* artifacts) and then failed on
+ * the C13 canonical-audit assertion, which caught a REAL hole: the
+ * final-approvals route commits the hop with no APPLICATION_STATUS_TRANSITION
+ * row (F-FINAL-APPROVAL-NO-AUDIT, fixed + unit-pinned in the same round).
+ * The row already sits at APPROVED, so the full s06 cannot re-run; this driver
+ * walks ONLY the remaining checkpoints, verbatim from s06:
+ *   C14 APPROVED → CERTIFIED (UI doors probed first, fallback = the auditor's
+ *   own workflow-transitions endpoint) → C15 farmer list/detail/PDF + public
+ *   verify + M1 holder identity.
+ * Same rules: no /api/e2e/*, psql SELECT-only, creds via env (G-3).
+ */
+import { test, expect, type Page } from '@playwright/test';
+import { join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { login, dump, auditDump, psql, readVars, saveVars, EV } from './helpers';
+
+const SEG = 's06';
+const OUT = join(EV, SEG);
+mkdirSync(OUT, { recursive: true });
+
+const shot = (page: Page, name: string) => page.screenshot({ path: join(OUT, name), fullPage: true });
+const rows = <T>(sql: string): T[] => JSON.parse(psql(sql)) as T[];
+const one = <T>(sql: string): T | undefined => rows<T>(sql)[0];
+const canonicalCount = (app: string): number =>
+  rows<{ id: string }>(
+    `SELECT id FROM audit_logs WHERE "resourceId"='${app}' AND action='APPLICATION_STATUS_TRANSITION';`,
+  ).length;
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+interface AppRow { id: string; applicationNumber: string; status: string; auditorId: string | null }
+interface CertRow {
+  id: string; certificateNumber: string; status: string; farmName: string | null;
+  applicantName: string | null; holderDisplayName: string | null; holderType: string | null;
+  issuedDate: string | null; expiryDate: string | null;
+}
+
+const AUDITOR_LOGIN_ID = '2222222222222';
+
+test('C14 resume — APPROVED→CERTIFIED, then C15 farmer + PDF + public verify', async ({ page, browser }) => {
+  const V = readVars();
+  const APP = String(V.FARMER_MAIN_APP ?? '');
+  const FARMER_ID = String(V.FARMER_MAIN_ID ?? '');
+  const FARMER_PW = process.env.PHASE0_FARMER_PW || '';
+  const OFFICER_PW = process.env.PHASE0_SEED_PW_OFFICER || '';
+  expect(APP, 'FARMER_MAIN_APP present in VARS').toBeTruthy();
+  expect(FARMER_ID, 'FARMER_MAIN_ID present in VARS').toBeTruthy();
+  expect(FARMER_PW, 'PHASE0_FARMER_PW set in the run command (G-3)').toBeTruthy();
+  expect(OFFICER_PW, 'PHASE0_SEED_PW_OFFICER set in the run command (G-3)').toBeTruthy();
+
+  const before = one<AppRow>(
+    `SELECT id, "applicationNumber", status, "auditorId" FROM applications WHERE id='${APP}';`,
+  );
+  // Resume precondition: C13 already landed APPROVED (main s06 run artifacts).
+  expect(before?.status, 'resume precondition — the row sits at APPROVED (C13 output)').toBe('APPROVED');
+  const APP_NO = String(before?.applicationNumber || '');
+  expect(APP_NO, 'applicationNumber readable').toBeTruthy();
+
+  const BASE = String(test.info().project.use.baseURL || '');
+  expect(BASE, 'baseURL resolved from playwright.phase0.config.ts').toBeTruthy();
+  const audCtx = await browser.newContext({ baseURL: BASE, recordVideo: { dir: join(OUT, 'video-auditor-resume') } });
+  const aud = await audCtx.newPage();
+  const audLoginResp = aud
+    .waitForResponse((r) => r.url().includes('/auth/provider/login') && r.request().method() === 'POST', { timeout: 90_000 })
+    .catch(() => null);
+  await login(aud, { kind: 'provider', id: AUDITOR_LOGIN_ID, pw: OFFICER_PW });
+  const alr = await audLoginResp;
+  const alb = alr ? await alr.json().catch(() => null) : null;
+  const AUD_TOKEN: string = alb?.data?.tokens?.accessToken || alb?.data?.token || '';
+  await aud.waitForURL(/\/provider\/(dashboard|audits|work|applications|reviewer|scheduler|coordinator)/, { timeout: 120_000 });
+  await aud.waitForLoadState('domcontentloaded');
+  expect(AUD_TOKEN, 'auditor bearer token captured (redacted — status only)').toBeTruthy();
+
+  // ═══ C14 — APPROVED → CERTIFIED (verbatim from s06: doors first) ═══
+  dump(SEG, 'C14', 'before', APP);
+  const canonicalBeforeC14 = canonicalCount(APP);
+  const doorNotes: string[] = [];
+
+  await aud.goto(`/provider/audits/${APP}`, { timeout: 200_000 });
+  await aud.waitForLoadState('domcontentloaded');
+  await aud.waitForTimeout(3000);
+  await shot(aud, 'C14-01-auditor-job-sheet.png');
+  const jobSheetActions = await aud.getByTestId('auditor-action-buttons').innerText().catch(() => '(no auditor-action-buttons block rendered)');
+  const certifyBtnAudits = await aud.getByRole('button', { name: /ออกใบรับรอง|CERTIFIED/i }).count();
+  doorNotes.push(`(a) /provider/audits/${APP}\n    auditor-action-buttons block: ${JSON.stringify(jobSheetActions)}\n    buttons matching /ออกใบรับรอง|CERTIFIED/i: ${certifyBtnAudits}`);
+
+  await aud.goto(`/provider/applications/${APP}`, { timeout: 200_000 });
+  await aud.waitForLoadState('domcontentloaded');
+  await aud.waitForTimeout(3000);
+  await shot(aud, 'C14-02-provider-application-detail.png');
+  const reviewerPanel = await aud.getByTestId('action-panel-reviewer').count();
+  const readonlyNotice = await aud.getByTestId('action-panel-readonly-notice').count();
+  const certifyBtnDetail = await aud.getByRole('button', { name: /ออกใบรับรอง|CERTIFIED/i }).count();
+  doorNotes.push(`(b) /provider/applications/${APP}\n    action-panel-reviewer present: ${reviewerPanel} · readonly-notice present: ${readonlyNotice}\n    buttons matching /ออกใบรับรอง|CERTIFIED/i: ${certifyBtnDetail}`);
+
+  let uiCertifyUsed = false;
+  let workDoneStatus = 'none';
+  for (const url of ['/provider/work', '/provider/work?tab=queue']) {
+    if (uiCertifyUsed) break;
+    await aud.goto(url, { timeout: 200_000 });
+    await aud.waitForLoadState('domcontentloaded');
+    await aud.waitForTimeout(3500);
+    await shot(aud, `C14-03-work-${url.includes('queue') ? 'queue' : 'my'}.png`);
+    const workRow = aud.getByRole('link', { name: new RegExp(escapeRe(APP_NO)) }).first();
+    const rowVisible = await workRow.waitFor({ state: 'visible', timeout: 10_000 }).then(() => true).catch(() => false);
+    doorNotes.push(`(c) ${url} — work row for ${APP_NO} visible: ${rowVisible}`);
+    if (!rowVisible) continue;
+
+    await workRow.click();
+    await aud.waitForURL('**/provider/work/**', { timeout: 200_000 });
+    await aud.waitForLoadState('domcontentloaded');
+    await aud.waitForTimeout(2500);
+    await shot(aud, 'C14-04-work-activity-detail.png');
+    const select = aud.getByTestId('next-state-select');
+    const hasSelect = await select.waitFor({ state: 'visible', timeout: 15_000 }).then(() => true).catch(() => false);
+    const values = hasSelect
+      ? await select.locator('option').evaluateAll((els) => els.map((e) => (e as HTMLOptionElement).value).filter(Boolean))
+      : [];
+    doorNotes.push(`    work-activity detail ${aud.url()}\n    next-state-select rendered: ${hasSelect} · options: [${values.join(', ')}]`);
+    if (!values.includes('CERTIFIED')) continue;
+
+    await select.selectOption('CERTIFIED');
+    const commentBox = aud.getByPlaceholder('ระบุเหตุผล / รายละเอียด');
+    if (await commentBox.count()) {
+      await commentBox.fill('Phase 0 C14 — ออกใบรับรองจากงานในกล่องงานผู้ตรวจ');
+    }
+    const doneResp = aud
+      .waitForResponse((r) => r.url().includes('/work/') && r.url().includes('/done') && r.request().method() === 'POST', { timeout: 120_000 })
+      .catch(() => null);
+    await aud.getByRole('button', { name: /ปิดงาน \+ เลื่อน/ }).click();
+    const drr = await doneResp;
+    workDoneStatus = drr ? String(drr.status()) : 'none';
+    uiCertifyUsed = true;
+    doorNotes.push(`    USED THIS DOOR — POST .../work/<id>/done {advanceStatus:CERTIFIED} → ${workDoneStatus}`);
+    await aud.waitForTimeout(3000);
+    await shot(aud, 'C14-05-work-after-advance.png');
+  }
+
+  let apiFallbackStatus = 'not-used';
+  if (!uiCertifyUsed) {
+    writeFileSync(
+      join(OUT, 'C14-FINDING-no-ui-door.txt'),
+      `FINDING F-UI-CERT — the last hop of the pipeline (APPROVED → CERTIFIED) has NO button.\n\n` +
+        `Probed as the logged-in auditor (${AUDITOR_LOGIN_ID}) on ${new Date().toISOString()}:\n${doorNotes.join('\n')}\n\n` +
+        `The edge itself is legal and auditor-owned (workflow-transition-service.js:76,:156), so the pipe is\n` +
+        `closed through the exact endpoint the missing button would call — NOT an /api/e2e backdoor (G-6).\n`,
+    );
+    const certResp = await aud.request.post(`/api/provider/applications/${APP}/workflow-transitions`, {
+      headers: { Authorization: `Bearer ${AUD_TOKEN}` },
+      data: { toState: 'CERTIFIED', comment: 'Phase 0 C14 — ปิดท่อขั้นสุดท้าย (ไม่มีประตู UI สำหรับ hop นี้ — FINDING F-UI-CERT)' },
+    });
+    apiFallbackStatus = String(certResp.status());
+    writeFileSync(
+      join(OUT, 'C14-api-fallback-response.txt'),
+      `POST /api/provider/applications/${APP}/workflow-transitions {toState: CERTIFIED} → status ${apiFallbackStatus}\n` +
+        `${(await certResp.text().catch(() => '')).slice(0, 2000)}\n`,
+    );
+  }
+
+  let statusC14 = '';
+  for (let i = 0; i < 12 && statusC14 !== 'CERTIFIED'; i++) {
+    statusC14 = one<{ status: string }>(`SELECT status FROM applications WHERE id='${APP}';`)?.status ?? '';
+    if (statusC14 !== 'CERTIFIED') await aud.waitForTimeout(3000);
+  }
+  dump(SEG, 'C14', 'after', APP);
+  auditDump(SEG, 'C14', APP);
+  const canonicalAfterC14 = canonicalCount(APP);
+
+  const cert = one<CertRow>(
+    `SELECT id, "certificateNumber", status, "farmName", "applicantName",
+      "holderDisplayName", "holderType", "issuedDate", "expiryDate"
+     FROM certificates WHERE "applicationId"='${APP}' ORDER BY "issuedDate" DESC LIMIT 1;`,
+  );
+  writeFileSync(
+    join(OUT, 'C14-ui-doors.txt'),
+    `C14 APPROVED→CERTIFIED — UI door probe (resume driver)\n${doorNotes.join('\n')}\n\n` +
+      `UI door used: ${uiCertifyUsed} (work-inbox /done status ${workDoneStatus})\n` +
+      `API fallback used: ${!uiCertifyUsed} (status ${apiFallbackStatus})\n` +
+      `status after C14: ${statusC14}\n` +
+      `canonical APPLICATION_STATUS_TRANSITION rows: ${canonicalBeforeC14} → ${canonicalAfterC14}\n` +
+      `certificate row: ${JSON.stringify(cert, null, 2)}\n`,
+  );
+  if (cert?.id) {
+    saveVars('FARMER_MAIN_CERT_ID', cert.id);
+    saveVars('FARMER_MAIN_CERT_NO', cert.certificateNumber);
+  }
+  await aud.goto(`/provider/audits/${APP}`, { timeout: 200_000 }).catch(() => null);
+  await aud.waitForLoadState('domcontentloaded').catch(() => null);
+  await shot(aud, 'C14-06-auditor-after-certified.png');
+  await audCtx.close();
+
+  expect(statusC14, 'C14 status = CERTIFIED (auditor-owned edge APPROVED->CERTIFIED)').toBe('CERTIFIED');
+  expect(
+    canonicalAfterC14 - canonicalBeforeC14,
+    'C14 canonical audit row for →CERTIFIED — 0 new rows = the fail-open hole',
+  ).toBeGreaterThanOrEqual(1);
+  expect(cert?.id, 'a certificate row exists for this application').toBeTruthy();
+  const CERT_ID = String(cert?.id ?? '');
+  const CERT_NO = String(cert?.certificateNumber ?? '');
+  const FARM_NAME = String(cert?.farmName ?? '');
+  expect(CERT_NO, 'the certificate carries a certificateNumber').toBeTruthy();
+
+  // ═══ C15 — farmer screens + PDF + public verify (verbatim from s06) ═══
+  const farmerLoginResp = page
+    .waitForResponse((r) => r.url().includes('/auth/health/login') && r.request().method() === 'POST', { timeout: 90_000 })
+    .catch(() => null);
+  await login(page, { kind: 'health', id: FARMER_ID, pw: FARMER_PW });
+  const flr = await farmerLoginResp;
+  const flb = flr ? await flr.json().catch(() => null) : null;
+  const FARMER_TOKEN: string = flb?.data?.tokens?.accessToken || flb?.data?.token || '';
+  writeFileSync(join(OUT, 'C15-farmer-login.txt'), `status ${flr ? flr.status() : 'none'} success=${flb?.success} tokenPresent=${Boolean(FARMER_TOKEN)}\n`);
+  await page.waitForURL(/\/health\/(dashboard|payments|applications|certificates|onboarding|start|profile)/, { timeout: 120_000 });
+  await page.waitForLoadState('domcontentloaded');
+
+  await page.goto('/health/certificates', { timeout: 200_000 });
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(3500);
+  await shot(page, 'C15-01-certificate-list.png');
+  const certCard = page
+    .locator('div')
+    .filter({ hasText: new RegExp(escapeRe(CERT_NO)) })
+    .filter({ has: page.getByRole('link', { name: /ดูใบรับรอง/ }) })
+    .last();
+  const cardVisible = await certCard.waitFor({ state: 'visible', timeout: 60_000 }).then(() => true).catch(() => false);
+  const cardText = cardVisible ? (await certCard.innerText().catch(() => '')).slice(0, 1200) : '';
+  const listErrorCard = await page.getByTestId('cert-list-error').count();
+  const listEmptyCard = await page.getByTestId('cert-list-empty').count();
+  writeFileSync(
+    join(OUT, 'C15-list-screen.txt'),
+    `url: ${page.url()}\ncard for ${CERT_NO} visible: ${cardVisible}\n` +
+      `cert-list-error card present: ${listErrorCard} · cert-list-empty card present: ${listEmptyCard}\ncard text:\n${cardText}\n`,
+  );
+
+  if (cardVisible) {
+    await certCard.getByRole('link', { name: /ดูใบรับรอง/ }).click();
+  } else {
+    await page.goto(`/health/certificates/${CERT_ID}`, { timeout: 200_000 });
+  }
+  await page.waitForURL(`**/health/certificates/${CERT_ID}`, { timeout: 200_000 }).catch(() => null);
+  await page.waitForLoadState('domcontentloaded');
+  await page.waitForTimeout(3000);
+  await shot(page, 'C15-02-certificate-detail.png');
+  const successCard = await page.getByTestId('cert-success-card').count();
+  const detailText = (await page.locator('body').innerText().catch(() => '')).slice(0, 4000);
+  const verifyHref = await page.locator('a[href*="/verify/"]').first().getAttribute('href').catch(() => null);
+
+  const downloadEvent = page.waitForEvent('download', { timeout: 60_000 }).catch(() => null);
+  await page.getByRole('button', { name: /ดาวน์โหลดใบรับรอง \(PDF\)/ }).click();
+  const dl = await downloadEvent;
+  let savedFromUi = '';
+  if (dl) {
+    savedFromUi = join(OUT, `C15-certificate-${CERT_NO}-from-ui.pdf`);
+    await dl.saveAs(savedFromUi).catch(() => { savedFromUi = '(download event fired but saveAs failed)'; });
+  }
+  await page.waitForTimeout(1500);
+  await shot(page, 'C15-03-certificate-detail-after-download.png');
+  const uiDownloadError = await page.getByText('ไม่สามารถดาวน์โหลดใบรับรองได้').count();
+
+  expect(FARMER_TOKEN, 'farmer bearer token captured from the login response').toBeTruthy();
+  const pdfRes = await page.request.get(`/api/certificates/${CERT_ID}/download`, {
+    headers: { Authorization: `Bearer ${FARMER_TOKEN}` },
+  });
+  const pdfBody = pdfRes.ok() ? await pdfRes.body() : Buffer.alloc(0);
+  if (pdfBody.length) {
+    writeFileSync(join(OUT, `C15-certificate-${CERT_NO}.pdf`), pdfBody);
+  }
+  writeFileSync(
+    join(OUT, 'C15-detail-and-pdf.txt'),
+    `detail url: ${page.url()}\ncert-success-card present: ${successCard}\n` +
+      `share/verify link href on the detail page: ${verifyHref}\n` +
+      `UI download button: download event fired = ${Boolean(dl)}${savedFromUi ? ` → ${savedFromUi}` : ''}\n` +
+      `UI download error box visible: ${uiDownloadError}\n` +
+      `GET /api/certificates/${CERT_ID}/download → status ${pdfRes.status()} ` +
+      `content-type ${pdfRes.headers()['content-type']} bytes ${pdfBody.length}\n` +
+      `pdf magic: ${pdfBody.subarray(0, 5).toString('latin1')}\n\ndetail screen text (first 4000 chars):\n${detailText}\n`,
+  );
+
+  const deep = await page.goto(`/verify/${CERT_NO}`, { timeout: 200_000 }).catch(() => null);
+  const deepStatus = deep ? deep.status() : -1;
+  const deepOk = deepStatus >= 200 && deepStatus < 400;
+  await page.waitForLoadState('domcontentloaded').catch(() => null);
+  await shot(page, 'C15-04-public-verify-deeplink.png');
+
+  await page.goto('/verify', { timeout: 200_000 });
+  await page.waitForLoadState('domcontentloaded');
+  await shot(page, 'C15-05-public-verify-portal.png');
+  await page.fill('#certificate-number', CERT_NO);
+  const verifyResp = page
+    .waitForResponse((r) => r.url().includes('/v1/verification') && r.request().method() === 'GET', { timeout: 90_000 })
+    .catch(() => null);
+  await page.getByRole('button', { name: 'ตรวจสอบใบรับรอง', exact: true }).click();
+  const vr = await verifyResp;
+  const vrBody = vr ? (await vr.text().catch(() => '')).slice(0, 2000) : '';
+  await page.waitForTimeout(2500);
+  await shot(page, 'C15-06-public-verify-result.png');
+  const verifyPanelText = (await page.locator('article').first().innerText().catch(() => '')).slice(0, 2000);
+
+  const pubRes = await page.request.get(`/api/public/verify/${CERT_NO}/page`);
+  const pubHtml = (await pubRes.text().catch(() => '')).slice(0, 6000);
+  writeFileSync(
+    join(OUT, 'C15-public-verify.txt'),
+    `deep link GET /verify/${CERT_NO} → HTTP ${deepStatus}\n(detail-page href was ${verifyHref})\n\n` +
+      `portal /verify → GET /api/interoperability/v1/verification?certificateNumber=${CERT_NO}\n` +
+      `status ${vr ? vr.status() : 'none'}\n${vrBody}\n\nportal result panel text:\n${verifyPanelText}\n\n` +
+      `backend SSR page GET /api/public/verify/${CERT_NO}/page → status ${pubRes.status()}\n${pubHtml}\n`,
+  );
+
+  const holderOnCard = Boolean(FARM_NAME) && cardText.includes(FARM_NAME);
+  const holderOnDetail = FARM_NAME ? detailText.includes(FARM_NAME) : false;
+  const personOnCard = cert?.applicantName ? cardText.includes(String(cert.applicantName)) : false;
+  writeFileSync(
+    join(OUT, 'C15-holder-identity.txt'),
+    `M1 check — "the farm holds the certificate, the person merely submits"\n` +
+      `certificates row:\n  certificateNumber : ${CERT_NO}\n  farmName          : ${cert?.farmName}\n` +
+      `  applicantName     : ${cert?.applicantName}   (frozen history column)\n` +
+      `  holderDisplayName : ${cert?.holderDisplayName}\n  holderType        : ${cert?.holderType}\n\n` +
+      `screens:\n  farmer list card shows farmName        : ${holderOnCard}\n` +
+      `  farmer detail page shows farmName      : ${holderOnDetail}\n` +
+      `  farmer list card shows the person name : ${personOnCard}\n` +
+      `NOTE (FINDING material, not asserted): holderType=LEGACY_PERSON = the M1 fallback named the PERSON\n` +
+      `(this application carries no Entity) — design question outside this verification run.\n`,
+  );
+
+  expect(cardVisible, `C15 — the farmer's own list screen shows certificate ${CERT_NO}`).toBe(true);
+  expect(listErrorCard, 'the certificate list rendered data, not the fetch-error card').toBe(0);
+  expect(
+    Boolean(FARM_NAME) && cardText.includes(FARM_NAME),
+    'C15 M1 — the card names the FARM (certificates.farmName shaped as siteName)',
+  ).toBe(true);
+  expect(cert?.holderDisplayName, 'M1 holder column written at issuance').toBeTruthy();
+  expect(successCard, 'C15 — the certificate detail screen rendered (cert-success-card)').toBeGreaterThanOrEqual(1);
+  expect(detailText.includes(CERT_NO), 'C15 — the detail screen shows this certificate number').toBe(true);
+  expect(uiDownloadError, "C15 — the farmer's download CTA raised no error box").toBe(0);
+  expect(pdfRes.status(), 'C15 — GET /api/certificates/<id>/download served the PDF').toBe(200);
+  expect(String(pdfRes.headers()['content-type'] || ''), 'C15 — real application/pdf stream').toContain('application/pdf');
+  expect(pdfBody.subarray(0, 4).toString('latin1'), 'C15 — the downloaded bytes are a PDF (%PDF magic)').toBe('%PDF');
+  expect(vr?.status(), 'C15 — the public portal reached the verification API').toBe(200);
+  expect(verifyPanelText.includes(CERT_NO), 'C15 — the public verify portal answered for THIS certificate').toBe(true);
+  expect(verifyPanelText, 'C15 — the public verdict is a trust status, not an error').toContain('สถานะความเชื่อถือ');
+  expect(pubRes.status(), 'C15 — the backend public verification page renders').toBe(200);
+  expect(
+    deepOk,
+    `C15 — the deep link /verify/${CERT_NO} the QR + "แชร์ใบรับรอง" build resolves (observed HTTP ${deepStatus})`,
+  ).toBe(true);
+});

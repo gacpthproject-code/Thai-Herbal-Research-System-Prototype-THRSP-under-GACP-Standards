@@ -1,0 +1,35 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-27T16:31:14.569Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-27T16:31:14.574Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-27T16:31:14.575Z"}
+FAIL __tests__/integration/document-precheck-schema.test.js
+  document-precheck schema (real Postgres)
+    DocumentPrecheck + DocumentPrecheckFlag + ApplicationDocumentReview.precheckId
+      ✓ inserts a precheck with 2 flags (6 ms)
+      ✓ the unique documentId refuses a duplicate (14 ms)
+      ✓ ApplicationDocumentReview.precheckId FK works (8 ms)
+    tenant read-scope isolates document_prechecks by organization
+      ✓ org A cannot read org B's precheck through prisma.documentPrecheck.findFirst in a bound tenant context (39 ms)
+    deleting the Application cascades to its DocumentPrecheck rows (FK CASCADE)
+      ✕ deleting the Application removes its DocumentPrecheck row (8 ms)
+
+  ● document-precheck schema (real Postgres) › deleting the Application cascades to its DocumentPrecheck rows (FK CASCADE) › deleting the Application removes its DocumentPrecheck row
+
+    expect(received).toBeNull()
+
+    Received: {"applicantAcknowledgedAt": null, "applicationId": "ccd4511e-3349-41a5-8c2d-70f1ea779072", "completedAt": null, "createdAt": 2026-09-27T16:31:14.896Z, "documentId": "doc-casc-1790526674895-jwggta", "extractMethod": null, "extractedText": null, "id": "b412b86f-e44b-48f8-afd0-cdc064a9edd1", "ocrConfidence": null, "organizationId": "a2fd1fd7-84ef-417b-8956-d868edd1740e", "pageCount": null, "rulesVersion": 1, "slotId": "id_card", "status": "DONE"}
+
+      275 |
+      276 |             const survivor = await raw.documentPrecheck.findUnique({ where: { id: precheckId } });
+    > 277 |             expect(survivor).toBeNull();
+          |                              ^
+      278 |         });
+      279 |     });
+      280 | });
+
+      at Object.toBeNull (__tests__/integration/document-precheck-schema.test.js:277:30)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 passed, 5 total
+Snapshots:   0 total
+Time:        0.995 s, estimated 1 s
+Ran all test suites matching __tests__/integration/document-precheck-schema.test.js.

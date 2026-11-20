@@ -1,0 +1,161 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-acceptance-schema.test.js
+  quotation acceptance snapshot — schema and expand migration agree
+    √ Quotation carries the acceptance snapshot, its hash, the actor and the per-phase invoiced stamps (5 ms)
+    √ CheckoutOrder is bound to the quotation and to the exact figures accepted (2 ms)
+    × the quotation pointer is the same database type as the row it points at (2 ms)
+    × the expand migration exists and adds exactly those columns, dropping nothing (3 ms)
+    × the expand-only guard sees column names with digits and underscores too (1 ms)
+    √ Quotation is registered tenant-scoped, beside Quote (2 ms)
+
+  ● quotation acceptance snapshot — schema and expand migration agree › the quotation pointer is the same database type as the row it points at
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /quotationId\s+String\?\s+@db\.Uuid/
+    Received string:  "model CheckoutOrder {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt·
+      // What is being paid for. XOR — exactly one target (CHECK in migration).
+      applicationId  String?
+      application    Application?  @relation(fields: [applicationId], references: [id])
+      subscriptionId String?
+      subscription   Subscription? @relation(fields: [subscriptionId], references: [id])·
+      // The two payment gates of the canonical 7-step workflow: 'M1' | 'M2'.
+      milestone String·
+      // Itemized breakdown (THB). Arithmetic enforced by CHECK constraints:
+      //   platform_fee_gross   = platform_fee_net + platform_fee_vat
+      //   total_payable_amount = dtam_fee_amount + platform_fee_gross
+      dtamFeeAmount      Decimal @db.Decimal(15, 2) @map(\"dtam_fee_amount\")
+      platformFeeNet     Decimal @db.Decimal(15, 2) @map(\"platform_fee_net\")
+      platformFeeVat     Decimal @db.Decimal(15, 2) @map(\"platform_fee_vat\")
+      platformFeeGross   Decimal @db.Decimal(15, 2) @map(\"platform_fee_gross\")
+      totalPayableAmount Decimal @db.Decimal(15, 2) @map(\"total_payable_amount\")·
+      // PENDING_PAYMENT | SETTLED | EXPIRED | CANCELLED (shared/checkout-status.js)
+      status String @default(\"PENDING_PAYMENT\")·
+      // F-G4-64 — what this charge collects against. `quotationId` is the accepted
+      // quotation; `quotationSnapshotHash` is the hash of the snapshot the amount
+      // was compared with before the order was minted (a mismatch is refused as
+      // CHECKOUT_PRICE_DRIFT and no order is created, so a stored hash always means
+      // \"these figures matched\"). Nullable: every order settled before the gate
+      // existed has neither, and inventing one would be inventing a record.
+      quotationId           String?   @map(\"quotation_id\")
+      quotationSnapshotHash String?   @map(\"quotation_snapshot_hash\")·
+      // Q4 pre-payment disclosure (owner ruling 2026-07-08). The slip rail records
+      // this in UserConsent; the card rail records it per ORDER as well, because
+      // the disclosure authorises THIS charge.
+      paymentTermsVersion    String?   @map(\"payment_terms_version\")
+      paymentTermsAcceptedAt DateTime? @map(\"payment_terms_accepted_at\")·
+      // Stripe binding. One PaymentIntent per order (idempotency key
+      // `checkout:{orderId}`); amount in SATANG; statement descriptor
+      // 'PREDICTIVE AI - GACP'.
+      stripePaymentIntentId String?   @unique @map(\"stripe_payment_intent_id\")
+      expiresAt             DateTime?
+      settledAt             DateTime?·
+      // The ONE invoice this order mints (replaces the per-phase pair×2).
+      invoiceId String?  @unique
+      invoice   Invoice? @relation(\"CheckoutOrderInvoice\", fields: [invoiceId], references: [id])·
+      // The charge record (gateway='STRIPE', gatewayRef=PaymentIntent id).
+      paymentTransactionId String?             @unique
+      paymentTransaction   PaymentTransaction? @relation(\"CheckoutOrderCharge\", fields: [paymentTransactionId], references: [id])·
+      // DTAM pass-through liability: NULL before settlement, then
+      // PENDING → BATCHED → REMITTED → RECONCILED (shared/dtam-remittance-status.js).
+      dtamRemittanceStatus String?              @map(\"dtam_remittance_status\")
+      remittanceBatchId    String?
+      remittanceBatch      DtamRemittanceBatch? @relation(fields: [remittanceBatchId], references: [id])·
+      documents CheckoutDocument[]·
+      // Tenancy (ADR-014)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)·
+      @@index([applicationId])
+      @@index([quotationId])
+      @@index([status])
+      @@index([dtamRemittanceStatus])
+      @@index([remittanceBatchId])
+      @@index([organizationId])
+      @@map(\"checkout_orders\")
+    }"
+
+    [0m [90m 65 |[39m         [90m// already made in this file.[39m
+     [90m 66 |[39m         expect(modelBlock(schema[33m,[39m [32m'Quotation'[39m))[33m.[39mtoMatch([35m/\bid\s+String\s+@id\b[^\n]*@db\.Uuid/[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 67 |[39m         expect(modelBlock(schema[33m,[39m [32m'CheckoutOrder'[39m))[33m.[39mtoMatch([35m/quotationId\s+String\?\s+@db\.Uuid/[39m)[33m;[39m
+     [90m    |[39m                                                     [31m[1m^[22m[39m
+     [90m 68 |[39m     })[33m;[39m
+     [90m 69 |[39m
+     [90m 70 |[39m     it([32m'the expand migration exists and adds exactly those columns, dropping nothing'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toMatch (__tests__/unit/quotation-acceptance-schema.test.js:67:53)
+
+  ● quotation acceptance snapshot — schema and expand migration agree › the expand migration exists and adds exactly those columns, dropping nothing
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "ALTER TABLE \"checkout_orders\" ADD COLUMN \"quotation_id\" UUID;"
+    Received string:    "
+    ALTER TABLE \"quotations\" ADD COLUMN \"acceptedSnapshot\" JSONB;
+    ALTER TABLE \"quotations\" ADD COLUMN \"acceptedSnapshotHash\" TEXT;
+    ALTER TABLE \"quotations\" ADD COLUMN \"acceptedBy\" TEXT;
+    ALTER TABLE \"quotations\" ADD COLUMN \"phase1InvoicedAt\" TIMESTAMP(3);
+    ALTER TABLE \"quotations\" ADD COLUMN \"phase2InvoicedAt\" TIMESTAMP(3);·
+    ALTER TABLE \"checkout_orders\" ADD COLUMN \"quotation_id\" TEXT;
+    ALTER TABLE \"checkout_orders\" ADD COLUMN \"quotation_snapshot_hash\" TEXT;
+    ALTER TABLE \"checkout_orders\" ADD COLUMN \"payment_terms_version\" TEXT;
+    ALTER TABLE \"checkout_orders\" ADD COLUMN \"payment_terms_accepted_at\" TIMESTAMP(3);·
+    CREATE INDEX \"checkout_orders_quotation_id_idx\" ON \"checkout_orders\"(\"quotation_id\");
+    "
+
+    [0m [90m 82 |[39m         [90m// The pointer column is UUID in SQL too, or the index and every later[39m
+     [90m 83 |[39m         [90m// join against quotations.id is unusable.[39m
+    [31m[1m>[22m[39m[90m 84 |[39m         expect(sql)[33m.[39mtoContain([32m'ALTER TABLE "checkout_orders" ADD COLUMN "quotation_id" UUID;'[39m)[33m;[39m
+     [90m    |[39m                     [31m[1m^[22m[39m
+     [90m 85 |[39m         expect(sql)[33m.[39mtoContain([32m'CREATE INDEX'[39m)[33m;[39m
+     [90m 86 |[39m         [90m// Expand only: nothing is dropped, renamed, retyped or backfilled.[39m
+     [90m 87 |[39m         expect(sql)[33m.[39mnot[33m.[39mtoMatch([35m/DROP\s+(TABLE|COLUMN|CONSTRAINT)/i[39m)[33m;[39m[0m
+
+      at Object.toContain (__tests__/unit/quotation-acceptance-schema.test.js:84:21)
+
+  ● quotation acceptance snapshot — schema and expand migration agree › the expand-only guard sees column names with digits and underscores too
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /ADD COLUMN "[a-zA-Z]+" [A-Z()0-9, ]+ NOT NULL(?! DEFAULT)/
+    Received string:  "ALTER TABLE \"checkout_orders\" ADD COLUMN \"quotation_id\" TEXT NOT NULL;"
+
+    [0m [90m  97 |[39m         [90m// underscore; a name class of [a-zA-Z]+ silently skips all six.[39m
+     [90m  98 |[39m         expect([32m'ALTER TABLE "checkout_orders" ADD COLUMN "quotation_id" TEXT NOT NULL;'[39m)
+    [31m[1m>[22m[39m[90m  99 |[39m             [33m.[39mtoMatch([33mADD_COLUMN_NOT_NULL_NO_DEFAULT[39m)[33m;[39m
+     [90m     |[39m              [31m[1m^[22m[39m
+     [90m 100 |[39m         expect([32m'ALTER TABLE "quotations" ADD COLUMN "phase1InvoicedAt" TIMESTAMP(3) NOT NULL;'[39m)
+     [90m 101 |[39m             [33m.[39mtoMatch([33mADD_COLUMN_NOT_NULL_NO_DEFAULT[39m)[33m;[39m
+     [90m 102 |[39m         expect([32m'ALTER TABLE "quotations" ADD COLUMN "acceptedBy" TEXT NOT NULL;'[39m)[0m
+
+      at Object.toMatch (__tests__/unit/quotation-acceptance-schema.test.js:99:14)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 passed, 6 total
+Snapshots:   0 total
+Time:        1.197 s
+Ran all test suites matching /__tests__\\unit\\quotation-acceptance-schema.test.js/i.

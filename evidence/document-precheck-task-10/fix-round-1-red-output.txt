@@ -1,0 +1,26 @@
+Task 10 fix round 1 — RED (summary). Node v24.21.0, scratch PG17 :5436 (fresh, migrate deploy), SIGNING_KEY_DIR=$(mktemp -d). Sources = 7eb4f0f1; tests = new/edited.
+backend: npx jest --ci __tests__/integration/pdpa-erasure-clears-precheck-text.test.js __tests__/unit/dead-doc-analysis-gone.test.js
+FAIL __tests__/integration/pdpa-erasure-clears-precheck-text.test.js
+    ✕ erasure clears the page text and every snippet of the user's pre-checks; status and results stay (213 ms)
+    ✕ negative control: an application under legal hold keeps its text; the user's other application is cleared (85 ms)
+PASS __tests__/unit/dead-doc-analysis-gone.test.js
+    ✓ require(../../services/document-analysis-service) throws MODULE_NOT_FOUND (19 ms)
+    ✓ require(../../services/ai/document-classifier) throws MODULE_NOT_FOUND (3 ms)
+    ✓ require(../../services/ocr-service) throws MODULE_NOT_FOUND (3 ms)
+    ✓ answers 404: the door is gone (72 ms)
+    ✓ answers 404: the route and its handler are gone (14 ms)
+Tests:       2 failed, 5 passed, 7 total
+  ● erasure clears precheck text (real Postgres) › erasure clears the page text and every snippet of the user's pre-checks; status and results stay
+    Received: "หนังสือรับรองการจดทะเบียน นายสมชาย ใจดี เลขประจำตัว 1103700012345"
+  ● erasure clears precheck text (real Postgres) › negative control: an application under legal hold keeps its text; the user's other application is cleared
+    Received: "หนังสือรับรองการจดทะเบียน นายสมชาย ใจดี เลขประจำตัว 1103700012345"
+
+web: npx jest --ci 'src/app/provider/reviewer/[id]/document-check/__tests__/document-check-precheck.test.tsx'
+    ✕ each pre-check block carries the line that the officer decides once, directly below the heading (13 ms)
+    ✓ catches ✕ (1 ms)
+Tests:       1 failed, 21 passed, 22 total
+  ● officer-row labels (operator ruling 2026-09-28) › each pre-check block carries the line that the officer decides once, directly below the heading
+    Expected substring: "ผลตรวจเอกสารเบื้องต้นอัตโนมัติ"
+    Received string:    "ผลตรวจอัตโนมัติเป็นข้อสังเกตเบื้องต้น การตัดสินเป็นของเจ้าหน้าที่"
+
+PIN, not fix: dead-doc-analysis-gone 'plants/:id/documents answers 404' (M4 narrows the pin; route already deleted in 44387bd3) · erasure negative control's held-application half (text already survives because nothing clears it).

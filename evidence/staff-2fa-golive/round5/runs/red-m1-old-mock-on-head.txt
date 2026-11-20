@@ -1,0 +1,51 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+Can't reach database server at `127.0.0.1:5432`
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+FAIL __tests__/integration/mfa-verify-guards-oldmock.test.js
+  MFA /verify guards (PR6 hardening)
+    ✕ happy path: valid TOTP + fresh jti → 200, token issued, jti claimed (122 ms)
+    ✓ M-2 replay: jti already used (setNX false + get truthy) → 401 MFA_CHALLENGE_REUSED, no token (11 ms)
+    ✕ M-2 fail-open: Redis down (setNX false + get null) → 200, proceeds (9 ms)
+    ✓ null-secret guard: TOTP-routed user with no secret → 400 MFA_METHOD_MISMATCH (not 500) (10 ms)
+    ✓ type-guard: non-string code → 400 (not a 500 from .replace/verifyTOTP) (11 ms)
+    ✓ type-guard: non-string mfa_session → 400 (11 ms)
+  ● MFA /verify guards (PR6 hardening) › happy path: valid TOTP + fresh jti → 200, token issued, jti claimed
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 200
+    Received: 500
+      101 |             .send({ mfa_session: 'tok', code: '123456' });
+      102 |
+    > 103 |         expect(res.status).toBe(200);
+          |                            ^
+      104 |         expect(res.body.success).toBe(true);
+      105 |         expect(res.body.data.token).toBe('access-token');
+      106 |         expect(jwtConfig.generateToken).toHaveBeenCalledTimes(1);
+  ● MFA /verify guards (PR6 hardening) › M-2 fail-open: Redis down (setNX false + get null) → 200, proceeds
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 200
+    Received: 500
+      128 |             .send({ mfa_session: 'tok', code: '123456' });
+      129 |
+    > 130 |         expect(res.status).toBe(200);
+          |                            ^
+      131 |         expect(jwtConfig.generateToken).toHaveBeenCalledTimes(1);
+      132 |     });
+      133 |
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 4 passed, 6 total
+Snapshots:   0 total
+Time:        0.92 s
+Ran all test suites matching __tests__/integration/mfa-verify-guards-oldmock.test.js.
+jest exit 1

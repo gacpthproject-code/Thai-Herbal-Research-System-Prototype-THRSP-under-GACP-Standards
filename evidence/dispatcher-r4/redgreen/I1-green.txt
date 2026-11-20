@@ -1,0 +1,114 @@
+PASS __tests__/unit/formdata-national-id-mask.test.js
+  maskFormDataNationalIds
+    ✓ masks every national-ID key, bare, formatted or a number, at any depth (11 ms)
+    ✓ masks a Mod-11 national ID under any key, and leaves a 13-digit string that fails Mod-11 (2 ms)
+    ✓ keeps what only looks like digits: a staff UUID, an epoch in a stored file name, a numeric timestamp, a registration code (2 ms)
+    ✓ a staff key that holds text keeps the text and masks only the 13-digit run in it (2 ms)
+    ✓ does not touch the stored blob (2 ms)
+    ✓ nationalId is encrypted at rest as well as masked on a staff screen (3 ms)
+    ✓ authorisedIdCard is encrypted at rest as well as masked on a staff screen (2 ms)
+  maskApplicationForStaff
+    ✓ masks the filing and its history and leaves out healthId (2 ms)
+  isMaskedEchoOfStored
+    ✓ the masked value a screen showed is an echo; a newly typed number and other keys are not (1 ms)
+  isMaskedNationalIdFragment
+    ✓ a national ID still carrying the mask letter is a fragment; a full number and other keys are not (1 ms)
+
+PASS __tests__/unit/entity-detail-pii-mask.test.js
+  M1.5 H2 — presentEntityForMember masks both national-ID carriers
+    ✓ masks thaiCitizenId and payload.director.idCard for EVERY role including OWNER (5 ms)
+    ✓ survives INDIVIDUAL shape: payload null / no director (2 ms)
+    ✓ does not mutate the row it was handed (the caller may still hold the Prisma object) (1 ms)
+    ✓ leaves a null / absent id card alone rather than masking it into a string (1 ms)
+  M1.5 H2 — GET /api/entities/:id masks for every role
+    ✓ role VIEWER receives masked national IDs (37 ms)
+    ✓ role MANAGER receives masked national IDs (9 ms)
+    ✓ role ADMIN receives masked national IDs (8 ms)
+    ✓ role OWNER receives masked national IDs (10 ms)
+    ✓ an INDIVIDUAL entity with a null payload still answers 200 (8 ms)
+  M1.5 H2 — the create / update echoes are masked too (same helper, three endpoints)
+    ✓ PATCH /api/entities/:id echoes the updated row masked (16 ms)
+    ✓ POST /api/entities echoes the created workspace masked (11 ms)
+
+PASS __tests__/unit/formdata-pii.test.js
+  [STAGE-formData] FORMDATA_PII_KEYS
+    ✓ contains the dump-confirmed snake_case keys + the camelCase national-ID set (4 ms)
+    ✓ contains the STAFF-ID keys (workflow handlers stamp req.user.providerId) (2 ms)
+    ✓ does NOT contain the ambiguous registrationNumber (productionInputs collision) (2 ms)
+    ✓ does NOT contain non-national-ID fields (phone, names, address, laserCode) (2 ms)
+  [STAGE-formData] encryptFormDataPii
+    ✓ (a) encrypts snake_case id_card / tax_id nested under formData.steps (8 ms)
+    ✓ (a) encrypts camelCase national-ID set under formData.applicantData (2 ms)
+    ✓ (b) leaves productionInputs[].registrationNumber (fertilizer code) plaintext (2 ms)
+    ✓ (a) is idempotent — already-encrypted leaves are not re-encrypted (1 ms)
+    ✓ (a) does NOT mutate the input object (3 ms)
+    ✓ (a) handles null / undefined / scalar formData as a safe no-op (2 ms)
+    ✓ skips null / empty-string PII leaf values (no encryption of empties) (2 ms)
+  [STAGE-formData] STAFF-ID keys (workflow handler providerId stamps)
+    ✓ (a) encrypts reviewedBy / by / decidedBy / reviewerProviderId by KEY (2 ms)
+    ✓ (a) encrypts a carRequest nested decidedBy leaf (1 ms)
+  [STAGE-formData] Mod-11 value safety-net (key-agnostic)
+    ✓ (b) encrypts a valid national-ID STRING under an ARBITRARY key (witnessId) (1 ms)
+    ✓ (b) encrypts a valid national-ID STRING under a totally unknown key (1 ms)
+    ✓ (c) does NOT encrypt a 13-digit string that FAILS Mod-11 (under arbitrary key) (2 ms)
+    ✓ (d) does NOT encrypt a NUMBER value (ms-timestamp), even if 13-digit-shaped (1 ms)
+    ✓ (e) leaves a non-13-digit string untouched (10-digit phone / short codes) (1 ms)
+    ✓ (f) is idempotent — an already-enc:v1: arbitrary-key leaf is not re-encrypted (1 ms)
+    ✓ round-trips a Mod-11-net-encrypted arbitrary-key leaf back to plaintext (2 ms)
+  [STAGE-formData] decryptFormDataPii
+    ✓ (c) is the exact inverse of encryptFormDataPii (nested round-trip) (1 ms)
+    ✓ (c) is idempotent / no-op on plaintext (no decrypt call) (1 ms)
+    ✓ (c) surfaces [PII_DECRYPT_FAILED] on a cipher failure (fail-safe) (4 ms)
+  [STAGE-formData] hasPlaintextPii
+    ✓ (d) detects a plaintext national-ID leaf nested in steps (2 ms)
+    ✓ (d) detects a plaintext leaf under applicantData (1 ms)
+    ✓ (d) returns false when every PII leaf is already encrypted
+    ✓ (d) returns false when there are no PII leaves at all
+    ✓ (d) ignores the fertilizer productionInputs registrationNumber (not a PII key)
+    ✓ (g) detects a plaintext Mod-11 national-ID STRING leaf under an ARBITRARY key
+    ✓ (g) detects a plaintext staff-ID leaf (workflowHistory[].by)
+    ✓ (g) does NOT flag a 13-digit string that FAILS Mod-11 under an arbitrary key (1 ms)
+    ✓ (g) does NOT flag a numeric ms-timestamp leaf (1 ms)
+    ✓ (d) handles null / scalar formData (1 ms)
+
+PASS __tests__/unit/pdpa-backfill-formdata-script.test.js
+  [STAGE-formData] runFormDataBackfill
+    ✓ encrypts formData PII leaves in place, pages by id, skips clean rows (6 ms)
+    ✓ dry-run does NOT write but still counts rows that would be backfilled (1 ms)
+    ✓ is idempotent — a second pass over already-encrypted rows updates nothing (1 ms)
+    ✓ respects maxRows (1 ms)
+  [STAGE-formData] countRemainingPlaintext
+    ✓ returns 0 after a full backfill, >0 when a plaintext leaf remains (1 ms)
+    ✓ returns 0 when every app is encrypted (1 ms)
+  [GAP 1] application backfill encrypts workflowHistory + previewData leaves
+    ✓ exports the covered column lists (1 ms)
+    ✓ encrypts a national ID in workflowHistory (actorId) AND in formData; minimal UPDATE data (4 ms)
+    ✓ countRemainingPlaintext sees a plaintext workflowHistory leaf (2 ms)
+  [GAP 2] invoice backfill encrypts metadata.whtCertificate.issuedByTaxId
+    ✓ encrypts the 13-digit tax ID under metadata.whtCertificate via runModelBackfill (2 ms)
+    ✓ countRemainingPlaintext over invoice.metadata returns 1 for a plaintext tax ID, 0 once encrypted (2 ms)
+    ✓ is idempotent on already-encrypted invoice metadata (1 ms)
+  [ROUND-2] runScalarColumnBackfill (Certificate / Entity / PurchaseInvoice)
+    ✓ exports the ROUND-2 column lists (1 ms)
+    ✓ certificate: encrypts issuedBy/signedBy in place, skips clean + already-encrypted, selects id+cols only (3 ms)
+    ✓ certificate: dry-run counts but does not write (1 ms)
+    ✓ certificate: idempotent — second pass over encrypted rows writes nothing (1 ms)
+    ✓ entity: encrypts thaiCitizenId + juristicId (scalar); payload covered by runModelBackfill (JSON-leaf) (2 ms)
+    ✓ purchase-invoice: encrypts supplierTaxId AND derives supplierTaxIdHmac from the PLAINTEXT (1 ms)
+    ✓ countRemainingScalarPlaintext: 1 when a plaintext scalar remains, 0 once encrypted (2 ms)
+  [SHOULD-#4] certificate revokedReason/deleteReason backfill coverage
+    ✓ CERTIFICATE_SCALAR_PII_COLUMNS covers revokedReason, suspendedReason AND deleteReason (1 ms)
+    ✓ encrypts a legacy plaintext revokedReason AND deleteReason via the exported list (1 ms)
+    ✓ countRemainingScalarPlaintext counts a legacy plaintext revokedReason (no more false-green) (1 ms)
+  [ROUND-4] Organization.taxId scalar backfill (+ taxIdHash derive)
+    ✓ exports the ROUND-4 column list (1 ms)
+    ✓ encrypts taxId AND derives taxIdHash from the PLAINTEXT; skips clean + already-encrypted; selects id+col only (1 ms)
+    ✓ dry-run counts but does not write (1 ms)
+    ✓ is idempotent — second pass over an already-encrypted taxId writes nothing (1 ms)
+    ✓ countRemainingScalarPlaintext over organizations: 1 plaintext, 0 once encrypted (1 ms)
+
+Test Suites: 4 passed, 4 total
+Tests:       81 passed, 81 total
+Snapshots:   0 total
+Time:        3.123 s
+Ran all test suites matching __tests__/unit/formdata-national-id-mask.test.js|__tests__/unit/formdata-pii.test.js|__tests__/unit/pdpa-backfill-formdata-script.test.js|__tests__/unit/entity-detail-pii-mask.test.js.

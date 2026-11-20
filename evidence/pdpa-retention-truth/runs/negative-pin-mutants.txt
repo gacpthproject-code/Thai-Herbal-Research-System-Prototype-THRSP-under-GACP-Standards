@@ -1,0 +1,28 @@
+== N1-job-deletes-documents: appended to jobs/payment-closure-job.js: async function mutantN1(prisma) { await prisma.applicationDocument.deleteMany({ where: {} }); }
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (5 ms)
+    ✓ the rules do catch a deletion when one is there (18 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (78 ms)
+    +   "jobs/payment-closure-job.js:261 deletes ApplicationDocument: would make §7 item 5 (ข้อมูลคำขอ เอกสารประกอบคำขอ และข้อมูลฟาร์ม ... ระบบไม่ลบข้อมูลเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes
+== N2-transitive-raw-audit-delete: appended to services/document-precheck/clear-text.js: async function mutantN2(tx) { await tx.$executeRawUnsafe("DELETE FROM audit_logs WHERE 1=0"); }
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (11 ms)
+    ✓ the rules do catch a deletion when one is there (74 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (217 ms)
+    +   "services/document-precheck/clear-text.js:100 raw SQL removes rows of audit_logs: would make §7 item 4 (บันทึกการตรวจสอบ ... ระบบไม่ลบบันทึกเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes
+== N3-cron-deletes-a-file: appended to cron/renewal-reminder-cron.js: async function mutantN3(fs, p) { await fs.promises.unlink(p); }
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (6 ms)
+    ✓ the rules do catch a deletion when one is there (17 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (78 ms)
+    +   "cron/renewal-reminder-cron.js:235 deletes a file (uploaded documents are files): would make §7 item 5 (ข้อมูลคำขอ เอกสารประกอบคำขอ และข้อมูลฟาร์ม ... ระบบไม่ลบข้อมูลเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes
+== N4-job-clears-formData: appended to jobs/site-contact-request-job.js: async function mutantN4(tx, id) { await tx.application.update({ where: { id }, data: { formData: null } }); }
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (6 ms)
+    ✓ the rules do catch a deletion when one is there (20 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (101 ms)
+    +   "jobs/site-contact-request-job.js:110 clears application formData: would make §7 item 5 (ข้อมูลคำขอ เอกสารประกอบคำขอ และข้อมูลฟาร์ม ... ระบบไม่ลบข้อมูลเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes

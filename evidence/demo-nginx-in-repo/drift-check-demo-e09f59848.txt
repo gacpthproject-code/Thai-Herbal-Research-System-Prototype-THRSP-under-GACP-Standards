@@ -1,0 +1,66 @@
+check-nginx-drift-demo: repo e09f5984874786b2429fba62d2ba0c08bc2ee7a1 · demo localhost.localdomain · host nginx 1.24.0 · container nginx 1.31.1
+## 1. host edge (every mirrored file under etc/ and usr/, plus anything conf.d loads that the repo lacks)
+== deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf  <->  demo:/etc/nginx/conf.d/00-gacp-platform.conf
+  identical (sha256 dbf64cb4a760)
+== deploy/nginx/demo-host/etc/nginx/conf.d/demo.gacpth.com.conf  <->  demo:/etc/nginx/conf.d/demo.gacpth.com.conf
+  identical (sha256 d57377ab7543)
+== deploy/nginx/demo-host/etc/nginx/nginx.conf  <->  demo:/etc/nginx/nginx.conf
+  identical (sha256 f1a2c18fe521)
+== deploy/nginx/demo-host/usr/share/nginx/gacpth-notice/index.html  <->  demo:/usr/share/nginx/gacpth-notice/index.html
+  identical (sha256 3848cee21805)
+## 2. bind mounts of gacp-nginx
+== /opt/gacp-platform/nginx/ssl -> /etc/nginx/ssl  skipped: TLS certificate and private key; host-only, never in git
+== /opt/gacp-platform/logs/nginx -> /var/log/nginx  skipped: nginx runtime log output
+   (gacp-nginx serves /etc/nginx/conf.d/default.conf from /opt/gacp-platform/nginx/gacp.production.conf)
+== deploy/nginx/demo-host/opt/gacp-platform/nginx/gacp.production.conf  <->  demo:/opt/gacp-platform/nginx/gacp.production.conf
+  identical (sha256 25a6b4e0c415)
+   (gacp-nginx serves /etc/nginx/error-pages/50x.html from /opt/gacp-platform/nginx/50x.html)
+== deploy/nginx/demo-host/opt/gacp-platform/nginx/50x.html  <->  demo:/opt/gacp-platform/nginx/50x.html
+  identical (sha256 4919d55c5017)
+## 3. root-only include files (presence only, never read)
+== /etc/nginx/gacp-gate-token.conf  present
+== /etc/nginx/gacp-demo-token.conf  present
+## 4. behaviour of the loaded config (GET to the demo host's own loopback)
+== http://gacpth.com/verify/abc?x=1&y=2  302 https://demo.gacpth.com/verify/abc?x=1&y=2  ok
+== http://gacpth.com/  200   ok
+== http://gacpth.com/api/v1/health  200   ok
+== http://gacpth.com/verify  200   ok
+== http://gacpth.com/VERIFY/abc  200   ok
+== http://gacpth.com/login  200   ok
+== http://www.gacpth.com/verify/abc?x=1&y=2  302 https://demo.gacpth.com/verify/abc?x=1&y=2  ok
+== http://www.gacpth.com/  200   ok
+== http://www.gacpth.com/api/v1/health  200   ok
+== http://www.gacpth.com/verify  200   ok
+== http://www.gacpth.com/VERIFY/abc  200   ok
+== http://www.gacpth.com/login  200   ok
+== http://WWW.GACPTH.COM/verify/abc?x=1&y=2  302 https://demo.gacpth.com/verify/abc?x=1&y=2  ok
+== http://WWW.GACPTH.COM/  200   ok
+== http://WWW.GACPTH.COM/api/v1/health  200   ok
+== http://WWW.GACPTH.COM/verify  200   ok
+== http://WWW.GACPTH.COM/VERIFY/abc  200   ok
+== http://WWW.GACPTH.COM/login  200   ok
+== https://gacpth.com/verify/abc?x=1&y=2  302 https://demo.gacpth.com/verify/abc?x=1&y=2  ok
+== https://gacpth.com/  200   ok
+== https://gacpth.com/api/v1/health  200   ok
+== https://gacpth.com/verify  200   ok
+== https://gacpth.com/VERIFY/abc  200   ok
+== https://gacpth.com/login  200   ok
+== https://www.gacpth.com/verify/abc?x=1&y=2  302 https://demo.gacpth.com/verify/abc?x=1&y=2  ok
+== https://www.gacpth.com/  200   ok
+== https://www.gacpth.com/api/v1/health  200   ok
+== https://www.gacpth.com/verify  200   ok
+== https://www.gacpth.com/VERIFY/abc  200   ok
+== https://www.gacpth.com/login  200   ok
+== https://WWW.GACPTH.COM/verify/abc?x=1&y=2  302 https://demo.gacpth.com/verify/abc?x=1&y=2  ok
+== https://WWW.GACPTH.COM/  200   ok
+== https://WWW.GACPTH.COM/api/v1/health  200   ok
+== https://WWW.GACPTH.COM/verify  200   ok
+== https://WWW.GACPTH.COM/VERIFY/abc  200   ok
+== https://WWW.GACPTH.COM/login  200   ok
+== http://demo.gacpth.com/x?y=1  301 https://demo.gacpth.com/x?y=1  ok
+== https://demo.gacpth.com/health  200   ok
+== https://demo.gacpth.com/api/health  200   ok
+== https://demo.gacpth.com/verify/abc  200   ok
+== https://demo.gacpth.com/  200   ok
+## result: 47 check(s) · 0 unexplained · 0 comment-only
+PASS

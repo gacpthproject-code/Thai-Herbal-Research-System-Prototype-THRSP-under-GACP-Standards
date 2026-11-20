@@ -1,0 +1,23 @@
+# Task 3 fix round 1 — RED (R1 neutrality) · 2026-09-30
+Suite: __tests__/integration/r1-application-reads-neutral-real-postgres.test.js (real Postgres 127.0.0.1:5447, real client + middlewares)
+Matrix: actors A (OWNER P,C) · W (MANAGER invited to P) · V (VIEWER C) · M (MANAGER C) · S (stranger) × headers none/P/C
+  reads: GET /my, /my/statuses, /, /draft, /dashboard/stats; per filing aC,aP,wP,mC: GET /:id, /status, /statement, /history,
+         /activities, /katorlor1, /requirements, /audit-notes, /quotations, preview
+  writes (V,M,W,S): POST /:aRev/revision-resubmit, POST /:aCar/car, POST /draft {applicationId: aC}; then A's own /draft + resubmit
+
+EXPECTED = the same suite run on e46ceba0's implementation files (swap to e46ceba0, run, restore; git diff byte-identical).
+  713 keyed results, stored in apps/backend/__tests__/fixtures/r1-application-reads-neutral.expected.json
+
+RED = the suite on 068baad1's implementation (swap to HEAD, run, restore; git diff byte-identical):
+  Tests: 2 failed, 2 total · 89 of 713 results differ from pre-R1
+  mismatches by door: GET /:id/activities 7 · GET /:id/audit-notes 7 · GET /:id/history 7 · GET /:id/katorlor1 7 · GET /:id/quotations 7 · GET /:id/requirements 7 · GET /:id/statement 7 · GET /:id/status 7 · GET /:id 7 · GET /my/statuses 6 · GET /preview/:id 7 · POST /:id/revision-resubmit 3 · POST /draft 2 · GET / 2 · GET /dashboard/stats 2 · GET /my 2 · POST /:id/car 2
+  examples (key | pre-R1 | 068baad1):
+    V|C|POST /:id/revision-resubmit|aRev | 404 | 200
+    M|C|POST /draft|aC | 200 NEW | 200 aC
+    M|C|POST /:id/car|aCar | 404 | 403
+    A|none|GET /my | 200 aP | 200 aP,wP
+    A|none|GET /:id|wP | 404 | 200
+    V|C|GET /:id|aC | 404 | 200
+    M|C|GET /my/statuses | 200 mC | 200 aC,aCar,aRev,mC
+  (V resubmitting A's REVISION_REQUESTED filing got 200 and moved it; the write test also saw A's rows change.)
+  A's own two write lines are absent from the 068baad1 run: that test stopped at the 'nothing of A's moved' assertion.

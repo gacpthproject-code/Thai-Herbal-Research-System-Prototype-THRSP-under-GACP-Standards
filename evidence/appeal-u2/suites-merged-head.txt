@@ -1,0 +1,62 @@
+## suites at the merged head 114f00a8c: one heavy.sh job 21:30:21-21:51:59, clean detached worktree (no .env), fresh postgres:17 scratch (156 migrations, U2 task row present and active), Node 24, NODE_OPTIONS=--max-old-space-size=4096 as in run-gate.sh, PAYMENT_ADAPTER=mock
+## main's baseline at 18c6e9ac9: fails-18c6e9ac (4 suites) and 8 failing test names (7 integration names + field-audit-clock, which main's own solo rerun passed 3/3)
+## made by tools-takeover-2/summarize.py from the jest --json reports of tools-takeover-2/batch.sh
+
+## backend full suite at the merged head (one process, maxWorkers 1 from jest.config.cjs, 4 GB heap like run-gate.sh)
+suites 1128 passed, 8 failed, 2 skipped, 1138 total · tests 15036 passed, 26 failed, 52 skipped, 15114 total
+failing test names: 26 · in main's baseline (8 names at 18c6e9ac9): 7 · outside it: 19
+failing suites: 8 · in fails-18c6e9ac: 3
+
+### baseline names that did not fail here
+- __tests__/integration/field-audit-clock-real-postgres.test.js :: the field audit task is timed from the visit (real Postgres) › a visit booked through the scheduling queue weeks ahead is due a time limit after the visit, not after the booking
+
+### failing names outside the baseline, with the first line of each failure
+- __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: createCheckoutForApplication — what the browser receives › a failed contact lookup degrades to null (the screen asks) instead of failing a checkout that already exists
+    Error: expect(received).toBe(expected) // Object.is equality
+- __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: createCheckoutForApplication — what the browser receives › mode mismatch: refused with STRIPE_KEY_MODE_MISMATCH and nothing is minted or asked of Stripe
+    Error: expect(received).rejects.toMatchObject()
+- __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: createCheckoutForApplication — what the browser receives › no key: refused with STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED and nothing is minted or asked of Stripe
+    Error: expect(received).rejects.toMatchObject()
+- __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: createCheckoutForApplication — what the browser receives › returns the publishable key, the invoice to watch, and the entity contact email
+    Error: expect(received).toEqual(expected) // deep equality
+- __tests__/unit/checkout-renewal-price.test.js :: M2 — renewal pricing on the checkout rail › one scope: the renewal checkout charges 35,310, not the phase-2 29,425
+    TypeError: Cannot read properties of undefined (reading '0')
+- __tests__/unit/checkout-renewal-price.test.js :: M2 — renewal pricing on the checkout rail › two and three scopes: 70,620 and 105,930
+    TypeError: Cannot read properties of undefined (reading '0')
+- __tests__/unit/checkout-requires-accepted-quotation.test.js :: re-entry is gated too › an order minted under older terms is re-stamped with the accepted version, provenance only
+    Error: expect(jest.fn()).toHaveBeenCalledTimes(expected)
+- __tests__/unit/checkout-requires-accepted-quotation.test.js :: re-entry is gated too › an order that already names the same quotation and the same accepted terms is not re-stamped
+    Error: expect(jest.fn()).not.toHaveBeenCalled()
+- __tests__/unit/finance-paper-text-inside-print-margin.test.js :: O4 — no text on the finance papers runs into the printable right edge › credit-note.html: every text run ends inside the printable area with clearance
+    TimeoutError: Navigation timeout of 30000 ms exceeded
+- __tests__/unit/finance-paper-text-inside-print-margin.test.js :: O4 — no text on the finance papers runs into the printable right edge › debit-note.html: every text run ends inside the printable area with clearance
+    TimeoutError: Navigation timeout of 30000 ms exceeded
+- __tests__/unit/finance-paper-text-inside-print-margin.test.js :: O4 — no text on the finance papers runs into the printable right edge › invoice.html: every text run ends inside the printable area with clearance
+    TimeoutError: Navigation timeout of 30000 ms exceeded
+- __tests__/unit/finance-paper-text-inside-print-margin.test.js :: O4 — no text on the finance papers runs into the printable right edge › receipt-tax-invoice.html: every text run ends inside the printable area with clearance
+    TimeoutError: Navigation timeout of 30000 ms exceeded
+- __tests__/unit/finance-paper-text-inside-print-margin.test.js :: O4 — no text on the finance papers runs into the printable right edge › the invoice is still ONE A4 page and prints the full "5,885.00 บาท"
+    TimeoutError: Navigation timeout of 30000 ms exceeded
+- __tests__/unit/finance-paper-text-inside-print-margin.test.js :: O4 — no text on the finance papers runs into the printable right edge › the receipt / tax invoice is still ONE A4 page and prints the full "5,885.00 บาท"
+    TimeoutError: Navigation timeout of 30000 ms exceeded
+- __tests__/unit/stripe-checkout-engine.test.js :: stripe-checkout-service — one order, one invoice, one intent › M1 checkout mints the order with the fee-service decomposition and a satang intent
+    TypeError: undefined is not iterable (cannot read property Symbol(Symbol.iterator))
+- __tests__/unit/stripe-checkout-engine.test.js :: stripe-checkout-service — one order, one invoice, one intent › re-entry returns the open order instead of minting a sibling
+    Error: expect(jest.fn()).toHaveBeenCalledWith(...expected)
+- __tests__/unit/stripe-checkout-engine.test.js :: the webhook route — verify, dedup, dispatch › a redelivered event id is a 200 no-op (insert-first dedup)
+    Error: expect(received).toBe(expected) // Object.is equality
+- __tests__/unit/stripe-checkout-engine.test.js :: the webhook route — verify, dedup, dispatch › an unrelated event type is acknowledged without settling anything
+    Error: expect(received).toBe(expected) // Object.is equality
+- __tests__/unit/stripe-checkout-engine.test.js :: the webhook route — verify, dedup, dispatch › payment_intent.succeeded settles and stamps the event processed
+    Error: expect(received).toBe(expected) // Object.is equality
+
+### each suite with a name outside the baseline: solo on the head (fresh DB) and the same suite on main 1b785c48c (fresh DB)
+- __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js · solo: 11 passed 4 failed · control: 11 passed 4 failed · solo and control fail the same names · full-run names = solo names
+- __tests__/unit/checkout-renewal-price.test.js · solo: 5 passed 2 failed · control: 5 passed 2 failed · solo and control fail the same names · full-run names = solo names
+- __tests__/unit/checkout-requires-accepted-quotation.test.js · solo: 20 passed 2 failed · control: 20 passed 2 failed · solo and control fail the same names · full-run names = solo names
+- __tests__/unit/finance-paper-text-inside-print-margin.test.js · solo: 6 passed 0 failed · control: 6 passed 0 failed · solo and control fail the same names · full run only: 6, solo only: 0
+- __tests__/unit/stripe-checkout-engine.test.js · solo: 17 passed 5 failed · control: 17 passed 5 failed · solo and control fail the same names · full-run names = solo names
+
+## web suites related to every web file U1+U2 change against main (jest --findRelatedTests, 42 files)
+suites 189 passed, 0 failed, 0 skipped, 189 total · tests 1192 passed, 0 failed, 0 skipped, 1192 total
+web tsc --noEmit: 0 errors

@@ -1,0 +1,337 @@
+## R1a RED — application-bundles terminal resurrection (proves bug on current code, pre-fix)
+# command: cd apps/backend && npx jest __tests__/integration/bundle-terminal-integrity.test.js
+# date: 2026-08-03T03:25:34Z  branch: fix/terminal-integrity-hotfix
+# provenance (corrected in fix cycle 1 — auditor F4): HEAD at run time was 8825df3
+#   (R1 bootstrap, no fix) with a DIRTY worktree — the new RED test file was present
+#   uncommitted, the implementation was not yet written. So: test = new, code = pre-fix.
+#   8825df3 alone does NOT reproduce this run; the test file it lacks landed in 0bc63b6.
+# Interpretation: submit of a bundle holding a REJECTED/CERTIFIED/EXPIRED/CANCEL_EXPIRED
+#   case returns 200 and calls writeApplicationStatus(toStatus:SUBMITTED) => resurrection.
+#   link-time create/add also return 200 (no terminal guard). Expected 409 BUNDLE_TERMINAL_APPLICATION.
+----------------------------------------------------------------------
+
+
+
+FAIL __tests__/integration/bundle-terminal-integrity.test.js
+  R1a — application-bundles terminal-integrity (no resurrection)
+    POST /:id/submit — must not resurrect a linked terminal case
+      ✕ linked REJECTED case is rejected, not pushed to SUBMITTED (59 ms)
+      ✕ linked EXPIRED case is rejected, not pushed to SUBMITTED (17 ms)
+      ✕ linked CANCEL_EXPIRED case is rejected, not pushed to SUBMITTED (16 ms)
+      ✕ linked CERTIFIED case is rejected, not pushed to SUBMITTED (19 ms)
+      ✓ non-terminal (DRAFT) linked case still submits (regression pin) (11 ms)
+    POST / — must not link a terminal case into a new bundle
+      ✕ creating a bundle around a REJECTED case is rejected, no DB write (15 ms)
+      ✕ creating a bundle around a EXPIRED case is rejected, no DB write (10 ms)
+      ✕ creating a bundle around a CANCEL_EXPIRED case is rejected, no DB write (10 ms)
+      ✕ creating a bundle around a CERTIFIED case is rejected, no DB write (12 ms)
+    POST /:id/applications — must not add a terminal case
+      ✕ adding a REJECTED case to a bundle is rejected, no link write (10 ms)
+      ✕ adding a EXPIRED case to a bundle is rejected, no link write (8 ms)
+      ✕ adding a CANCEL_EXPIRED case to a bundle is rejected, no link write (13 ms)
+      ✕ adding a CERTIFIED case to a bundle is rejected, no link write (8 ms)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/submit — must not resurrect a linked terminal case › linked REJECTED case is rejected, not pushed to SUBMITTED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      91 |       const r = await request(app).post(`/api/applications/bundles/${BUNDLE}/submit`).send({});
+      92 |
+      94 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      95 |       // No resurrection: neither the bundle status nor the app status is written.
+      96 |       expect(writeApplicationStatus).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:93:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/submit — must not resurrect a linked terminal case › linked EXPIRED case is rejected, not pushed to SUBMITTED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      91 |       const r = await request(app).post(`/api/applications/bundles/${BUNDLE}/submit`).send({});
+      92 |
+      94 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      95 |       // No resurrection: neither the bundle status nor the app status is written.
+      96 |       expect(writeApplicationStatus).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:93:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/submit — must not resurrect a linked terminal case › linked CANCEL_EXPIRED case is rejected, not pushed to SUBMITTED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      91 |       const r = await request(app).post(`/api/applications/bundles/${BUNDLE}/submit`).send({});
+      92 |
+      94 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      95 |       // No resurrection: neither the bundle status nor the app status is written.
+      96 |       expect(writeApplicationStatus).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:93:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/submit — must not resurrect a linked terminal case › linked CERTIFIED case is rejected, not pushed to SUBMITTED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      91 |       const r = await request(app).post(`/api/applications/bundles/${BUNDLE}/submit`).send({});
+      92 |
+      94 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      95 |       // No resurrection: neither the bundle status nor the app status is written.
+      96 |       expect(writeApplicationStatus).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:93:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST / — must not link a terminal case into a new bundle › creating a bundle around a REJECTED case is rejected, no DB write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      127 |         .send({ applications: ['app-term'] });
+      128 |
+      130 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      131 |       expect(prismaMock.applicationBundle.create).not.toHaveBeenCalled();
+      132 |       expect(prismaMock.application.updateMany).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:129:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST / — must not link a terminal case into a new bundle › creating a bundle around a EXPIRED case is rejected, no DB write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      127 |         .send({ applications: ['app-term'] });
+      128 |
+      130 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      131 |       expect(prismaMock.applicationBundle.create).not.toHaveBeenCalled();
+      132 |       expect(prismaMock.application.updateMany).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:129:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST / — must not link a terminal case into a new bundle › creating a bundle around a CANCEL_EXPIRED case is rejected, no DB write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      127 |         .send({ applications: ['app-term'] });
+      128 |
+      130 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      131 |       expect(prismaMock.applicationBundle.create).not.toHaveBeenCalled();
+      132 |       expect(prismaMock.application.updateMany).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:129:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST / — must not link a terminal case into a new bundle › creating a bundle around a CERTIFIED case is rejected, no DB write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      127 |         .send({ applications: ['app-term'] });
+      128 |
+      130 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      131 |       expect(prismaMock.applicationBundle.create).not.toHaveBeenCalled();
+      132 |       expect(prismaMock.application.updateMany).not.toHaveBeenCalled();
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:129:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/applications — must not add a terminal case › adding a REJECTED case to a bundle is rejected, no link write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      149 |         .send({ applicationId: 'app-term' });
+      150 |
+      152 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      153 |       expect(prismaMock.application.update).not.toHaveBeenCalled();
+      154 |     });
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:151:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/applications — must not add a terminal case › adding a EXPIRED case to a bundle is rejected, no link write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      149 |         .send({ applicationId: 'app-term' });
+      150 |
+      152 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      153 |       expect(prismaMock.application.update).not.toHaveBeenCalled();
+      154 |     });
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:151:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/applications — must not add a terminal case › adding a CANCEL_EXPIRED case to a bundle is rejected, no link write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      149 |         .send({ applicationId: 'app-term' });
+      150 |
+      152 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      153 |       expect(prismaMock.application.update).not.toHaveBeenCalled();
+      154 |     });
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:151:24)
+
+  ● R1a — application-bundles terminal-integrity (no resurrection) › POST /:id/applications — must not add a terminal case › adding a CERTIFIED case to a bundle is rejected, no link write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+      149 |         .send({ applicationId: 'app-term' });
+      150 |
+      152 |       expect(r.body.code).toBe('BUNDLE_TERMINAL_APPLICATION');
+      153 |       expect(prismaMock.application.update).not.toHaveBeenCalled();
+      154 |     });
+
+      at toBe (__tests__/integration/bundle-terminal-integrity.test.js:151:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       12 failed, 1 passed, 13 total
+Snapshots:   0 total
+Time:        1.259 s, estimated 6 s
+Ran all test suites matching /__tests__\/integration\/bundle-terminal-integrity.test.js/i.
+
+======================================================================
+## R1b RED — ESLint guard hole: upsert/create with status slips past (pre-fix)
+# date: 2026-08-03T03:26:26Z  branch: fix/terminal-integrity-hotfix
+# provenance (corrected in fix cycle 1 — auditor F4): HEAD at run time was 8825df3
+#   (R1 bootstrap, no fix) with a DIRTY worktree — the new rule test cases below were
+#   present uncommitted against the un-widened rule. Rule code = pre-fix; cases = new.
+#   Both later landed in 0bc63b6. NOTE: the rule shape proven RED here (widening to
+#   catch create + upsert-either-branch) was itself reverted in fix cycle 1 — see the
+#   "## Fix cycle 1 RED" section at the end of this file for why.
+----------------------------------------------------------------------
+### Proof 1 — new rule unit cases fail (rule does not yet catch upsert/create):
+# command: cd apps/backend && node eslint-rules/no-direct-application-status-write.test.js
+update without status field is OK
+updateMany without status is OK
+unrelated prisma model update is OK
+writer file itself is exempt (status write OK there)
+writer test file is exempt
+direct update with status in services
+direct update with status in routes
+direct updateMany with status flagged
+tx.application.update with status flagged (different binding name)
+upsert without status in either branch is OK
+create without status is OK
+unrelated model upsert with status is OK
+unrelated model create with status is OK
+application.upsert with status in update branch flagged
+    code:           async function f() { return prisma.application.upsert({ where: { id: 'a' }, update: { status: 'CERTIFIED' }, create: { id: 'a', formData: {} } }); }
+    filename:       prisma/seed.js
+    expected count: 1 + msg=directStatusWrite
+    got:            0 []
+application.upsert with status in create branch flagged
+    code:           async function f() { return prisma.application.upsert({ where: { id: 'a' }, update: { formData: {} }, create: { id: 'a', status: 'REJECTED' } }); }
+    filename:       prisma/seed.js
+    expected count: 1 + msg=directStatusWrite
+    got:            0 []
+application.upsert with status in BOTH branches reports exactly once
+    code:           async function f() { return prisma.application.upsert({ where: { id: 'a' }, update: { status: 'CERTIFIED' }, create: { id: 'a', status: 'REJECTED' } }); }
+    filename:       prisma/seed.js
+    expected count: 1 + msg=directStatusWrite
+    got:            0 []
+application.create with status flagged
+    code:           async function f() { return prisma.application.create({ data: { applicationNumber: 'X', status: 'DRAFT' } }); }
+    filename:       prisma/seed.js
+    expected count: 1 + msg=directStatusWrite
+    got:            0 []
+tx.application.upsert with status flagged (different binding name)
+    code:           async function f() { return tx.application.upsert({ where: { id: 'a' }, update: { status: 'SUBMITTED' }, create: { id: 'a' } }); }
+    filename:       services/foo.js
+    expected count: 1 + msg=directStatusWrite
+    got:            0 []
+writer file itself is exempt for upsert/create too
+
+Total: 14 passed, 5 failed
+rule-test exit(pre-fix)=1
+
+### Proof 2 — eslint on the real seed file reports ZERO violations (the live hole):
+# command: cd apps/backend && npx eslint prisma/seed-gacp.js  (grep for our rule id)
+eslint exit(pre-fix)=0 (0 = clean, no problems)
+no-direct-application-status-write occurrences: 0
+--- eslint output (empty = clean, confirms status upsert NOT flagged) ---
+--- end ---
+
+
+======================================================================
+## Fix cycle 1 RED — repo-wide eslint (10 errors from widened rule)
+# command: cd apps/backend && npx eslint .
+# date: 2026-08-03T03:57:03Z  branch: fix/terminal-integrity-hotfix  HEAD: 46bda16 (clean worktree, pre-fix)
+# Why RED: auditor F1 — 0bc63b6 added `create` + `upsert` to STATUS_WRITE_METHODS
+#   (eslint-rules/no-direct-application-status-write.js:64). The rule is severity
+#   `error` repo-wide (eslint.config.js:80) and the required CI gate runs `eslint .`
+#   over all of apps/backend (.github/workflows/ci.yml:97-104 -> npm run lint).
+#   base(main 376b36b) = 0 errors; this HEAD = 10 errors -> CI lint gate would go red.
+# eslint exit code: 1
+----------------------------------------------------------------------
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/integration/cert-issuance-atomicity-be-t1.test.js
+  62:31  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/integration/cross-system-audit-to-cert-flow.test.js
+  695:39  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/integration/optimistic-lock-wf-f7.test.js
+  70:31  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/unit/application-review-revision-methods.test.js
+  14:9   warning  'addWorkingDays' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+  15:9   warning  'PAYMENT' is assigned a value but never used. Allowed unused vars must match /^_/u         no-unused-vars
+  41:10  warning  'buildPrismaMock' is defined but never used. Allowed unused vars must match /^_/u          no-unused-vars
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/unit/application-service.test.js
+  214:34  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/__tests__/unit/invoice-quote-pii-overfetch.test.js
+   67:9  warning  Unused eslint-disable directive (no problems were reported from 'global-require')
+  103:9  warning  Unused eslint-disable directive (no problems were reported from 'global-require')
+
+/home/user/GACP-Certification-Application/apps/backend/prisma/seed-real-fees.js
+  48:19  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/scripts/ent01-two-org-verify.js
+  72:13  error  Direct status write detected: prisma.application.upsert with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/scripts/seed-lots-with-qr.js
+  75:33  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/scripts/seed-test-data.js
+  85:35  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/scripts/verify-e2e.js
+  37:27  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+/home/user/GACP-Certification-Application/apps/backend/services/application-service/application-submission-methods.js
+  129:35  error  Direct status write detected: prisma.application.create with `status` field. Use `writeApplicationStatus()` from services/application-status-writer.js instead. (Phase A6 / PR-WF-1 — see modules/README.md for migration plan.)  gacp/no-direct-application-status-write
+
+✖ 15 problems (10 errors, 5 warnings)
+  0 errors and 2 warnings potentially fixable with the `--fix` option.
+
+--- end fix-cycle-1 RED ---

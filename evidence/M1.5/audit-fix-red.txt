@@ -1,0 +1,56 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/entity-detail-pii-mask.test.js
+  M1.5 H2 — presentEntityForMember masks both national-ID carriers
+    √ masks thaiCitizenId and payload.director.idCard for EVERY role including OWNER (6 ms)
+    × survives INDIVIDUAL shape: payload null / no director (4 ms)
+    √ does not mutate the row it was handed (the caller may still hold the Prisma object) (2 ms)
+    √ leaves a null / absent id card alone rather than masking it into a string (2 ms)
+  M1.5 H2 — GET /api/entities/:id masks for every role
+    √ role VIEWER receives masked national IDs (59 ms)
+    √ role MANAGER receives masked national IDs (12 ms)
+    √ role ADMIN receives masked national IDs (13 ms)
+    √ role OWNER receives masked national IDs (11 ms)
+    √ an INDIVIDUAL entity with a null payload still answers 200 (11 ms)
+  M1.5 H2 — the create / update echoes are masked too (same helper, three endpoints)
+    √ PATCH /api/entities/:id echoes the updated row masked (28 ms)
+    √ POST /api/entities echoes the created workspace masked (13 ms)
+
+  ● M1.5 H2 — presentEntityForMember masks both national-ID carriers › survives INDIVIDUAL shape: payload null / no director
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "1100000000009"
+
+    [0m [90m 147 |[39m         expect(community[33m.[39mpayload[33m.[39mmemberCount)[33m.[39mtoBe([35m12[39m)[33m;[39m
+     [90m 148 |[39m         expect(community[33m.[39mpayload[33m.[39mpresident[33m.[39mname)[33m.[39mtoBe([32m'ประเสริฐ'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 149 |[39m         expect(community[33m.[39mpayload[33m.[39mpresident[33m.[39midCard)[33m.[39mnot[33m.[39mtoBe([32m'1100000000009'[39m)[33m;[39m
+     [90m     |[39m                                                        [31m[1m^[22m[39m
+     [90m 150 |[39m     })[33m;[39m
+     [90m 151 |[39m
+     [90m 152 |[39m     it([32m'does not mutate the row it was handed (the caller may still hold the Prisma object)'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/entity-detail-pii-mask.test.js:149:56)
+
+PASS __tests__/unit/entity-claim-guard.test.js
+  M1.5 H1 — an existing org workspace cannot be claimed by its registration number
+    √ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row with membershipStatus:null (3 ms)
+    √ the refusal audit row carries a HASH, never the raw registration number (1 ms)
+    √ PENDING invitee → 409 with the "accept your invitation" message (2 ms)
+    √ ACTIVE non-OWNER → 409 telling them to switch workspace, and NO silent upgrade to OWNER (2 ms)
+    √ an OWNER row that is NOT ACTIVE (REVOKED ex-owner / PENDING invite) → 409, NO write (M1.5 audit MEDIUM-1 pin) (2 ms)
+    √ the real OWNER retrying → idempotent success, NO write (1 ms)
+    √ a brand-new registration number → create entity + OWNER membership (unchanged) (2 ms)
+  M1.5 H1 — the same guard on ensureCommunityEntity
+    √ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row (3 ms)
+    √ PENDING invitee → 409 with the "accept your invitation" message (1 ms)
+    √ the real OWNER retrying → idempotent success, NO write (2 ms)
+    √ a brand-new DOAE number → create entity + OWNER membership (unchanged) (1 ms)
+  M1.5 H1 — POST /api/entities surfaces the refusal as 409, not 500
+    √ someone else already registered the tax ID → HTTP 409 + code, no membership write (44 ms)
+    √ a free registration number still creates the workspace (200) (11 ms)
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       1 failed, 23 passed, 24 total
+Snapshots:   0 total
+Time:        3.51 s, estimated 6 s
+Ran all test suites matching /entity-detail-pii-mask|entity-claim-guard/i.

@@ -1,0 +1,62 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-20T12:43:48.685Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-20T12:43:48.689Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-20T12:43:48.690Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:43:49.203Z"}
+[32minfo[39m: [Auth MOPH] MFA setup required for: 3-XXXX-XXXX-X-2627 {"service":"gacp-backend","timestamp":"2026-10-20T12:43:49.250Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:43:49.272Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:43:49.277Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"AuditLog","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:43:49.303Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-20T12:43:51.476Z"}
+FAIL __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js
+  order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres)
+    ✓ a DTAM admin of the same organization resets a reviewer whose codes are used up: only the three second-factor columns change, one audit row names requester, approver and confirmation, and the next sign-in yields the setup ticket only (436 ms)
+    ✓ the platform admin resets a company finance officer of another organization (that admin crosses organizations, order 17) (259 ms)
+    every refusal leaves the row byte-for-byte as it was and writes no audit row
+      ✓ refuses when the flag is off (297 ms)
+      ✓ refuses when the target is an applicant account (238 ms)
+      ✕ refuses when the requester is not an admin (272 ms)
+      ✕ refuses when the admin of the other side asks (225 ms)
+      ✕ refuses when the DTAM admin of another organization asks (236 ms)
+      ✓ refuses when the target still has an unused backup code (236 ms)
+      ✓ refuses when the target never enrolled (231 ms)
+      ✓ a missing input is refused with the usage line before the database is touched (60 ms)
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the requester is not an admin
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 0
+      208 |             const before = await fullRow(target.id);
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 210 |             expect(run.status).toBe(2);
+          |                                ^
+      211 |             expect(run.stderr).toMatch(pattern);
+      212 |             expect(run.stdout).not.toContain('ล้างการยืนยันตัวตนสองชั้นของบัญชี');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the admin of the other side asks
+    expect(received).toMatch(expected)
+    Expected pattern: /คำสั่ง 13/
+    Received string:  "ไม่ล้าง: บัญชีเป้าหมายไม่ได้เปิดการยืนยันตัวตนสองชั้นอยู่ ไม่มีอะไรให้ล้าง เข้าสู่ระบบแล้วลงทะเบียนได้เลย"
+      209 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+      210 |             expect(run.status).toBe(2);
+    > 211 |             expect(run.stderr).toMatch(pattern);
+          |                                ^
+      212 |             expect(run.stdout).not.toContain('ล้างการยืนยันตัวตนสองชั้นของบัญชี');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+      214 |             expect(await resetAudits(target.id)).toHaveLength(0);
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the DTAM admin of another organization asks
+    expect(received).toHaveLength(expected)
+    Expected length: 0
+    Received length: 1
+    Received array:  [{"action": "MFA_EMERGENCY_RESET", "actorEmail": null, "actorId": "9b7f7c8f-9430-4577-85b1-d4cc9a7b2a7d", "actorRole": "document_reviewer", "actorType": "USER", "category": "SECURITY", "createdAt": 2026-10-20T12:43:50.345Z, "currentHash": "8497ba8dee11f9ed639e7891b2ccad13b0aa047e1bb4793e08e2fd281a9623bd", "errorCode": null, "errorMessage": null, "hashAlgorithm": "SHA-256", "id": "d9281fca-d148-46ca-a1be-8eaa51c27212", "ipAddress": "ops-script", "logId": "LOG-<epoch-ms>-A973BACB", "metadata": "{\"approvalReference\":\"operator 2026-10-20 แชต 14:05 อนุมัติล้าง 2FA\",\"confirmationReference\":\"บันทึกข้อความ ที่ สธ 0509/ว123 ลงวันที่ 20 ต.ค. 2569\",\"runAt\":\"2026-10-20T12:43:50.333Z\",\"requesterId\":\"9b7f7c8f-9430-4577-85b1-d4cc9a7b2a7d\",\"requesterRole\":\"document_reviewer\",\"targetRole\":\"document_reviewer\",\"cleared\":[\"twoFactorEnabled\",\"twoFactorSecret\",\"twoFactorBackupCodes\"]}", "organizationId": "cd0d607c-6f1a-4870-b55e-4be05a93680e", "previousHash": "b990fa9ac4635f4ed40ab8faadb2210d842f54aa08e7283128fc46f88701f6d7", "resourceId": "a2291c21-010d-45eb-8e6b-18103d8d574c", "resourceType": "USER", "result": "SUCCESS", "sequenceNumber": 3, "severity": "WARNING", "userAgent": "scripts/ops/staff-2fa-emergency-reset.js"}]
+      212 |             expect(run.stdout).not.toContain('ล้างการยืนยันตัวตนสองชั้นของบัญชี');
+      213 |             expect(await fullRow(target.id)).toEqual(before);
+    > 214 |             expect(await resetAudits(target.id)).toHaveLength(0);
+          |                                                  ^
+      215 |         });
+      216 |
+      217 |         test('a missing input is refused with the usage line before the database is touched', () => {
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 7 passed, 10 total
+Snapshots:   0 total
+Time:        3.588 s, estimated 4 s
+Ran all test suites matching __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js.
+jest exit 1

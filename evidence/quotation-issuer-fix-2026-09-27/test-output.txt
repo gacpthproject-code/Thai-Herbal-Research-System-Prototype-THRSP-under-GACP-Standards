@@ -1,0 +1,25 @@
+# GREEN — fix c34e61fc · real Postgres (docker postgres:17-alpine gacp-qtfix-pg, 127.0.0.1:5434, prisma migrate deploy 144 migrations)
+# command: SIGNING_KEY_DIR=$(mktemp -d) DATABASE_URL=<redacted local url> npx jest --config jest.config.cjs __tests__/integration/quotation-issuance-real-postgres.test.js __tests__/unit/quotation-issuer-maps-have-no-undefined.test.js -i
+# exit=0
+PASS __tests__/integration/quotation-issuance-real-postgres.test.js
+    ✓ submit hook issues ONE PLATFORM quotation, and the M1 gate passes once it is accepted (110 ms)
+    ✓ a legacy pre-W14 pair is still read: no re-issue, and its unaccepted DTAM row still gates payment (28 ms)
+    ✓ a live legacy DTAM row alone still counts as "already quoted": no PLATFORM row is minted beside it (18 ms)
+PASS __tests__/unit/quotation-issuer-maps-have-no-undefined.test.js
+    ✓ ISSUER has no undefined value and issues the company only (2 ms)
+    ✓ QT_PREFIX has no undefined key or value, and admits only issuers in ISSUER (1 ms)
+    ✓ the legacy DTAM reader value is an explicit string, not a lookup (1 ms)
+Test Suites: 2 passed, 2 total
+Tests:       6 passed, 6 total
+
+# MUTATION (fix committed; each mutant restored with git checkout HEAD -- services/quotation-service.js)
+## M1: _readLiveQuotationRows issuerType in [ISSUER.PLATFORM] (legacy value dropped) — exit=1
+    ✓ submit hook issues ONE PLATFORM quotation, and the M1 gate passes once it is accepted (105 ms)
+    ✓ a legacy pre-W14 pair is still read: no re-issue, and its unaccepted DTAM row still gates payment (26 ms)
+    ✕ a live legacy DTAM row alone still counts as "already quoted": no PLATFORM row is minted beside it (32 ms)
+Tests:       1 failed, 2 passed, 3 total
+## M2: findQuotationsByApplicationId dtam: null (legacy slot dropped) — exit=1
+    ✓ submit hook issues ONE PLATFORM quotation, and the M1 gate passes once it is accepted (102 ms)
+    ✕ a legacy pre-W14 pair is still read: no re-issue, and its unaccepted DTAM row still gates payment (28 ms)
+    ✓ a live legacy DTAM row alone still counts as "already quoted": no PLATFORM row is minted beside it (18 ms)
+Tests:       1 failed, 2 passed, 3 total

@@ -1,0 +1,77 @@
+# Round 5 RED (web): the new round-5 tests against 623dcbac code (-t 'round 5')
+# suites: use-application-flow-store.test.ts, use-auto-save.test.tsx, submit-and-hand-over.test.ts,
+#         auth-service-wizard-privacy.test.ts (new), wizard-after-filing.test.tsx (new; real store + real hook + real submitAndHandOver)
+    ✕ step 6 path: file X, leave, "ยื่นคำขอใหม่", edit gives exactly 1 POST with no id, and a new draft
+    ✕ step 6 path: the wizard is NOT emptied while it is still on screen (no bounce to step 1 mid-navigation)
+    ✕ preview path (no wizard on screen): emptied as soon as the filing is accepted
+    ✕ a resubmit leaves the wizard too (the application is no longer editable)
+    ✓ filing X from the preview page does not touch a store that is about another application
+    ✓ a refused filing keeps everything (nothing was filed)
+    ✕ logout empties the wizard store and removes its persisted copy
+    ✕ a sign-in as a DIFFERENT account empties it too (no logout in between)
+    ✓ the same account signing in again keeps the wizard
+        ✕ drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+        ✕ the submit gate refuses while the id is refused, then lets the new draft through after the drop
+        ✕ drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+        ✕ the submit gate refuses while the id is refused, then lets the new draft through after the drop
+    ✕ round 5: no wizard on screen and the id is refused (APPLICATION_NOT_EDITABLE): blocked, the id dropped, the answers kept
+    ✕ round 5: no wizard on screen and the id is refused (APPLICATION_NOT_FOUND): blocked, the id dropped, the answers kept
+    ✕ resetWizard drops applicationId and the quotation display, not only the answers
+    ✕ detachApplication drops only the id, keeps every answer, and marks them unsent
+    ✕ blocks the filing and says the answers become a new draft
+    ✕ a first filing accepted by the server: the wizard forgets it
+    ✕ a resubmit accepted by the server: the wizard forgets it
+    ✕ a quotation-gate refusal after filing (legacy rail) still forgets it: it IS filed
+    ✓ a refused filing keeps the wizard
+    ✓ nothing submitted (already past filing): nothing to forget here
+Tests:       18 failed, 52 skipped, 5 passed, 75 total
+
+## why each fails (first failing assertion)
+● round 5: a filing leaves the wizard empty for the next application › step 6 path: file X, leave, "ยื่นคำขอใหม่", edit gives exactly 1 POST with no id, and a new draft
+    Received: "app-X"
+● round 5: a filing leaves the wizard empty for the next application › step 6 path: the wizard is NOT emptied while it is still on screen (no bounce to step 1 mid-navigation)
+    Received: "app-X"
+● round 5: a filing leaves the wizard empty for the next application › preview path (no wizard on screen): emptied as soon as the filing is accepted
+    Received: "app-X"
+● round 5: a filing leaves the wizard empty for the next application › a resubmit leaves the wizard too (the application is no longer editable)
+    Received: "app-X"
+● round 5: the wizard does not outlive its user › logout empties the wizard store and removes its persisted copy
+    Received: "app-of-A"
+● round 5: the wizard does not outlive its user › a sign-in as a DIFFERENT account empties it too (no logout in between)
+    Received: "app-of-A"
+● useAutoSave (mock API) › O1 — loading a saved draft is not an edit › round 5: a save refused with APPLICATION_NOT_EDITABLE › drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+    Expected number of calls: 1
+    Received number of calls: 0
+● useAutoSave (mock API) › O1 — loading a saved draft is not an edit › round 5: a save refused with APPLICATION_NOT_EDITABLE › the submit gate refuses while the id is refused, then lets the new draft through after the drop
+    Expected: "DETACHED"
+    Received: false
+● useAutoSave (mock API) › O1 — loading a saved draft is not an edit › round 5: a save refused with APPLICATION_NOT_FOUND › drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+    Expected number of calls: 1
+    Received number of calls: 0
+● useAutoSave (mock API) › O1 — loading a saved draft is not an edit › round 5: a save refused with APPLICATION_NOT_FOUND › the submit gate refuses while the id is refused, then lets the new draft through after the drop
+    Expected: "DETACHED"
+    Received: false
+● ensureLatestDraftSaved (round 3 submit gate) › round 5: no wizard on screen and the id is refused (APPLICATION_NOT_EDITABLE): blocked, the id dropped, the answers kept
+    Expected: "DETACHED"
+    Received: false
+● ensureLatestDraftSaved (round 3 submit gate) › round 5: no wizard on screen and the id is refused (APPLICATION_NOT_FOUND): blocked, the id dropped, the answers kept
+    Expected: "DETACHED"
+    Received: false
+● round 5: resetting the wizard lets go of the application › resetWizard drops applicationId and the quotation display, not only the answers
+    Received: "app-filed"
+● round 5: resetting the wizard lets go of the application › detachApplication drops only the id, keeps every answer, and marks them unsent
+    TypeError: use_application_flow_store_1.useWizardStoreBase.getState(...).detachApplication is not a function
+● round 5: the gate dropped a refused id › blocks the filing and says the answers become a new draft
+    - Expected  - 2
+    + Received  + 2
+● round 5: an accepted filing lets go of the wizard › a first filing accepted by the server: the wizard forgets it
+    Expected: "app-1"
+● round 5: an accepted filing lets go of the wizard › a resubmit accepted by the server: the wizard forgets it
+    Expected: "app-1"
+● round 5: an accepted filing lets go of the wizard › a quotation-gate refusal after filing (legacy rail) still forgets it: it IS filed
+    Expected: "app-1"
+
+## reading it
+- wizard-after-filing step 6 path: after filing X and opening a new application, the first save still carries applicationId app-X (the reviewer's Important).
+- the 5 passing tests are guards: a store about another application and a refused filing must stay untouched; same-user sign-in keeps the wizard.
+- submit 'DETACHED' test: old code answers DRAFT_NOT_SAVED_TH, the generic retry line.

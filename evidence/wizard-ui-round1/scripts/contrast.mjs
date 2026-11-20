@@ -1,0 +1,35 @@
+import fs from 'node:fs';
+const css = fs.readFileSync(process.argv[2], 'utf8');
+const block = (sel) => { const i = css.indexOf(sel); return css.slice(i, css.indexOf('\n  }', i)); };
+const parse = (b) => Object.fromEntries([...b.matchAll(/--([\w-]+):\s*([^;]+);/g)].map((m) => [m[1], m[2].trim()]));
+const root = parse(block(':root {')), dark = { ...root, ...parse(block('.dark {')) };
+const hsl = (h, s, l) => { s /= 100; l /= 100; const k = (n) => (n + h / 30) % 12; const a = s * Math.min(l, 1 - l); const f = (n) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1)); return [f(0), f(8), f(4)].map((x) => x * 255); };
+const color = (t, v) => { const raw = t[v] ?? v; if (raw.startsWith('#')) return [1, 3, 5].map((i) => parseInt(raw.slice(i, i + 2), 16)); const p = raw.replace(/%/g, '').split(/\s+/).map(Number); return raw.includes('%') ? hsl(...p) : p; };
+const over = (fg, a, bg) => fg.map((c, i) => c * a + bg[i] * (1 - a));
+const lum = (c) => { const [r, g, b] = c.map((x) => { x /= 255; return x <= 0.03928 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4; }); return 0.2126 * r + 0.7152 * g + 0.0722 * b; };
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+const WHITE = [255, 255, 255], ZINC400 = [161, 161, 170];
+const rows = [];
+for (const [theme, t] of [['light', root], ['dark', dark]]) {
+  const card = color(t, 'card'), inset = over(color(t, 'mint-soft'), 0.4, card), muted = color(t, 'muted'), soft = color(t, 'leaf-soft');
+  const fg = color(t, 'foreground'), mf = color(t, 'muted-foreground');
+  const fg80 = (bg) => over(fg, 0.8, bg), fg60 = (bg) => over(fg, 0.6, bg);
+  const leaf700 = color(t, 'leaf-700'), leaf = color(t, 'leaf');
+  const add = (what, before, after, min) => rows.push({ theme, what, before: before && +before.toFixed(2), after: +after.toFixed(2), min, pass: after >= min });
+  add('helper text on step body (inset)', ratio(mf, inset), ratio(fg80(inset), inset), 4.5);
+  add('helper text on card', ratio(mf, card), ratio(fg80(card), card), 4.5);
+  add('unselected option label on card', ratio(mf, card), ratio(fg, card), 4.5);
+  add('step-bar label, upcoming (on muted pill)', ratio(mf, muted), ratio(fg80(muted), muted), 4.5);
+  const done = ratio(color(t, 'primary'), over(color(t, 'primary'), 0.1, card));
+  add('step-bar label, done (unchanged)', done, done, 4.5);
+  add('header subtitle', theme === 'light' ? ratio(ZINC400, card) : null, ratio(fg80(card), card), 4.5);
+  add('file action (แทนที่ไฟล์/ลบไฟล์) on card', ratio(mf, card), ratio(fg, card), 4.5);
+  add('empty box/ring border vs card', null, ratio(fg60(card), card), 3);
+  const mark = theme === 'light' ? leaf700 : leaf;
+  add('checked mark vs selected tile', null, ratio(mark, soft), 3);
+  add('checked mark vs card', null, ratio(mark, card), 3);
+  add('tick inside filled box', null, ratio(theme === 'light' ? WHITE : color(t, 'background'), mark), 3);
+  add('primary button label (white on leaf-700)', null, ratio(WHITE, leaf700), 4.5);
+}
+console.table(rows);
+fs.writeFileSync(process.argv[3], JSON.stringify(rows, null, 2));

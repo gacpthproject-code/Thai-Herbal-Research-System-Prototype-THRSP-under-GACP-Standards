@@ -1,0 +1,94 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'CERTIFICATE',
+      action: 'CERTIFICATE_SUSPENDED',
+      severity: 'WARNING',
+      error: 'this.prisma.$transaction is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-15T04:00:05.280Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at CertificateService._auditCertLifecycle (services/certificate-service.js:1222:13)
+      at CertificateService.suspendCertificate (services/certificate-service.js:1293:9)
+      at Object.<anonymous> (__tests__/unit/certificate-service.test.js:333:21)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'CERTIFICATE',
+      action: 'CERTIFICATE_REINSTATED',
+      severity: 'WARNING',
+      error: 'this.prisma.$transaction is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-15T04:00:05.346Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at CertificateService._auditCertLifecycle (services/certificate-service.js:1222:13)
+      at CertificateService.reinstateCertificate (services/certificate-service.js:1336:9)
+      at Object.<anonymous> (__tests__/unit/certificate-service.test.js:364:21)
+
+PASS __tests__/unit/certificate-service.test.js
+  certificate-service.findById
+    √ returns null when id is empty without hitting Prisma (6 ms)
+    √ returns null when id is null without hitting Prisma (2 ms)
+    √ queries by id with isDeleted: false filter and NO userId predicate (3 ms)
+    √ returns null when Prisma returns null (soft-deleted or missing) (2 ms)
+    √ forwards include option to Prisma (e.g. application relation) (2 ms)
+    √ forwards select option to Prisma (column projection) (1 ms)
+    √ returns revoked certificates (REVOKED is a status, not a delete) (8 ms)
+  certificate-service.findById — tenant scoping (C3)
+    √ adds organizationId to the where when an organizationId is supplied (non-cross-tenant provider) (1 ms)
+    √ a tenant-A scoped lookup of a tenant-B cert returns null (Prisma where excludes it) (1 ms)
+    √ does NOT add organizationId when crossTenant is true (PLATFORM_ADMIN) (2 ms)
+    √ does NOT add organizationId when none is supplied (legacy/back-compat callers) (1 ms)
+  certificate-service.listCertificates — tenant scoping (C3)
+    √ scope=all + organizationId → where narrowed to that org (no userId) (2 ms)
+    √ scope=all + crossTenant:true (PLATFORM_ADMIN) → no organizationId filter (1 ms)
+    √ scope=self still narrows by userId (HEALTH owner) and ignores org filter (2 ms)
+  certificate-service.getCertificateForUser (ownership preserved)
+    √ returns null when certificateId is missing (1 ms)
+    √ returns null when userId is missing (2 ms)
+    √ queries with BOTH id, userId, and isDeleted filters (IDOR guard) (1 ms)
+  certificate-service.findCertificateForApplication (dedupe primitive)
+    √ returns null for empty applicationId without hitting Prisma (2 ms)
+    √ filters out soft-deleted AND revoked certs so a re-pass re-issues (#17) (1 ms)
+  certificate-service.revokeCertificateForApplication (audit-pass reversal)
+    √ returns null for empty applicationId without hitting Prisma (2 ms)
+    √ is a no-op (null) when no live cert exists for the application (2 ms)
+    √ voids the live cert: status=revoked + soft-delete + forensic fields (2 ms)
+    √ uses the provided transaction handle (opts.prisma) for atomicity (2 ms)
+    √ defaults revokedBy to 'system' and a generic reason when omitted (1 ms)
+  certificate-service.suspendCertificate
+    √ rejects a missing certificateId with VALIDATION_ERROR (3 ms)
+    √ requires a reason of at least 3 chars (ISO 17065 record of decision) (1 ms)
+    √ suspends an active cert: status→suspended, scoped to {id, status:active, isDeleted:false} (129 ms)
+    √ maps Prisma P2025 (no active row) to CERTIFICATE_NOT_SUSPENDABLE (2 ms)
+  certificate-service.reinstateCertificate
+    √ reinstates a suspended cert: status→active, scoped to {id, status:suspended, isDeleted:false} (55 ms)
+    √ maps Prisma P2025 (not suspended) to CERTIFICATE_NOT_REINSTATABLE (2 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       30 passed, 30 total
+Snapshots:   0 total
+Time:        2.077 s, estimated 3 s
+Ran all test suites matching /certificate-service/i.

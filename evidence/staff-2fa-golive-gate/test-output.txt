@@ -1,0 +1,41 @@
+full gate 53f527453 (coordinator 2026-10-21): summary of the full-suite run, compared with main's gate a8ab4615b
+the full log stays on the work host at /home/ubuntu/work/state/gate/out/evidence/gate/logs/53f527453e91ee5939a63621f6822dfee00a6487/artifacts/suite-green.log (not committed: it carries epoch-ms runs and key-like strings that gitleaks flags)
+
+suite-green (all suites, parallel)
+Test Suites: 4 failed, 2 skipped, 1155 passed, 1159 of 1161 total
+Tests:       8 failed, 52 skipped, 15289 passed, 15349 total
+Snapshots:   0 total
+Time:        1120.703 s
+failing suites:
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js
+  __tests__/integration/field-audit-clock-real-postgres.test.js
+  __tests__/integration/onsite-decision-mint-e2e.test.js
+  __tests__/integration/status-writer-audit-default-invariant.test.js
+failing tests:
+  A0 PR-1 — writer emits the canonical transition row by default, in the same tx › (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #13 — POST /applications/:id/car — late CAR evidence expires the case › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #7 — PATCH /admin/applications/:id/status — admin override › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  A0 PR-2 — per-hop invariant, real routes on real Postgres › #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite PASS through /decision auto-mints a Certificate (e2e closure) › PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  the field audit task is timed from the visit (real Postgres) › a visit booked through the scheduling queue weeks ahead is due a time limit after the visit, not after the booking
+new vs main:
+  __tests__/integration/field-audit-clock-real-postgres.test.js
+failing on main's gate, not on this head (main's load flakes included; see notes):
+  none
+
+integration-pg (integration folder, serial, fresh database): 7 failed tests (main: 9)
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #13 — POST /applications/:id/car — late CAR evidence expires the case (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #7 — PATCH /admin/applications/:id/status — admin override (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  status-writer-audit-default-invariant.test.js :: A0 PR-1 — writer emits the canonical transition row by default, in the same tx (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+new vs main:
+  none
+
+- Reviews: staff-2fa-golive-review-f806ee7c3 → -92a6194ef → -4b61bf6a9 (fix needed) → -da76f4a72 (fix needed, M1 injection) → -53f527453 (NO OBJECTION, sonnet), in ~/work/state/reviews/.
+- Gate 53f527453 vs baseline a8ab4615b: only NEW = field-audit-clock-real-postgres (failing on 4/7 recent gates; investigated in fix/launch-guards-1 item 5; branch touches no audit scheduling).
+- Allow rules (order 105(4), 108(5)): 4 lines from the round-8 report, written only after merge; none reaches the emergency reset.

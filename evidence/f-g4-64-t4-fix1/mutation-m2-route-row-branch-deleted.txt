@@ -1,0 +1,118 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+FAIL __tests__/unit/quotation-api-renders-the-row.test.js
+  buildQuotationLineItemsFromRow — the stored row, never a recompute
+    √ line items come from the stored installments, at the row scopeCount (7 ms)
+    √ a row written under the retired VAT base renders THAT row, not the current formula (3 ms)
+    √ a 3-scope row splits the stored totals across the three methods, summing back exactly (2 ms)
+    √ an accepted row renders its FROZEN snapshot, even if the installments were later touched (2 ms)
+    √ each pre-W14 card shows ITS OWN money, and its lines sum to its own total (3 ms)
+    √ the VAT column follows the issuer: the state fee is VAT-exempt, the platform fee is not (25 ms)
+    √ a pre-GAP-5 row falls back to its `amount`, never to a row of zeros (1 ms)
+    √ a frozen snapshot of a pre-W14 side renders the frozen `amount`, not the full-phase split (1 ms)
+  GET /api/applications/:id/quotations — the API renders the row
+    × returns per-side line items taken from the stored installments (pre-W14 pair) (43 ms)
+    × renders the FROZEN snapshot of an accepted row, not the row installments that followed it (12 ms)
+  POST /api/applications/:id/quotations/:issuerType/accept — freezes the row
+    √ stores the snapshot built from THAT row, with its hash (27 ms)
+    √ REFUSES a pre-GAP-5 row with the catalogued SNAPSHOT_REQUIRED copy, and writes nothing (11 ms)
+  GET /:issuerType/pdf — the document is the row
+    × prints the W14 row figures for phase 1 (5,885 per scope, not the platform-only 885) (183 ms)
+    × REFUSES phase 1 of a renewal quotation instead of printing a 0.00 numbered document (92 ms)
+
+  ● GET /api/applications/:id/quotations — the API renders the row › returns per-side line items taken from the stored installments (pre-W14 pair)
+
+    TypeError: Cannot read properties of undefined (reading 'map')
+
+    [0m [90m 292 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 293 |[39m         [36mconst[39m { dtam[33m,[39m platform } [33m=[39m res[33m.[39mbody[33m.[39mdata[33m;[39m
+    [31m[1m>[22m[39m[90m 294 |[39m         expect(dtam[33m.[39mlineItems[33m.[39mmap((i) [33m=>[39m [i[33m.[39mphase1Amount[33m,[39m i[33m.[39mphase2Amount]))[33m.[39mtoEqual([[[35m5000[39m[33m,[39m [35m25000[39m]])[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 295 |[39m         expect(platform[33m.[39mlineItems[33m.[39mmap((i) [33m=>[39m [i[33m.[39mphase1Amount[33m,[39m i[33m.[39mphase2Amount]))[33m.[39mtoEqual([[[35m535[39m[33m,[39m [35m2675[39m]])[33m;[39m
+     [90m 296 |[39m         [90m// Each card's lines must add up to the total printed beneath them.[39m
+     [90m 297 |[39m         [36mconst[39m cardTotal [33m=[39m (row) [33m=>[39m row[33m.[39mlineItems[33m.[39mreduce((s[33m,[39m i) [33m=>[39m s [33m+[39m i[33m.[39mphase1Amount [33m+[39m i[33m.[39mphase2Amount[33m,[39m [35m0[39m)[33m;[39m[0m
+
+      at Object.map (__tests__/unit/quotation-api-renders-the-row.test.js:294:31)
+
+  ● GET /api/applications/:id/quotations — the API renders the row › renders the FROZEN snapshot of an accepted row, not the row installments that followed it
+
+    TypeError: Cannot read properties of undefined (reading '0')
+
+    [0m [90m 320 |[39m
+     [90m 321 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 322 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mplatform[33m.[39mlineItems[[35m0[39m][33m.[39mphase1Amount)[33m.[39mtoBe([35m5885[39m)[33m;[39m
+     [90m     |[39m                                                [31m[1m^[22m[39m
+     [90m 323 |[39m     })[33m;[39m
+     [90m 324 |[39m })[33m;[39m
+     [90m 325 |[39m[0m
+
+      at Object.<anonymous> (__tests__/unit/quotation-api-renders-the-row.test.js:322:48)
+
+  ● GET /:issuerType/pdf — the document is the row › prints the W14 row figures for phase 1 (5,885 per scope, not the platform-only 885)
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "TOTAL=[[5,885.00]]"
+    Received string:    "DOC=[[QT-PRD-2026-000001]] ITEMS=<tr>
+              <td class=\"c\">1.</td>
+              <td>ค่าบริการแพลตฟอร์มและภาษีมูลค่าเพิ่ม (ตรวจประเมิน) ระบบ OUTDOOR<div style=\"font-size:10px;color:#555;font-weight:normal;margin-top:3px;line-height:1.6\">งวดที่ 1 · ค่าตรวจเอกสาร<br>คำขอเลขที่: GACP-TH-2569-000123</div></td>
+              <td class=\"c\">1</td>
+              <td class=\"c\">คำขอ</td>
+              <td class=\"r\">885.00</td>
+              <td class=\"r\">885.00</td>
+            </tr> TOTAL=[[885.00]]"
+
+    [0m [90m 391 |[39m
+     [90m 392 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 393 |[39m         expect(mockCapture[33m.[39mhtml)[33m.[39mtoContain([32m'TOTAL=[[5,885.00]]'[39m)[33m;[39m
+     [90m     |[39m                                  [31m[1m^[22m[39m
+     [90m 394 |[39m         [90m// The retired per-side split printed the platform fee + VAT alone.[39m
+     [90m 395 |[39m         expect(mockCapture[33m.[39mhtml)[33m.[39mnot[33m.[39mtoContain([32m'TOTAL=[[885.00]]'[39m)[33m;[39m
+     [90m 396 |[39m         expect(mockCapture[33m.[39mhtml)[33m.[39mtoContain([32m'DOC=[[QT-PRD-2026-000001]]'[39m)[33m;[39m[0m
+
+      at Object.toContain (__tests__/unit/quotation-api-renders-the-row.test.js:393:34)
+
+  ● GET /:issuerType/pdf — the document is the row › REFUSES phase 1 of a renewal quotation instead of printing a 0.00 numbered document
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+    [0m [90m 419 |[39m             [33m.[39m[36mget[39m([32m`/api/applications/${APP_ID}/quotations/PLATFORM/pdf?phase=1`[39m)[33m;[39m
+     [90m 420 |[39m
+    [31m[1m>[22m[39m[90m 421 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe(lookup([32m'QUOTATION_PHASE_NOT_PRICED'[39m)[33m.[39mhttpStatus)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 422 |[39m         expect(res[33m.[39mbody[33m.[39merror)[33m.[39mtoBe([32m'QUOTATION_PHASE_NOT_PRICED'[39m)[33m;[39m
+     [90m 423 |[39m         expect(res[33m.[39mbody[33m.[39mmessage)[33m.[39mtoBe(getMessage([32m'QUOTATION_PHASE_NOT_PRICED'[39m[33m,[39m [32m'th'[39m))[33m;[39m
+     [90m 424 |[39m         expect(mockCapture[33m.[39mhtml)[33m.[39mtoBe([32m''[39m)[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-api-renders-the-row.test.js:421:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 10 passed, 14 total
+Snapshots:   0 total
+Time:        2.288 s
+Ran all test suites matching /__tests__\\unit\\quotation-api-renders-the-row.test.js/i.

@@ -1,0 +1,36 @@
+# Round 5b GREEN (P2 owner stamp, P1 wording, the real-envelope detach, step 6 alert contrast)
+## web: src/app/health/applications + src/lib/services + src/lib/__tests__ + src/lib/api
+Test Suites: 124 passed, 124 total
+Tests:       1362 passed, 1362 total
+## every other web suite that touches auth-service / wizard-session / api-client
+Test Suites: 69 passed, 69 total
+Tests:       395 passed, 395 total
+## the round-5b tests
+        ✓ drops the id, keeps the answers, says so, and the next save has no id and no version
+        ✓ the submit gate refuses while the id is refused, then lets the id the next save returns through
+        ✓ drops the id, keeps the answers, says so, and the next save has no id and no version
+        ✓ the submit gate refuses while the id is refused, then lets the id the next save returns through
+  round 5b: the real 409 envelope (APPLICATION_NOT_EDITABLE) reaches the detach
+    ✓ autosave: the refused id is dropped and the next save carries no id
+    ✓ submit gate, no wizard on screen: DETACHED, not "try again"
+  round 5b: the real 404 envelope (APPLICATION_NOT_FOUND) reaches the detach
+    ✓ autosave: the refused id is dropped and the next save carries no id
+    ✓ submit gate, no wizard on screen: DETACHED, not "try again"
+  round 5b: an expiry is not a logout
+    ✓ idle timeout, then the SAME user signs in: the unsent edit is still there and is sent once
+    ✓ idle timeout, then a DIFFERENT user signs in: emptied
+    ✓ an explicit logout still empties it
+  round 5b: how the wizard knows whose answers it holds
+    ✓ answers written while A is signed in are stamped as A's
+    ✓ a sign-in by A empties a persisted copy stamped for B, even with nothing in memory
+    ✓ a sign-in by A keeps a persisted copy stamped for A
+    ✓ answers persisted before the stamp existed (no owner) are not rehydrated into whoever is signed in
+  auth-service-activity — Item 3: idle timeout ends a cookie-only ThaID session end-to-end
+    ✓ cookie-only session: idle timeout invokes AuthService.logout(), which POSTs the backend logout endpoint (ends the httpOnly cookie server-side)
+    ✓ blocks the filing and says the answers are kept as a draft
+## tsc --noEmit exit 0 · eslint on touched files 0 errors · backend unchanged since de667fd1 (30 suites / 363 on postgres:17, r5-green.txt)
+
+## view-pack (next build + next start :3107, /api/** answered by route fixtures, 390x844 @2x, Playwright Chromium): r5-walk.json
+detach light/dark: POSTs = [applicationId X -> 409 real envelope, applicationId none -> 200]; notice 'คำขอนี้ยื่นไปแล้ว ระบบจะบันทึกคำตอบของคุณเป็นร่างคำขอ'
+gate light/dark: POSTs = [X -> 500, X -> 500 (the gate's save)]; refusal 'ยังบันทึกการแก้ไขล่าสุดไม่สำเร็จ กรุณาลองอีกครั้ง'; /applications/submit never called
+contrast, computed from rendered colours over the box: detach light 8.75:1 · detach dark 15.93:1 · gate light 5.6:1 · gate dark 12.06:1 (before the step 6 fix: dark ~1.7:1, light ~4.4:1)

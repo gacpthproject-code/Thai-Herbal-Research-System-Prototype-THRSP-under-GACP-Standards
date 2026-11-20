@@ -1,0 +1,39 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-13T09:50:59.675Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-13T09:50:59.679Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-13T09:50:59.679Z"}
+[33mwarn[39m: [application-parties] no recipient for application a5b24f6d-e31c-451c-b458-d18aaec86b3c (AUDIT_VISIT_REMINDER) {"service":"gacp-backend","timestamp":"2026-10-13T09:51:00.508Z"}
+[33mwarn[39m: [visit-reminder] reminder for APP-vrm-14-66b0eaaf reached nobody; released for the next run {"service":"gacp-backend","timestamp":"2026-10-13T09:51:00.510Z"}
+[31merror[39m: [visit-reminder] reminder for APP-vrm-15-66b0eaaf failed: test: the notice store is unavailable {"service":"gacp-backend","timestamp":"2026-10-13T09:51:00.599Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-13T09:51:00.764Z"}
+FAIL __tests__/integration/visit-reminder-real-postgres.test.js
+  the reminder before a field visit (real Postgres)
+    ✓ from two working days before the visit the applicant and the holder are told once, in the approved words (276 ms)
+    ✓ a member who muted visit reminders still gets this one (113 ms)
+    ✓ a visit moved to another day is reminded again for the new day (193 ms)
+    ✓ a visit booked on its reminder day is not reminded: the booking notice has just told them (47 ms)
+    ✓ with no place typed, the site the filing names is told (104 ms)
+    ✓ a reminder that reached nobody leaves no record, and the next run sends it (82 ms)
+    ✕ a reminder whose notice throws leaves no record, and the next run sends it (67 ms)
+
+  ● the reminder before a field visit (real Postgres) › a reminder whose notice throws leaves no record, and the next run sends it
+
+    expect(received).toBeUndefined()
+
+    Received: {"forVisit": "2026-11-02T02:30:00.000Z", "sentAt": "2026-10-13T09:51:00.596Z"}
+
+      199 |         await run({ now });
+      200 |         expect(mockNotice.throwFor).toBeNull();
+    > 201 |         expect((await world.rowOf(row.id)).formData.visitReminder).toBeUndefined();
+          |                                                                    ^
+      202 |
+      203 |         await run({ now: new Date(now.getTime() + HOUR) });
+      204 |         expect(await remindersOf(fx.applicant.id, row.applicationNumber)).toHaveLength(1);
+
+      at Object.toBeUndefined (__tests__/integration/visit-reminder-real-postgres.test.js:201:68)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        2.09 s
+Ran all test suites matching __tests__/integration/visit-reminder-real-postgres.test.js.
+exit=1

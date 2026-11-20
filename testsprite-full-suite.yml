@@ -1,0 +1,1308 @@
+# TestSprite Full E2E Test Suite for DTAM GACP
+# ทดสอบครอบคลุมทั้งระบบ: สมาชิก → Track & Trace
+
+name: DTAM GACP Full System Test
+version: '1.0.0'
+description: |
+  End-to-End Testing Suite สำหรับระบบ DTAM GACP
+  ครอบคลุมทุก flow ตั้งแต่การสมัครสมาชิกจนถึงการติดตามย้อนกลับ
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 1: ระบบสมาชิกและการยืนยันตัวตน (Authentication & Membership)
+# ═══════════════════════════════════════════════════════════════
+phase_1_authentication:
+  name: "ระบบสมาชิกและการยืนยันตัวตน"
+  priority: critical
+  
+  test_cases:
+    # TC-AUTH-001: ลงทะเบียนผู้ใช้ใหม่
+    - id: TC-AUTH-001
+      name: "ลงทะเบียนผู้ใช้ใหม่สำเร็จ"
+      type: api
+      endpoint: POST /api/auth/register
+      steps:
+        - action: generate_test_data
+          data:
+            id_card: "{random_thai_id}"
+            phone: "{random_thai_phone}"
+            email: "{random_email}"
+            password: "SecurePass123!"
+            first_name: "สมชาย"
+            last_name: "ใจดี"
+            address: "123 ถนนสมุนไพร แม่ริม เชียงใหม่ 50180"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            user_id: "{exists}"
+            verification_status: "PENDING_OTP"
+        side_effects:
+          - sms_sent: true
+          - email_sent: true
+          - audit_log_created: true
+
+    # TC-AUTH-002: ยืนยัน OTP
+    - id: TC-AUTH-002
+      name: "ยืนยัน OTP สำเร็จ"
+      type: api
+      endpoint: POST /api/auth/verify-otp
+      depends_on: TC-AUTH-001
+      steps:
+        - action: get_otp_from_sms_mock
+          phone: "{from_prev_test.phone}"
+        - action: send_request
+          body:
+            phone: "{from_prev_test.phone}"
+            otp: "{sms_otp}"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            access_token: "{jwt_format}"
+            refresh_token: "{jwt_format}"
+            user:
+              status: "ACTIVE"
+
+    # TC-AUTH-003: เข้าสู่ระบบ
+    - id: TC-AUTH-003
+      name: "เข้าสู่ระบบด้วยเบอร์โทรศัพท์"
+      type: api
+      endpoint: POST /api/auth/login
+      steps:
+        - action: send_request
+          body:
+            phone: "{from_prev_test.phone}"
+            password: "SecurePass123!"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            access_token: "{jwt_format}"
+            expires_in: 86400
+
+    # TC-AUTH-004: Refresh Token
+    - id: TC-AUTH-004
+      name: "ต่ออายุ Access Token"
+      type: api
+      endpoint: POST /api/auth/refresh
+      depends_on: TC-AUTH-003
+      steps:
+        - action: send_request
+          headers:
+            Authorization: "Bearer {from_prev_test.refresh_token}"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            access_token: "{jwt_format}"
+
+    # TC-AUTH-005: อัพเดทโปรไฟล์
+    - id: TC-AUTH-005
+      name: "อัพเดทข้อมูลส่วนตัว"
+      type: api
+      endpoint: PUT /api/users/profile
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            first_name: "สมชาย"
+            last_name: "ใจดีมาก"
+            address: "456 ถนนใหม่ แม่ริม เชียงใหม่ 50180"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            updated: true
+
+    # TC-AUTH-006: อัพโหลดรูปโปรไฟล์
+    - id: TC-AUTH-006
+      name: "อัพโหลดรูปโปรไฟล์"
+      type: api
+      endpoint: POST /api/users/avatar
+      authentication: required
+      steps:
+        - action: upload_file
+          field: avatar
+          file: test-assets/profile-photo.jpg
+          validation:
+            max_size: 5MB
+            allowed_types: [image/jpeg, image/png]
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            avatar_url: "{url_format}"
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 2: จัดการฟาร์ม (Farm Management)
+# ═══════════════════════════════════════════════════════════════
+phase_2_farm_management:
+  name: "ระบบจัดการฟาร์ม"
+  priority: critical
+  depends_on: phase_1_authentication
+
+  test_cases:
+    # TC-FARM-001: ลงทะเบียนฟาร์มใหม่
+    - id: TC-FARM-001
+      name: "ลงทะเบียนฟาร์มสำเร็จ"
+      type: api
+      endpoint: POST /api/farms
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            name: "สวนผักสมุนไทยแม่ริม"
+            description: "ฟาร์มปลูกกัญชาและสมุนไพรแบบอินทรีย์"
+            address: "123 หมู่ 4 ต.แม่ริม อ.แม่ริม จ.เชียงใหม่ 50180"
+            coordinates:
+              latitude: 18.796143
+              longitude: 98.979263
+            area_rai: 5
+            area_ngan: 2
+            area_wa: 50
+            land_certificate_no: "เลขที่ 1234"
+            land_type: "OWNED"
+            contact_phone: "0812345678"
+            plant_types: ["cannabis", "andrographis"]
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            farm_id: "{exists}"
+            status: "PENDING_VERIFICATION"
+            qr_code: "{exists}"
+
+    # TC-FARM-002: Fraud Detection - ตรวจจับฟาร์มซ้ำซ้อน
+    - id: TC-FARM-002
+      name: "ตรวจจับฟาร์มซ้ำซ้อน (ระยะห่าง < 100 เมตร)"
+      type: api
+      endpoint: POST /api/farms
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            name: "ฟาร์มต้องสงสัย"
+            coordinates:
+              latitude: 18.796200  # ห่างจากฟาร์มแรก ~6 เมตร
+              longitude: 98.979300
+            area_rai: 3
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            farm_id: "{exists}"
+            fraud_score: "> 70"
+            status: "HIGH_RISK"
+            warning: "{contains_nearby_farm}"
+
+    # TC-FARM-003: อัพโหลดเอกสารที่ดิน
+    - id: TC-FARM-003
+      name: "อัพโหลดเอกสารสิทธิ์ที่ดิน"
+      type: api
+      endpoint: POST /api/farms/{farm_id}/documents
+      authentication: required
+      steps:
+        - action: upload_file
+          field: document
+          file: test-assets/land-certificate.pdf
+          metadata:
+            document_type: "LAND_CERTIFICATE"
+            document_no: "1234"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            document_id: "{exists}"
+            verification_status: "PENDING"
+
+    # TC-FARM-004: OCR Verification เอกสาร
+    - id: TC-FARM-004
+      name: "ตรวจสอบเอกสารด้วย OCR"
+      type: api
+      endpoint: POST /api/farms/{farm_id}/documents/verify
+      authentication: required
+      steps:
+        - action: wait_for_processing
+          timeout: 30
+        - action: send_request
+          body:
+            document_id: "{from_prev_test.document_id}"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            ocr_confidence: "> 80"
+            extracted_text: "{contains_expected}"
+            is_valid: true
+
+    # TC-FARM-005: ดึงข้อมูลฟาร์มทั้งหมด
+    - id: TC-FARM-005
+      name: "ดึงรายการฟาร์มของผู้ใช้"
+      type: api
+      endpoint: GET /api/farms
+      authentication: required
+      steps:
+        - action: send_request
+          query:
+            page: 1
+            limit: 10
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            farms: "{array_min_length: 1}"
+            pagination:
+              total: ">= 1"
+              page: 1
+
+    # TC-FARM-006: อัพเดทข้อมูลฟาร์ม
+    - id: TC-FARM-006
+      name: "อัพเดทข้อมูลฟาร์ม"
+      type: api
+      endpoint: PUT /api/farms/{farm_id}
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            description: "ฟาร์มปลูกกัญชาอินทรีย์มาตรฐาน GACP"
+            contact_phone: "0898765432"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            updated: true
+            version: "{incremented}"
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 3: ระบบใบสมัคร GACP (GACP Application)
+# ═══════════════════════════════════════════════════════════════
+phase_3_gacp_application:
+  name: "ระบบใบสมัคร GACP"
+  priority: critical
+  depends_on: phase_2_farm_management
+
+  test_cases:
+    # TC-APP-001: สร้างใบสมัครใหม่
+    - id: TC-APP-001
+      name: "สร้างใบสมัคร GACP สำเร็จ"
+      type: api
+      endpoint: POST /api/applications
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            farm_id: "{from_phase_2.farm_id}"
+            plant_type: "cannabis"
+            cultivation_purpose: "MEDICAL"
+            expected_yield_kg: 100
+            documents:
+              - type: "ID_CARD"
+                file: "test-assets/id-card.jpg"
+              - type: "LAND_CERTIFICATE"
+                file: "test-assets/land-cert.pdf"
+              - type: "PT11_FORM"
+                file: "test-assets/pt11-form.pdf"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            application_id: "{matches_pattern: APP-\\d{4}-\\d+}"
+            status: "PENDING"
+            submitted_at: "{timestamp}"
+
+    # TC-APP-002: Fraud Detection ตรวจสอบเอกสาร
+    - id: TC-APP-002
+      name: "ตรวจจับเอกสารปลอมด้วย AI"
+      type: api
+      endpoint: POST /api/applications/{app_id}/fraud-check
+      authentication: required
+      steps:
+        - action: wait_for_processing
+          timeout: 60
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            fraud_check:
+              status: "COMPLETED"
+              risk_score: "{number}"
+              checks:
+                - name: "OCR_VERIFICATION"
+                  passed: "{boolean}"
+                - name: "IMAGE_QUALITY"
+                  passed: "{boolean}"
+                - name: "METADATA_ANALYSIS"
+                  passed: "{boolean}"
+                - name: "DUPLICATE_DETECTION"
+                  passed: "{boolean}"
+
+    # TC-APP-003: ดูสถานะใบสมัคร
+    - id: TC-APP-003
+      name: "ตรวจสอบสถานะใบสมัคร"
+      type: api
+      endpoint: GET /api/applications/{app_id}
+      authentication: required
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            application_id: "{exists}"
+            status: "{enum: [PENDING, UNDER_REVIEW, APPROVED_FOR_AUDIT, REJECTED]}"
+            timeline: "{array}"
+
+    # TC-APP-004: อัพโหลดเอกสารเพิ่มเติม
+    - id: TC-APP-004
+      name: "อัพโหลดเอกสารเพิ่มเติม"
+      type: api
+      endpoint: POST /api/applications/{app_id}/documents
+      authentication: required
+      steps:
+        - action: upload_file
+          field: document
+          file: test-assets/additional-doc.pdf"
+          metadata:
+            document_type: "SUPPORTING_DOC"
+            description: "เอกสารประกอบการพิจารณา"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            document_id: "{exists}"
+            uploaded_at: "{timestamp}"
+
+    # TC-APP-005: ยกเลิกใบสมัคร
+    - id: TC-APP-005
+      name: "ยกเลิกใบสมัครที่ยังไม่ดำเนินการ"
+      type: api
+      endpoint: DELETE /api/applications/{app_id}
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            reason: "ต้องการแก้ไขข้อมูล"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            cancelled: true
+            refund_eligible: true
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 4: ระบบตรวจสอบฟาร์ม (Farm Audit)
+# ═══════════════════════════════════════════════════════════════
+phase_4_farm_audit:
+  name: "ระบบตรวจสอบฟาร์ม"
+  priority: critical
+  depends_on: phase_3_gacp_application
+
+  test_cases:
+    # TC-AUDIT-001: เจ้าหน้าที่นัดหมายตรวจสอบ
+    - id: TC-AUDIT-001
+      name: "เจ้าหน้าที่นัดหมายตรวจสอบฟาร์ม"
+      type: api
+      endpoint: POST /api/audits
+      authentication: PROVIDER_required
+      steps:
+        - action: authenticate_PROVIDER
+          role: AUDITOR
+        - action: send_request
+          body:
+            application_id: "{from_phase_3.application_id}"
+            scheduled_date: "{future_date: 7_days}"
+            auditor_id: "{PROVIDER_id}"
+            audit_type: "INITIAL"
+            notes: "ตรวจสอบเบื้องต้นครั้งแรก"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            audit_id: "{matches_pattern: AUD-\\d{4}-\\d+}"
+            status: "SCHEDULED"
+        side_effects:
+          - notification_sent_to_Applicant: true
+          - calendar_event_created: true
+
+    # TC-AUDIT-002: เกษตรกรยืนยันนัดหมาย
+    - id: TC-AUDIT-002
+      name: "เกษตรกรยืนยันการนัดหมาย"
+      type: api
+      endpoint: PUT /api/audits/{audit_id}/confirm
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            confirmed: true
+            notes: "ยืนยันการนัดหมาย"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            status: "CONFIRMED"
+
+    # TC-AUDIT-003: เจ้าหน้าที่บันทึกผลการตรวจสอบ
+    - id: TC-AUDIT-003
+      name: "บันทึกผลการตรวจสอบฟาร์ม"
+      type: api
+      endpoint: POST /api/audits/{audit_id}/results
+      authentication: PROVIDER_required
+      steps:
+        - action: authenticate_PROVIDER
+          role: AUDITOR
+        - action: upload_photos
+          count: 5
+          with_gps: true
+        - action: send_request
+          body:
+            results:
+              - category: "SITE_SELECTION"
+                score: 10
+                max_score: 10
+                status: "PASS"
+                notes: "ที่ตั้งเหมาะสม"
+              - category: "SOIL_QUALITY"
+                score: 9
+                max_score: 10
+                status: "PASS"
+              - category: "WATER_SOURCE"
+                score: 10
+                max_score: 10
+                status: "PASS"
+              - category: "CULTIVATION_RECORDS"
+                score: 8
+                max_score: 10
+                status: "PASS"
+              - category: "PEST_MANAGEMENT"
+                score: 10
+                max_score: 10
+                status: "PASS"
+              - category: "HARVESTING"
+                score: 9
+                max_score: 10
+                status: "PASS"
+              - category: "PROCESSING"
+                score: 10
+                max_score: 10
+                status: "PASS"
+              - category: "STORAGE"
+                score: 10
+                max_score: 10
+                status: "PASS"
+              - category: "TRANSPORTATION"
+                score: 10
+                max_score: 10
+                status: "PASS"
+              - category: "PERSONNEL"
+                score: 9
+                max_score: 10
+                status: "PASS"
+            total_score: 95
+            recommendation: "APPROVED"
+            photos: "{uploaded_photo_ids}"
+            gps_verified: true
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            audit_id: "{exists}"
+            total_score: 95
+            status: "PASSED"
+            certificate_eligible: true
+
+    # TC-AUDIT-004: ดูผลการตรวจสอบ (เกษตรกร)
+    - id: TC-AUDIT-004
+      name: "เกษตรกรดูผลการตรวจสอบ"
+      type: api
+      endpoint: GET /api/audits/{audit_id}
+      authentication: required
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            audit_id: "{exists}"
+            results: "{array_length: 10}"
+            total_score: 95
+            status: "PASSED"
+            photos: "{array}"
+
+    # TC-AUDIT-005: การตรวจสอบไม่ผ่าน
+    - id: TC-AUDIT-005
+      name: "บันทึกผลการตรวจสอบไม่ผ่าน"
+      type: api
+      endpoint: POST /api/audits/{audit_id}/results
+      authentication: PROVIDER_required
+      pre_condition: create_separate_application
+      steps:
+        - action: authenticate_PROVIDER
+          role: AUDITOR
+        - action: send_request
+          body:
+            results:
+              - category: "SITE_SELECTION"
+                score: 10
+                max_score: 10
+                status: "PASS"
+              - category: "SOIL_QUALITY"
+                score: 3
+                max_score: 10
+                status: "FAIL"
+                notes: "ดินมีสารปนเปื้อนเกินมาตรฐาน"
+            total_score: 65
+            recommendation: "REJECTED"
+            rejection_reason: "คุณภาพดินไม่ผ่านเกณฑ์ GACP"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            status: "FAILED"
+            can_reapply: true
+            reapply_after_days: 90
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 5: ระบบออกใบรับรอง (Certificate Issuance)
+# ═══════════════════════════════════════════════════════════════
+phase_5_certificate:
+  name: "ระบบออกใบรับรอง GACP"
+  priority: critical
+  depends_on: phase_4_farm_audit
+
+  test_cases:
+    # TC-CERT-001: ออกใบรับรองอัตโนมัติ
+    - id: TC-CERT-001
+      name: "ระบบออกใบรับรองอัตโนมัติเมื่อผ่านการตรวจสอบ"
+      type: api
+      endpoint: POST /api/certificates/issue
+      authentication: PROVIDER_required
+      steps:
+        - action: authenticate_PROVIDER
+          role: CERTIFICATE_OFFICER
+        - action: send_request
+          body:
+            application_id: "{from_phase_3.application_id}"
+            audit_id: "{from_phase_4.audit_id}"
+            issue_date: "{today}"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            certificate_id: "{matches_pattern: GACP-\\d{4}-\\d+}"
+            certificate_number: "{exists}"
+            qr_code: "{exists}"
+            valid_from: "{today}"
+            valid_until: "{today_plus_2_years}"
+            status: "ACTIVE"
+        side_effects:
+          - notification_sent: true
+          - pdf_generated: true
+          - blockchain_recorded: true
+
+    # TC-CERT-002: ดาวน์โหลดใบรับรอง
+    - id: TC-CERT-002
+      name: "ดาวน์โหลดใบรับรอง PDF"
+      type: api
+      endpoint: GET /api/certificates/{cert_id}/download
+      authentication: required
+      steps:
+        - action: send_request
+          headers:
+            Accept: application/pdf
+      expected:
+        status: 200
+        headers:
+          content-type: application/pdf
+        body: "{pdf_binary}"
+
+    # TC-CERT-003: ตรวจสอบใบรับรองด้วย QR Code
+    - id: TC-CERT-003
+      name: "ตรวจสอบใบรับรองด้วย QR Code (Public)"
+      type: api
+      endpoint: GET /api/v1/public/verify/{certificate_number}
+      authentication: none
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            certificate_number: "{exists}"
+            farm_name: "{exists}"
+            owner_name: "{exists}"
+            plant_types: "{array}"
+            valid_from: "{date}"
+            valid_until: "{date}"
+            status: "ACTIVE"
+            verified_by: "กรมการแพทย์แผนไทยและการแพทย์ทางเลือก"
+
+    # TC-CERT-004: ใบรับรองหมดอายุ
+    - id: TC-CERT-004
+      name: "ตรวจสอบใบรับรองที่หมดอายุ"
+      type: api
+      endpoint: GET /api/v1/public/verify/{expired_certificate_number}
+      authentication: none
+      pre_condition: use_expired_certificate
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            status: "EXPIRED"
+            expired_date: "{past_date}"
+            renew_eligible: true
+            renew_before_days: 90
+
+    # TC-CERT-005: ขอต่ออายุใบรับรอง
+    - id: TC-CERT-005
+      name: "ยื่นคำขอต่ออายุใบรับรอง"
+      type: api
+      endpoint: POST /api/certificates/{cert_id}/renew
+      authentication: required
+      pre_condition: certificate_near_expiry
+      steps:
+        - action: send_request
+          body:
+            reason: "ต่ออายุใบรับรอง"
+            documents:
+              - type: "RENEWAL_APPLICATION"
+                file: "test-assets/renewal-form.pdf"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            renewal_id: "{exists}"
+            status: "PENDING_AUDIT"
+            new_audit_scheduled: true
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 6: ระบบห้องปฏิบัติการ (Lab Integration)
+# ═══════════════════════════════════════════════════════════════
+phase_6_lab_integration:
+  name: "ระบบเชื่อมต่อห้องปฏิบัติการ"
+  priority: high
+  depends_on: phase_5_certificate
+
+  test_cases:
+    # TC-LAB-001: ส่งตัวอย่างไปห้องปฏิบัติการ
+    - id: TC-LAB-001
+      name: "ลงทะเบียนตัวอย่างส่งห้องปฏิบัติการ"
+      type: api
+      endpoint: POST /api/labs/samples
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            farm_id: "{from_phase_2.farm_id}"
+            batch_id: "BATCH-2569-0001"
+            sample_type: "CANNABIS_DRIED"
+            sample_weight_g: 50
+            collected_at: "{timestamp}"
+            collected_by: "{user_id}"
+            gps_coordinates:
+              latitude: 18.796143
+              longitude: 98.979263
+            lab_id: "ramathibodi_lab"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            sample_id: "{matches_pattern: S-\\d{4}-\\d+}"
+            tracking_number: "{exists}"
+            status: "REGISTERED"
+
+    # TC-LAB-002: รับผลตรวจจากห้องปฏิบัติการ
+    - id: TC-LAB-002
+      name: "ระบบรับผลตรวจจากห้องปฏิบัติการ (Webhook)"
+      type: api
+      endpoint: POST /api/labs/webhooks/results
+      authentication: lab_api_key
+      steps:
+        - action: send_request
+          headers:
+            X-Lab-API-Key: "{encrypted_lab_key}"
+            X-Lab-ID: "ramathibodi_lab"
+          body:
+            sample_id: "{from_prev_test.sample_id}"
+            test_date: "{timestamp}"
+            results:
+              cannabinoids:
+                thc_percent: 0.15
+                cbd_percent: 12.5
+                thca_percent: 0.05
+              heavy_metals:
+                lead_ppm: 0.1
+                cadmium_ppm: 0.05
+                mercury_ppm: 0.02
+                arsenic_ppm: 0.08
+                status: "PASS"
+              pesticides:
+                detected: []
+                status: "PASS"
+              microbiological:
+                total_aerobic_count: 100
+                yeast_and_mold: 50
+                e_coli: "NOT_DETECTED"
+                salmonella: "NOT_DETECTED"
+                status: "PASS"
+            overall_status: "PASSED"
+            lab_technician: "นายTECH A"
+            verified_by: "นายTECH B"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            sample_id: "{exists}"
+            coa_generated: true
+            coa_url: "{exists}"
+
+    # TC-LAB-003: ดูใบรับรองผลตรวจ (CoA)
+    - id: TC-LAB-003
+      name: "ดูใบรับรองผลตรวจ CoA"
+      type: api
+      endpoint: GET /api/labs/coa/{coa_id}
+      authentication: required
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            coa_id: "{exists}"
+            sample_id: "{exists}"
+            results: "{object}"
+            pdf_url: "{exists}"
+            qr_code: "{exists}"
+
+    # TC-LAB-004: ผลตรวจไม่ผ่านเกณฑ์
+    - id: TC-LAB-004
+      name: "จัดการผลตรวจที่ไม่ผ่านเกณฑ์"
+      type: api
+      endpoint: POST /api/labs/webhooks/results
+      authentication: lab_api_key
+      pre_condition: use_new_sample
+      steps:
+        - action: send_request
+          headers:
+            X-Lab-API-Key: "{encrypted_lab_key}"
+          body:
+            sample_id: "{new_sample_id}"
+            results:
+              cannabinoids:
+                thc_percent: 1.5  # เกินเกณฑ์ 1.0%
+              overall_status: "FAILED"
+              failure_reason: "THC content exceeds legal limit"
+      expected:
+        status: 200
+        response:
+          success: true
+        side_effects:
+          - alert_sent_to_qc: true
+          - alert_sent_to_Applicant: true
+          - batch_quarantined: true
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 7: ระบบการติดตามย้อนกลับ (Track & Trace)
+# ═══════════════════════════════════════════════════════════════
+phase_7_track_trace:
+  name: "ระบบการติดตามย้อนกลับ"
+  priority: critical
+  depends_on: phase_6_lab_integration
+
+  test_cases:
+    # TC-TRACE-001: สร้าง QR Code สำหรับผลิตภัณฑ์
+    - id: TC-TRACE-001
+      name: "สร้าง QR Code ติดตามย้อนกลับ"
+      type: api
+      endpoint: POST /api/trace/generate
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            product_type: "CANNABIS_DRIED"
+            batch_id: "BATCH-2569-0001"
+            farm_id: "{from_phase_2.farm_id}"
+            certificate_id: "{from_phase_5.certificate_id}"
+            coa_id: "{from_phase_6.coa_id}"
+            package_weight_g: 1000
+            harvest_date: "{past_date}"
+            processing_date: "{past_date}"
+            packaging_date: "{today}"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            trace_id: "{matches_pattern: TR-\\d{4}-\\d+}"
+            qr_code: "{exists}"
+            qr_code_data_url: "{base64_image}"
+            public_url: "{exists}"
+
+    # TC-TRACE-002: สแกน QR Code ตรวจสอบ (Public)
+    - id: TC-TRACE-002
+      name: "ตรวจสอบข้อมูลผลิตภัณฑ์ด้วย QR Code"
+      type: api
+      endpoint: GET /api/trace/{qr_code}
+      authentication: none
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            trace_id: "{exists}"
+            product_info:
+              type: "CANNABIS_DRIED"
+              weight_g: 1000
+            farm_info:
+              name: "{exists}"
+              certificate: "{exists}"
+            lab_results:
+              thc_percent: 0.15
+              cbd_percent: 12.5
+              coa_url: "{exists}"
+            timeline:
+              - event: "HARVEST"
+                date: "{past_date}"
+              - event: "LAB_TEST"
+                date: "{past_date}"
+              - event: "PACKAGE"
+                date: "{today}"
+            disclaimers:
+              not_medical_advice: "{exists}"
+              consult_doctor: "{exists}"
+            referrals:
+              fda:
+                name: "อย."
+                phone: "1556"
+
+    # TC-TRACE-003: บันทึกกิจกรรมใน supply chain
+    - id: TC-TRACE-003
+      name: "บันทึกกิจกรรมใน supply chain"
+      type: api
+      endpoint: POST /api/trace/{trace_id}/events
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            event_type: "TRANSPORT"
+            actor: "บริษัทขนส่ง A"
+            location:
+              from: "เชียงใหม่"
+              to: "กรุงเทพฯ"
+            timestamp: "{now}"
+            gps_coordinates:
+              latitude: 18.796143
+              longitude: 98.979263
+            notes: "ขนส่งโดยรถตู้ควบคุมอุณหภูมิ"
+            documents:
+              - type: "TRANSPORT_DOC"
+                file: "transport-doc.pdf"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            event_id: "{exists}"
+            recorded_on_blockchain: true
+            transaction_hash: "{exists}"
+
+    # TC-TRACE-004: ดูประวัติทั้งหมดของผลิตภัณฑ์
+    - id: TC-TRACE-004
+      name: "ดูประวัติย้อนกลับทั้งหมด"
+      type: api
+      endpoint: GET /api/trace/{trace_id}/history
+      authentication: none
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            trace_id: "{exists}"
+            events: "{array_min_length: 3}"
+            farm_to_fork:
+              seed_source: "{exists}"
+              planting: "{exists}"
+              cultivation: "{exists}"
+              harvest: "{exists}"
+              processing: "{exists}"
+              lab_testing: "{exists}"
+              packaging: "{exists}"
+              distribution: "{exists}"
+
+    # TC-TRACE-005: ตรวจสอบ QR Code ปลอม
+    - id: TC-TRACE-005
+      name: "ตรวจจับ QR Code ปลอม/ไม่มีในระบบ"
+      type: api
+      endpoint: GET /api/trace/INVALID-QR-CODE-123
+      authentication: none
+      steps:
+        - action: send_request
+      expected:
+        status: 404
+        response:
+          success: false
+          error:
+            code: "NOT_FOUND"
+            message: "ไม่พบข้อมูลผลิตภัณฑ์"
+          disclaimers:
+            warning: "QR Code นี้อาจเป็นของปลอม"
+            report_fraud: "หากพบผลิตภัณฑ์ต้องสงสัย กรุณาแจ้ง อย. 1556"
+          referrals:
+            fda:
+              name: "อย."
+              phone: "1556"
+              report_url: "https://thaidrug.fda.moph.go.th/report"
+
+    # TC-TRACE-006: ติดตามแบบ Real-time (GPS)
+    - id: TC-TRACE-006
+      name: "ติดตามการขนส่งแบบ Real-time"
+      type: api
+      endpoint: GET /api/trace/{trace_id}/location
+      authentication: required
+      pre_condition: active_transport
+      steps:
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            current_location:
+              latitude: "{number}"
+              longitude: "{number}"
+              updated_at: "{timestamp}"
+            route:
+              - lat: "{number}"
+                lng: "{number}"
+                timestamp: "{timestamp}"
+            estimated_arrival: "{future_timestamp}"
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 8: ระบบสต๊อกและคลังสินค้า (Inventory Management)
+# ═══════════════════════════════════════════════════════════════
+phase_8_inventory:
+  name: "ระบบจัดการสต๊อกและคลังสินค้า"
+  priority: high
+
+  test_cases:
+    # TC-INV-001: บันทึกการรับเข้าคลัง
+    - id: TC-INV-001
+      name: "บันทึกสินค้าเข้าคลัง"
+      type: api
+      endpoint: POST /api/inventory/stock-in
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            trace_id: "{from_phase_7.trace_id}"
+            warehouse_id: "WH-001"
+            quantity_g: 1000
+            batch_id: "BATCH-2569-0001"
+            received_by: "{user_id}"
+            storage_conditions:
+              temperature_c: 20
+              humidity_percent: 60
+            location_in_warehouse: "A-01-02"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            stock_id: "{exists}"
+            current_stock_g: 1000
+
+    # TC-INV-002: ตัดสต๊อก
+    - id: TC-INV-002
+      name: "บันทึกการเบิกจ่ายสินค้า"
+      type: api
+      endpoint: POST /api/inventory/stock-out
+      authentication: required
+      steps:
+        - action: send_request
+          body:
+            trace_id: "{from_phase_7.trace_id}"
+            quantity_g: 500
+            destination: "โรงพยาบาลรามาธิบดี"
+            purpose: "MEDICAL_USE"
+            approved_by: "{user_id}"
+      expected:
+        status: 201
+        response:
+          success: true
+          data:
+            current_stock_g: 500
+
+    # TC-INV-003: ตรวจสอบสต๊อกคงเหลือ
+    - id: TC-INV-003
+      name: "ดูรายงานสต๊อกคงเหลือ"
+      type: api
+      endpoint: GET /api/inventory/stock
+      authentication: required
+      steps:
+        - action: send_request
+          query:
+            farm_id: "{from_phase_2.farm_id}"
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            items: "{array}"
+            total_value: "{number}"
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 9: ระบบรายงานและวิเคราะห์ (Reporting & Analytics)
+# ═══════════════════════════════════════════════════════════════
+phase_9_analytics:
+  name: "ระบบรายงานและวิเคราะห์ข้อมูล"
+  priority: medium
+
+  test_cases:
+    # TC-ANALYTICS-001: ดู Dashboard สรุป
+    - id: TC-ANALYTICS-001
+      name: "ดู Dashboard Analytics"
+      type: api
+      endpoint: GET /api/analytics/dashboard
+      authentication: PROVIDER_required
+      steps:
+        - action: authenticate_PROVIDER
+          role: ADMIN
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            summary:
+              total_farms: "{number}"
+              total_certificates: "{number}"
+              pending_applications: "{number}"
+              pass_rate: "{percentage}"
+            charts:
+              applications_trend: "{array}"
+              farms_by_province: "{array}"
+              yield_forecast: "{array}"
+
+    # TC-ANALYTICS-002: รายงานการส่งออก
+    - id: TC-ANALYTICS-002
+      name: "ส่งออกรายงาน Excel"
+      type: api
+      endpoint: GET /api/analytics/export
+      authentication: PROVIDER_required
+      steps:
+        - action: send_request
+          query:
+            report_type: "FARMS_SUMMARY"
+            format: "xlsx"
+            date_from: "2026-01-01"
+            date_to: "2026-12-31"
+      expected:
+        status: 200
+        headers:
+          content-type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet
+        body: "{binary}"
+
+    # TC-ANALYTICS-003: Fraud Analytics
+    - id: TC-ANALYTICS-003
+      name: "ดูรายงานการตรวจจับทุจริต"
+      type: api
+      endpoint: GET /api/analytics/fraud
+      authentication: PROVIDER_required
+      steps:
+        - action: authenticate_PROVIDER
+          role: FRAUD_ANALYST
+        - action: send_request
+      expected:
+        status: 200
+        response:
+          success: true
+          data:
+            high_risk_farms: "{array}"
+            suspicious_patterns: "{array}"
+            ocr_failure_rate: "{percentage}"
+
+# ═══════════════════════════════════════════════════════════════
+# PHASE 10: Integration & End-to-End Flow
+# ═══════════════════════════════════════════════════════════════
+phase_10_e2e_integration:
+  name: "End-to-End Integration Tests"
+  priority: critical
+  type: e2e_full_flow
+
+  test_cases:
+    # TC-E2E-001: ฟลูว์สมัครสมาชิกจนถึงได้ใบรับรอง
+    - id: TC-E2E-001
+      name: "Complete Flow: สมัครสมาชิก → ได้ใบรับรอง GACP"
+      type: e2e
+      duration_estimate: "15 minutes"
+      steps:
+        - step: 1
+          action: "ลงทะเบียนผู้ใช้ใหม่"
+          api: POST /api/auth/register
+        - step: 2
+          action: "ยืนยัน OTP"
+          api: POST /api/auth/verify-otp
+        - step: 3
+          action: "เข้าสู่ระบบ"
+          api: POST /api/auth/login
+        - step: 4
+          action: "ลงทะเบียนฟาร์ม"
+          api: POST /api/farms
+        - step: 5
+          action: "อัพโหลดเอกสารที่ดิน"
+          api: POST /api/farms/{id}/documents
+        - step: 6
+          action: "สร้างใบสมัคร GACP"
+          api: POST /api/applications
+        - step: 7
+          action: "รอ Fraud Detection ตรวจสอบ"
+          wait: 60
+        - step: 8
+          action: "เจ้าหน้าที่นัดหมายตรวจสอบ"
+          api: POST /api/audits
+          auth: provider
+        - step: 9
+          action: "เกษตรกรยืนยันนัดหมาย"
+          api: PUT /api/audits/{id}/confirm
+        - step: 10
+          action: "เจ้าหน้าที่บันทึกผลตรวจสอบผ่าน"
+          api: POST /api/audits/{id}/results
+          auth: provider
+        - step: 11
+          action: "ระบบออกใบรับรอง"
+          api: POST /api/certificates/issue
+          auth: provider
+        - step: 12
+          action: "ตรวจสอบใบรับรองด้วย QR Code"
+          api: GET /api/v1/public/verify/{certificate_number}
+          auth: none
+      expected:
+        final_status: "CERTIFICATE_ISSUED"
+        total_steps_completed: 12
+        no_errors: true
+
+    # TC-E2E-002: ฟลูว์ส่งตัวอย่างห้องปฏิบัติการจนถึงติดตามย้อนกลับ
+    - id: TC-E2E-002
+      name: "Complete Flow: ส่ง Lab → Track & Trace"
+      type: e2e
+      duration_estimate: "10 minutes"
+      steps:
+        - step: 1
+          action: "ส่งตัวอย่างไป Lab"
+          api: POST /api/labs/samples
+        - step: 2
+          action: "Lab ส่งผลตรวจ"
+          api: POST /api/labs/webhooks/results
+          auth: lab_key
+        - step: 3
+          action: "ดู CoA"
+          api: GET /api/labs/coa/{id}
+        - step: 4
+          action: "สร้าง QR Code ติดตาม"
+          api: POST /api/trace/generate
+        - step: 5
+          action: "ตรวจสอบ QR Code"
+          api: GET /api/trace/{qr_code}
+          auth: none
+        - step: 6
+          action: "บันทึกกิจกรรมขนส่ง"
+          api: POST /api/trace/{id}/events
+        - step: 7
+          action: "ดูประวัติย้อนกลับ"
+          api: GET /api/trace/{id}/history
+      expected:
+        final_status: "TRACEABLE"
+        lab_results_included: true
+        timeline_complete: true
+
+# ═══════════════════════════════════════════════════════════════
+# Test Execution Configuration
+# ═══════════════════════════════════════════════════════════════
+execution:
+  parallel: false  # รันแบบ sequential เพื่อความถูกต้องของ dependencies
+  retry_failed: 3
+  timeout_per_test: 120
+  
+  setup:
+    - start_test_database
+    - seed_test_data
+    - start_backend_server
+    - start_frontend_server
+  
+  teardown:
+    - capture_logs
+    - generate_reports
+    - cleanup_test_data
+
+# ═══════════════════════════════════════════════════════════════
+# Success Criteria
+# ═══════════════════════════════════════════════════════════════
+success_criteria:
+  min_pass_rate: 95
+  critical_tests_pass_rate: 100
+  max_avg_response_time_ms: 500
+  no_security_vulnerabilities: true
+  coverage:
+    lines: 80
+    functions: 75
+    branches: 70
+
+# ═══════════════════════════════════════════════════════════════
+# Reporting
+# ═══════════════════════════════════════════════════════════════
+reporting:
+  formats:
+    - html
+    - json
+    - junit
+    - markdown
+  
+  include:
+    - test_results
+    - response_times
+    - coverage_report
+    - screenshots
+    - logs
+    - ai_analysis
+  
+  notifications:
+    on_failure:
+      - email
+      - slack
+    on_success:
+      - email

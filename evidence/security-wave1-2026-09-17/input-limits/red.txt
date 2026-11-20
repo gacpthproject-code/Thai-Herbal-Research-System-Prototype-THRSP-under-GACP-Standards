@@ -1,0 +1,1203 @@
+# RED — wave1/input-limits (BACK-01, SECU-02) — 2026-09-17 (re-run after the resumed agent reviewed the tests)
+# base commit: b4d7bc06e7e982af74a62969a598bc0ee8c08ac1 (origin/main = production). Production code UNCHANGED; only the 4 test files differ.
+# test changes vs fcf4beaf: body-parser-limits no longer expects req.body === undefined (express 4 ships body-parser 1.20.6,
+#   which sets req.body = {} before reading); upload-doors adds the GHSA-wc9g-mqfw-jrwm two-field crash payload to every door
+#   (reproduced on multer 2.2.0: uncaught "RangeError: Invalid array length") with a 3 s watchdog.
+# cwd: apps/backend
+# cmd: npx jest __tests__/unit/sanitize-input-linear-time.test.js __tests__/unit/body-parser-limits.test.js __tests__/unit/register-refuses-multipart.test.js __tests__/unit/upload-doors-declare-multipart-limits.test.js
+# body-parser-limits cannot load: middleware/body-parsers.js does not exist yet; server.js:119-125 inlines express.json/urlencoded with limit '10mb'.
+# Headline: the 200 KB 'onon…' string took 21.5 s in the current middleware (budget 200 ms); the crash payload throws an
+#   uncaught RangeError on all 7 multer doors.
+# Result: Test Suites 4 failed / 4; Tests 48 failed, 67 passed, 115 total; jest exit 1
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/sanitize-input-linear-time.test.js (48.834 s)
+  BACK-01 — one anonymous request cannot stall the event loop
+    ✕ a ~200 KB "onon…" string passes through the middleware in under 200 ms (21512 ms)
+    ✕ the same string in the query string and a path param is just as cheap (7109 ms)
+  BACK-01 — strings over the cap are not scanned, and the log says so
+    ✕ the cap is a real number, big enough for ordinary long text and far below the body limit (4 ms)
+    ✕ a string one character over the cap is passed through unscanned and recorded as such (3 ms)
+    ✓ a string exactly at the cap is still inspected (2 ms)
+    ✕ the middleware logs the oversize string with its path and length, and still calls next (2 ms)
+  BACK-01 — at the cap, every adversarial shape is linear
+    ✕ on\w+\s*= on "onon…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (9322 ms)
+    ✕ on\w+\s*= on "_on_on…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (6415 ms)
+    ✕ <script\b[^>]*> on "<script <script …" — a ~512 KB body of cap-sized strings inspects in under 250 ms (1703 ms)
+    ✕ /*…*/ on "/*x/*x…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (1957 ms)
+    ✓ javascript\s*: on long whitespace runs — a ~512 KB body of cap-sized strings inspects in under 250 ms (6 ms)
+    ✓ UNION\s+SELECT on long whitespace runs — a ~512 KB body of cap-sized strings inspects in under 250 ms (8 ms)
+    ✓ on\w+\s*= on "a=a=a=…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (8 ms)
+  BACK-01 — the linear detectors flag exactly what the old patterns flagged
+    ✓ "<script>alert(1)</script>" (3 ms)
+    ✓ "<SCRIPT src=x>" (2 ms)
+    ✓ "<script" (1 ms)
+    ✓ "<scripts>" (2 ms)
+    ✓ "<script\n>" (2 ms)
+    ✓ "x<script y" (2 ms)
+    ✓ "javascript:alert(1)" (1 ms)
+    ✓ "JavaScript :x" (1 ms)
+    ✓ "javascript\t\n:" (5 ms)
+    ✓ "javascrip:" (1 ms)
+    ✓ "<img onerror=alert(1)>" (1 ms)
+    ✓ "onsite=ตรวจแล้ว" (1 ms)
+    ✓ "online=yes" (5 ms)
+    ✓ "one=1" (1 ms)
+    ✓ "on=1" (1 ms)
+    ✓ "button=1" (2 ms)
+    ✓ "buttons=1" (2 ms)
+    ✓ "xonx =" (1 ms)
+    ✓ "ON_X\t=" (4 ms)
+    ✓ "onn" (2 ms)
+    ✓ "สวน onclick = x" (1 ms)
+    ✓ "oné=1" (1 ms)
+    ✓ "_on_=" (1 ms)
+    ✓ "o n=1" (2 ms)
+    ✓ "on1 \n =" (1 ms)
+    ✓ "data:text/html,<h1>" (2 ms)
+    ✓ "DATA : TEXT/HTML" (1 ms)
+    ✓ "data:text/plain" (2 ms)
+    ✓ "vbscript:msgbox" (3 ms)
+    ✓ "expression(alert(1))" (1 ms)
+    ✓ "expression (x)" (1 ms)
+    ✓ "Robert'; DROP TABLE users; --" (1 ms)
+    ✓ ";DROP " (1 ms)
+    ✓ "; delete  from x" (1 ms)
+    ✓ "; UPDATE users SET x" (1 ms)
+    ✓ ";UPDATE u  SET\t" (1 ms)
+    ✓ "; update a set" (1 ms)
+    ✓ "; UPDATE  SET " (1 ms)
+    ✓ "x; TRUNCATE t" (1 ms)
+    ✓ "1 UNION SELECT" (1 ms)
+    ✓ "union all select" (1 ms)
+    ✓ "UNIONSELECT" (1 ms)
+    ✓ "admin'/* comment */" (1 ms)
+    ✓ "/*/" (1 ms)
+    ✓ "/**/" (1 ms)
+    ✓ "a */ b /* c" (2 ms)
+    ✓ "ปุ๋ยสูตร 15-15-15 /* ใช้ตามฉลาก */" (1 ms)
+    ✓ "สวนพงษ์ภูวนาท -- แปลงที่ 1" (1 ms)
+    ✓ "ค่า pH 6.5--7.0" (1 ms)
+    ✓ "--\n" (1 ms)
+    ✓ "" (1 ms)
+    ✓ "John Doe" (1 ms)
+    ✓ agrees on 20,000 generated strings built from the patterns' own pieces (137 ms)
+
+  ● BACK-01 — one anonymous request cannot stall the event loop › a ~200 KB "onon…" string passes through the middleware in under 200 ms
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 200
+    Received:   21507.221107
+
+      79 |         const elapsed = timeMs(() => sanitizeInput(req, {}, next));
+      80 |
+    > 81 |         expect(elapsed).toBeLessThan(200);
+         |                         ^
+      82 |         expect(next).toHaveBeenCalledTimes(1);
+      83 |         expect(req.body.note).toBe(note);
+      84 |     });
+
+      at Object.toBeLessThan (__tests__/unit/sanitize-input-linear-time.test.js:81:25)
+
+  ● BACK-01 — one anonymous request cannot stall the event loop › the same string in the query string and a path param is just as cheap
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 200
+    Received:   7106.454725
+
+      91 |         const elapsed = timeMs(() => sanitizeInput(req, {}, next));
+      92 |
+    > 93 |         expect(elapsed).toBeLessThan(200);
+         |                         ^
+      94 |         expect(next).toHaveBeenCalledTimes(1);
+      95 |     });
+      96 | });
+
+      at Object.toBeLessThan (__tests__/unit/sanitize-input-linear-time.test.js:93:25)
+
+  ● BACK-01 — strings over the cap are not scanned, and the log says so › the cap is a real number, big enough for ordinary long text and far below the body limit
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "number"
+    Received: "undefined"
+
+       98 | describe('BACK-01 — strings over the cap are not scanned, and the log says so', () => {
+       99 |     it('the cap is a real number, big enough for ordinary long text and far below the body limit', () => {
+    > 100 |         expect(typeof MAX_INSPECTED_LENGTH).toBe('number');
+          |                                             ^
+      101 |         // The longest free text the API legitimately takes is a herb-knowledge
+      102 |         // entry (services/herb-knowledge-service.js MAX_CONTENT_LEN = 20000).
+      103 |         expect(MAX_INSPECTED_LENGTH).toBeGreaterThanOrEqual(20_000);
+
+      at Object.toBe (__tests__/unit/sanitize-input-linear-time.test.js:100:45)
+
+  ● BACK-01 — strings over the cap are not scanned, and the log says so › a string one character over the cap is passed through unscanned and recorded as such
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 8
+    + Received  + 1
+
+    - Array [
+    -   Object {
+    -     "length": NaN,
+    -     "path": "body.bio",
+    -     "pattern": null,
+    -     "type": "OVERSIZE_NOT_INSPECTED",
+    -   },
+    - ]
+    + Array []
+
+      112 |
+      113 |         expect(out.bio).toBe(value);
+    > 114 |         expect(detections).toEqual([
+          |                            ^
+      115 |             { path: 'body.bio', pattern: null, type: 'OVERSIZE_NOT_INSPECTED', length: MAX_INSPECTED_LENGTH + 1 },
+      116 |         ]);
+      117 |     });
+
+      at Object.toEqual (__tests__/unit/sanitize-input-linear-time.test.js:114:28)
+
+  ● BACK-01 — strings over the cap are not scanned, and the log says so › the middleware logs the oversize string with its path and length, and still calls next
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      134 |
+      135 |         expect(next).toHaveBeenCalledTimes(1);
+    > 136 |         expect(logger.warn).toHaveBeenCalledTimes(1);
+          |                             ^
+      137 |         const [, meta] = logger.warn.mock.calls[0];
+      138 |         expect(meta.detections).toEqual([
+      139 |             { path: 'body.notes[0]', pattern: null, type: 'OVERSIZE_NOT_INSPECTED', length: MAX_INSPECTED_LENGTH + 10 },
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/sanitize-input-linear-time.test.js:136:29)
+
+  ● BACK-01 — at the cap, every adversarial shape is linear › on\w+\s*= on "onon…" — a ~512 KB body of cap-sized strings inspects in under 250 ms
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 250
+    Received:   9319.522941
+
+      163 |         const elapsed = timeMs(() => sanitizeValue(body, 'body', detections));
+      164 |
+    > 165 |         expect(elapsed).toBeLessThan(250);
+          |                         ^
+      166 |         // Every string was scanned (none skipped as oversize) and found the marker.
+      167 |         expect(detections.filter((d) => d.type === 'OVERSIZE_NOT_INSPECTED')).toEqual([]);
+      168 |         const markerHits = detections.filter((d) => d.pattern === 'javascript\\s*:');
+
+      at toBeLessThan (__tests__/unit/sanitize-input-linear-time.test.js:165:25)
+
+  ● BACK-01 — at the cap, every adversarial shape is linear › on\w+\s*= on "_on_on…" — a ~512 KB body of cap-sized strings inspects in under 250 ms
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 250
+    Received:   6406.466209
+
+      163 |         const elapsed = timeMs(() => sanitizeValue(body, 'body', detections));
+      164 |
+    > 165 |         expect(elapsed).toBeLessThan(250);
+          |                         ^
+      166 |         // Every string was scanned (none skipped as oversize) and found the marker.
+      167 |         expect(detections.filter((d) => d.type === 'OVERSIZE_NOT_INSPECTED')).toEqual([]);
+      168 |         const markerHits = detections.filter((d) => d.pattern === 'javascript\\s*:');
+
+      at toBeLessThan (__tests__/unit/sanitize-input-linear-time.test.js:165:25)
+
+  ● BACK-01 — at the cap, every adversarial shape is linear › <script\b[^>]*> on "<script <script …" — a ~512 KB body of cap-sized strings inspects in under 250 ms
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 250
+    Received:   1700.614685
+
+      163 |         const elapsed = timeMs(() => sanitizeValue(body, 'body', detections));
+      164 |
+    > 165 |         expect(elapsed).toBeLessThan(250);
+          |                         ^
+      166 |         // Every string was scanned (none skipped as oversize) and found the marker.
+      167 |         expect(detections.filter((d) => d.type === 'OVERSIZE_NOT_INSPECTED')).toEqual([]);
+      168 |         const markerHits = detections.filter((d) => d.pattern === 'javascript\\s*:');
+
+      at toBeLessThan (__tests__/unit/sanitize-input-linear-time.test.js:165:25)
+
+  ● BACK-01 — at the cap, every adversarial shape is linear › /*…*/ on "/*x/*x…" — a ~512 KB body of cap-sized strings inspects in under 250 ms
+
+    expect(received).toBeLessThan(expected)
+
+    Expected: < 250
+    Received:   1954.971704
+
+      163 |         const elapsed = timeMs(() => sanitizeValue(body, 'body', detections));
+      164 |
+    > 165 |         expect(elapsed).toBeLessThan(250);
+          |                         ^
+      166 |         // Every string was scanned (none skipped as oversize) and found the marker.
+      167 |         expect(detections.filter((d) => d.type === 'OVERSIZE_NOT_INSPECTED')).toEqual([]);
+      168 |         const markerHits = detections.filter((d) => d.pattern === 'javascript\\s*:');
+
+      at toBeLessThan (__tests__/unit/sanitize-input-linear-time.test.js:165:25)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/applications/applications-car.js:15:32)
+      at require (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:41)
+      at load (__tests__/unit/upload-doors-declare-multipart-limits.test.js:46:20)
+      at instancesCreatedBy (__tests__/unit/upload-doors-declare-multipart-limits.test.js:51:25)
+      at onlyInstance (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:22)
+      at Object.build (__tests__/unit/upload-doors-declare-multipart-limits.test.js:167:31)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/applications/applications-car.js:15:32)
+      at require (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:41)
+      at load (__tests__/unit/upload-doors-declare-multipart-limits.test.js:46:20)
+      at instancesCreatedBy (__tests__/unit/upload-doors-declare-multipart-limits.test.js:51:25)
+      at onlyInstance (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:22)
+      at Object.build (__tests__/unit/upload-doors-declare-multipart-limits.test.js:167:31)
+
+FAIL __tests__/unit/upload-doors-declare-multipart-limits.test.js (22.18 s)
+  SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results)
+    ✕ declares every multipart limit as a finite number (1 ms)
+    ✕ refuses a body of 200 text fields (16 ms)
+    ✕ refuses a single 256 KB text field (6 ms)
+    ✕ refuses a field name longer than 100 characters (7 ms)
+    ✕ answers the published two-field crash with a refusal, not a dead process (3002 ms)
+    ✓ still accepts the text fields its real client sends (5 ms)
+  SECU-02 — upload-middleware fallback (when storage-service has no createUploader)
+    ✕ declares every multipart limit as a finite number (1 ms)
+    ✕ refuses a body of 200 text fields (8 ms)
+    ✕ refuses a single 256 KB text field (8 ms)
+    ✕ refuses a field name longer than 100 characters (5 ms)
+    ✕ answers the published two-field crash with a refusal, not a dead process (3002 ms)
+    ✓ still accepts the text fields its real client sends (3 ms)
+  SECU-02 — POST /applications/:id/car
+    ✕ declares every multipart limit as a finite number (2 ms)
+    ✕ refuses a body of 200 text fields (6 ms)
+    ✕ refuses a single 256 KB text field (8 ms)
+    ✕ refuses a field name longer than 100 characters (6 ms)
+    ✕ answers the published two-field crash with a refusal, not a dead process (3002 ms)
+    ✓ still accepts the text fields its real client sends (5 ms)
+  SECU-02 — POST /post-audit/tasks/:taskId/upload
+    ✕ declares every multipart limit as a finite number (1 ms)
+    ✕ refuses a body of 200 text fields (6 ms)
+    ✕ refuses a single 256 KB text field (3 ms)
+    ✕ refuses a field name longer than 100 characters (3 ms)
+    ✕ answers the published two-field crash with a refusal, not a dead process (3002 ms)
+    ✓ still accepts the text fields its real client sends (2 ms)
+  SECU-02 — POST /audit/onsite/:auditId/photo
+    ✕ declares every multipart limit as a finite number (1 ms)
+    ✕ refuses a body of 200 text fields (5 ms)
+    ✕ refuses a single 256 KB text field (3 ms)
+    ✕ refuses a field name longer than 100 characters (3 ms)
+    ✕ answers the published two-field crash with a refusal, not a dead process (3001 ms)
+    ✓ still accepts the text fields its real client sends (4 ms)
+  SECU-02 — POST /image-assessment/assess
+    ✕ declares every multipart limit as a finite number (1 ms)
+    ✕ refuses a body of 200 text fields (5 ms)
+    ✕ refuses a single 256 KB text field (3 ms)
+    ✕ refuses a field name longer than 100 characters (3 ms)
+    ✕ answers the published two-field crash with a refusal, not a dead process (3003 ms)
+    ✓ still accepts the text fields its real client sends (7 ms)
+  SECU-02 — photo-upload-service getMulterConfig
+    ✕ declares every multipart limit as a finite number (4 ms)
+    ✕ refuses a body of 200 text fields (9 ms)
+    ✕ refuses a single 256 KB text field (6 ms)
+    ✕ refuses a field name longer than 100 characters (5 ms)
+    ✕ answers the published two-field crash with a refusal, not a dead process (3004 ms)
+    ✓ still accepts the text fields its real client sends (3 ms)
+  SECU-02 — the table above is every multer instance in the backend
+    ✓ no other production file requires multer (31 ms)
+
+  ● SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results) › declares every multipart limit as a finite number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      170 |         const { limits } = entry.options;
+      171 |         for (const key of ['fileSize', 'files', 'fields', 'fieldNameSize', 'fieldSize', 'parts']) {
+    > 172 |             expect(Number.isFinite(limits?.[key])).toBe(true);
+          |                                                    ^
+      173 |             expect(limits[key]).toBeGreaterThan(0);
+      174 |         }
+      175 |         expect(limits.files).toBe(files);
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:172:52)
+
+  ● SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results) › refuses a body of 200 text fields
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      181 |         const { err } = await drive(handler(entry.instance), multipartOf(fields));
+      182 |
+    > 183 |         expect(err).not.toBeNull();
+          |                         ^
+      184 |         expect(err.code).toBe('LIMIT_FIELD_COUNT');
+      185 |     });
+      186 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:183:25)
+
+  ● SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results) › refuses a single 256 KB text field
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      188 |         const { err } = await drive(handler(entry.instance), multipartOf([['notes', 'x'.repeat(256 * 1024)]]));
+      189 |
+    > 190 |         expect(err).not.toBeNull();
+          |                         ^
+      191 |         expect(err.code).toBe('LIMIT_FIELD_VALUE');
+      192 |     });
+      193 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:190:25)
+
+  ● SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results) › refuses a field name longer than 100 characters
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      195 |         const { err } = await drive(handler(entry.instance), multipartOf([['n'.repeat(101), 'x']]));
+      196 |
+    > 197 |         expect(err).not.toBeNull();
+          |                         ^
+      198 |         expect(err.code).toBe('LIMIT_FIELD_KEY');
+      199 |     });
+      200 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:197:25)
+
+  ● SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results) › answers the published two-field crash with a refusal, not a dead process
+
+    RangeError: Invalid array length
+        at Array.push (<anonymous>)
+
+      at setLastValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:18:25)
+      at setValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:31:25)
+      at ../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:8:12
+          at Array.reduce (<anonymous>)
+      at appendField (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:7:9)
+      at Multipart.<anonymous> (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:160:7)
+      at SBMH.ssCb [as _cb] (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:537:16)
+      at feed (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:219:14)
+      at SBMH.push (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)
+      at Multipart._write (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:567:19)
+
+  ● SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results) › answers the published two-field crash with a refusal, not a dead process
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LIMIT_FIELD_NESTING"
+    Received: undefined
+
+      209 |
+      210 |         expect(err).not.toBeNull();
+    > 211 |         expect(err.code).toBe('LIMIT_FIELD_NESTING');
+          |                          ^
+      212 |     });
+      213 |
+      214 |     it('still accepts the text fields its real client sends', async () => {
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:211:26)
+
+  ● SECU-02 — upload-middleware fallback (when storage-service has no createUploader) › declares every multipart limit as a finite number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      170 |         const { limits } = entry.options;
+      171 |         for (const key of ['fileSize', 'files', 'fields', 'fieldNameSize', 'fieldSize', 'parts']) {
+    > 172 |             expect(Number.isFinite(limits?.[key])).toBe(true);
+          |                                                    ^
+      173 |             expect(limits[key]).toBeGreaterThan(0);
+      174 |         }
+      175 |         expect(limits.files).toBe(files);
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:172:52)
+
+  ● SECU-02 — upload-middleware fallback (when storage-service has no createUploader) › refuses a body of 200 text fields
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      181 |         const { err } = await drive(handler(entry.instance), multipartOf(fields));
+      182 |
+    > 183 |         expect(err).not.toBeNull();
+          |                         ^
+      184 |         expect(err.code).toBe('LIMIT_FIELD_COUNT');
+      185 |     });
+      186 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:183:25)
+
+  ● SECU-02 — upload-middleware fallback (when storage-service has no createUploader) › refuses a single 256 KB text field
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      188 |         const { err } = await drive(handler(entry.instance), multipartOf([['notes', 'x'.repeat(256 * 1024)]]));
+      189 |
+    > 190 |         expect(err).not.toBeNull();
+          |                         ^
+      191 |         expect(err.code).toBe('LIMIT_FIELD_VALUE');
+      192 |     });
+      193 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:190:25)
+
+  ● SECU-02 — upload-middleware fallback (when storage-service has no createUploader) › refuses a field name longer than 100 characters
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      195 |         const { err } = await drive(handler(entry.instance), multipartOf([['n'.repeat(101), 'x']]));
+      196 |
+    > 197 |         expect(err).not.toBeNull();
+          |                         ^
+      198 |         expect(err.code).toBe('LIMIT_FIELD_KEY');
+      199 |     });
+      200 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:197:25)
+
+  ● SECU-02 — upload-middleware fallback (when storage-service has no createUploader) › answers the published two-field crash with a refusal, not a dead process
+
+    RangeError: Invalid array length
+        at Array.push (<anonymous>)
+
+      at setLastValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:18:25)
+      at setValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:31:25)
+      at ../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:8:12
+          at Array.reduce (<anonymous>)
+      at appendField (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:7:9)
+      at Multipart.<anonymous> (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:160:7)
+      at SBMH.ssCb [as _cb] (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:537:16)
+      at feed (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:219:14)
+      at SBMH.push (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)
+      at Multipart._write (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:567:19)
+
+  ● SECU-02 — upload-middleware fallback (when storage-service has no createUploader) › answers the published two-field crash with a refusal, not a dead process
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LIMIT_FIELD_NESTING"
+    Received: undefined
+
+      209 |
+      210 |         expect(err).not.toBeNull();
+    > 211 |         expect(err.code).toBe('LIMIT_FIELD_NESTING');
+          |                          ^
+      212 |     });
+      213 |
+      214 |     it('still accepts the text fields its real client sends', async () => {
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:211:26)
+
+  ● SECU-02 — POST /applications/:id/car › declares every multipart limit as a finite number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      170 |         const { limits } = entry.options;
+      171 |         for (const key of ['fileSize', 'files', 'fields', 'fieldNameSize', 'fieldSize', 'parts']) {
+    > 172 |             expect(Number.isFinite(limits?.[key])).toBe(true);
+          |                                                    ^
+      173 |             expect(limits[key]).toBeGreaterThan(0);
+      174 |         }
+      175 |         expect(limits.files).toBe(files);
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:172:52)
+
+  ● SECU-02 — POST /applications/:id/car › refuses a body of 200 text fields
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      181 |         const { err } = await drive(handler(entry.instance), multipartOf(fields));
+      182 |
+    > 183 |         expect(err).not.toBeNull();
+          |                         ^
+      184 |         expect(err.code).toBe('LIMIT_FIELD_COUNT');
+      185 |     });
+      186 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:183:25)
+
+  ● SECU-02 — POST /applications/:id/car › refuses a single 256 KB text field
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      188 |         const { err } = await drive(handler(entry.instance), multipartOf([['notes', 'x'.repeat(256 * 1024)]]));
+      189 |
+    > 190 |         expect(err).not.toBeNull();
+          |                         ^
+      191 |         expect(err.code).toBe('LIMIT_FIELD_VALUE');
+      192 |     });
+      193 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:190:25)
+
+  ● SECU-02 — POST /applications/:id/car › refuses a field name longer than 100 characters
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      195 |         const { err } = await drive(handler(entry.instance), multipartOf([['n'.repeat(101), 'x']]));
+      196 |
+    > 197 |         expect(err).not.toBeNull();
+          |                         ^
+      198 |         expect(err.code).toBe('LIMIT_FIELD_KEY');
+      199 |     });
+      200 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:197:25)
+
+  ● SECU-02 — POST /applications/:id/car › answers the published two-field crash with a refusal, not a dead process
+
+    RangeError: Invalid array length
+        at Array.push (<anonymous>)
+
+      at setLastValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:18:25)
+      at setValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:31:25)
+      at ../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:8:12
+          at Array.reduce (<anonymous>)
+      at appendField (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:7:9)
+      at Multipart.<anonymous> (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:160:7)
+      at SBMH.ssCb [as _cb] (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:537:16)
+      at feed (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:219:14)
+      at SBMH.push (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)
+      at Multipart._write (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:567:19)
+
+  ● SECU-02 — POST /applications/:id/car › answers the published two-field crash with a refusal, not a dead process
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LIMIT_FIELD_NESTING"
+    Received: undefined
+
+      209 |
+      210 |         expect(err).not.toBeNull();
+    > 211 |         expect(err.code).toBe('LIMIT_FIELD_NESTING');
+          |                          ^
+      212 |     });
+      213 |
+      214 |     it('still accepts the text fields its real client sends', async () => {
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:211:26)
+
+  ● SECU-02 — POST /post-audit/tasks/:taskId/upload › declares every multipart limit as a finite number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      170 |         const { limits } = entry.options;
+      171 |         for (const key of ['fileSize', 'files', 'fields', 'fieldNameSize', 'fieldSize', 'parts']) {
+    > 172 |             expect(Number.isFinite(limits?.[key])).toBe(true);
+          |                                                    ^
+      173 |             expect(limits[key]).toBeGreaterThan(0);
+      174 |         }
+      175 |         expect(limits.files).toBe(files);
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:172:52)
+
+  ● SECU-02 — POST /post-audit/tasks/:taskId/upload › refuses a body of 200 text fields
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      181 |         const { err } = await drive(handler(entry.instance), multipartOf(fields));
+      182 |
+    > 183 |         expect(err).not.toBeNull();
+          |                         ^
+      184 |         expect(err.code).toBe('LIMIT_FIELD_COUNT');
+      185 |     });
+      186 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:183:25)
+
+  ● SECU-02 — POST /post-audit/tasks/:taskId/upload › refuses a single 256 KB text field
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      188 |         const { err } = await drive(handler(entry.instance), multipartOf([['notes', 'x'.repeat(256 * 1024)]]));
+      189 |
+    > 190 |         expect(err).not.toBeNull();
+          |                         ^
+      191 |         expect(err.code).toBe('LIMIT_FIELD_VALUE');
+      192 |     });
+      193 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:190:25)
+
+  ● SECU-02 — POST /post-audit/tasks/:taskId/upload › refuses a field name longer than 100 characters
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      195 |         const { err } = await drive(handler(entry.instance), multipartOf([['n'.repeat(101), 'x']]));
+      196 |
+    > 197 |         expect(err).not.toBeNull();
+          |                         ^
+      198 |         expect(err.code).toBe('LIMIT_FIELD_KEY');
+      199 |     });
+      200 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:197:25)
+
+  ● SECU-02 — POST /post-audit/tasks/:taskId/upload › answers the published two-field crash with a refusal, not a dead process
+
+    RangeError: Invalid array length
+        at Array.push (<anonymous>)
+
+      at setLastValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:18:25)
+      at setValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:31:25)
+      at ../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:8:12
+          at Array.reduce (<anonymous>)
+      at appendField (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:7:9)
+      at Multipart.<anonymous> (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:160:7)
+      at SBMH.ssCb [as _cb] (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:537:16)
+      at feed (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:219:14)
+      at SBMH.push (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)
+      at Multipart._write (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:567:19)
+
+  ● SECU-02 — POST /post-audit/tasks/:taskId/upload › answers the published two-field crash with a refusal, not a dead process
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LIMIT_FIELD_NESTING"
+    Received: undefined
+
+      209 |
+      210 |         expect(err).not.toBeNull();
+    > 211 |         expect(err.code).toBe('LIMIT_FIELD_NESTING');
+          |                          ^
+      212 |     });
+      213 |
+      214 |     it('still accepts the text fields its real client sends', async () => {
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:211:26)
+
+  ● SECU-02 — POST /audit/onsite/:auditId/photo › declares every multipart limit as a finite number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      170 |         const { limits } = entry.options;
+      171 |         for (const key of ['fileSize', 'files', 'fields', 'fieldNameSize', 'fieldSize', 'parts']) {
+    > 172 |             expect(Number.isFinite(limits?.[key])).toBe(true);
+          |                                                    ^
+      173 |             expect(limits[key]).toBeGreaterThan(0);
+      174 |         }
+      175 |         expect(limits.files).toBe(files);
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:172:52)
+
+  ● SECU-02 — POST /audit/onsite/:auditId/photo › refuses a body of 200 text fields
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      181 |         const { err } = await drive(handler(entry.instance), multipartOf(fields));
+      182 |
+    > 183 |         expect(err).not.toBeNull();
+          |                         ^
+      184 |         expect(err.code).toBe('LIMIT_FIELD_COUNT');
+      185 |     });
+      186 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:183:25)
+
+  ● SECU-02 — POST /audit/onsite/:auditId/photo › refuses a single 256 KB text field
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      188 |         const { err } = await drive(handler(entry.instance), multipartOf([['notes', 'x'.repeat(256 * 1024)]]));
+      189 |
+    > 190 |         expect(err).not.toBeNull();
+          |                         ^
+      191 |         expect(err.code).toBe('LIMIT_FIELD_VALUE');
+      192 |     });
+      193 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:190:25)
+
+  ● SECU-02 — POST /audit/onsite/:auditId/photo › refuses a field name longer than 100 characters
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      195 |         const { err } = await drive(handler(entry.instance), multipartOf([['n'.repeat(101), 'x']]));
+      196 |
+    > 197 |         expect(err).not.toBeNull();
+          |                         ^
+      198 |         expect(err.code).toBe('LIMIT_FIELD_KEY');
+      199 |     });
+      200 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:197:25)
+
+  ● SECU-02 — POST /audit/onsite/:auditId/photo › answers the published two-field crash with a refusal, not a dead process
+
+    RangeError: Invalid array length
+        at Array.push (<anonymous>)
+
+      at setLastValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:18:25)
+      at setValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:31:25)
+      at ../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:8:12
+          at Array.reduce (<anonymous>)
+      at appendField (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:7:9)
+      at Multipart.<anonymous> (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:160:7)
+      at SBMH.ssCb [as _cb] (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:537:16)
+      at feed (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:219:14)
+      at SBMH.push (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)
+      at Multipart._write (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:567:19)
+
+  ● SECU-02 — POST /audit/onsite/:auditId/photo › answers the published two-field crash with a refusal, not a dead process
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LIMIT_FIELD_NESTING"
+    Received: undefined
+
+      209 |
+      210 |         expect(err).not.toBeNull();
+    > 211 |         expect(err.code).toBe('LIMIT_FIELD_NESTING');
+          |                          ^
+      212 |     });
+      213 |
+      214 |     it('still accepts the text fields its real client sends', async () => {
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:211:26)
+
+  ● SECU-02 — POST /image-assessment/assess › declares every multipart limit as a finite number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      170 |         const { limits } = entry.options;
+      171 |         for (const key of ['fileSize', 'files', 'fields', 'fieldNameSize', 'fieldSize', 'parts']) {
+    > 172 |             expect(Number.isFinite(limits?.[key])).toBe(true);
+          |                                                    ^
+      173 |             expect(limits[key]).toBeGreaterThan(0);
+      174 |         }
+      175 |         expect(limits.files).toBe(files);
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:172:52)
+
+  ● SECU-02 — POST /image-assessment/assess › refuses a body of 200 text fields
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      181 |         const { err } = await drive(handler(entry.instance), multipartOf(fields));
+      182 |
+    > 183 |         expect(err).not.toBeNull();
+          |                         ^
+      184 |         expect(err.code).toBe('LIMIT_FIELD_COUNT');
+      185 |     });
+      186 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:183:25)
+
+  ● SECU-02 — POST /image-assessment/assess › refuses a single 256 KB text field
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      188 |         const { err } = await drive(handler(entry.instance), multipartOf([['notes', 'x'.repeat(256 * 1024)]]));
+      189 |
+    > 190 |         expect(err).not.toBeNull();
+          |                         ^
+      191 |         expect(err.code).toBe('LIMIT_FIELD_VALUE');
+      192 |     });
+      193 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:190:25)
+
+  ● SECU-02 — POST /image-assessment/assess › refuses a field name longer than 100 characters
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      195 |         const { err } = await drive(handler(entry.instance), multipartOf([['n'.repeat(101), 'x']]));
+      196 |
+    > 197 |         expect(err).not.toBeNull();
+          |                         ^
+      198 |         expect(err.code).toBe('LIMIT_FIELD_KEY');
+      199 |     });
+      200 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:197:25)
+
+  ● SECU-02 — POST /image-assessment/assess › answers the published two-field crash with a refusal, not a dead process
+
+    RangeError: Invalid array length
+        at Array.push (<anonymous>)
+
+      at setLastValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:18:25)
+      at setValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:31:25)
+      at ../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:8:12
+          at Array.reduce (<anonymous>)
+      at appendField (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:7:9)
+      at Multipart.<anonymous> (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:160:7)
+      at SBMH.ssCb [as _cb] (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:537:16)
+      at feed (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:219:14)
+      at SBMH.push (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)
+      at Multipart._write (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:567:19)
+
+  ● SECU-02 — POST /image-assessment/assess › answers the published two-field crash with a refusal, not a dead process
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LIMIT_FIELD_NESTING"
+    Received: undefined
+
+      209 |
+      210 |         expect(err).not.toBeNull();
+    > 211 |         expect(err.code).toBe('LIMIT_FIELD_NESTING');
+          |                          ^
+      212 |     });
+      213 |
+      214 |     it('still accepts the text fields its real client sends', async () => {
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:211:26)
+
+  ● SECU-02 — photo-upload-service getMulterConfig › declares every multipart limit as a finite number
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      170 |         const { limits } = entry.options;
+      171 |         for (const key of ['fileSize', 'files', 'fields', 'fieldNameSize', 'fieldSize', 'parts']) {
+    > 172 |             expect(Number.isFinite(limits?.[key])).toBe(true);
+          |                                                    ^
+      173 |             expect(limits[key]).toBeGreaterThan(0);
+      174 |         }
+      175 |         expect(limits.files).toBe(files);
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:172:52)
+
+  ● SECU-02 — photo-upload-service getMulterConfig › refuses a body of 200 text fields
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      181 |         const { err } = await drive(handler(entry.instance), multipartOf(fields));
+      182 |
+    > 183 |         expect(err).not.toBeNull();
+          |                         ^
+      184 |         expect(err.code).toBe('LIMIT_FIELD_COUNT');
+      185 |     });
+      186 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:183:25)
+
+  ● SECU-02 — photo-upload-service getMulterConfig › refuses a single 256 KB text field
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      188 |         const { err } = await drive(handler(entry.instance), multipartOf([['notes', 'x'.repeat(256 * 1024)]]));
+      189 |
+    > 190 |         expect(err).not.toBeNull();
+          |                         ^
+      191 |         expect(err.code).toBe('LIMIT_FIELD_VALUE');
+      192 |     });
+      193 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:190:25)
+
+  ● SECU-02 — photo-upload-service getMulterConfig › refuses a field name longer than 100 characters
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      195 |         const { err } = await drive(handler(entry.instance), multipartOf([['n'.repeat(101), 'x']]));
+      196 |
+    > 197 |         expect(err).not.toBeNull();
+          |                         ^
+      198 |         expect(err.code).toBe('LIMIT_FIELD_KEY');
+      199 |     });
+      200 |
+
+      at Object.toBeNull (__tests__/unit/upload-doors-declare-multipart-limits.test.js:197:25)
+
+  ● SECU-02 — photo-upload-service getMulterConfig › answers the published two-field crash with a refusal, not a dead process
+
+    RangeError: Invalid array length
+        at Array.push (<anonymous>)
+
+      at setLastValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:18:25)
+      at setValue (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/lib/set-value.js:31:25)
+      at ../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:8:12
+          at Array.reduce (<anonymous>)
+      at appendField (../../../../../node_modules/.pnpm/append-field@1.0.0/node_modules/append-field/index.js:7:9)
+      at Multipart.<anonymous> (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:160:7)
+      at SBMH.ssCb [as _cb] (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:537:16)
+      at feed (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:219:14)
+      at SBMH.push (../../../../../node_modules/.pnpm/streamsearch@1.1.0/node_modules/streamsearch/lib/sbmh.js:104:16)
+      at Multipart._write (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/types/multipart.js:567:19)
+
+  ● SECU-02 — photo-upload-service getMulterConfig › answers the published two-field crash with a refusal, not a dead process
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "LIMIT_FIELD_NESTING"
+    Received: undefined
+
+      209 |
+      210 |         expect(err).not.toBeNull();
+    > 211 |         expect(err.code).toBe('LIMIT_FIELD_NESTING');
+          |                          ^
+      212 |     });
+      213 |
+      214 |     it('still accepts the text fields its real client sends', async () => {
+
+      at Object.toBe (__tests__/unit/upload-doors-declare-multipart-limits.test.js:211:26)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/register-refuses-multipart.test.js
+  SECU-02 — POST /register refuses multipart before anything reads it
+    ✕ multipart/form-data; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached (18 ms)
+    ✕ Multipart/Form-Data; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached (11 ms)
+    ✕ multipart/mixed; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached (2 ms)
+    ✕ the route table no longer runs an upload handler on /register (2 ms)
+  SECU-02 — the JSON registration the web page sends still works
+    ✓ application/json with a valid body reaches the controller (2 ms)
+    ✓ application/json with a missing consent is still a 400 from the schema (3 ms)
+
+  ● SECU-02 — POST /register refuses multipart before anything reads it › multipart/form-data; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 415
+    Received: 400
+
+      134 |         const res = await callRegister({ contentType, bytes: multipartBody('gacp-boundary') });
+      135 |
+    > 136 |         expect(res.status).toBe(415);
+          |                            ^
+      137 |         expect(res.body).toMatchObject({ success: false, code: 'UNSUPPORTED_MEDIA_TYPE' });
+      138 |         expect(typeof res.body.messageTh).toBe('string');
+      139 |         expect(mockRegister).not.toHaveBeenCalled();
+
+      at toBe (__tests__/unit/register-refuses-multipart.test.js:136:28)
+
+  ● SECU-02 — POST /register refuses multipart before anything reads it › Multipart/Form-Data; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 415
+    Received: 400
+
+      134 |         const res = await callRegister({ contentType, bytes: multipartBody('gacp-boundary') });
+      135 |
+    > 136 |         expect(res.status).toBe(415);
+          |                            ^
+      137 |         expect(res.body).toMatchObject({ success: false, code: 'UNSUPPORTED_MEDIA_TYPE' });
+      138 |         expect(typeof res.body.messageTh).toBe('string');
+      139 |         expect(mockRegister).not.toHaveBeenCalled();
+
+      at toBe (__tests__/unit/register-refuses-multipart.test.js:136:28)
+
+  ● SECU-02 — POST /register refuses multipart before anything reads it › multipart/mixed; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached
+
+    Unsupported content type: multipart/mixed; boundary=gacp-boundary
+
+      114 |             end() { resolve({ status: this.statusCode, body: undefined, req }); return this; },
+      115 |         };
+    > 116 |         authHealthRouter.handle(req, res, (err) => {
+          |                          ^
+      117 |             if (err) { reject(err); return; }
+      118 |             resolve({ status: null, body: undefined, req, unmatched: true });
+      119 |         });
+
+      at getInstance (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/index.js:36:9)
+      at Object.<anonymous>.module.exports (../../../../../node_modules/.pnpm/busboy@1.6.0/node_modules/busboy/lib/index.js:56:10)
+      at multerMiddleware (../../../../../node_modules/.pnpm/multer@2.2.0/node_modules/multer/lib/make-middleware.js:133:16)
+      at Layer.handle [as handle_request] (../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at ../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:284:15
+      at Function.process_params (../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at Function.handle (../../../../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:175:3)
+      at handle (__tests__/unit/register-refuses-multipart.test.js:116:26)
+      at callRegister (__tests__/unit/register-refuses-multipart.test.js:103:12)
+      at callRegister (__tests__/unit/register-refuses-multipart.test.js:134:27)
+
+  ● SECU-02 — POST /register refuses multipart before anything reads it › the route table no longer runs an upload handler on /register
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "multerMiddleware"
+    Received array:     ["multerMiddleware", "rejectBadUpload", "<anonymous>", "<anonymous>"]
+
+      147 |         const layer = authHealthRouter.stack.find((l) => l.route && l.route.path === '/register' && l.route.methods.post);
+      148 |         const handlerNames = layer.route.stack.map((l) => l.name);
+    > 149 |         expect(handlerNames).not.toContain('multerMiddleware');
+          |                                  ^
+      150 |         expect(handlerNames).not.toContain('rejectBadUpload');
+      151 |     });
+      152 | });
+
+      at Object.toContain (__tests__/unit/register-refuses-multipart.test.js:149:34)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/body-parser-limits.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../middleware/body-parsers' from '__tests__/unit/body-parser-limits.test.js'
+
+      19 | const { Readable } = require('stream');
+      20 | const express = require('express');
+    > 21 | const { mountBodyParsers } = require('../../middleware/body-parsers');
+         |                              ^
+      22 |
+      23 | const KB = 1024;
+      24 | const MB = 1024 * KB;
+
+      at Resolver._throwModNotFoundError (../../../../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/body-parser-limits.test.js:21:30)
+
+Test Suites: 4 failed, 4 total
+Tests:       48 failed, 67 passed, 115 total
+Snapshots:   0 total
+Time:        71.669 s
+Ran all test suites matching /__tests__\/unit\/sanitize-input-linear-time.test.js|__tests__\/unit\/body-parser-limits.test.js|__tests__\/unit\/register-refuses-multipart.test.js|__tests__\/unit\/upload-doors-declare-multipart-limits.test.js/i.
+jest exit=1

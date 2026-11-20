@@ -1,0 +1,110 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Optional module load skipped (@prisma/client): not found
+
+      13 |   } catch (error) {
+      14 |     const message = error && error.code === 'MODULE_NOT_FOUND' ? 'not found' : error.message;
+    > 15 |     console.warn(`[jest-setup] Optional module load skipped (${modulePath}): ${message}`);
+         |             ^
+      16 |     return null;
+      17 |   }
+      18 | }
+
+      at warn (jest.setup.js:15:13)
+      at Object.safeRequire (jest.setup.js:53:16)
+
+FAIL __tests__/unit/application-status-writer-audit-tx-semantics.test.js
+  application-status-writer — tx semantics on a stateful fake Postgres (PR-A0-1b)
+    ✓ [harness] a failed INSERT aborts the tx and COMMIT silently rolls it back (24 ms)
+    ✓ [harness] ROLLBACK TO SAVEPOINT clears the abort and keeps pre-savepoint work (4 ms)
+    ✓ [F1] audit INSERT failure inside a CALLER tx must not cost the business write (10 ms)
+    ✓ [F1] the caller can keep working in its tx after a failed emission (mint-cert style hop) (3 ms)
+    ✓ [F1] a caller tx that is NOT poisoned still gets its row, committed with the status write (4 ms)
+    ✓ [F1] the caller tx is never left holding an orphan savepoint on success (3 ms)
+    ✓ [F5] bare client + failing emission: the internal tx is unwound and the UPDATE re-applied EXACTLY once (9 ms)
+    ✓ [F5] bare client happy path: UPDATE and audit row land in the SAME commit, version +1 (3 ms)
+    ✓ [F3] cert-hook failure in DEFAULT mode emits the compensating reversal row (5 ms)
+    ✓ [F3] cert-hook failure inside a CALLER tx: reversal row emitted, caller tx still committable (4 ms)
+    ✕ [F-B] bare client: the cert revert and its compensating row commit in ONE internal tx (7 ms)
+    ✕ [cycle2-3] the CERT_AUTO_GEN_ROLLBACK marker must not poison the caller tx either (3 ms)
+    ✓ [F3] cert-hook failure with onAudit:false stays silent (tri-state preserved) (3 ms)
+    ✓ [F3] cert-hook failure with an onAudit callback emits via the callback only (no double row) (3 ms)
+
+  ● application-status-writer — tx semantics on a stateful fake Postgres (PR-A0-1b) › [F-B] bare client: the cert revert and its compensating row commit in ONE internal tx
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 9
+    + Received  + 5
+
+    @@ -2,15 +2,11 @@
+        "BEGIN",
+        "tx:UPDATE application",
+        "tx:SELECT pg_advisory_xact_lock(1, 2)",
+        "tx:INSERT auditLog",
+        "COMMIT",
+    -   "BEGIN",
+    -   "tx:UPDATE application",
+    -   "tx:SELECT pg_advisory_xact_lock(1, 2)",
+    -   "tx:INSERT auditLog",
+    -   "COMMIT",
+    -   "BEGIN",
+    -   "tx:SELECT pg_advisory_xact_lock(1, 2)",
+    -   "tx:INSERT auditLog",
+    -   "COMMIT",
+    +   "autocommit:UPDATE application",
+    +   "autocommit:SELECT pg_advisory_xact_lock(1, 2)",
+    +   "autocommit:INSERT auditLog",
+    +   "autocommit:SELECT pg_advisory_xact_lock(1, 2)",
+    +   "autocommit:INSERT auditLog",
+      ]
+
+      572 |         // describes. Exact stream, three groups: forward write, revert +
+      573 |         // reversal row, CERT_AUTO_GEN_ROLLBACK marker.
+    > 574 |         expect(db.statements).toEqual([
+          |                               ^
+      575 |             'BEGIN',
+      576 |             'tx:UPDATE application',
+      577 |             'tx:SELECT pg_advisory_xact_lock(1, 2)',
+
+      at Object.toEqual (__tests__/unit/application-status-writer-audit-tx-semantics.test.js:574:31)
+
+  ● application-status-writer — tx semantics on a stateful fake Postgres (PR-A0-1b) › [cycle2-3] the CERT_AUTO_GEN_ROLLBACK marker must not poison the caller tx either
+
+    current transaction is aborted, commands ignored until end of transaction block
+
+      140 |
+      141 | function abortedTxError() {
+    > 142 |     const e = new Error('current transaction is aborted, commands ignored until end of transaction block');
+          |               ^
+      143 |     e.code = '25P02';
+      144 |     return e;
+      145 | }
+
+      at abortedTxError (__tests__/unit/application-status-writer-audit-tx-semantics.test.js:142:15)
+      at abortedTxError (__tests__/unit/application-status-writer-audit-tx-semantics.test.js:193:58)
+      at Object.guard [as update] (__tests__/unit/application-status-writer-audit-tx-semantics.test.js:200:21)
+      at update (__tests__/unit/application-status-writer-audit-tx-semantics.test.js:609:34)
+      at Object.$transaction (__tests__/unit/application-status-writer-audit-tx-semantics.test.js:315:23)
+      at Object.<anonymous> (__tests__/unit/application-status-writer-audit-tx-semantics.test.js:603:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 12 passed, 14 total
+Snapshots:   0 total
+Time:        1.338 s
+Ran all test suites matching /__tests__\/unit\/application-status-writer-audit-tx-semantics.test.js/i.
+[jest-teardown] Prisma disconnect warning: Cannot find module '.prisma/client/default'
+Require stack:
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-a8a087937c123e238/apps/backend/jest.teardown.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-util@29.7.0/node_modules/jest-util/build/requireOrImportModule.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-util@29.7.0/node_modules/jest-util/build/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/FailedTestsInteractiveMode.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/plugins/FailedTestsInteractive.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/watch.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/cli/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-cli@29.7.0/node_modules/jest-cli/build/run.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-cli@29.7.0/node_modules/jest-cli/build/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-cli@29.7.0/node_modules/jest-cli/bin/jest.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest@29.7.0/node_modules/jest/bin/jest.js

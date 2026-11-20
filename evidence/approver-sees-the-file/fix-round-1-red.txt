@@ -1,0 +1,80 @@
+
+
+FAIL __tests__/integration/approver-sees-the-file-decision-file.test.js
+  approver reads the whole file (item 1)
+    ✓ approver receives application, documents, checklist per item, photos with provenance, GPS, summary, CAR history (64 ms)
+    ✓ says plainly whether the evidence would pass the issuance gate (9 ms)
+    ✓ a file outside the decision queue (not AUDIT_PASSED) is not served -> 404 (7 ms)
+    ✓ field_inspector is refused (403) — the file is the decider's door (30 ms)
+    ✓ document_reviewer is refused (403) — the file is the decider's door (8 ms)
+    ✓ dispatcher is refused (403) — the file is the decider's door (20 ms)
+    ✓ finance_officer_platform is refused (403) — the file is the decider's door (6 ms)
+    ✓ system_admin_dtam is refused (403) — the file is the decider's door (9 ms)
+    ✓ the approver still cannot WRITE audit results (10 ms)
+    ✓ the approver still cannot reach the inspector onsite reads or the disclosure switch (14 ms)
+    fix round 1 — organisation wall fails closed
+      ✕ approver with no organisation is refused 403 on the file, nothing queried (8 ms)
+      ✓ file of another organisation -> 404 (the query carries the caller org) (7 ms)
+      ✕ decision queue: no organisation -> 403, nothing queried (6 ms)
+      ✕ decision queue lists only the caller organisation (the files they can open) (10 ms)
+
+  ● approver reads the whole file (item 1) › fix round 1 — organisation wall fails closed › approver with no organisation is refused 403 on the file, nothing queried
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 200
+
+      248 |         test('approver with no organisation is refused 403 on the file, nothing queried', async () => {
+      249 |             const res = await get().set('x-test-org', 'none');
+    > 250 |             expect(res.status).toBe(403);
+          |                                ^
+      251 |             expect(prisma.application.findFirst).not.toHaveBeenCalled();
+      252 |         });
+      253 |
+
+
+  ● approver reads the whole file (item 1) › fix round 1 — organisation wall fails closed › decision queue: no organisation -> 403, nothing queried
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 500
+
+      262 |             const res = await request(app).get('/api/provider/auditor/final-approval-queue')
+      263 |                 .set('x-test-role', 'certificate_approver').set('x-test-org', 'none');
+    > 264 |             expect(res.status).toBe(403);
+          |                                ^
+      265 |             expect(prisma.application.findMany).not.toHaveBeenCalled();
+      266 |         });
+      267 |
+
+
+  ● approver reads the whole file (item 1) › fix round 1 — organisation wall fails closed › decision queue lists only the caller organisation (the files they can open)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+    - ObjectContaining {
+    -   "organizationId": "org-1",
+    + Object {
+    +   "isDeleted": false,
+        "status": "AUDIT_PASSED",
+      }
+
+      271 |                 .set('x-test-role', 'certificate_approver').set('x-test-org', 'org-1');
+      272 |             expect(res.status).toBe(200);
+    > 273 |             expect(prisma.application.findMany.mock.calls[0][0].where).toEqual(
+          |                                                                        ^
+      274 |                 expect.objectContaining({ status: 'AUDIT_PASSED', organizationId: 'org-1' }),
+      275 |             );
+      276 |         });
+
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       3 failed, 24 passed, 27 total
+Snapshots:   0 total
+Time:        9.922 s
+Ran all test suites matching __tests__/integration/approver-sees-the-file-decision-file.test.js|__tests__/integration/approver-sees-the-file-pass-doors.test.js.

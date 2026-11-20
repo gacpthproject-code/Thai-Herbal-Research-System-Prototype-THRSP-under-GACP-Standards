@@ -1,0 +1,185 @@
+[run] target=127.0.0.1:5447/gacp_rl2 head=fbdff32ef dirty=3 files=__tests__/unit/revision-deadline-cron-preserves-data.test.js __tests__/unit/notification-expiry-blockers.test.js __tests__/unit/application-audit-fixes.test.js __tests__/unit/closed-reason-reserved-slots.test.js __tests__/unit/waiver-reopen-dual-engine.test.js __tests__/unit/correction-deadline-sweep-scheduled.test.js __tests__/integration/correction-deadline-expired-be.test.js __tests__/integration/without-tenant-scope-lazy.int.test.js
+PASS __tests__/unit/application-audit-fixes.test.js
+  [AppAudit] Phase A fixes — static regressions
+    ✓ AC3: trace/lots.js no longer writes raw req.user.healthId into workflowHistory metadata (5 ms)
+    ✓ AC4: applications.js does not echo raw error.message in 5xx responses (2 ms)
+    ✓ AC4: application-workflow-handlers.js PDF + reject use safeErrorMessage (4 ms)
+    ✓ AC5: applications.js readiness endpoint queries healthId, not phantom userId (2 ms)
+    ✓ AM2: CAR upload uses strict MIME allowlist (not regex substring) (4 ms)
+    ✓ AH2: revision-deadline-checker routes the EXPIRED transition through canonical (3 ms)
+  [AppAudit] AM2 — CAR upload MIME filter behaviour
+    ✓ blocks files with mimetype image/jpeg-exploit (substring of jpeg) (3 ms)
+    ✓ extension allowlist is exact-match (7 ms)
+
+PASS __tests__/unit/closed-reason-reserved-slots.test.js
+  closedReason reserved slots — only the wired markers have a writer
+    ✓ CANCELLED_BY_ADMIN is written by the status writer alone (353 ms)
+    ✓ no backend writer sets closedReason = REJECTED_DOC_REVIEW (reserved) (30 ms)
+    ✓ no backend writer sets closedReason = REJECTED_AUDIT (reserved) (33 ms)
+    ✓ no backend writer sets closedReason = LEGACY_AUTO_CANCEL (reserved) (28 ms)
+    ✓ this guard's vocab matches the migration CHECK set exactly (no drift) (2 ms)
+
+PASS __tests__/unit/correction-deadline-sweep-scheduled.test.js
+  ✓ an hourly block runs the correction-deadline sweep on the Bangkok clock (47 ms)
+
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-14T08:52:32.265Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-14T08:52:32.274Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-14T08:52:32.275Z"}
+info: [org-user-create] org=wts-B-mv7vg9f7fb453c userId=0aa82385-29ac-4cb8-bcc6-e062bfa46ce0 role=finance_officer_platform by=1a717ddb-f72a-4067-a4b5-10f4a6ef865c {"service":"platform-admin-organizations","timestamp":"2026-10-14T08:52:33.375Z"}
+warn: Unauthorized role access attempt {"normalizedUserRole":"system_admin_dtam","path":"/e2a52fc1-dae5-4ce2-be69-0b5350176cde/users","requiredRoles":["system_admin_platform"],"service":"gacp-backend","timestamp":"2026-10-14T08:52:33.497Z","userId":"0190435e-aafc-4e7e-8743-8e2d2a0ad600","userRole":"system_admin_dtam"}
+info: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-14T08:52:33.667Z"}
+info: [Revision Deadline Checker] Found 1 active deadlines {"service":"gacp-backend","timestamp":"2026-10-14T08:52:33.674Z"}
+info: [Revision Deadline Checker] Auto-cancelled: WTS-RD-mv7vg9f7fb453c (deadline: 2026-09-14T08:52:33.662Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-10-14T08:52:33.797Z"}
+info: [Revision Deadline Checker] Completed: 1 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-14T08:52:33.822Z"}
+info: [reconcile] settlement reconcile complete {"deadLettered":0,"errors":0,"reDrivenOrders":0,"retriedEvents":0,"service":"settlement-reconcile","timestamp":"2026-10-14T08:52:33.856Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-14T08:52:33.932Z"}
+PASS __tests__/integration/without-tenant-scope-lazy.int.test.js
+  withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres)
+    S6 — last-admin guard, caller bound to org A, target in org B
+      ✓ service: the last-admin guard refuses to remove org B's only admin, and the row stays ACTIVE (54 ms)
+      ✓ real door: PATCH finds org B's only admin across tenants, refuses it as the other side, and the row stays ACTIVE (125 ms)
+      ✓ control: the platform admin disables a company account in org C across tenants (32 ms)
+    platform-admin provisioning — caller bound to org A creates a user in org B
+      ✓ POST /api/platform-admin/organizations/:orgB/users answers 201 and the row lands in org B (500 ms)
+    M1 pin — a tenant admin of org A cannot reach org B's staff (provider.js :92 / :705)
+      ✓ :92 PATCH on org B's staff answers 404 and org B's row is unchanged (26 ms)
+      ✓ :92 DELETE on org B's staff answers 404 and org B's row is unchanged (22 ms)
+      ✓ :705 unlock on org B's staff answers 404 and the account stays locked (18 ms)
+      ✓ control: the same admin unlocks a staff member of its own org A (24 ms)
+    M2 pin — organizations POST /:id/users refuses a non-platform admin
+      ✓ tenant admin of org A → 403 AUTHORIZATION_ERROR, no user created in org B (17 ms)
+    S7 — a REVOKE stored under org B, caller bound to org A
+      ✓ the fixture really is a default MANAGER permission (2 ms)
+      ✓ effective permissions honour the REVOKE (7 ms)
+      ✓ revoking the member removes its grant rows (no resurrect on re-invite) (38 ms)
+    revision-deadline fan-out stays in the deadline's org
+      ✓ an expired deadline in org B notifies org B's dispatcher and not org C's (260 ms)
+    money path — settlement-reconcile runs with no tenant (behaviour unchanged)
+      ✓ stale PENDING_PAYMENT orders from every org reach the gateway question (32 ms)
+
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-14T08:52:34.341Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-14T08:52:34.344Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-14T08:52:34.345Z"}
+info: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.486Z"}
+info: [Revision Deadline Checker] Found 2 active deadlines {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.525Z"}
+info: [Revision Deadline Checker] Auto-cancelled: M4-CDE-1791967954470-v2bohr (deadline: 2026-09-14T08:52:34.476Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.589Z"}
+info: [Revision Deadline Checker] Completed: 2 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.613Z"}
+info: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.651Z"}
+info: [Revision Deadline Checker] Found 1 active deadlines {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.655Z"}
+info: [Revision Deadline Checker] Completed: 1 checked, 0 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.665Z"}
+info: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.684Z"}
+info: [Revision Deadline Checker] Found 1 active deadlines {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.689Z"}
+info: [Revision Deadline Checker] Auto-cancelled: M4-CDE-1791967954677-tn2sri (deadline: 2026-09-14T08:52:34.680Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.729Z"}
+info: [Revision Deadline Checker] Completed: 1 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.740Z"}
+info: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.756Z"}
+info: [Revision Deadline Checker] Found 1 active deadlines {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.760Z"}
+info: [Revision Deadline Checker] Auto-cancelled: M4-CDE-1791967954750-wtcl5b (deadline: 2026-09-14T08:52:34.754Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.795Z"}
+info: [Revision Deadline Checker] Completed: 1 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.806Z"}
+info: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.810Z"}
+info: [Revision Deadline Checker] Found 0 active deadlines {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.813Z"}
+info: [Revision Deadline Checker] Completed: 0 checked, 0 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-10-14T08:52:34.814Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-14T08:52:34.862Z"}
+PASS __tests__/integration/correction-deadline-expired-be.test.js
+  R2 M4 — correction-deadline-expired close stamps marker + audit
+    ✓ marker specificity: expired row → EXACTLY CORRECTION_DEADLINE_EXPIRED; not-overdue sibling stays NULL (173 ms)
+    ✓ over-close guard: a not-overdue deadline is never closed and never marked (34 ms)
+    ✓ audit presence: a real close writes exactly one canonical audit row (73 ms)
+    ✓ idempotency: running the cron twice leaves round-2 deltas at zero (75 ms)
+
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-14T08:52:35.266Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-14T08:52:35.269Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-14T08:52:35.270Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-14T08:52:35.436Z"}
+PASS __tests__/unit/notification-expiry-blockers.test.js
+  I-1 — enum-miss class: every referenced NotifyType key exists with a real Thai template
+    ✓ NotifyType.APPLICATION_EXPIRED is defined (callers currently pass undefined) (3 ms)
+    ✓ NotifyType.REVISION_DEADLINE_EXPIRED is defined (callers currently pass undefined) (1 ms)
+    ✓ NotifyType.CAR_REVIEWING is defined (callers currently pass undefined) (1 ms)
+    ✓ NotifyType.DEADLINE_REMINDER is defined (callers currently pass undefined) (1 ms)
+    ✓ NotifyType.NEW_APPLICATION is defined (callers currently pass undefined) (1 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for APPLICATION_EXPIRED (2 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for REVISION_DEADLINE_EXPIRED (1 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for CAR_REVIEWING (1 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for DEADLINE_REMINDER (1 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for NEW_APPLICATION (1 ms)
+    ✓ APPLICATION_EXPIRED template states the consequence (ยื่นใหม่ + ชำระใหม่) (2 ms)
+  I-2/I-3 — notifyRevisionDeadlineApproaching: unit-aware copy + success signal
+    ✓ unit:'hours' → message says ชั่วโมง, NOT '24 วัน' (I-2) (7 ms)
+    ✓ default (days) copy is unchanged (5 ms)
+    ✓ returns truthy on delivered, null on failure — so cron can stamp only on success (I-3) (6 ms)
+  I-4 — GET /cron/auto-cancel: EXPIRED notifies the applicant
+    ✓ EXPIRED branch notifies the applicant with APPLICATION_EXPIRED (I-4) (101 ms)
+
+PASS __tests__/unit/waiver-reopen-dual-engine.test.js
+  MUST-7 — post-reopen, both REAL expiry engines leave the app alone
+    ✓ REAL cron /auto-cancel neither expires nor (yet) reminds the reopened app (29 ms)
+    ✓ REAL revision-deadline-checker does not expire the re-seeded deadline (2 ms)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'APPLICATION',
+      action: 'APPLICATION_AUTO_EXPIRED',
+      severity: 'INFO',
+      error: 'tx.$executeRaw is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-10-14T08:52:36.383Z'
+    }
+
+      540 |
+      541 |                 // Fallback to console
+    > 542 |                 console.error('[AUDIT_FALLBACK]', {
+          |                         ^
+      543 |                     category, action, severity,
+      544 |                     error: error.message,
+      545 |                     code: error.code || null,
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:542:25)
+      at onAudit (jobs/revision-deadline-checker.js:227:33)
+      at runFencedBestEffort (services/application-status-writer.js:451:17)
+      at writeApplicationStatus (services/application-status-writer.js:1466:9)
+      at jobs/revision-deadline-checker.js:194:25
+      at jobs/revision-deadline-checker.js:173:21
+      at checkExpiredDeadlines (jobs/revision-deadline-checker.js:121:13)
+      at Object.<anonymous> (__tests__/unit/revision-deadline-cron-preserves-data.test.js:138:9)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'APPLICATION',
+      action: 'APPLICATION_AUTO_EXPIRED',
+      severity: 'INFO',
+      error: 'tx.$executeRaw is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-10-14T08:52:36.411Z'
+    }
+
+      540 |
+      541 |                 // Fallback to console
+    > 542 |                 console.error('[AUDIT_FALLBACK]', {
+          |                         ^
+      543 |                     category, action, severity,
+      544 |                     error: error.message,
+      545 |                     code: error.code || null,
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:542:25)
+      at onAudit (jobs/revision-deadline-checker.js:227:33)
+      at runFencedBestEffort (services/application-status-writer.js:451:17)
+      at writeApplicationStatus (services/application-status-writer.js:1466:9)
+      at jobs/revision-deadline-checker.js:194:25
+      at jobs/revision-deadline-checker.js:173:21
+      at checkExpiredDeadlines (jobs/revision-deadline-checker.js:121:13)
+      at Object.<anonymous> (__tests__/unit/revision-deadline-cron-preserves-data.test.js:154:9)
+
+PASS __tests__/unit/revision-deadline-cron-preserves-data.test.js
+  Bug 2.1 — revision-deadline cron preserves formData + workflowHistory
+    ✓ does NOT wipe applicant/plot formData on the EXPIRED write (31 ms)
+    ✓ APPENDS to workflowHistory (length 4), does NOT reset it to 1 (7 ms)
+    ✓ findMany select now includes formData + workflowHistory (14 ms)
+
+Test Suites: 8 passed, 8 total
+Tests:       52 passed, 52 total
+Snapshots:   0 total
+Time:        6.738 s
+Ran all test suites matching __tests__/unit/revision-deadline-cron-preserves-data.test.js|__tests__/unit/notification-expiry-blockers.test.js|__tests__/unit/application-audit-fixes.test.js|__tests__/unit/closed-reason-reserved-slots.test.js|__tests__/unit/waiver-reopen-dual-engine.test.js|__tests__/unit/correction-deadline-sweep-scheduled.test.js|__tests__/integration/correction-deadline-expired-be.test.js|__tests__/integration/without-tenant-scope-lazy.int.test.js.
+[run] exit=0

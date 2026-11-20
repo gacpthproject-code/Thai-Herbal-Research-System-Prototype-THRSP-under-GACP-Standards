@@ -1,0 +1,195 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/auth-idp-routes.test.js
+  POST /api/auth/idp/:provider/authorize-url
+    ✓ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (62 ms)
+    ✓ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (20 ms)
+    ✓ mock บน NODE_ENV=production → 503 (mandate §D5 — mock ไม่มีทาง enabled บน prod) (17 ms)
+    ✓ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (19 ms)
+    ✓ mock enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (19 ms)
+    ✓ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (29 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    ✓ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (41 ms)
+    ✓ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (30 ms)
+    ✓ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (43 ms)
+    ✓ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (25 ms)
+    ✓ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (26 ms)
+    ✓ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (26 ms)
+  POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod)
+    ✓ mock บน NODE_ENV=production → 503 ปิดทั้ง endpoint (13 ms)
+    ✓ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR (26 ms)
+    ✓ happy → 200: lookup ทะเบียนด้วย hash_cid, mint ผ่าน issueTokensForAuthenticatedUser, provider_token httpOnly cookie (28 ms)
+    ✓ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (23 ms)
+    ✓ staff-not-in-registry → 403 ข้อความไทยตาม mandate §D4 + ไม่มี user.create/lookup/mint (27 ms)
+    ✓ fixture in-registry แต่ทะเบียนจริงไม่มี row → 403 เดียวกัน (match-only, no auto-provision) (22 ms)
+    ✓ เจ้าหน้าที่ status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (24 ms)
+    ✓ ผู้ใช้กด deny (fixture deny) → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (24 ms)
+    ✓ code หมดอายุ (fixture expired — เลียน 422 ของ IdP) → 401 AUTH_IDP_CODE_EXPIRED (25 ms)
+    ✓ profile ขาด field (fixture ไม่มี hash_cid) → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (23 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    ✓ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (32 ms)
+    ✓ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (25 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    ✓ mock happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(account_id) ไม่มีค่าดิบใน metadata (23 ms)
+    ✓ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (24 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    ✓ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (5 ms)
+    ✓ routes/api/index.js mount /auth/idp (3 ms)
+    ✓ server.js ครอบ /auth/idp ด้วย authLimiter ตัวเดียวกับ login (ทั้งสอง prefix) (2 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/idp-adapter.test.js
+  getIdpAdapter factory — fail-closed (แบบ payment-adapter seam)
+    ✓ unknown key → AUTH_PROVIDER_UNKNOWN (13 ms)
+    ✓ providerid default (coming_soon) → AUTH_PROVIDER_DISABLED (3 ms)
+    ✓ providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED (3 ms)
+    ✓ providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method (3 ms)
+    ✓ mock บน non-production → ได้ adapter (2 ms)
+    ✓ mock บน production → AUTH_PROVIDER_DISABLED (§D5 บังคับใน logic) (2 ms)
+    ✓ local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER (3 ms)
+  ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด)
+    getAuthorizeUrl — [P-OAUTH] หน้า 3
+      ✓ สร้าง URL ครบ 4 param: client_id, redirect_uri, response_type=code, state (4 ms)
+      ✓ state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR (61 ms)
+    exchangeCode — happy path 2 ขา
+      ✓ ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract (13 ms)
+    แยก credential สองการลงทะเบียน — audit F1 ([P-OAUTH] หน้า 4 vs หน้า 7/9)
+      ✓ ขา 1 ใช้คู่ Health ID · ขา 2 + header profile ใช้ pidClientId ของระบบ Provider ID ไม่ใช่ clientId (5 ms)
+    exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5)
+      ✓ 422 "Access grant has denied" → AUTH_IDP_ACCESS_DENIED (4 ms)
+      ✓ 422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED (3 ms)
+      ✓ 422 "Code is invalid" → AUTH_IDP_CODE_INVALID (3 ms)
+      ✓ 401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED (3 ms)
+      ✓ 500 → AUTH_IDP_UNAVAILABLE (3 ms)
+      ✓ network ล่ม/timeout → AUTH_IDP_UNAVAILABLE (18 ms)
+    exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8)
+      ✓ 400 "This user has not provider id" → AUTH_PROVIDERID_NOT_FOUND (แยกเป็น error ของตัวเอง) (5 ms)
+      ✓ 400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED (3 ms)
+      ✓ 401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED (3 ms)
+      ✓ 500 → AUTH_IDP_UNAVAILABLE (audit F3 pin — [P-OAUTH] หน้า 8 "500") (3 ms)
+    exchangeCode — envelope ไม่มี access_token (audit F3 pin — pin ไม่ใช่ fix, RED ด้วย mutation)
+      ✓ ขา 1 envelope ไม่มี data.access_token → AUTH_IDP_EXCHANGE_FAILED (4 ms)
+      ✓ ขา 2 response ไม่มี access_token → AUTH_IDP_EXCHANGE_FAILED (4 ms)
+    getProfile — [P-OAUTH] หน้า 9-12
+      ✓ GET + headers Authorization Bearer / client-id / secret-key แล้วคืน raw profile เท่านั้น (4 ms)
+      ✓ 401 "access_token is invalid" → AUTH_IDP_TOKEN_INVALID (4 ms)
+      ✓ 404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND (3 ms)
+      ✓ 401 client ผิด (non-token message) → AUTH_IDP_CLIENT_AUTH_FAILED (audit F3 pin — หน้า 12) (3 ms)
+      ✓ 400 param ขาด → AUTH_IDP_EXCHANGE_FAILED (audit F3 pin — หน้า 12) (18 ms)
+      ✓ 503 → AUTH_IDP_UNAVAILABLE (3 ms)
+  MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network)
+    ✓ มี fixture code ครบ 5 ชุด (3 ms)
+    ✓ happy: exchangeCode ตาม contract แล้ว getProfile ได้ profile ครบ (in_registry=true) (3 ms)
+    ✓ deny → AUTH_IDP_ACCESS_DENIED (3 ms)
+    ✓ expired-code → AUTH_IDP_CODE_EXPIRED (2 ms)
+    ✓ code ไม่รู้จัก → AUTH_IDP_CODE_INVALID (2 ms)
+    ✓ profile-missing-field: token ผ่าน แต่ profile ไม่มี hash_cid (3 ms)
+    ✓ staff-not-in-registry: profile valid แต่ flag in_registry=false (consumer P2 ใช้) (3 ms)
+    ✓ deterministic: code เดิม → ผลเดิมทุกครั้ง (3 ms)
+    ✓ ไม่แตะ network เลย (fetch ต้องไม่ถูกเรียก) (3 ms)
+    ✓ getAuthorizeUrl มี state เสมอ + response_type=code (โครงเดียวกับของจริง) (3 ms)
+    ✓ getProfile ด้วย token ไม่รู้จัก → AUTH_IDP_TOKEN_INVALID (9 ms)
+  error catalog — remediation แยกคู่ credential ตาม F1 (fix cycle 2 F-NEW)
+    ✓ AUTH_IDP_CLIENT_AUTH_FAILED ชี้ env ถูกขา: leg-1 = คู่ Health ID · leg-2/profile = คู่ระบบ Provider ID (16 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/error-codes-catalog.test.js
+  shared/error-codes catalog
+    ✓ exports a frozen object with at least 80 entries (RFC W4-B floor) (3 ms)
+    ✓ every entry has all 6 required fields with the right types (438 ms)
+    ✓ every httpStatus is a 4xx or 5xx HTTP status code (46 ms)
+    ✓ catalog codes are unique (no duplicate keys across the object) (2 ms)
+    ✓ contains every code listed in shared/api-response.js DEFAULT_ERROR_MESSAGES (3 ms)
+    ✓ contains every code thrown by shared/errors.js AppError + JWT branches (2 ms)
+    ✓ exposes getMessage() that returns localised strings with fallback (1 ms)
+    ✓ exposes lookup() that returns the full row or undefined (2 ms)
+    ✓ extract-error-codes script runs and discovers ≥ catalog floor codes (135 ms)
+    ✓ extractor loadCatalog returns same module as direct require (2 ms)
+    ✓ every discovered code is catalogued (no drift between code and catalog) (136 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/auth-providers-config.test.js
+  AUTH_PROVIDERS registry (mandate §D2)
+    ✓ registry มีครบ 5 provider ตาม vocab: local | healthid | providerid | thaid | mock (3 ms)
+    ✓ default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED), mock=enabled (non-prod) (3 ms)
+    ✓ isProviderEnabled defaults ตรงกับ states (2 ms)
+    ✓ unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN (29 ms)
+  mock ปิดบน production — บังคับใน logic ไม่ใช่แค่ default (mandate §D5)
+    ✓ NODE_ENV=production + AUTH_MOCK_STATE=enabled → mock ก็ยังไม่ enabled (3 ms)
+    ✓ non-production: mock enabled โดย default (ไม่ตั้ง env ใด) (2 ms)
+  fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment)
+    ✓ AUTH_PROVIDERID_STATE=enabled แต่ไม่มี config ใดเลย → ไม่ enabled + AUTH_PROVIDER_NOT_CONFIGURED (3 ms)
+    ✓ ขาดตัวเดียว (SECRET_KEY) ก็ fail-closed เหมือนกัน (2 ms)
+    ✓ ขาด PID_CLIENT_ID (client ของระบบ Provider ID — audit F1) ก็ fail-closed เหมือนกัน (3 ms)
+    ✓ config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field (4 ms)
+    ✓ ค่า state นอก vocab (เช่น "yolo") → fail-closed ไม่ enabled (3 ms)
+    ✓ staging_only: enabled เฉพาะ non-production (3 ms)
+    ✓ provider จริง default coming_soon → assertProviderReady โยน AUTH_PROVIDER_DISABLED (31 ms)
+  local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended)
+    ✓ local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6) (3 ms)
+    ✓ AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5) (2 ms)
+  getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin)
+    ✓ ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ (4 ms)
+
+Test Suites: 4 passed, 4 total
+Tests:       97 passed, 97 total
+Snapshots:   0 total
+Time:        4.513 s, estimated 11 s
+Ran all test suites matching /__tests__\/unit\/auth-idp-routes.test.js|__tests__\/unit\/auth-providers-config.test.js|__tests__\/unit\/idp-adapter.test.js|__tests__\/unit\/error-codes-catalog.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

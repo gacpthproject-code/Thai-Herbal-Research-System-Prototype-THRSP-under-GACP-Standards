@@ -1,0 +1,61 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+PASS __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js
+  host table
+    ✓ names staging on this host locally and demo over ssh to 119.59.105.140, nothing else (5 ms)
+  every wrapper is bound to its host and logs every run
+    ✓ staff-mfa-roster.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (34 ms)
+    ✓ staff-first-signin-report.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (33 ms)
+    ✓ staff-2fa-emergency-reset.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (33 ms)
+    ✓ the roster on staging runs the file inside the image after the slot check, never copies from the checkout, and logs done (24 ms)
+    ✓ a container outside its slot, or an image without the script, is refused with the reason logged (41 ms)
+    ✓ the roster on demo goes over ssh to the fixed target with the fixed key and runs inside gacp-backend-demo (39 ms)
+    ✓ the emergency reset forwards its four references (Thai included) to the file in the image and logs the mfa-clear event; short usage is refused (99 ms)
+  mfa-flag-on-staging.sh
+    ✓ turns the flag on, revokes sessions with --event flag-on right after the flag reads on, writes the once-per-host marker, refuses a second apply, and rollback reopens it (128 ms)
+    ✓ when the revoke step refuses, the run exits 2, says the flag is on but sessions stand, writes no marker, and logs refused (70 ms)
+    ✓ refuses off this host before reading any file (18 ms)
+  mfa-flag-on-demo.sh
+    ✓ runs from this host over ssh to the fixed demo target, carries the revoke step with --event flag-on in the remote script, and keeps the once-per-host marker (139 ms)
+    ✓ a refused remote run leaves no marker and is logged as refused; a foreign host never reaches ssh (68 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (179 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (79 ms)
+    ✓ (c) on → rollback → on → on refuses the last (179 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (212 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (182 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (81 ms)
+    ✓ (c) on → rollback → on → on refuses the last (262 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (250 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-staging.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (95 ms)
+    ✓ a well-formed stamp restores that backup (100 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-demo.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (94 ms)
+    ✓ a well-formed stamp restores that backup (107 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       25 passed, 25 total
+Snapshots:   0 total
+Time:        3.097 s
+Ran all test suites matching __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js.

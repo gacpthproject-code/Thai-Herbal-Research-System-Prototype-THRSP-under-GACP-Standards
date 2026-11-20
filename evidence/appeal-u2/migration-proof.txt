@@ -1,0 +1,87 @@
+# migration 20261014120000_final_approval_task_for_a_file_that_did_not_pass on the scratch database (127.0.0.1:55492/gacp_u2, at 155 applied migrations)
+
+## 1. the draft as found (no "updatedAt" in the INSERT): prisma migrate deploy
+[with-scratch] database 127.0.0.1:55492/gacp_u2 · PAYMENT_ADAPTER=mock
+Prisma schema loaded from prisma/schema
+Datasource "db": PostgreSQL database "gacp_u2", schema "public" at "127.0.0.1:55492"
+
+156 migrations found in prisma/migrations
+
+Applying migration `20261014120000_final_approval_task_for_a_file_that_did_not_pass`
+Error: P3018
+
+
+Migration name: 20261014120000_final_approval_task_for_a_file_that_did_not_pass
+
+Database error code: 23502
+
+Database error:
+ERROR: null value in column "updatedAt" of relation "stage_activity_configs" violates not-null constraint
+DETAIL: Failing row contains (sac_final_approval_not_passed, 2026-10-20 09:30:06.345, null, AUDIT_NOT_PASSED, FINAL_APPROVAL, certificate_approver, 0, ตัดสินแฟ้มที่ผู้ตรวจพ..., Decide a file that did not pass the inspection, ไม่ให้การรับรอง หรือส่..., t).
+
+DbError { severity: "ERROR", parsed_severity: Some(Error), code: SqlState(E23502), message: "null value in column \"updatedAt\" of relation \"stage_activity_configs\" violates not-null constraint", detail: Some("Failing  …
+
+## 2. fix: "updatedAt" set to CURRENT_TIMESTAMP (the column has no default since 20260502000000_reconcile_drift); prisma migrate resolve --rolled-back on the failed record
+[with-scratch] database 127.0.0.1:55492/gacp_u2 · PAYMENT_ADAPTER=mock
+Prisma schema loaded from prisma/schema
+Datasource "db": PostgreSQL database "gacp_u2", schema "public" at "127.0.0.1:55492"
+
+Migration 20261014120000_final_approval_task_for_a_file_that_did_not_pass marked as rolled back.
+
+## 3. prisma migrate deploy with the fixed migration
+[with-scratch] database 127.0.0.1:55492/gacp_u2 · PAYMENT_ADAPTER=mock
+Prisma schema loaded from prisma/schema
+Datasource "db": PostgreSQL database "gacp_u2", schema "public" at "127.0.0.1:55492"
+
+156 migrations found in prisma/migrations
+
+Applying migration `20261014120000_final_approval_task_for_a_file_that_did_not_pass`
+
+The following migration(s) have been applied:
+
+migrations/
+      
+All migrations have been successfully applied.
+
+## 4. prisma migrate deploy again
+[with-scratch] database 127.0.0.1:55492/gacp_u2 · PAYMENT_ADAPTER=mock
+Prisma schema loaded from prisma/schema
+Datasource "db": PostgreSQL database "gacp_u2", schema "public" at "127.0.0.1:55492"
+
+156 migrations found in prisma/migrations
+
+
+No pending migrations to apply.
+
+## 5. the rows FINAL_APPROVAL now has, and the migration ledger of this name (the rolled-back first attempt and the applied one)
+[
+ {
+  "id": "sac_final_approval_not_passed",
+  "workflowStage": "AUDIT_NOT_PASSED",
+  "workType": "FINAL_APPROVAL",
+  "candidateGroup": "certificate_approver",
+  "isActive": true,
+  "labelTH": "ตัดสินแฟ้มที่ผู้ตรวจพื้นที่ให้ไม่ผ่าน"
+ },
+ {
+  "id": "sac_final_approval",
+  "workflowStage": "AUDIT_PASSED",
+  "workType": "FINAL_APPROVAL",
+  "candidateGroup": "certificate_approver",
+  "isActive": true,
+  "labelTH": "อนุมัติออกใบรับรอง"
+ }
+]
+[{"migration_name":"20261014120000_final_approval_task_for_a_file_that_did_not_pass","finished":false,"rolled_back":true},{"migration_name":"20261014120000_final_approval_task_for_a_file_that_did_not_pass","finished":true,"rolled_back":false}]
+
+## 6. idempotence and rollback (prisma db execute of the migration file, then the rollback statement in its header, then the migration again)
+## rerun the migration SQL on a database that already has the row (idempotent)
+Script executed successfully.
+rows(AUDIT_NOT_PASSED, FINAL_APPROVAL) = 1
+## rollback statement
+Script executed successfully.
+rows(AUDIT_NOT_PASSED, FINAL_APPROVAL) = 0
+## re-apply after rollback
+Script executed successfully.
+rows(AUDIT_NOT_PASSED, FINAL_APPROVAL) = 1
+

@@ -1,0 +1,67 @@
+=== M2a Task 1 — GREEN capture ===
+date(UTC): 2026-08-15T12:27:05Z
+
+--- [1] prisma validate (schema folder auto-discovers the new file — prismaSchemaFolder, _base.prisma:7) ---
+$ npx prisma validate --schema prisma/schema
+Prisma schema loaded from prisma\schema
+The schemas at prisma\schema are valid 🚀
+
+--- [2] prisma generate (plan Task 1 Step 1 gate) ---
+$ npx prisma generate --schema prisma/schema
+✔ Generated Prisma Client (v5.22.0) to .\..\..\node_modules\.pnpm\@prisma+client@5.22.0_prisma@5.22.0\node_modules\@prisma\client in 1.64s
+
+--- [3] the model now exists in the generated client (RED [1] reversed) ---
+models generated: 101
+RequirementRule present: true
+dbName: requirement_rules
+no updatedAt field: true
+no organizationId field: true
+  field id String required default
+  field createdAt DateTime required default
+  field holderType String nullable 
+  field requestType String nullable 
+  field plantCode String nullable 
+  field slotId String required 
+  field isRequired Boolean required default
+  field maxDocumentAgeMonths Int nullable 
+  field effectiveFrom DateTime required 
+  field effectiveTo DateTime nullable 
+  field createdBy String required 
+  field reason String nullable 
+  field closedBy String nullable 
+  field closedAt DateTime nullable 
+
+--- [4] migration DDL == DDL prisma derives from the model (no drift), seed columns real, no UPDATE path ---
+$ node check-migration-vs-schema.js migration.sql <prisma migrate diff --from-empty>
+hand-written DDL statements: 3
+prisma-derived DDL statements: 3
+[MATCH] CREATE TABLE "requirement_rules" ( "id" TEXT NOT NULL, "createdAt" TIMES...
+[MATCH] CREATE INDEX "requirement_rules_slotId_idx" ON "requirement_rules"("slot...
+[MATCH] CREATE INDEX "requirement_rules_effectiveFrom_effectiveTo_idx" ON "requi...
+table columns  : id,createdAt,holderType,requestType,plantCode,slotId,isRequired,maxDocumentAgeMonths,effectiveFrom,effectiveTo,createdBy,reason,closedBy,closedAt
+seed columns   : id,holderType,requestType,plantCode,slotId,isRequired,maxDocumentAgeMonths,effectiveFrom,effectiveTo,createdBy,reason,createdAt
+seed columns not in table: none
+table columns left to default/NULL by seed: closedBy,closedAt
+ON CONFLICT ("id") DO NOTHING present: true
+DO UPDATE present (must be false): false
+bare UPDATE statement present (must be false): false
+RESULT: PASS
+
+--- [5] seeded slotIds are already in canonical form (getCanonicalSlotId is identity on them) ---
+company_reg -> canonical: company_reg | identity: true | known slot: true
+community_cert -> canonical: community_cert | identity: true | known slot: true
+
+--- [6] the seed rows as written in the migration ---
+81:('m2a-seed-juristic-company-reg', 'JURISTIC', NULL, NULL, 'company_reg', TRUE, 6, '2026-08-15T00:00:00Z', NULL, 'SYSTEM-M2A-SEED', 'คำวินิจฉัย operator 2026-08-15 (G-grill): นิติบุคคลแนบหนังสือรับรอง DBD', NOW()),
+82:('m2a-seed-community-cert',      'COMMUNITY_ENTERPRISE', NULL, NULL, 'community_cert', TRUE, 6, '2026-08-15T00:00:00Z', NULL, 'SYSTEM-M2A-SEED', 'คำวินิจฉัย operator 2026-08-15 (G-grill): วิสาหกิจชุมชนแนบเอกสารรับรองการจดทะเบียน', NOW())
+21:-- with ON CONFLICT ("id") DO NOTHING (template: migration
+83:ON CONFLICT ("id") DO NOTHING;
+
+--- [7] lint + re-run after the curly fix ---
+$ npx eslint __tests__/integration/m2a-requirement-seed.test.js -> clean (exit 0, no output)
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+Test Suites: 1 skipped, 0 of 1 total
+Tests:       3 skipped, 3 total
+Snapshots:   0 total
+Time:        1.607 s
+Ran all test suites matching /__tests__\\integration\\m2a-requirement-seed.test.js/i.

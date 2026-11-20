@@ -1,0 +1,683 @@
+# R2 M3b — fix cycle 1/3 — RED evidence (Law 3.11)
+# captured: 2026-08-03T14:58:35+00:00
+# HEAD: 9826be38
+# source NOT yet modified — proof:
+$ git diff --stat -- routes/api/provider/work.js
+(empty = work.js untouched at RED capture time)
+
+$ git status --porcelain -- apps/backend
+warning: could not open directory 'apps/backend/apps/': No such file or directory
+
+$ npx jest --config jest.config.cjs __tests__/integration/provider-work-routes.test.js
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/integration/provider-work-routes.test.js
+  GET /:id/next-states
+    ✓ document_reviewer is NOT offered the doc-decision on the work-inbox (WF-1: use canonical) (67 ms)
+    ✓ admin is also not offered the doc-decision on the work-inbox (blocked for everyone) (25 ms)
+    ✓ account user sees no AFR transitions (none of theirs match) (16 ms)
+    ✓ returns 404 when activity does not exist (22 ms)
+  POST /:id/done — original simple path
+    ✓ without advanceStatus, just markDone is performed (24 ms)
+  POST /:id/done — combined with advanceStatus
+    ✓ illegal transition is rejected as 422 INVALID_TRANSITION (no markDone, no write) (17 ms)
+    ✓ rejects empty toState (12 ms)
+  POST /:id/done — WF-1 document decision is blocked on the work-inbox
+    ✓ DOC_APPROVED → 422 USE_CANONICAL_REVIEW (no markDone, no write) (14 ms)
+    ✓ REVISION_REQUESTED → 422 USE_CANONICAL_REVIEW even WITH a comment (decision-block fires first) (20 ms)
+    ✓ the block is independent of assignment — even the assigned reviewer is funnelled to canonical (13 ms)
+  POST /:id/done — R2 M3b: the TERMINAL rejection is blocked on the work-inbox
+    ✕ REJECTED → 422 USE_CANONICAL_REVIEW; writeApplicationStatus is NEVER called (15 ms)
+    ✕ an ADMIN gets the same 422 — the isAdmin role bypass does not reopen the hole (15 ms)
+    ✓ the NON-terminal auditor edge still works here (negative control — the writer IS reachable) (14 ms)
+    ✕ NO current state can drive a REJECTED status write through this surface (exhaustive) (208 ms)
+    ✕ GET /:id/next-states from AUDIT_CONFIRMED does not offer REJECTED (still offers the correctable edges) (12 ms)
+  R2 M3b — work.js source pin: one guarded status-write path
+    ✕ REJECTED is in the blocked-decision set (4 ms)
+    ✓ there is exactly ONE writeApplicationStatus call site and the gate precedes it (2 ms)
+    ✓ the letter/audit side-effects are still absent here — which is WHY the states are blocked (2 ms)
+  GET /:id — applicant email PII gating (assignee-only)
+    ✓ returns applicantEmail to the ASSIGNEE (13 ms)
+    ✓ hides applicantEmail from a non-assignee candidate-group member (still 200, email null) (11 ms)
+
+  ● POST /:id/done — R2 M3b: the TERMINAL rejection is blocked on the work-inbox › REJECTED → 422 USE_CANONICAL_REVIEW; writeApplicationStatus is NEVER called
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 422
+    Received: 200
+
+      293 |                 },
+      294 |             });
+    > 295 |         expect(res.status).toBe(422);
+          |                            ^
+      296 |         expect(res.body.code).toBe('USE_CANONICAL_REVIEW');
+      297 |         // the gate fires BEFORE the tx opens — no markDone, no status write
+      298 |         expect(prismaMock.$transaction).not.toHaveBeenCalled();
+
+      at Object.toBe (__tests__/integration/provider-work-routes.test.js:295:28)
+
+  ● POST /:id/done — R2 M3b: the TERMINAL rejection is blocked on the work-inbox › an ADMIN gets the same 422 — the isAdmin role bypass does not reopen the hole
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 422
+    Received: 200
+
+      306 |             .post('/work/a-1/done')
+      307 |             .send({ advanceStatus: { toState: 'REJECTED', comment: 'admin closes the case' } });
+    > 308 |         expect(res.status).toBe(422);
+          |                            ^
+      309 |         expect(res.body.code).toBe('USE_CANONICAL_REVIEW');
+      310 |         expect(writeCalls).toHaveLength(0);
+      311 |     });
+
+      at Object.toBe (__tests__/integration/provider-work-routes.test.js:308:28)
+
+  ● POST /:id/done — R2 M3b: the TERMINAL rejection is blocked on the work-inbox › NO current state can drive a REJECTED status write through this surface (exhaustive)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  1
+    + Received  + 43
+
+    - Array []
+    + Array [
+    +   Object {
+    +     "actorId": "u-1",
+    +     "actorRole": "document_reviewer",
+    +     "additionalData": Object {
+    +       "formData": Object {
+    +         "workflowState": "REJECTED",
+    +         "workflowStateUpdatedAt": "2026-08-03T14:58:37.792Z",
+    +       },
+    +       "workflowHistory": Array [
+    +         Object {
+    +           "action": "WORKFLOW_TRANSITION",
+    +           "actorId": "u-1",
+    +           "actorRole": "document_reviewer",
+    +           "comment": "ปิดคำขอ",
+    +           "fromState": "AUDIT_CONFIRMED",
+    +           "metadata": Object {
+    +             "activityId": "a-1",
+    +             "source": "work-activity-done",
+    +           },
+    +           "reasonCode": "AUDIT_FAIL",
+    +           "timestamp": "2026-08-03T14:58:37.792Z",
+    +           "toState": "REJECTED",
+    +         },
+    +       ],
+    +     },
+    +     "applicationId": "app-1",
+    +     "assertTransition": false,
+    +     "fromStatus": "AUDIT_CONFIRMED",
+    +     "prisma": Object {
+    +       "$transaction": [Function mockConstructor],
+    +       "application": Object {
+    +         "findUnique": [Function mockConstructor],
+    +       },
+    +       "workActivity": Object {
+    +         "findUnique": [Function mockConstructor],
+    +         "update": [Function mockConstructor],
+    +       },
+    +     },
+    +     "reason": "AUDIT_FAIL",
+    +     "toStatus": "REJECTED",
+    +   },
+    + ]
+
+      334 |             statuses.push([from, res.status, res.body.code]);
+      335 |         }
+    > 336 |         expect(writeCalls.filter((c) => c.toStatus === 'REJECTED')).toEqual([]);
+          |                                                                     ^
+      337 |         expect(writeCalls).toHaveLength(0);
+      338 |         // every from-state is funnelled to canonical (the gate runs before the
+      339 |         // state is even resolved), so no state answers anything else
+
+      at Object.toEqual (__tests__/integration/provider-work-routes.test.js:336:69)
+
+  ● POST /:id/done — R2 M3b: the TERMINAL rejection is blocked on the work-inbox › GET /:id/next-states from AUDIT_CONFIRMED does not offer REJECTED (still offers the correctable edges)
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "REJECTED"
+    Received array:     ["AUDIT_PASSED", "CAR_PENDING", "REJECTED"]
+
+      346 |         expect(res.body.data.currentStatus).toBe('AUDIT_CONFIRMED');
+      347 |         const targets = res.body.data.options.map((o) => o.toState);
+    > 348 |         expect(targets).not.toContain('REJECTED');
+          |                             ^
+      349 |         // negative control: the auditor's non-terminal edges are still offered, so
+      350 |         // the assertion above is not passing on an empty list
+      351 |         expect(targets).toEqual(expect.arrayContaining(['AUDIT_PASSED', 'CAR_PENDING']));
+
+      at Object.toContain (__tests__/integration/provider-work-routes.test.js:348:29)
+
+  ● R2 M3b — work.js source pin: one guarded status-write path › REJECTED is in the blocked-decision set
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /WORK_INBOX_BLOCKED_DECISION_STATES = new Set\(\[[^\]]*'REJECTED'[^\]]*\]\)/
+    Received string:  "/**
+     * Routes: /api/provider/work/*
+     *
+     * BPMN-aligned work queue for provider staff (ADR-016 Phase 1A).
+     *
+     *   GET  /my                  — items assigned to me + items I'm eligible to claim
+     *   GET  /queue               — queue for my candidate group (filterable)
+     *   GET  /:id/next-states     — legal workflow transitions for the user (Phase 3)
+     *   POST /:id/claim           — claim an open item
+     *   POST /:id/unclaim         — release an item back to the queue
+     *   POST /:id/done            — mark item DONE; optional advanceStatus advances
+     *                              the application's workflow status atomically
+     */·
+    'use strict';·
+    const express = require('express');
+    const {
+        prisma,
+        authenticateProvider,
+        logger,
+        normalizeRole,
+    } = require('./handlers/shared');
+    const workActivityService = require('../../../services/work-activity-service');
+    const { respondError } = require('../../../shared/api-response');
+    const { CANONICAL_ROLES } = require('../../../shared/canonical-rbac');
+    const userGroupsHelper = require('../../../shared/user-groups');
+    const workflowTransitionService = require('../../../services/workflow-transition-service');
+    const { writeApplicationStatus } = require('../../../services/application-status-writer');·
+    const router = express.Router();·
+    // WF-1 (audit follow-up 2026-06-23): the document-review DECISION must NOT be made
+    // on the generic work-inbox surface. work.js advances status via writeApplicationStatus
+    // directly — it does NOT run the canonical side-effects (workflow-side-effects.js):
+    // the SYSTEM auto-chain DOC_APPROVED→PENDING_AUDIT_FEE + Phase-2 invoicing, the
+    // 5-working-day RevisionDeadline + applicant notice, and the immutable AuditLog. Making
+    // the decision here STRANDS the application (status flips but the next leg never starts).
+    // So the work-inbox blocks these two states (422) and the FE funnels the reviewer to the
+    // canonical /provider/applications/:id review screen, which runs all side-effects.
+    const WORK_INBOX_BLOCKED_DECISION_STATES = new Set(['DOC_APPROVED', 'REVISION_REQUESTED']);·
+    router.use(authenticateProvider);·
+    function getActorRole(req) {
+        return normalizeRole(req.user?.canonicalRole || req.user?.role);
+    }·
+    // Tenant scope for activity mutations (audit 2.6): PLATFORM_ADMIN is the only
+    // cross-tenant role → exempt (null); everyone else is pinned to their org so a
+    // by-id claim/unclaim/done can't reach into another tenant's activity. Mirrors
+    // the GET /:id and /:id/next-states guards above.
+    function getActorOrgId(req) {
+        return getActorRole(req) === CANONICAL_ROLES.PLATFORM_ADMIN
+            ? null
+            : (req.user?.organizationId || null);
+    }·
+    function shapeActivity(row) {
+        return {
+            id: row.id,
+            applicationId: row.applicationId,
+            applicationNumber: row.application?.applicationNumber || null,
+            applicationStatus: row.application?.status || null,
+            applicantName:
+                [row.application?.applicant?.firstName, row.application?.applicant?.lastName]
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim() || null,
+            workType: row.workType,
+            candidateGroup: row.candidateGroup,
+            state: row.state,
+            assignedUserId: row.assignedUserId,
+            assignedUserName:
+                [row.assignedUser?.firstName, row.assignedUser?.lastName]
+                    .filter(Boolean)
+                    .join(' ')
+                    .trim() || null,
+            triggeredAtStage: row.triggeredAtStage,
+            dueAt: row.dueAt,
+            warningAt: row.warningAt,
+            claimedAt: row.claimedAt,
+            startedAt: row.startedAt,
+            completedAt: row.completedAt,
+            cancelledAt: row.cancelledAt,
+            cancelReason: row.cancelReason,
+            note: row.note,
+            createdAt: row.createdAt,
+            isOverdue: row.dueAt ? new Date(row.dueAt) < new Date() && !['DONE', 'CANCELLED'].includes(row.state) : false,
+        };
+    }·
+    router.get('/my', async (req, res) => {
+        try {
+            const userRole = getActorRole(req);
+            if (!userRole) {
+                return res.status(403).json({ success: false, error: 'No role on token' });
+            }·
+            const workTypes = req.query.workType
+                ? String(req.query.workType).split(',').map((s) => s.trim()).filter(Boolean)
+                : null;
+            const limit = Math.min(parseInt(req.query.limit, 10) || 50, 200);·
+            const rows = await workActivityService.listMyTodo({
+                prisma,
+                userId: req.user.id,
+                userRole,
+                workTypes,
+                organizationId: req.user.organizationId, // Phase 3b-D2: unconditional org-scope
+                limit,
+            });·
+            return res.json({
+                success: true,
+                data: rows.map(shapeActivity),
+                counts: {
+                    total: rows.length,
+                    claimed: rows.filter((r) => r.assignedUserId === req.user.id).length,
+                    unclaimed: rows.filter((r) => !r.assignedUserId).length,
+                    overdue: rows.filter(
+                        (r) => r.dueAt && new Date(r.dueAt) < new Date(),
+                    ).length,
+                },
+            });
+        } catch (e) {
+            return respondError(res, req, e, { label: '[provider/work] list my', message: 'Failed to load work items' });
+        }
+    });·
+    router.get('/queue', async (req, res) => {
+        try {
+            const userRole = getActorRole(req);
+            if (!userRole) {
+                return res.status(403).json({ success: false, error: 'No role on token' });
+            }·
+            // Phase 1C: any user can query a queue for any group they belong
+            // to (or admins for any group). Default = first group (which is
+            // the legacy User.role for users without explicit memberships).
+            const groupParam = String(req.query.group || '').trim().toLowerCase();
+            const myGroups = await userGroupsHelper.getUserGroups(prisma, req.user.id);
+            const isAdmin = myGroups.includes(CANONICAL_ROLES.ADMIN);
+            let targetGroup;
+            if (groupParam) {
+                if (!isAdmin && !myGroups.includes(groupParam)) {
+                    return res.status(403).json({
+                        success: false,
+                        error: `You are not a member of the ${groupParam} group`,
+                    });
+                }
+                targetGroup = groupParam;
+            } else {
+                // Default to the user's primary role hint, falling back to
+                // first group if userRole is undefined.
+                targetGroup = userRole || myGroups[0];
+            }
+            if (!targetGroup) {
+                return res.json({ success: true, data: [], meta: { group: null, count: 0 } });
+            }·
+            const workTypes = req.query.workType
+                ? String(req.query.workType).split(',').map((s) => s.trim()).filter(Boolean)
+                : null;
+            const states = req.query.state
+                ? String(req.query.state).split(',').map((s) => s.trim().toUpperCase()).filter(Boolean)
+                : null;
+            const limit = Math.min(parseInt(req.query.limit, 10) || 100, 500);·
+            const rows = await workActivityService.listForGroup({
+                prisma,
+                role: targetGroup,
+                workTypes,
+                states,
+                organizationId: req.user.organizationId, // Phase 3b-D2: unconditional org-scope
+                limit,
+            });·
+            return res.json({
+                success: true,
+                data: rows.map(shapeActivity),
+                meta: { group: targetGroup, count: rows.length },
+            });
+        } catch (e) {
+            return respondError(res, req, e, { label: '[provider/work] queue', message: 'Failed to load work queue' });
+        }
+    });·
+    // Detail: /:id MUST come AFTER static-path GETs (/my, /queue) so Express
+    // doesn't intercept those as `:id = \"my\"` etc.
+    router.get('/:id', async (req, res) => {
+        try {
+            const userRole = getActorRole(req);
+            if (!userRole) {
+                return res.status(403).json({ success: false, error: 'No role on token' });
+            }
+            const row = await prisma.workActivity.findUnique({
+                where: { id: req.params.id },
+                include: {
+                    application: {
+                        select: {
+                            id: true,
+                            applicationNumber: true,
+                            status: true,
+                            applicant: {
+                                select: { firstName: true, lastName: true, email: true },
+                            },
+                        },
+                    },
+                    assignedUser: { select: { id: true, firstName: true, lastName: true } },
+                    completer: { select: { id: true, firstName: true, lastName: true } },
+                },
+            });
+            if (!row) {
+                return res.status(404).json({ success: false, error: 'Activity not found' });
+            }
+            // Tenant guard: candidateGroup is a GLOBAL role code (e.g. \"SCHEDULER\"), so the
+            // assignee/group check below is NOT a tenant boundary — without this an org-A
+            // actor could read an org-B activity (+ its applicant PII). findUnique is not
+            // org-scoped by the tenant extension (findMany/findFirst/count only). Scope to
+            // the actor's org; PLATFORM_ADMIN (cross-tenant) is exempt.
+            if (userRole !== CANONICAL_ROLES.PLATFORM_ADMIN
+                && req.user.organizationId
+                && row.organizationId !== req.user.organizationId) {
+                return res.status(404).json({ success: false, error: 'Activity not found' });
+            }
+            // Phase 1C: visibility = admin (via group OR legacy role) OR
+            // assignee OR member of the candidate group.
+            const isAssignee = row.assignedUserId === req.user.id;
+            const inGroup = await userGroupsHelper.userInGroup(
+                prisma,
+                req.user.id,
+                row.candidateGroup,
+            );
+            if (!isAssignee && !inGroup) {
+                return res.status(403).json({ success: false, error: 'Forbidden' });
+            }
+            // PII minimisation (PHASE-1 role-correctness): the work queue is a SHARED
+            // candidate-group inbox, so any group member can open an unclaimed task's
+            // detail. The applicant's email is contact data only the person actually
+            // working the case needs — gate it to the ASSIGNEE. Triage (name +
+            // applicationNumber + status + SLA) stays available to the whole group via
+            // shapeActivity(); the list views never carried email. Non-assignees get null
+            // (the FE already renders email conditionally).
+            return res.json({
+                success: true,
+                data: {
+                    ...shapeActivity(row),
+                    completedByName:
+                        [row.completer?.firstName, row.completer?.lastName]
+                            .filter(Boolean)
+                            .join(' ')
+                            .trim() || null,
+                    applicantEmail: isAssignee ? (row.application?.applicant?.email || null) : null,
+                },
+            });
+        } catch (e) {
+            return respondError(res, req, e, { label: '[provider/work] detail', message: 'Failed to load work item' });
+        }
+    });·
+    router.post('/:id/claim', async (req, res) => {
+        try {
+            const userRole = getActorRole(req);
+            const updated = await workActivityService.claim({
+                prisma,
+                activityId: req.params.id,
+                userId: req.user.id,
+                userRole,
+                organizationId: getActorOrgId(req),
+            });
+            return res.json({ success: true, data: shapeActivity(updated) });
+        } catch (e) {
+            logger.warn('[provider/work] claim failed:', e.message);
+            return res.status(400).json({ success: false, error: e.message });
+        }
+    });·
+    router.post('/:id/unclaim', async (req, res) => {
+        try {
+            const userRole = getActorRole(req);
+            const updated = await workActivityService.unclaim({
+                prisma,
+                activityId: req.params.id,
+                userId: req.user.id,
+                userRole,
+                organizationId: getActorOrgId(req),
+            });
+            return res.json({ success: true, data: shapeActivity(updated) });
+        } catch (e) {
+            logger.warn('[provider/work] unclaim failed:', e.message);
+            return res.status(400).json({ success: false, error: e.message });
+        }
+    });·
+    // Phase 3: legal workflow transitions for the user from the activity's
+    // application's current status. Used by the smart action panel on the
+    // activity detail page so the user can pick \"ปิดงาน + เลื่อนไป X\" with
+    // only valid options shown.
+    router.get('/:id/next-states', async (req, res) => {
+        try {
+            const userRole = getActorRole(req);
+            if (!userRole) {
+                return res.status(403).json({ success: false, error: 'No role on token' });
+            }
+            const activity = await prisma.workActivity.findUnique({
+                where: { id: req.params.id },
+                select: {
+                    id: true,
+                    applicationId: true,
+                    organizationId: true,
+                    application: { select: { id: true, status: true, formData: true } },
+                },
+            });
+            if (!activity || !activity.application) {
+                return res.status(404).json({ success: false, error: 'Activity not found' });
+            }
+            // Tenant guard (see GET /:id): org-scope the by-id lookup so a cross-org actor
+            // can't read another tenant's activity (application status/formData). findUnique
+            // isn't org-scoped by the tenant extension. PLATFORM_ADMIN (cross-tenant) exempt.
+            if (userRole !== CANONICAL_ROLES.PLATFORM_ADMIN
+                && req.user.organizationId
+                && activity.organizationId !== req.user.organizationId) {
+                return res.status(404).json({ success: false, error: 'Activity not found' });
+            }
+            const currentState = workflowTransitionService.resolveStateFromApplication(activity.application);
+            const allowed = workflowTransitionService.ALLOWED_TRANSITIONS[currentState];
+            const targets = allowed ? Array.from(allowed) : [];·
+            // The user's roles include both their primary role and any
+            // M2M memberships — check transition perms for each so a
+            // multi-group user (auditor + document_reviewer) sees the
+            // union of legal moves.
+            const userGroups = await userGroupsHelper.getUserGroups(prisma, req.user.id);
+            const isAdmin = userGroups.includes(CANONICAL_ROLES.ADMIN);·
+            const options = targets
+                .filter((to) => {
+                    // WF-1: never offer the document-review decision on the work-inbox —
+                    // it must go through the canonical review screen (side-effects).
+                    if (WORK_INBOX_BLOCKED_DECISION_STATES.has(to)) {return false;}
+                    if (isAdmin) {return true;}
+                    return userGroups.some((role) =>
+                        workflowTransitionService.canRoleTransition(role, currentState, to),
+                    );
+                })
+                .map((to) => ({
+                    toState: to,
+                    requiresComment: workflowTransitionService.REQUIRES_COMMENT_TARGETS.has(to),
+                }));·
+            return res.json({
+                success: true,
+                data: {
+                    currentStatus: currentState,
+                    options,
+                },
+            });
+        } catch (e) {
+            return respondError(res, req, e, { label: '[provider/work] next-states', message: 'Failed to load next states' });
+        }
+    });·
+    router.post('/:id/done', async (req, res) => {
+        try {
+            const userRole = getActorRole(req);
+            const note = req.body?.note ? String(req.body.note).slice(0, 1000) : null;
+            const advanceStatus = req.body?.advanceStatus || null;·
+            // No advance requested — keep the original simple path.
+            if (!advanceStatus) {
+                const updated = await workActivityService.markDone({
+                    prisma,
+                    activityId: req.params.id,
+                    userId: req.user.id,
+                    userRole,
+                    note,
+                    organizationId: getActorOrgId(req),
+                });
+                return res.json({ success: true, data: { activity: shapeActivity(updated) } });
+            }·
+            // Phase 3: combined markDone + workflow-transition. Atomic — if
+            // the transition fails (illegal target, role perms, missing
+            // mandatory comment) the markDone is rolled back too.
+            const toState = String(advanceStatus.toState || '').trim().toUpperCase();
+            const reasonCode = advanceStatus.reasonCode || null;
+            const comment = advanceStatus.comment || null;
+            if (!toState) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'advanceStatus.toState required',
+                });
+            }
+            // WF-1: the document-review decision (DOC_APPROVED / REVISION_REQUESTED) must
+            // go through the canonical /provider/applications/:id/workflow-transitions
+            // handler, which runs the mandatory side-effects (auto-chain to PENDING_AUDIT_FEE
+            // + Phase-2 invoicing, the 5-working-day RevisionDeadline + applicant notice, the
+            // immutable AuditLog). This surface writes status directly (none of those), so
+            // refuse the decision here — the FE already funnels the reviewer to the detail screen.
+            if (WORK_INBOX_BLOCKED_DECISION_STATES.has(toState)) {
+                return res.status(422).json({
+                    success: false,
+                    code: 'USE_CANONICAL_REVIEW',
+                    error: 'การตัดสินผลตรวจเอกสาร (อนุมัติ / ขอแก้ไข) ต้องทำผ่านหน้ารายละเอียดคำขอ เพื่อให้ระบบดำเนินการขั้นถัดไปครบถ้วน',
+                });
+            }
+            // Pre-flight: surface an obvious 400 instead of waiting for the
+            // tx to fail mid-flight.
+            const userGroups = await userGroupsHelper.getUserGroups(prisma, req.user.id);
+            if (workflowTransitionService.REQUIRES_COMMENT_TARGETS.has(toState) && !comment?.trim()) {
+                return res.status(400).json({
+                    success: false,
+                    error: `Transition to ${toState} requires a comment`,
+                });
+            }·
+            try {
+                const result = await prisma.$transaction(async (tx) => {
+                    const activity = await workActivityService.markDone({
+                        prisma: tx,
+                        activityId: req.params.id,
+                        userId: req.user.id,
+                        userRole,
+                        note,
+                        organizationId: getActorOrgId(req),
+                    });·
+                    // Resolve current state from the activity's application,
+                    // then validate the transition for any of the user's groups.
+                    const application = await tx.application.findUnique({
+                        where: { id: activity.applicationId },
+                        select: { id: true, status: true, formData: true, healthId: true },
+                    });
+                    if (!application) {throw new Error('Application not found');}
+                    const currentState = workflowTransitionService.resolveStateFromApplication(application);
+                    const isAdmin = userGroups.includes(CANONICAL_ROLES.ADMIN);
+                    const allowed =
+                        isAdmin ||
+                        userGroups.some((role) =>
+                            workflowTransitionService.canRoleTransition(role, currentState, toState),
+                        );
+                    if (!allowed) {
+                        throw new Error(`Role(s) ${userGroups.join('+')} cannot transition ${currentState} → ${toState}`);
+                    }
+                    if (!workflowTransitionService.canTransition(currentState, toState)) {
+                        throw new Error(`Invalid transition ${currentState} → ${toState}`);
+                    }
+                    // NB: the document-review decision states (DOC_APPROVED /
+                    // REVISION_REQUESTED) are rejected in the pre-flight above (422
+                    // USE_CANONICAL_REVIEW), so the reviewer-ownership (REV-11) gate that
+                    // used to live here is unreachable — the canonical handler
+                    // (workflow-transitions-handler.js) is the sole enforcement point for it.·
+                    const formData = (application.formData && typeof application.formData === 'object') ? application.formData : {};
+                    // The status column and the canonical state are one vocabulary
+                    // since PR 2c; LEGACY_STATUS_BY_STATE was an identity map.
+                    const nextLegacyStatus = toState;
+                    const transitionEvent = {
+                        action: 'WORKFLOW_TRANSITION',
+                        fromState: currentState,
+                        toState,
+                        actorId: req.user.id,
+                        actorRole: normalizeRole(userRole) || null,
+                        reasonCode,
+                        comment: comment || null,
+                        metadata: { source: 'work-activity-done', activityId: activity.id },
+                        timestamp: new Date().toISOString(),
+                    };
+                    const workflowHistory = Array.isArray(application.workflowHistory)
+                        ? application.workflowHistory
+                        : [];
+                    const updatedApp = await writeApplicationStatus({
+                        prisma: tx,
+                        applicationId: application.id,
+                        fromStatus: application.status,
+                        toStatus: nextLegacyStatus,
+                        actorId: req.user.id,
+                        actorRole: normalizeRole(userRole) || null,
+                        reason: reasonCode || comment || null,
+                        additionalData: {
+                            formData: {
+                                ...formData,
+                                workflowState: toState,
+                                workflowStateUpdatedAt: transitionEvent.timestamp,
+                            },
+                            workflowHistory: [...workflowHistory, transitionEvent],
+                        },
+                        assertTransition: false, // already validated above
+                    });
+                    return { activity, application: updatedApp };
+                });
+                return res.json({
+                    success: true,
+                    data: {
+                        activity: shapeActivity(result.activity),
+                        application: {
+                            id: result.application.id,
+                            status: result.application.status,
+                        },
+                    },
+                });
+            } catch (txErr) {
+                logger.warn('[provider/work] done+advance failed:', txErr.message);
+                // Transition-guard faults (illegal edge, role perms, missing mandatory
+                // comment) are client/state conditions → 422 INVALID_TRANSITION, matching
+                // the sibling handlers (auditor.js, workflow-transitions-handler). Reserve
+                // 400 for genuine bad input (e.g. application not found mid-tx).
+                const isTransitionGuard = /cannot transition|Invalid transition|already in workflow state|requires a comment/i.test(txErr.message || '');
+                return res.status(isTransitionGuard ? 422 : 400).json({
+                    success: false,
+                    error: txErr.message,
+                    code: isTransitionGuard ? 'INVALID_TRANSITION' : undefined,
+                });
+            }
+        } catch (e) {
+            logger.warn('[provider/work] markDone failed:', e.message);
+            return res.status(400).json({ success: false, error: e.message });
+        }
+    });·
+    module.exports = router;
+    "
+
+      364 |
+      365 |     test('REJECTED is in the blocked-decision set', () => {
+    > 366 |         expect(src).toMatch(/WORK_INBOX_BLOCKED_DECISION_STATES = new Set\(\[[^\]]*'REJECTED'[^\]]*\]\)/);
+          |                     ^
+      367 |     });
+      368 |
+      369 |     test('there is exactly ONE writeApplicationStatus call site and the gate precedes it', () => {
+
+      at Object.toMatch (__tests__/integration/provider-work-routes.test.js:366:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 15 passed, 20 total
+Snapshots:   0 total
+Time:        1.811 s, estimated 2 s
+Ran all test suites matching /__tests__\/integration\/provider-work-routes.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

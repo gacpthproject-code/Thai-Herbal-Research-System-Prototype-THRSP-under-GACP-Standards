@@ -1,0 +1,15 @@
+# RED — fix round 2: settlement handlers vs a superseded intent, on the current head (ba175636, settlement unchanged). Trimmed.
+# Passing from birth = PINS, not fixes (current-intent behaviour that already worked).
+    ✕ for the SUPERSEDED intent A → the order holding B is untouched, and the event is recorded as ignored (7 ms)
+    ✓ for the CURRENT intent B → the order is still cancelled (5 ms)
+    ✓ found by intent id (no metadata) → it is the current intent by construction, still cancels (3 ms)
+    ✕ an order that records no intent at all is not cancelled by an event naming one (ONLY on equality) (5 ms)
+    ✕ a failed ignore-stamp does not turn into a handler failure (Stripe must not redeliver for it) (7 ms)
+    ✕ for the SUPERSEDED intent A → no failure is written on the order's charge row (4 ms)
+    ✓ for the CURRENT intent B → the failure is still recorded (2 ms)
+Tests:       4 failed, 3 passed, 7 total
+
+## decisive: canceled event for superseded pi_A cancelled the order that holds pi_B
+    Expected number of calls: 0
+    Received number of calls: 1
+    1: {"data": {"status": "CANCELLED"}, "where": {"id": "co-1"}}

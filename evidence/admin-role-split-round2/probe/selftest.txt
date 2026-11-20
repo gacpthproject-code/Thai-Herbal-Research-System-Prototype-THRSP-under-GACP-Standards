@@ -1,0 +1,45 @@
+# M2 probe selftest (whole runtime tree + in-memory mutants)
+# bash scripts/probes/admin-side-split.sh --selftest
+--- selftest control: the real tree -> exit 0 (expected 0)
+    PASS: 608 runtime files · 12 doors and 3 service functions ask assertSameSideChange before their first account write · 15 mutating routes of admin user routers covered · 22 self-service writers listed (orders 13, 34(2))
+--- selftest FN1 directory DELETE checks only after the write -> exit 1 (expected 1)
+    routes/api/system/provider.js: DELETE /:id changes an account and asks assertSameSideChange only after its first write
+--- selftest FN2 directory DELETE check replaced by a comment naming it -> exit 1 (expected 1)
+    routes/api/system/provider.js: DELETE /:id changes an account and asks assertSameSideChange nowhere
+--- selftest FN3 directory DELETE check called with target: null -> exit 1 (expected 1)
+    routes/api/system/provider.js: DELETE /:id changes an account and passes target: null where the write changes an existing account
+--- selftest FN4 a new router file, on no list, writes a role without the check -> exit 1 (expected 1)
+    routes/api/platform-admin/users.js: PATCH /:id/role changes an account and asks assertSameSideChange nowhere
+--- selftest FN5 router.route().patch added to an admin user router -> exit 1 (expected 1)
+    routes/api/admin/users.js: PATCH /:id/promote sits in an admin user router and asks no side check
+--- selftest control-red: router.patch added to an admin user router -> exit 1 (expected 1)
+    routes/api/admin/users.js: PATCH /:id/promote sits in an admin user router and asks no side check
+--- selftest service mutation (disableUser) loses its check -> exit 1 (expected 1)
+    routes/api/admin/users.js: PATCH /:id/disable changes an account and asks assertSameSideChange nowhere
+--- selftest create door checks only when a role was sent -> exit 1 (expected 1)
+    routes/api/system/provider.js: POST / changes an account and asks assertSameSideChange only on some paths (inside an if, a callback or a catch)
+--- selftest a service writer that nothing checks -> exit 1 (expected 1)
+    services/provider-user-service.js: setRoleDirectly changes an account, nothing calls it through a checked path, and it asks assertSameSideChange nowhere
+--- selftest a self-service entry that names nothing -> exit 1 (expected 1)
+    services/notification-preferences-service.js: updatePreferences changes an account, nothing calls it through a checked path, and it asks assertSameSideChange nowhere
+--- selftest no parser -> exit 2 (expected 2)
+selftest: 12/12 cases ok
+exit=0
+
+# the doors and functions the probe found on this tree
+door     routes/api/admin/user-permissions.js: DELETE /:userId/:permission
+door     routes/api/admin/user-permissions.js: PUT /:userId/:permission
+door     routes/api/admin/users.js: PATCH /:id/role
+door     routes/api/admin/users.js: POST /provider
+door     routes/api/platform-admin/organizations.js: POST /:id/users
+door     routes/api/provider/admin-user-groups.js: DELETE /:userId/:groupCode
+door     routes/api/provider/admin-user-groups.js: POST /:userId
+door     routes/api/system/provider.js: DELETE /:id
+door     routes/api/system/provider.js: PATCH /:id
+door     routes/api/system/provider.js: POST /
+door     routes/api/system/provider.js: POST /:id/unlock
+door     routes/api/system/provider.js: PUT /:id
+function services/admin-user-service.js: changeUserRole
+function services/admin-user-service.js: disableUser
+function services/admin-user-service.js: enableUser
+PASS: 608 runtime files · 12 doors and 3 service functions ask assertSameSideChange before their first account write · 15 mutating routes of admin user routers covered · 22 self-service writers listed (orders 13, 34(2))

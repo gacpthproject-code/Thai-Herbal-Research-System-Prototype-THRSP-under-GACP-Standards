@@ -1,0 +1,48 @@
+AUTH-01-A / A5 — jest integration suite: ไม่สามารถรันในเครื่องนี้ได้ (INFRA BLOCKER)
+====================================================================================
+นี่ **ไม่ใช่ RED ที่ถูกต้อง** ตาม Law 3.11 — มัน fail เพราะ Prisma Client ยัง generate
+ไม่ได้ ไม่ใช่เพราะตาราง identity_links ยังไม่มี
+
+สาเหตุ: agent proxy ตอบ 403 ให้ binaries.prisma.sh (engine ทั้ง query-engine และ
+schema-engine ดาวน์โหลดไม่ได้) → `npx prisma generate` / `prisma validate` /
+`prisma migrate deploy` ล้มหมด และ `new PrismaClient()` โยน
+"@prisma/client did not initialize yet"
+  $ curl -sS "$HTTPS_PROXY/__agentproxy/status"
+    "kind": "connect_rejected",
+    "detail": "gateway answered 403 to CONNECT (policy denial or upstream failure)",
+    "host": "binaries.prisma.sh:443"
+  $ npm pack @prisma/engines@5.22.0 && tar tzf prisma-engines-5.22.0.tgz
+    → มีแต่ dist/*.js + scripts/postinstall.js ไม่มี binary ใน tarball (ดาวน์โหลด
+      ตอน postinstall เท่านั้น) จึงไม่มีทางเลี่ยงผ่าน npm registry ที่ proxy ปล่อยผ่าน
+
+RED ที่ถูกต้องของ behavior ทั้งหกข้อนี้อยู่ที่ evidence/AUTH-01/A/red-a1-a2-a5-sql.txt
+(psql กับ PostgreSQL 16.13 จริง ล้มด้วยเหตุผลที่ถูกต้อง: relation "identity_links"
+does not exist) และ GREEN อยู่ที่ evidence/AUTH-01/A/green-a1-a2-a5-sql.txt
+
+คำสั่งที่รัน:
+  DATABASE_URL='postgresql://test:test@localhost:5432/gacp_test' \
+    npx jest --config jest.config.cjs --no-coverage --forceExit \
+    --testPathPattern 'integration/identity-links'
+--------------------------------------------------------------------------
+
+  ● [AUTH-01-A] identity_links against a real Postgres › (6) [A4] resolve user ผ่าน identity_links ได้โดยไม่ต้องมี CID hash สักคอลัมน์
+
+    @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      89 |
+      90 |     beforeAll(async () => {
+    > 91 |         prisma = new PrismaClient();
+         |                  ^
+      92 |         await prisma.$connect();
+      93 |         const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      94 |         const org = await prisma.organization.create({
+
+      at new PrismaClient (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/.prisma/client/default.js:43:11)
+      at Object.<anonymous> (__tests__/integration/identity-links.test.js:91:18)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 6 total
+Snapshots:   0 total
+Time:        1.087 s, estimated 2 s
+Ran all test suites matching /integration\/identity-links/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

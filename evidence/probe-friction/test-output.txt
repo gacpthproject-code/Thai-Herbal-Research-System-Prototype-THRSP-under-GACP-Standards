@@ -1,0 +1,219 @@
+GREEN — probe-friction (4 friction points), captured 2026-08-07T14:42:14Z
+branch: worktree-agent-a085bc8b4f202ef69  head: f03d3398 + working diff
+
+Same four selftests as evidence/probe-friction/red-output.txt, after the fixes.
+
+
+===============================================================================
+GREEN 1 — bash scripts/check-done.sh --selftest
+===============================================================================
+--- selftest A: written JSON contains no absolute checkout path
+ok — 0 occurrences of /home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69
+
+--- selftest B: paths are still THERE, just relative (no blanket path stripping)
+ok — 'single calendar source: apps/backend/utils/working-days.js' present verbatim
+
+--- selftest C: output is valid JSON
+ok — parses
+
+--- selftest D: console summary does not print the absolute checkout path either
+ok
+
+==================================================
+check-done --selftest: 4/4 cases PASS
+exit=0
+
+===============================================================================
+GREEN 2a — bash scripts/probes/holiday-single-source.sh --selftest
+===============================================================================
+--- selftest A → exit 0 (expected 0)
+PASS: single calendar source: apps/backend/utils/working-days.js
+
+--- selftest B → exit 0 (expected 0)
+PASS: single calendar source: apps/backend/utils/working-days.js
+
+--- selftest C → exit 1 (expected 1)
+FAIL: 2 holiday calendar declaration(s): apps/backend/services/legacy-holidays.js apps/backend/utils/working-days.js
+
+--- selftest D → exit 1 (expected 1)
+FAIL: 2 holiday calendar declaration(s): apps/backend/utils/working-days.js apps/backend/config/calendar.js
+
+--- selftest E → exit 0 (expected 0)
+PASS: single calendar source: apps/backend/utils/working-days.js
+
+--- selftest F → exit 1 (expected 1)
+FAIL: 0 holiday calendar declaration(s): 
+
+--- selftest G → exit 2 (expected 2)
+BLOCKED: cannot read /tmp/tmp.ajCnJCypLz/does-not-exist.txt — the holiday declaration pattern lives there (Law 3.6); refusing to guess it, so this is BLOCKED not PASS
+
+==================================================
+holiday-single-source --selftest: 7/7 cases PASS
+exit=0
+
+===============================================================================
+GREEN 2b — bash scripts/probes/ratchet.sh --selftest
+===============================================================================
+--- selftest A → dup-source excess 0 (expected 0)
+
+--- selftest B → dup-source excess 1 (expected 1)
+      dup [holiday-calendar] 2 sources: apps/backend/services/legacy-holidays.js apps/backend/utils/working-days.js
+
+--- selftest C → dup-source excess 0 (expected 0)
+
+--- selftest D → dup-source excess 1 (expected 1)
+      dup [entity-legal-name] 2 sources: apps/backend/config/platform.js apps/backend/services/invoice-pdf.js
+
+--- selftest E → dup-source excess 1 (expected 1)
+      dup [holiday-calendar] 2 sources: apps/backend/services/dup.js apps/backend/utils/working-days.js
+
+==================================================
+ratchet --selftest: 5/5 cases PASS
+exit=0
+
+===============================================================================
+GREEN 3 — bash scripts/probes/status-vocab.sh --selftest
+===============================================================================
+--- selftest A → exit 1 (expected 1)
+  ✗ QUEUE.md:3: DONE(probe:ci-615) — 'ci-615' has no line in scripts/probes/probe-registry.txt
+  → fix the claim (cite the real probe, or a CI run URL, or say PENDING/BLOCKED per CLAUDE.md §2).
+  → if the line is quoting a past violation on purpose, add '<path>::<name>' to scripts/probes/status-vocab-allowlist.txt.
+FAIL: 1 status claim(s) name a probe that does not exist (of 2 scanned in QUEUE.md + reports/**/*.md)
+
+--- selftest B → exit 0 (expected 0)
+PASS: 2 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (0 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+
+--- selftest C → exit 0 (expected 0)
+  · reports/qc-evidence/audit.md:1: DONE(probe:ci-615) — allowlisted quotation (status-vocab-allowlist.txt)
+PASS: 2 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (1 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+
+--- selftest C2 → exit 1 (expected 1)
+  · reports/qc-evidence/audit.md:1: DONE(probe:ci-615) — allowlisted quotation (status-vocab-allowlist.txt)
+  ✗ reports/qc-evidence/audit.md:2: DONE(probe:ci-999) — 'ci-999' has no line in scripts/probes/probe-registry.txt
+  → fix the claim (cite the real probe, or a CI run URL, or say PENDING/BLOCKED per CLAUDE.md §2).
+  → if the line is quoting a past violation on purpose, add '<path>::<name>' to scripts/probes/status-vocab-allowlist.txt.
+FAIL: 1 status claim(s) name a probe that does not exist (of 3 scanned in QUEUE.md + reports/**/*.md)
+
+--- selftest F → exit 0 (expected 0)
+PASS: 1 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (0 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+
+--- selftest G → exit 0 (expected 0)
+  · reports/orchestrator/r.md:1: DONE(probe:X) — metasyntactic stand-in, read as prose about the notation, not as a status claim
+  · reports/orchestrator/r.md:2: DONE(probe:NAME) — metasyntactic stand-in, read as prose about the notation, not as a status claim
+  · reports/orchestrator/r.md:3: DONE(probe:name) — metasyntactic stand-in, read as prose about the notation, not as a status claim
+  · reports/orchestrator/r.md:4: DONE(probe:probe-name) — metasyntactic stand-in, read as prose about the notation, not as a status claim
+PASS: 1 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (0 allowlisted quotation(s), 4 metasyntactic mention(s) read as prose)
+
+--- selftest H → exit 1 (expected 1)
+  ✗ reports/orchestrator/r.md:1: DONE(probe:X-615) — 'X-615' has no line in scripts/probes/probe-registry.txt
+  → fix the claim (cite the real probe, or a CI run URL, or say PENDING/BLOCKED per CLAUDE.md §2).
+  → if the line is quoting a past violation on purpose, add '<path>::<name>' to scripts/probes/status-vocab-allowlist.txt.
+FAIL: 1 status claim(s) name a probe that does not exist (of 2 scanned in QUEUE.md + reports/**/*.md)
+
+--- selftest D → exit 2 (expected 2)
+BLOCKED: probe registry not readable at scripts/probes/probe-registry.txt — cannot tell a real probe name from a made-up one, so this is BLOCKED, not PASS
+
+--- selftest E → exit 2 (expected 2)
+BLOCKED: neither QUEUE.md nor reports/ exists under /tmp/tmp.cbsWTSmvpq/E — a probe with nothing to scan reports BLOCKED, not PASS
+
+==================================================
+status-vocab --selftest: 9/9 cases PASS
+exit=0
+
+===============================================================================
+GREEN 4 — bash scripts/session-check.sh --selftest
+===============================================================================
+--- selftest A: probe summary is labelled with its provenance and freshness
+    รันสดเมื่อ 2026-08-07 14:42:26 UTC (1s) — probe กอง `ci` ในทะเบียน: no-skip holiday-single-source no-secret ratchet stripe-sdk-isolated status-vocab 
+    รันสดเมื่อ 2026-08-07 14:42:26 UTC — วัดจาก tree ปัจจุบัน (รวม diff ที่ยังไม่ commit)
+ok
+
+--- selftest B: session start does not mutate the tracked evidence files
+ok — both tracked artifacts untouched
+
+--- selftest C: it finishes fast enough to stay a session-start command
+    elapsed 1s
+ok
+
+--- selftest D: with a fresh run disabled, the cached fallback states the age and how to refresh
+     M scripts/check-done.sh
+    ⚠️  CACHED — evidence/probe-results.json · อายุ 0 นาที (mtime 2026-08-07 14:41:43 UTC)
+        ภาพนี้อาจไม่ตรงกับ tree ปัจจุบัน — รัน `bash scripts/check-done.sh` เพื่อดูสด
+    ⚠️  CACHED — evidence/ratchet-current.txt · อายุ 0 นาที (mtime 2026-08-07 14:41:43 UTC)
+        ภาพนี้อาจไม่ตรงกับ tree ปัจจุบัน — รัน `bash scripts/check-done.sh` เพื่อดูสด
+ok
+
+--- selftest E: the ratchet block carries a freshness label too
+ok
+
+==================================================
+session-check --selftest: 5/5 cases PASS
+exit=0
+
+===============================================================================
+GATE — bash scripts/ci/local-gate.sh (must be no worse than baseline)
+baseline before this work: FAIL, single cause = probe-registry.txt:25 waiver
+(operator-owned, out of scope for this task)
+===============================================================================
+
+===== [local-gate] banned-terms =====
+[banned-terms] Repository scan passed
+[local-gate] banned-terms: PASS
+
+===== [local-gate] mojibake =====
+[encoding-check] PASS: no mojibake markers or UTF-8 BOM files found
+[local-gate] mojibake: PASS
+
+===== [local-gate] green-mask =====
+[green-mask] PASS — 832 file(s) scanned; no net-new masks (baseline 15, burn-down tracked for UAT-01).
+[local-gate] green-mask: PASS
+
+===== [local-gate] probe-gate =====
+probe-gate: running 6 CI probe(s): holiday-single-source no-secret no-skip ratchet status-vocab stripe-sdk-isolated
+probe-gate: NOT run here (signed 'manual'): crawler-clean drain-complete evidence-complete money-equation report-integrity (until 2026-09-15) settle-webhook-only (until 2026-09-15) stripe-keys-ready suite-green tier-check (until 2026-09-15) webhook-idempotent (until 2026-09-15)
+probe-gate: a green result says nothing about the manual set — see probe-registry.txt for each reason.
+
+holiday-single-source  PASS     PASS: single calendar source: apps/backend/utils/working-days.js
+no-secret              BLOCKED  BLOCKED: operator:secret-scanner — layer1 grep passed (0 hits) but NO deep scanner ran locally (gitleaks absent, not in CI). Install gitleaks or run in CI where TruffleHog provides layer 2. Refusing to report PASS for a scan that did not happen.
+no-skip                FAIL     apps/web-app/e2e/e2e-golden-scenario.spec.ts:162:            test.skip(true, `submit gated (${submitResponse.status()}) — draft incomplete by design; downstream payment/review stages skipped`);
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=168 dup-source=2 (evidence/ratchet-current.txt)
+status-vocab           PASS     PASS: 10 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (3 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+stripe-sdk-isolated    PASS     PASS: stripe SDK only in services/payment/stripe-adapter.js
+→ evidence/probe-results.json
+
+probe-gate notes:
+  · settle-webhook-only: parked out of CI until 2026-09-15 (39 day(s) left) — รัน `npx jest stripe-checkout-engine.test.js` (`scripts/probes/settle-webhook-only.sh:10`) — ต้องมี prisma generate ใน job · ปลดเมื่อ job มี deps ครบ
+  · webhook-idempotent: parked out of CI until 2026-09-15 (39 day(s) left) — รัน jest ชุดเดียวกัน (`scripts/probes/webhook-idempotent.sh:5`) — เงื่อนไขเดียวกับข้างบน
+  · tier-check: parked out of CI until 2026-09-15 (39 day(s) left) — ต้องการ `origin/main` ref เทียบ merge-base — actions/checkout ตื้น (fetch-depth 1) ทำให้คืน BLOCKED เสมอ = ไม่มี signal · ปลดเมื่อตั้ง fetch-depth: 0 · ⚠️ ยังไม่อยู่ใน DEFAULT ของ check-done.sh ด้วย (ช่องโหว่ที่ทะเบียนนี้จับได้)
+  · report-integrity: parked out of CI until 2026-09-15 (39 day(s) left) — L-031: probe เคยเลือกไฟล์ .md ใหม่สุดอัตโนมัติ → PASS ด้วยไฟล์ plan (ของจริงที่โดน: reports/orchestrator/W2-01-plan.md) · **เงื่อนไขปลดทำแล้ว รอ operator เสียบ CI**: รับ path ชัดเจนทาง argv[1] หรือ REPORT_INTEGRITY_TARGET (check-done.sh เรียก probe แบบไม่มี arg จึงต้องมีช่องทาง env), target ที่ระบุแล้วไม่มีไฟล์ = FAIL ไม่ใช่ PENDING, และพิมพ์ mode+target ทุกครั้ง — report-integrity.sh:33-47 · ที่เหลือคือ operator ตัดสินว่า job จะชี้ target ไหนต่อ PR แล้วย้ายแถวนี้เป็น ci
+  · no-secret: BLOCKED — an honest state, not a pass. Not gating.
+  · no-skip: FAIL but WAIVED by operator until 2026-09-15 (39 day(s) left) — L-006 — 10 conditional skip ที่ผูกกับ env E2E; เผาหนี้หลัง demo
+
+probe-gate: FAIL
+  ✗ holiday-single-source: PASSES but still carries a waiver at registry:25. The debt is paid — delete that line in this PR. Cover is handed back, never kept.
+[local-gate] probe-gate: FAIL
+
+[local-gate] unit-suite: SKIPPED (ตั้ง LOCAL_GATE_FULL=1 เพื่อรันเต็ม — ต้อง pnpm install ก่อน)
+
+[local-gate] RESULT: FAIL
+exit=1
+
+===============================================================================
+FRICTION 1 ACCEPTANCE — the operator-specified check
+cmd: grep -c "^/home\|/home/user" evidence/probe-results.json  (must be 0)
+===============================================================================
+0
+
+===============================================================================
+IDEMPOTENCY — the friction itself, measured on a CLEAN tree at commit b053dc58
+(this is what used to force `git checkout -- evidence/probe-results.json`)
+===============================================================================
+$ git status --short
+ M evidence/probe-friction/test-output.txt
+$ node scripts/ci/probe-gate.js >/dev/null 2>&1 ; git status --short
+ M evidence/probe-friction/test-output.txt
+$ node scripts/ci/probe-gate.js >/dev/null 2>&1 ; git status --short   # twice
+ M evidence/probe-friction/test-output.txt
+$ bash scripts/session-check.sh >/dev/null 2>&1 ; git status --short
+ M evidence/probe-friction/test-output.txt
+(no output above any of the four git status calls except the evidence file itself = tree stays clean)

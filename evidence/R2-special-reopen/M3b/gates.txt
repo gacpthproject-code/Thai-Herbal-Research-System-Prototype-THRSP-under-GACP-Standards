@@ -1,0 +1,40 @@
+# M3b gates — run 2026-08-03T14:23:13Z on branch feat/r2-m3b-terminal-letter (base 6082401b)
+
+## Gate 1 — jest (listed set)
+$ cd apps/backend && npx jest --config jest.config.cjs __tests__/unit/terminal-decision-letter.test.js __tests__/unit/correction-round.test.js __tests__/unit/atomic-decision-letter.test.js __tests__/unit/official-letter.test.js __tests__/integration/reject-handler-natid-scalar.test.js __tests__/integration/provider-cms-workflow.test.js __tests__/unit/workflow-reject-deadline-holiday.test.js
+Test Suites: 7 passed, 7 total
+Tests:       104 passed, 104 total
+
+## Gate 1b — FULL backend suite (DoD 4.2)
+$ cd apps/backend && npx jest --config jest.config.cjs
+Test Suites: 1 failed, 5 skipped, 528 passed, 529 of 534 total
+Tests:       1 failed, 63 skipped, 7114 passed, 7178 total
+PRE-EXISTING FAIL (not M3b): __tests__/unit/dataset-export-service.test.js
+  'STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)'
+  TypeError: Cannot read properties of undefined (reading 'datamodel') — @prisma/client not generated in this env.
+  Verified on base 6082401b with the M3b diff stashed: same 1 failed, 11 passed.
+
+## Gate 2 — ratchet
+$ bash scripts/probes/ratchet.sh
+  dup [holiday-calendar] 3 sources: /home/user/GACP-Certification-Application/apps/backend/services/working-days-service.js /home/user/GACP-Certification-Application/apps/backend/utils/working-days.js /home/user/GACP-Certification-Application/apps/backend/routes/api/provider/handlers/workflow-handler-deps.js
+  dup [fee-table] 3 sources: /home/user/GACP-Certification-Application/apps/backend/modules/billing/internal/fee-service.js /home/user/GACP-Certification-Application/apps/backend/config/business-rules.js /home/user/GACP-Certification-Application/apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4 (/home/user/GACP-Certification-Application/evidence/ratchet-current.txt)
+
+## Gate 3 — eslint (files touched)
+$ cd apps/backend && npx eslint shared/terminal-letter-template.js services/decision-letter-service.js services/admin-application-service.js routes/api/provider/handlers/admin.js routes/api/provider/handlers/auditor-audit-decision-handler.js routes/api/provider/handlers/workflow-transitions-handler.js __tests__/unit/terminal-decision-letter.test.js __tests__/unit/workflow-transitions-cert-integrity.test.js
+exit=0
+
+## Gate 4 — thai copy style
+$ node scripts/ci/check-thai-copy-style.js
+[thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+exit=0
+
+## Gate 5 — banned terms
+$ node scripts/ci/check-banned-terms.js
+[banned-terms] Repository scan passed
+exit=0

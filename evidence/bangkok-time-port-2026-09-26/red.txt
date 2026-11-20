@@ -1,0 +1,1388 @@
+# RED — port of 465e3ad4 onto main 9ce3db30, 2026-09-26
+# How: after committing c1b66704, 'git checkout main -- <14 source files>' (tests kept at the fixed version), ran the tests, then 'git checkout HEAD -- <same files>' and confirmed git status clean.
+# Source files reverted:
+#   apps/backend/services/audit-scheduling-service.js
+#   apps/backend/services/pdf/audit-report-service.js
+#   apps/backend/services/pdf/car-report-service.js
+#   apps/backend/services/pdf/certificate-template-service.js
+#   apps/backend/services/pdf/invoice-template-service.js
+#   apps/backend/services/pdf/katorlor1-template-service.js
+#   apps/backend/services/pdf/lot-label-template-service.js
+#   apps/backend/services/receipt-numbering-service.js
+#   apps/backend/services/vat-report-service.js
+#   apps/backend/shared/error-codes.js
+#   apps/backend/utils/thai-format.js
+#   apps/backend/utils/thai-numerals.js
+#   apps/backend/utils/working-days.js
+#   apps/web-app/src/app/(public)/verify/[cert-number]/page.tsx
+
+## backend (host TZ Asia/Bangkok)
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/atomic-decision-letter.test.js
+  canonical workflow-transitions — letter atomic with decision (D-8)
+    ✓ REVISION_REQUESTED mints the OFFICIAL_LETTER through the SAME tx as the status write, with all four elements (94 ms)
+    ✓ CAR_PENDING mints the letter too (CAR branch had NO letter before) (20 ms)
+    ✓ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs (63 ms)
+    ✓ non-correction transition (DOC_APPROVED) mints NO letter (negative control) (26 ms)
+  auditor audit-decision — CAR letter atomic with decision (D-8)
+    ✓ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items) (37 ms)
+    ✓ ATOMIC: letter write failure fails the decision — deadline never seeded, 500 (14 ms)
+    ✓ PASS mints NO correction letter (negative control) (15 ms)
+  PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before)
+    ✓ DOC_REVISION mints the OFFICIAL_LETTER in the same tx as status write + deadline upsert (23 ms)
+    ✓ FIELD_CAR mints the letter too (22 ms)
+    ✓ ATOMIC: letter write failure fails the reject — RevisionDeadline never touched, 500 (16 ms)
+  letter template SSOT
+    ✓ the Thai letter copy is defined ONLY in shared/correction-letter-template.js (79 ms)
+    ✓ buildCorrectionLetter emits all five elements + structured metadata (M3: round number) (3 ms)
+    ✓ buildCorrectionLetter falls back to the decision message when no structured items exist (1 ms)
+    ✓ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition) (4 ms)
+    ✓ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[33mwarn[39m: [vat-report] PurchaseInvoice delegate unavailable — returning empty Input VAT report. (Expected in CI before prisma generate; production deploys must have it.) {"service":"gacp-backend","timestamp":"2026-09-26T07:49:19.314Z"}
+FAIL __tests__/unit/vat-report-service.test.js
+  [B19-C] vat-report-service — generateOutputVatReport
+    ✕ empty month → totals zero, no rows, inputVat TODO flagged (184 ms)
+    ✓ one PLATFORM payment in May 2026 → 1 row, VAT amount equals journal-line credit (31 ms)
+    ✓ multi-scope invoice (3 scopes) → VAT scales linearly to 105 / taxable 1,500 (31 ms)
+    ✓ corporate (JURISTIC) buyer tax ID is rendered; individual buyer shows dash (37 ms)
+    ✓ reversing entry (credit=0) is excluded from the report (23 ms)
+    ✓ C1 regression: JournalLine query selects scalar invoiceId, NOT a nested invoice relation (27 ms)
+    ✓ rejects invalid year / month (28 ms)
+  [B19-C] vat-report-service — CSV serialisation
+    ✓ UTF-8 BOM prefix present, RFC-4180 escaping, totals footer row (15 ms)
+    ✓ CSV handles empty month — header + empty totals footer only (20 ms)
+    ✓ CSV escapes double-quotes by doubling them per RFC 4180 (13 ms)
+    ✓ CSV serialises Date as YYYY-MM-DD and number as fixed-2 decimal (19 ms)
+  [B19-C] vat-report-service — checkPeriodClosable
+    ✓ returns closable=true when no pending invoices in window (13 ms)
+    ✓ returns closable=false when pending invoices exist in the period (15 ms)
+    ✓ rejects invalid year / month (22 ms)
+  [B19-C] vat-report-service — helpers
+    ✓ monthThai returns the Thai month name (15 ms)
+    ✕ toMonthBoundaries pins the Bangkok start/end of month (17 ms)
+    ✓ OUTPUT_VAT_ACCOUNT_CODES includes canonical 2131-001 plus legacy fallbacks (15 ms)
+    ✓ INPUT_VAT_ACCOUNT_CODES exposes the canonical 1310-001 (Iter 26) (13 ms)
+  [Iter26] vat-report-service — generateInputVatReport
+    ✓ returns empty totals when no APPROVED purchase invoices exist (20 ms)
+    ✓ aggregates per-row taxable + VAT across APPROVED rows (19 ms)
+    ✕ only scans APPROVED rows in the (start, end) window (25 ms)
+    ✓ returns source:unavailable when PurchaseInvoice delegate is missing (23 ms)
+  [Iter26] vat-report-service — generateOutputVatReport with Input side
+    ✓ inputVat block computes from APPROVED PurchaseInvoice rows (29 ms)
+    ✓ falls back to tracked:false marker when PurchaseInvoice missing (18 ms)
+    ✓ collectInputVatSummary helper rounds + aggregates (18 ms)
+
+  ● [B19-C] vat-report-service — generateOutputVatReport › empty month → totals zero, no rows, inputVat TODO flagged
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-04-30T17:00:00.000Z"
+    Received: "2026-05-01T00:00:00.000Z"
+
+      152 |         expect(where.accountCode.in).toEqual(expect.arrayContaining([PLATFORM_VAT_ACCOUNT]));
+      153 |         // Bangkok month edges (00:00 ICT = 17:00 UTC the day before).
+    > 154 |         expect(where.entry.entryDate.gte.toISOString()).toBe('2026-04-30T17:00:00.000Z');
+          |                                                         ^
+      155 |         expect(where.entry.entryDate.lt.toISOString()).toBe('2026-05-31T17:00:00.000Z');
+      156 |         expect(where.entry.isDeleted).toBe(false);
+      157 |         expect(where.entry.organizationId).toBe('org-1');
+
+      at Object.toBe (__tests__/unit/vat-report-service.test.js:154:57)
+
+  ● [B19-C] vat-report-service — helpers › toMonthBoundaries pins the Bangkok start/end of month
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-04-30T17:00:00.000Z"
+    Received: "2026-05-01T00:00:00.000Z"
+
+      479 |         const service = loadServiceWithMocks(prismaMock);
+      480 |         const { start, end } = service._internals.toMonthBoundaries(2026, 5);
+    > 481 |         expect(start.toISOString()).toBe('2026-04-30T17:00:00.000Z');
+          |                                     ^
+      482 |         expect(end.toISOString()).toBe('2026-05-31T17:00:00.000Z');
+      483 |     });
+      484 |
+
+      at Object.toBe (__tests__/unit/vat-report-service.test.js:481:37)
+
+  ● [Iter26] vat-report-service — generateInputVatReport › only scans APPROVED rows in the (start, end) window
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-04-30T17:00:00.000Z"
+    Received: "2026-05-01T00:00:00.000Z"
+
+      594 |         // Bangkok month edges (00:00 ICT = 17:00 UTC the day before).
+      595 |         expect(callArg.where.invoiceDate.gte.toISOString())
+    > 596 |             .toBe('2026-04-30T17:00:00.000Z');
+          |              ^
+      597 |         expect(callArg.where.invoiceDate.lt.toISOString())
+      598 |             .toBe('2026-05-31T17:00:00.000Z');
+      599 |         expect(callArg.where.organizationId).toBe('org-1');
+
+      at Object.toBe (__tests__/unit/vat-report-service.test.js:596:14)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/bangkok-business-dates.test.js
+  the checks below really run on a UTC clock
+    ✓ the child process reads 16 Sep for an instant that is 17 Sep in Bangkok (56 ms)
+  CODE-01 — Thai document dates are the Bangkok date on a UTC server
+    ✕ utils/thai-format prints 17 Sep 2569, not 16 (2 ms)
+    ✕ utils/thai-numerals prints the DTAM date in Thai digits for the Bangkok day (1 ms)
+    ✕ the receipt/tax-invoice issue date (DTAM and PLATFORM) is the Bangkok day (7 ms)
+    ✕ a receipt issued at 01:30 on 1 Jan 2570 prints 2570 as both its date and its year (3 ms)
+    ✕ a credit note issued at 01:30 on 1 Jan 2570 prints 2570, and the original invoice keeps its Bangkok day (2 ms)
+    ✕ the certificate prints its issue, expiry and revision dates as Bangkok days (2 ms)
+    ✕ the lot label prints the Bangkok day, still zero-padded (1 ms)
+    ✕ the กทล.1 form prints the Bangkok filing day (1 ms)
+    ✕ the CAR and audit reports print Bangkok days (1 ms)
+  CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server
+    ✕ the over-cap error and the availability view count both audits on the same Bangkok day (2 ms)
+    ✕ "20 Sep, 09:00" is 09:00 in Bangkok (02:00Z), not 09:00 UTC (16:00 in Bangkok) (2 ms)
+    ✕ a time before 07:00 stays on the chosen Bangkok day (1 ms)
+    ✕ the auditor-busy check counts the Bangkok day of the appointment (1 ms)
+  DOMA-10 — the working-day calendar matches the announced holidays
+    ✕ Mon 7 Dec 2569 (substitute for Father's Day on a Saturday) is not a working day (1 ms)
+    ✕ five working days from Fri 4 Dec 2569 skip 7 Dec and 10 Dec and end on Tue 15 Dec (6 ms)
+    ✕ the same deadline comes out the same on a UTC server (104 ms)
+    ✕ 2569: the announced lunar and special days are holidays (3 ms)
+    ✕ 2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days (8 ms)
+    ✕ 2570: the days in ประกาศ ธปท. 37/2569 are holidays, and 19 Feb is not (2 ms)
+    ✕ 2568: substitutes, the special days and the real Asalha date are holidays; 14 Jul is not (2 ms)
+    ✕ a run of fixed-date holidays that touches a weekend gets one substitute, across the new year too (2 ms)
+    ✕ a substitute that is both announced and derived by the rule is one day off, not two (1 ms)
+    ✕ beyond the dated table, the weekend rule still moves fixed-date holidays (2 ms)
+  VAT period (ภ.พ.30) follows the Bangkok calendar month
+    ✕ September 2569 excludes an invoice issued 2026-09-30T20:00Z (1 Oct 03:00 in Bangkok) (17 ms)
+    ✕ October 2569 includes it (17 ms)
+    ✕ the e-Filing CSV dates that invoice 2026-10-01 (its Bangkok day) (21 ms)
+    ✕ December ends, and January starts, at midnight in Bangkok (18 ms)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › utils/thai-format prints 17 Sep 2569, not 16
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "17 ก.ย. 2569"
+    Received: "16 ก.ย. 2569"
+
+      134 |
+      135 |     it('utils/thai-format prints 17 Sep 2569, not 16', () => {
+    > 136 |         expect(out.short).toBe('17 ก.ย. 2569');
+          |                           ^
+      137 |         expect(out.full).toBe('17 กันยายน 2569');
+      138 |         expect(out.fullNewYear).toBe('1 มกราคม 2570');
+      139 |     });
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:136:27)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › utils/thai-numerals prints the DTAM date in Thai digits for the Bangkok day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "๑๗ กันยายน พุทธศักราช ๒๕๖๙"
+    Received: "๑๖ กันยายน พุทธศักราช ๒๕๖๙"
+
+      140 |
+      141 |     it('utils/thai-numerals prints the DTAM date in Thai digits for the Bangkok day', () => {
+    > 142 |         expect(out.numerals).toBe('๑๗ กันยายน พุทธศักราช ๒๕๖๙');
+          |                              ^
+      143 |     });
+      144 |
+      145 |     it('the receipt/tax-invoice issue date (DTAM and PLATFORM) is the Bangkok day', () => {
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:142:30)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › the receipt/tax-invoice issue date (DTAM and PLATFORM) is the Bangkok day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "๑๗ กันยายน พุทธศักราช ๒๕๖๙"
+    Received: "๑๖ กันยายน พุทธศักราช ๒๕๖๙"
+
+      144 |
+      145 |     it('the receipt/tax-invoice issue date (DTAM and PLATFORM) is the Bangkok day', () => {
+    > 146 |         expect(out.dtamReceiptDate).toBe('๑๗ กันยายน พุทธศักราช ๒๕๖๙');
+          |                                     ^
+      147 |         expect(out.platformReceiptDate).toBe('17 กันยายน 2569');
+      148 |     });
+      149 |
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:146:37)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › a receipt issued at 01:30 on 1 Jan 2570 prints 2570 as both its date and its year
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 3
+
+      Object {
+    -   "ISSUE_DATE": "1 ม.ค. 2570",
+    -   "ISSUE_DATE_TH": "๑ มกราคม พุทธศักราช ๒๕๗๐",
+    -   "YEAR_BE_TH": "๒๕๗๐",
+    +   "ISSUE_DATE": "31 ธ.ค. 2569",
+    +   "ISSUE_DATE_TH": "๓๑ ธันวาคม พุทธศักราช ๒๕๖๙",
+    +   "YEAR_BE_TH": "๒๕๖๙",
+      }
+
+      149 |
+      150 |     it('a receipt issued at 01:30 on 1 Jan 2570 prints 2570 as both its date and its year', () => {
+    > 151 |         expect(out.receipt).toEqual({
+          |                             ^
+      152 |             ISSUE_DATE: '1 ม.ค. 2570',
+      153 |             ISSUE_DATE_TH: '๑ มกราคม พุทธศักราช ๒๕๗๐',
+      154 |             YEAR_BE_TH: '๒๕๗๐',
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:151:29)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › a credit note issued at 01:30 on 1 Jan 2570 prints 2570, and the original invoice keeps its Bangkok day
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 4
+    + Received  + 4
+
+      Object {
+    -   "ISSUE_DATE": "1 ม.ค. 2570",
+    -   "ISSUE_DATE_TH": "๑ มกราคม พุทธศักราช ๒๕๗๐",
+    -   "ORIGINAL_INVOICE_DATE": "17 ก.ย. 2569",
+    -   "YEAR_BE_TH": "๒๕๗๐",
+    +   "ISSUE_DATE": "31 ธ.ค. 2569",
+    +   "ISSUE_DATE_TH": "๓๑ ธันวาคม พุทธศักราช ๒๕๖๙",
+    +   "ORIGINAL_INVOICE_DATE": "16 ก.ย. 2569",
+    +   "YEAR_BE_TH": "๒๕๖๙",
+      }
+
+      157 |
+      158 |     it('a credit note issued at 01:30 on 1 Jan 2570 prints 2570, and the original invoice keeps its Bangkok day', () => {
+    > 159 |         expect(out.note).toEqual({
+          |                          ^
+      160 |             ISSUE_DATE: '1 ม.ค. 2570',
+      161 |             ISSUE_DATE_TH: '๑ มกราคม พุทธศักราช ๒๕๗๐',
+      162 |             YEAR_BE_TH: '๒๕๗๐',
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:159:26)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › the certificate prints its issue, expiry and revision dates as Bangkok days
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 5
+    + Received  + 5
+
+      Object {
+    -   "EXPIRY_DATE_TH": "๑๗ กันยายน พุทธศักราช ๒๕๗๒",
+    -   "ISSUED_DATE_SHORT": "17/09/2569",
+    -   "ISSUED_DATE_TH": "17 กันยายน 2569",
+    -   "ISSUE_DATE_TH": "๑๗ กันยายน พุทธศักราช ๒๕๖๙",
+    -   "REVISION_LINE": "ฉบับแก้ไขครั้งที่ 1 · 17 ก.ย. 2569",
+    +   "EXPIRY_DATE_TH": "๑๖ กันยายน พุทธศักราช ๒๕๗๒",
+    +   "ISSUED_DATE_SHORT": "16/09/2569",
+    +   "ISSUED_DATE_TH": "16 กันยายน 2569",
+    +   "ISSUE_DATE_TH": "๑๖ กันยายน พุทธศักราช ๒๕๖๙",
+    +   "REVISION_LINE": "ฉบับแก้ไขครั้งที่ 1 · 16 ก.ย. 2569",
+      }
+
+      166 |
+      167 |     it('the certificate prints its issue, expiry and revision dates as Bangkok days', () => {
+    > 168 |         expect(out.cert).toEqual({
+          |                          ^
+      169 |             ISSUE_DATE_TH: '๑๗ กันยายน พุทธศักราช ๒๕๖๙',
+      170 |             EXPIRY_DATE_TH: '๑๗ กันยายน พุทธศักราช ๒๕๗๒',
+      171 |             ISSUED_DATE_TH: '17 กันยายน 2569',
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:168:26)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › the lot label prints the Bangkok day, still zero-padded
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "05 ธ.ค. 2569"
+    Received: "THREW: Cannot read properties of undefined (reading 'formatThaiDate')"
+
+      176 |
+      177 |     it('the lot label prints the Bangkok day, still zero-padded', () => {
+    > 178 |         expect(out.lotLabel).toBe('05 ธ.ค. 2569');
+          |                              ^
+      179 |     });
+      180 |
+      181 |     it('the กทล.1 form prints the Bangkok filing day', () => {
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:178:30)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › the กทล.1 form prints the Bangkok filing day
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "วันที่ยื่น 17 กันยายน 2569"
+    Received string:    "<style>
+      .k1{font-family:\"Sarabun\",\"TH Sarabun New\",sans-serif;font-size:13px;color:#1a1a1a;line-height:1.7}
+      .k1 .code{border:1.5px solid #1a1a1a;display:inline-block;padding:4px 12px;font-weight:700;letter-spacing:.05em}
+      .k1 h1{font-size:16px;text-align:center;margin:10px 0 2px;font-weight:700}
+      .k1 .sub{text-align:center;font-size:12px;color:#555;margin-bottom:14px}
+      .k1 .sec{background:#f1f5f4;border-left:4px solid #0F5F6B;font-size:14px;font-weight:700;margin:16px 0 0;padding:6px 10px}
+      .k1 .body{border:1px solid #d9e0df;border-top:0;padding:10px 12px}
+      .k1 .row{display:flex;gap:10px;padding:3px 0;align-items:flex-start}
+      .k1 .lbl{min-width:190px;color:#555}
+      .k1 .val{flex:1}
+      .k1 .box{display:inline-block;margin-right:18px;white-space:nowrap}
+      .k1 .boxes{display:flex;flex-wrap:wrap;gap:4px 0}
+      .k1 .ink{border-bottom:1px dotted #999;padding:0 6px;white-space:normal}
+      .k1 .slot{padding:3px 0}
+      .k1 .miss{color:#b42318;margin-left:10px}
+      .k1 .ok{color:#0F5F6B;margin-left:10px}
+      .k1 .opt{color:#777;margin-left:6px}
+      .k1 .note{color:#777}
+      .k1 .decl{padding:2px 0}
+      .k1 .stamp{margin-top:8px;color:#0F5F6B;font-weight:600}
+      .k1 .meta{display:flex;justify-content:space-between;font-size:12px;color:#555;margin-top:6px}·
+      /*
+       * จอแคบ — แบบพิมพ์ต้องอ่านครบ ไม่ใช่ถูกตัดหายทางขวา
+       *
+       * เดินจริงบนมือถือ 390px 2026-09-12 พบว่าหน้าตรวจทานแสดงแบบ กทล.1 แล้วข้อความ
+       * ถูกตัด: คลาส .lbl กินความกว้างขั้นต่ำ 190px จาก 390 ที่มี เหลือให้ค่าไม่ถึงครึ่ง และ
+       * กติกา white-space:nowrap ของช่องติ๊กห้ามขึ้นบรรทัดใหม่ ⇒ \"☑ ขอรับรองใหม่ ☐ ต่ออายุ
+       * ☐ ใบแทน\" ล้นออกนอกกรอบ · เกษตรกรอ่านแบบที่ตัวเองกำลังจะยื่นไม่ครบ
+       *
+       * แก้ด้วยการวางป้ายไว้เหนือค่าและปล่อยให้ช่องติ๊กขึ้นบรรทัดได้ — ไม่ใช่ย่อตัวอักษร
+       * ซึ่งจะทำให้อ่านยากขึ้นอีก
+       *
+       * **ไม่กระทบ PDF**: Puppeteer เรนเดอร์ที่ความกว้าง A4 (~794px) ซึ่งเกินจุดตัดนี้
+       * กระดาษที่กรมได้รับจึงหน้าตาเหมือนเดิมทุกประการ — media query ทำงานเฉพาะบนจอแคบ
+       */
+      @media (max-width: 640px) {
+        .k1 .row{flex-direction:column;gap:2px}
+        .k1 .lbl{min-width:0;font-weight:600}
+        .k1 .box{white-space:normal;margin-right:12px}
+        .k1 .meta{flex-direction:column;gap:2px}
+        .k1 .body{padding:10px}
+      }
+    </style><div class=\"k1\">
+          <div class=\"code\">แบบ กทล ๑</div>
+          <h1>คำขอรับการรับรองมาตรฐาน GACP</h1>
+          <div class=\"sub\">กรมการแพทย์แผนไทยและการแพทย์ทางเลือก กระทรวงสาธารณสุข</div>
+          <div class=\"row\"><span class=\"lbl\">ประเภทคำขอ</span><span class=\"val\">
+            <span class=\"box\">☑ ขอรับรองใหม่</span><span class=\"box\">☐ ต่ออายุการรับรอง</span><span class=\"box\">☐ ขอใบแทนใบรับรอง</span></span></div>
+          <div class=\"row\"><span class=\"lbl\">ขอบข่ายการรับรอง</span><span class=\"val\">
+            <span class=\"box\">☑ การปลูก</span><span class=\"box\">☐ การแปรรูปเบื้องต้น</span></span></div>
+          <div class=\"meta\">
+            <span>เลขที่คำขอ ยังไม่ออกเลขที่</span>
+            <span>วันที่ยื่น 16 กันยายน 2569</span>
+          </div><h2 class=\"sec\">ส่วนที่ ๑ ข้อมูลผู้ขอรับการรับรอง</h2><div class=\"body\"><div class=\"row\"><span class=\"lbl\">คำนำหน้า ชื่อ นามสกุล</span><span class=\"val\">            </span></div><div class=\"row\"><span class=\"lbl\">เลขประจำตัวประชาชน</span><span class=\"val\">            </span></div><div class=\"row\"><span class=\"lbl\">สัญชาติ</span><span class=\"val\">            </span></div><div class=\"row\"><span class=\"lbl\">โทรศัพท์</span><span class=\"val\">            </span></div></div><h2 class=\"sec\">ส่วนที่ ๒ ข้อมูลสถานที่ ที่ดิน และพันธุ์พืช</h2><div class=\"body\">
+            <div class=\"row\"><span class=\"lbl\">ชื่อสถานที่/ฟาร์ม</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">ที่ตั้ง</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">โทรศัพท์ ณ สถานที่</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">เอกสารสิทธิ์ที่ดิน</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">เล่มที่ / หน้าที่ / ออกให้โดย</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">การถือครองที่ดิน</span><span class=\"val\">
+                <span class=\"box\">☐ เป็นเจ้าของ</span><span class=\"box\">☐ ได้รับอนุญาตจากรัฐ</span><span class=\"box\">☐ เช่า</span></span></div>·········
+            <div class=\"row\"><span class=\"lbl\">ลักษณะพื้นที่</span><span class=\"val\"><div class=\"note\">ยังไม่ได้ระบุลักษณะพื้นที่</div></span></div>
+            <div class=\"row\"><span class=\"lbl\">ขนาดพื้นที่ปลูก (ตารางเมตร)</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">พิกัด</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">ปริมาณการปลูก</span><span class=\"val\">            </span></div>
+            <div class=\"row\"><span class=\"lbl\">วัตถุประสงค์</span><span class=\"val\">
+                <span class=\"box\">☐ เพื่อประโยชน์ทางการแพทย์</span><span class=\"box\">☐ เพื่อการส่งออก</span></span></div>
+            <div class=\"row\"><span class=\"lbl\">พันธุ์และส่วนที่ใช้</span><span class=\"val\"><span class=\"note\">ยังไม่ได้ระบุพันธุ์และส่วนที่ใช้</span></span></div>
+        </div><h2 class=\"sec\">ส่วนที่ ๓ เอกสารประกอบคำขอ</h2><div class=\"body\"><div class=\"note\">ยังไม่มีรายการเอกสารสำหรับคำขอนี้</div></div><h2 class=\"sec\">ส่วนที่ ๔ คำรับรองของผู้ขอรับการรับรอง</h2><div class=\"body\"><div class=\"decl\">☐ ข้าพเจ้าขอรับรองว่าข้อความและเอกสารที่ยื่นนี้เป็นความจริงทุกประการ</div><div class=\"decl\">☐ ข้าพเจ้ายินยอมให้พนักงานเจ้าหน้าที่เข้าตรวจสอบสถานที่ตามที่แจ้งไว้</div><div class=\"decl\">☐ ข้าพเจ้าจะปฏิบัติตามหลักเกณฑ์และเงื่อนไขการรับรองมาตรฐาน GACP</div><div class=\"decl\">☐ ข้าพเจ้าจะแจ้งให้ทราบเมื่อมีการเปลี่ยนแปลงข้อมูลที่ยื่นไว้</div><div class=\"decl\">☐ ข้าพเจ้าทราบว่าการให้ข้อมูลเท็จเป็นเหตุให้เพิกถอนการรับรองได้</div></div></div>"
+
+      180 |
+      181 |     it('the กทล.1 form prints the Bangkok filing day', () => {
+    > 182 |         expect(out.katorlor1).toContain('วันที่ยื่น 17 กันยายน 2569');
+          |                               ^
+      183 |         expect(out.katorlor1).not.toContain('16 กันยายน 2569');
+      184 |     });
+      185 |
+
+      at Object.toContain (__tests__/unit/bangkok-business-dates.test.js:182:31)
+
+  ● CODE-01 — Thai document dates are the Bangkok date on a UTC server › the CAR and audit reports print Bangkok days
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "17 กันยายน 2569"
+    Received string:    "
+    <!DOCTYPE html>
+    <html lang=\"th\">
+    <head>
+      <meta charset=\"UTF-8\">
+      <style>
+        /* Sarabun is embedded locally, not imported. The vendored woff2 faces in
+           assets/fonts/sarabun are base64-inlined as data: URIs and injected into
+           <head> by pdf-generator.service.js (this HTML goes through
+           pdfGenerator.generatePDF below), so no font URL is needed here. The
+           @import that used to pull Sarabun from a foreign font CDN on every
+           render was removed 2026-07-25 (PDPA data sovereignty); the renderer now
+           allows only data: + about:blank. */·
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Sarabun', sans-serif; font-size: 11pt; color: #1e293b; line-height: 1.6; }·····
+        .container { max-width: 750px; margin: 0 auto; padding: 20px; }·····
+        .header { text-align: center; border-bottom: 3px solid #dc2626; padding-bottom: 15px; margin-bottom: 20px; }
+        .header h1 { font-size: 18pt; color: #dc2626; }
+        .header h2 { font-size: 12pt; color: #64748b; font-weight: normal; }
+        .car-number { background: #dc2626; color: white; padding: 5px 15px; border-radius: 5px; display: inline-block; margin-top: 10px; font-size: 14pt; font-weight: bold; }·····
+        .alert-box { background: #fef2f2; border: 2px solid #dc2626; border-radius: 8px; padding: 15px; margin-bottom: 20px; }
+        .alert-box h3 { color: #dc2626; margin-bottom: 10px; }·····
+        .meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .meta-item { background: #f8fafc; padding: 10px; border-radius: 5px; }
+        .meta-label { color: #64748b; font-size: 10pt; }
+        .meta-value { font-weight: 600; }·····
+        .section { margin-bottom: 20px; }
+        .section-title { font-size: 12pt; font-weight: 700; color: #1e293b; border-bottom: 2px solid #e2e8f0; padding-bottom: 5px; margin-bottom: 10px; }·····
+        table { width: 100%; border-collapse: collapse; font-size: 10pt; }
+        th { background: #dc2626; color: white; text-align: left; padding: 8px; }
+        td { border: 1px solid #e2e8f0; padding: 8px; }
+        tr:nth-child(even) { background: #f8fafc; }·····
+        .action-box { background: #fffbeb; border: 1px solid #fbbf24; border-radius: 8px; padding: 15px; margin-bottom: 15px; }
+        .action-box h4 { color: #92400e; margin-bottom: 5px; }·····
+        .deadline-box { background: #fee2e2; border: 2px solid #dc2626; border-radius: 8px; padding: 15px; text-align: center; margin-bottom: 20px; }
+        .deadline-box .date { font-size: 16pt; font-weight: bold; color: #dc2626; }·····
+        .signature-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; margin-top: 40px; }
+        .signature-item { text-align: center; }
+        .signature-line { border-top: 1px solid #1e293b; width: 80%; margin: 60px auto 5px; }
+        .signature-label { color: #64748b; font-size: 10pt; }·····
+        .footer { text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 9pt; }·····
+        .checkbox { display: inline-block; width: 15px; height: 15px; border: 2px solid #64748b; margin-right: 5px; vertical-align: middle; }
+      </style>
+    </head>
+    <body>
+      <div class=\"container\">
+        <div class=\"header\">
+          <h1>⚠️ แบบขอให้แก้ไขข้อบกพร่อง</h1>
+          <h2>Corrective Action Request (CAR)</h2>
+          <div class=\"car-number\">CAR-2569-0001</div>
+        </div>·····
+        <div class=\"alert-box\">
+          <h3>⚠️ ข้อบกพร่องที่ต้องแก้ไข</h3>
+          <p>ตามผลการตรวจประเมินพบข้อบกพร่องที่ต้องดำเนินการแก้ไข โปรดดำเนินการแก้ไขภายในระยะเวลาที่กำหนด</p>
+        </div>·····
+        <div class=\"meta-grid\">
+          <div class=\"meta-item\">
+            <div class=\"meta-label\">เลขที่การตรวจ</div>
+            <div class=\"meta-value\">-</div>
+          </div>
+          <div class=\"meta-item\">
+            <div class=\"meta-label\">เลขที่ใบสมัคร</div>
+            <div class=\"meta-value\">-</div>
+          </div>
+          <div class=\"meta-item\">
+            <div class=\"meta-label\">ผู้ประกอบการ</div>
+            <div class=\"meta-value\">-</div>
+          </div>
+          <div class=\"meta-item\">
+            <div class=\"meta-label\">ชื่อแปลง/ฟาร์ม</div>
+            <div class=\"meta-value\">-</div>
+          </div>
+          <div class=\"meta-item\">
+            <div class=\"meta-label\">วันที่ตรวจ</div>
+            <div class=\"meta-value\">16 กันยายน 2569</div>
+          </div>
+          <div class=\"meta-item\">
+            <div class=\"meta-label\">ผู้ตรวจ</div>
+            <div class=\"meta-value\">-</div>
+          </div>
+        </div>·····
+        <div class=\"deadline-box\">
+          <p>⏰ กำหนดแก้ไขภายใน</p>
+          <div class=\"date\">15 ธันวาคม 2569</div>
+          <p style=\"font-size: 10pt; color: #991b1b; margin-top: 5px;\">หากไม่ดำเนินการภายในกำหนด จะถือว่าไม่ผ่านการตรวจประเมิน</p>
+        </div>·····
+        <div class=\"section\">
+          <div class=\"section-title\">📋 รายการที่ต้องแก้ไข (0 รายการ)</div>
+          <table>
+            <thead>
+              <tr>
+                <th style=\"width: 10%;\">#</th>
+                <th style=\"width: 15%;\">รหัส</th>
+                <th style=\"width: 45%;\">รายการ</th>
+                <th style=\"width: 30%;\">หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>···········
+            </tbody>
+          </table>
+        </div>·····
+        <div class=\"section\">
+          <div class=\"section-title\">✍️ แนวทางการแก้ไข</div>·······
+        </div>·····
+        <div class=\"signature-grid\">
+          <div class=\"signature-item\">
+            <div class=\"signature-line\"></div>
+            <strong>ผู้ตรวจประเมิน</strong>
+            <div class=\"signature-label\">-</div>
+          </div>
+          <div class=\"signature-item\">
+            <div class=\"signature-line\"></div>
+            <strong>ผู้รับการตรวจ</strong>
+            <div class=\"signature-label\">-</div>
+          </div>
+          <div class=\"signature-item\">
+            <div class=\"signature-line\"></div>
+            <strong>ผู้อนุมัติ</strong>
+            <div class=\"signature-label\">วันที่: ___/___/______</div>
+          </div>
+        </div>·····
+        <div class=\"footer\">
+          <p>เอกสารนี้ออกโดยระบบ GACP Platform | วันที่ออก: 16 กันยายน 2569</p>
+          <p>ระบบรับรองมาตรฐาน GACP สมุนไพร | GACP Thai Platform</p>
+        </div>
+      </div>
+    </body>
+    </html>
+            "
+
+      185 |
+      186 |     it('the CAR and audit reports print Bangkok days', () => {
+    > 187 |         expect(out.carHtml).toContain('17 กันยายน 2569');
+          |                             ^
+      188 |         expect(out.carHtml).toContain('15 ธันวาคม 2569');
+      189 |         expect(out.carHtml).not.toContain('16 กันยายน 2569');
+      190 |         expect(out.auditHtml).toContain('17 กันยายน 2569');
+
+      at Object.toContain (__tests__/unit/bangkok-business-dates.test.js:187:29)
+
+  ● CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server › the over-cap error and the availability view count both audits on the same Bangkok day
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "audits on 2026-09-20"
+    Received string:    "Auditor already has 2 audits on 2026-09-19 (cap: 2)"
+
+      234 |
+      235 |     it('the over-cap error and the availability view count both audits on the same Bangkok day', () => {
+    > 236 |         expect(out.overCapMessage).toContain('audits on 2026-09-20');
+          |                                    ^
+      237 |         expect(out.overCapDays).toEqual([{ day: '2026-09-20', count: 2 }]);
+      238 |     });
+      239 |
+
+      at Object.toContain (__tests__/unit/bangkok-business-dates.test.js:236:36)
+
+  ● CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server › "20 Sep, 09:00" is 09:00 in Bangkok (02:00Z), not 09:00 UTC (16:00 in Bangkok)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-09-20T02:00:00.000Z"
+    Received: "2026-09-20T09:00:00.000Z"
+
+      239 |
+      240 |     it('"20 Sep, 09:00" is 09:00 in Bangkok (02:00Z), not 09:00 UTC (16:00 in Bangkok)', () => {
+    > 241 |         expect(out.fromDateOnly).toBe('2026-09-20T02:00:00.000Z');
+          |                                  ^
+      242 |         expect(out.fromBangkokMidnight).toBe('2026-09-20T02:00:00.000Z');
+      243 |     });
+      244 |
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:241:34)
+
+  ● CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server › a time before 07:00 stays on the chosen Bangkok day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-09-19T23:30:00.000Z"
+    Received: "2026-09-20T06:30:00.000Z"
+
+      244 |
+      245 |     it('a time before 07:00 stays on the chosen Bangkok day', () => {
+    > 246 |         expect(out.earlyMorning).toBe('2026-09-19T23:30:00.000Z');
+          |                                  ^
+      247 |     });
+      248 |
+      249 |     it('the auditor-busy check counts the Bangkok day of the appointment', () => {
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:246:34)
+
+  ● CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server › the auditor-busy check counts the Bangkok day of the appointment
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "gte": "2026-09-19T17:00:00.000Z",
+    -   "lte": "2026-09-20T16:59:59.999Z",
+    +   "gte": "2026-09-20T00:00:00.000Z",
+    +   "lte": "2026-09-20T23:59:59.999Z",
+      }
+
+      248 |
+      249 |     it('the auditor-busy check counts the Bangkok day of the appointment', () => {
+    > 250 |         expect(out.dayWindow).toEqual({
+          |                               ^
+      251 |             gte: '2026-09-19T17:00:00.000Z',
+      252 |             lte: '2026-09-20T16:59:59.999Z',
+      253 |         });
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:250:31)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › Mon 7 Dec 2569 (substitute for Father's Day on a Saturday) is not a working day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      272 |
+      273 |     it('Mon 7 Dec 2569 (substitute for Father\'s Day on a Saturday) is not a working day', () => {
+    > 274 |         expect(isHoliday(bkk('2026-12-07'))).toBe(true);
+          |                                              ^
+      275 |         expect(isWorkingDay(bkk('2026-12-07'))).toBe(false);
+      276 |     });
+      277 |
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:274:46)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › five working days from Fri 4 Dec 2569 skip 7 Dec and 10 Dec and end on Tue 15 Dec
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-12-15"
+    Received: "2026-12-14"
+
+      278 |     it('five working days from Fri 4 Dec 2569 skip 7 Dec and 10 Dec and end on Tue 15 Dec', () => {
+      279 |         const due = addWorkingDays(bkk('2026-12-04'), 5);
+    > 280 |         expect(getZonedParts(due).isoDate).toBe('2026-12-15');
+          |                                            ^
+      281 |         expect(due.toISOString()).toBe('2026-12-15T16:59:59.999Z');
+      282 |     });
+      283 |
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:280:44)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › the same deadline comes out the same on a UTC server
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "dec7": false,
+    -   "due": "2026-12-15T16:59:59.999Z",
+    +   "dec7": true,
+    +   "due": "2026-12-14T16:59:59.999Z",
+      }
+
+      290 |             };
+      291 |         `);
+    > 292 |         expect(out).toEqual({ due: '2026-12-15T16:59:59.999Z', dec7: false });
+          |                     ^
+      293 |     });
+      294 |
+      295 |     it('2569: the announced lunar and special days are holidays', () => {
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:292:21)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › 2569: the announced lunar and special days are holidays
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "2026-01-02",
+    +   "2026-06-01",
+    +   "2026-07-29",
+    +   "2026-07-30",
+    + ]
+
+      300 |             '2026-07-29', // วันอาสาฬหบูชา
+      301 |             '2026-07-30', // วันเข้าพรรษา
+    > 302 |         ])).toEqual([]);
+          |             ^
+      303 |     });
+      304 |
+      305 |     it('2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days', () => {
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:302:13)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › 2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      304 |
+      305 |     it('2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days', () => {
+    > 306 |         expect(isWorkingDay(bkk('2026-07-01'))).toBe(true);
+          |                                                 ^
+      307 |         expect(isWorkingDay(bkk('2026-07-02'))).toBe(true);
+      308 |     });
+      309 |
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:306:49)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › 2570: the days in ประกาศ ธปท. 37/2569 are holidays, and 19 Feb is not
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "2027-02-22",
+    +   "2027-05-03",
+    +   "2027-10-25",
+    +   "2027-12-06",
+    + ]
+
+      316 |             '2027-10-25', // ชดเชยวันปิยมหาราช
+      317 |             '2027-12-06', // ชดเชยวันพ่อแห่งชาติ
+    > 318 |         ])).toEqual([]);
+          |             ^
+      319 |         expect(isWorkingDay(bkk('2027-02-19'))).toBe(true);
+      320 |     });
+      321 |
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:318:13)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › 2568: substitutes, the special days and the real Asalha date are holidays; 14 Jul is not
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   "2025-04-07",
+    +   "2025-04-16",
+    +   "2025-05-05",
+    +   "2025-06-02",
+    +   "2025-07-10",
+    +   "2025-08-11",
+    + ]
+
+      330 |             '2025-07-11', // วันเข้าพรรษา
+      331 |             '2025-08-11', // วันหยุดพิเศษ
+    > 332 |         ])).toEqual([]);
+          |             ^
+      333 |         expect(isWorkingDay(bkk('2025-07-14'))).toBe(true);
+      334 |     });
+      335 |
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:332:13)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › a run of fixed-date holidays that touches a weekend gets one substitute, across the new year too
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      337 |         // 31 Dec 2565 was a Saturday and 1 Jan 2566 a Sunday. The 2566 list
+      338 |         // gave one substitute for both: Mon 2 Jan. Tue 3 Jan was a working day.
+    > 339 |         expect(isWorkingDay(bkk('2023-01-02'))).toBe(false);
+          |                                                 ^
+      340 |         expect(isWorkingDay(bkk('2023-01-03'))).toBe(true);
+      341 |         // Songkran 2567: Sat 13 to Mon 15 Apr, one substitute on Tue 16.
+      342 |         expect(isWorkingDay(bkk('2024-04-16'))).toBe(false);
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:339:49)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › a substitute that is both announced and derived by the rule is one day off, not two
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "2026-12-07"
+    Received array: ["2026-03-03", "2026-05-01", "2026-05-31", "2026-07-01", "2026-07-02"]
+
+      347 |         // 7 Dec 2569 is copied from the announcement AND derived from 5 Dec.
+      348 |         // Tue 8 Dec must stay a working day.
+    > 349 |         expect(EXTRA_HOLIDAYS_BY_YEAR[2026]).toContain('2026-12-07');
+          |                                              ^
+      350 |         expect(isWorkingDay(bkk('2026-12-08'))).toBe(true);
+      351 |     });
+      352 |
+
+      at Object.toContain (__tests__/unit/bangkok-business-dates.test.js:349:46)
+
+  ● DOMA-10 — the working-day calendar matches the announced holidays › beyond the dated table, the weekend rule still moves fixed-date holidays
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      354 |         // 1 Jan 2571 (2028) is a Saturday.
+      355 |         expect(Object.keys(EXTRA_HOLIDAYS_BY_YEAR)).not.toContain('2028');
+    > 356 |         expect(isWorkingDay(bkk('2028-01-03'))).toBe(false);
+          |                                                 ^
+      357 |         expect(isWorkingDay(bkk('2028-01-04'))).toBe(true);
+      358 |     });
+      359 | });
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:356:49)
+
+  ● VAT period (ภ.พ.30) follows the Bangkok calendar month › September 2569 excludes an invoice issued 2026-09-30T20:00Z (1 Oct 03:00 in Bangkok)
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "issued-1-oct-0300-bkk"
+    Received array:     ["last-instant-of-sep", "issued-1-oct-0300-bkk"]
+
+      422 |         const report = await service.generateOutputVatReport({ year: 2026, month: 9 });
+      423 |         const numbers = report.rows.map((r) => r.invoiceNumber);
+    > 424 |         expect(numbers).not.toContain('issued-1-oct-0300-bkk');
+          |                             ^
+      425 |         expect(numbers).toEqual(['first-hour-of-sep', 'last-instant-of-sep']);
+      426 |         expect(report.period.windowStart.toISOString()).toBe('2026-08-31T17:00:00.000Z');
+      427 |         expect(report.period.windowEnd.toISOString()).toBe('2026-09-30T17:00:00.000Z');
+
+      at Object.toContain (__tests__/unit/bangkok-business-dates.test.js:424:29)
+
+  ● VAT period (ภ.พ.30) follows the Bangkok calendar month › October 2569 includes it
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   "issued-1-oct-0300-bkk",
+    - ]
+    + Array []
+
+      431 |         const service = loadWithLedger();
+      432 |         const report = await service.generateOutputVatReport({ year: 2026, month: 10 });
+    > 433 |         expect(report.rows.map((r) => r.invoiceNumber)).toEqual(['issued-1-oct-0300-bkk']);
+          |                                                         ^
+      434 |     });
+      435 |
+      436 |     it('the e-Filing CSV dates that invoice 2026-10-01 (its Bangkok day)', async () => {
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:433:57)
+
+  ● VAT period (ภ.พ.30) follows the Bangkok calendar month › the e-Filing CSV dates that invoice 2026-10-01 (its Bangkok day)
+
+    expect(received).toContain(expected) // indexOf
+
+    Matcher error: received value must not be null nor undefined
+
+    Received has value: undefined
+
+      438 |         const csv = await service.generateOutputVatReportCSV({ year: 2026, month: 10 });
+      439 |         const row = csv.split('\r\n').find((l) => l.includes('issued-1-oct-0300-bkk'));
+    > 440 |         expect(row).toContain(',2026-10-01,');
+          |                     ^
+      441 |     });
+      442 |
+      443 |     it('December ends, and January starts, at midnight in Bangkok', () => {
+
+      at Object.toContain (__tests__/unit/bangkok-business-dates.test.js:440:21)
+
+  ● VAT period (ภ.พ.30) follows the Bangkok calendar month › December ends, and January starts, at midnight in Bangkok
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-11-30T17:00:00.000Z"
+    Received: "2026-12-01T00:00:00.000Z"
+
+      444 |         const { _internals } = loadWithLedger();
+      445 |         const dec = _internals.toMonthBoundaries(2026, 12);
+    > 446 |         expect(dec.start.toISOString()).toBe('2026-11-30T17:00:00.000Z');
+          |                                         ^
+      447 |         expect(dec.end.toISOString()).toBe('2026-12-31T17:00:00.000Z');
+      448 |     });
+      449 | });
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:446:41)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:21.089Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:21.120Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:21.322Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:21.341Z"}
+PASS __tests__/unit/audit-scheduling-service.test.js
+  [Iter25] audit-scheduling-service — assignAuditor
+    ✓ happy path: AUDIT_FEE_PAID → AUDIT_CONFIRMED with auditSchedule (167 ms)
+    ✓ admin role can also assign (ADMIN_OVERRIDE) (28 ms)
+    ✓ rejects non-SCHEDULER actor (FORBIDDEN_ROLE) (19 ms)
+    ✓ tenant guard: rejects a cross-tenant application (APPLICATION_NOT_FOUND) — audit 2.5 (13 ms)
+    ✓ rejects past scheduledDate (VALIDATION_ERROR) (20 ms)
+    ✓ rejects weekend (NON_WORKING_DAY) (15 ms)
+    ✓ rejects when application not in AUDIT_FEE_PAID (INVALID_STATE) (14 ms)
+    ✓ rejects when auditor user not found (AUDITOR_NOT_FOUND) (19 ms)
+    ✓ rejects when auditor does NOT hold AUDITOR role (AUDITOR_INVALID_ROLE) (19 ms)
+    ✓ AUDITOR_OVER_CAP when auditor already has 2 audits that day (23 ms)
+    ✓ AUDITOR_BUSY surfaces overlapping window (13 ms)
+    ✓ returns APPLICATION_NOT_FOUND for unknown id (13 ms)
+    ✓ ONSITE assign find-or-creates one AuditChecklist (IN_PROGRESS, auditorId=assigned, org=app org) (32 ms)
+    ✓ ONSITE assign is idempotent: an existing active AuditChecklist is reused, not duplicated (19 ms)
+  [Iter25] audit-scheduling-service — requestReschedule
+    ✓ HEALTH applicant creates PENDING reschedule entry (23 ms)
+    ✓ rejects non-HEALTH actor (13 ms)
+    ✓ rejects when application state is not AUDIT_CONFIRMED (15 ms)
+    ✓ rejects reason that is too short (18 ms)
+    ✓ rejects ownership mismatch (different healthId) (13 ms)
+  [Iter25] audit-scheduling-service — approveReschedule
+    ✓ scheduler approves PENDING reschedule with new date (14 ms)
+    ✓ rejects when reschedule already APPROVED (RESCHEDULE_NOT_PENDING) (19 ms)
+    ✓ rejects when rescheduleId not found (18 ms)
+    ✓ rejects past date as newDate (22 ms)
+  [Iter25] audit-scheduling-service — getAuditorAvailability
+    ✓ returns busy slots + cap + overCapDays (15 ms)
+    ✓ rejects missing dateRange (14 ms)
+  [Iter25] audit-scheduling-service — getSchedulingQueue
+    ✓ returns AUDIT_FEE_PAID applications (27 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    ✓ QUOTATION_NOT_ISSUED is catalogued with status 409 (2 ms)
+    ✓ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_EXPIRED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (1 ms)
+    ✓ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (7 ms)
+    ✓ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_ISSUE_FAILED is catalogued with status 500 (1 ms)
+    ✓ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    ✓ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409
+    ✓ SNAPSHOT_REQUIRED is catalogued with status 409 (1 ms)
+    ✓ the four gate codes point at the shared gate module, not at one rail (1 ms)
+    ✓ every gate code`s source line is the line that actually raises it (2 ms)
+    ✓ the two shared refusals name the line that actually raises them (1 ms)
+    ✓ the two not-priced refusals are separate rows pointing at their own door (1 ms)
+    ✓ neither not-priced copy sends the applicant to a staff door that does not exist
+    ✓ no applicant-facing row on this path promises a staff re-issue (1 ms)
+    ✓ the not-issued copy stops promising a refresh the window cannot honour
+    ✓ only QUOTATION_EXPIRED mentions a new document, and it mentions it as a condition (2 ms)
+    ✓ the snapshot refusal names the cause and an action staff can actually take
+    ✓ the expiry copy names the door that may replace the row, and what to do when it does not (1 ms)
+    ✓ the price-drift remediation names the step that unblocks the applicant (4 ms)
+    ✓ the payment-terms remediation no longer names the request body ruling 2 deleted (1 ms)
+    ✓ the two rail-specific messages no longer name only the slip (1 ms)
+    ✓ no Thai message uses an em dash (thai-ui-copy rule) (1 ms)
+    ✓ only the rows that actually alert staff say staff were alerted (1 ms)
+    ✓ the close-failure copy still tells the applicant their money and receipt stand (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/checkout-schedule-service.test.js
+  computeDueDate — config-driven business-day windows on the canonical calendar
+    ✕ M1: mint Tue 2026-12-01 lands 2026-12-14 (skips the 05-06 weekend, the 12-07 substitute AND วันรัฐธรรมนูญ 12-10) (6 ms)
+    ✓ M2: mint Fri 2026-12-18 crosses year end to 2027-01-12 (skips 4 weekends + 12-31 + 01-01) (17 ms)
+    ✓ delegates to the canonical addWorkingDays (same instant, end-of-business-day convention) (14 ms)
+    ✕ window lengths come from config, not literals baked into the service (13 ms)
+    ✓ an unknown milestone throws a coded error — never a silent default window (2 ms)
+  isInvoiceOverdue — DERIVED from unpaid status + dueDate, every branch
+    ✓ unpaid (pending) and past due → true (1 ms)
+    ✓ unpaid but not yet past due → false (1 ms)
+    ✓ exactly at the due instant → false (strictly past-due only) (1 ms)
+    ✓ paid → false no matter how late (settlement writes paid — see checkout-settlement-service)
+    ✓ cancelled → false (1 ms)
+    ✓ missing dueDate or missing invoice → false, never a throw (1 ms)
+  overdueInvoiceWhere — the derived-overdue query, no writer anywhere
+    ✓ builds the pending + strictly-past-due where clause with the given instant (1 ms)
+  computeReminderDates — three intended days, shifted onto working days
+    ✓ working-day due (Tue 2026-08-11): PRE_DUE 08-06, DUE_DATE 08-11, OVERDUE_NOTICE skips วันแม่ to 08-13 (6 ms)
+    ✓ weekend due (Sat 2026-08-08): DUE_DATE shifts forward to Mon 08-10 (5 ms)
+    ✓ PRE_DUE walks back across a holiday: due Mon 2026-12-14 → 2026-12-08 (skips 12-13 weekend + 12-10) (3 ms)
+  source pins — the service stays config-driven, derived-only, calendar-free
+    ✓ imports the config and the ONE canonical calendar (1 ms)
+    ✓ no bare due-window literals — the M1/M2 day counts live in config only (1 ms)
+    ✓ no stored-overdue write path: no quoted overdue literal, no prisma, no mutation call (9 ms)
+    ✓ no holiday data of its own — the calendar lives in utils/working-days.js alone (1 ms)
+
+  ● computeDueDate — config-driven business-day windows on the canonical calendar › M1: mint Tue 2026-12-01 lands 2026-12-14 (skips the 05-06 weekend, the 12-07 substitute AND วันรัฐธรรมนูญ 12-10)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-12-14"
+    Received: "2026-12-11"
+
+      54 |         // be 2026-12-10 (a holiday). Only weekend+holiday skipping gives 12-14:
+      55 |         // Mon 12-07 is the substitute for Father's Day on Sat 12-05 (DOMA-10).
+    > 56 |         expect(dayOf(computeDueDate(ictMorning('2026-12-01'), 'M1'))).toBe('2026-12-14');
+         |                                                                       ^
+      57 |     });
+      58 |
+      59 |     test('M2: mint Fri 2026-12-18 crosses year end to 2027-01-12 (skips 4 weekends + 12-31 + 01-01)', () => {
+
+      at Object.toBe (__tests__/unit/checkout-schedule-service.test.js:56:71)
+
+  ● computeDueDate — config-driven business-day windows on the canonical calendar › window lengths come from config, not literals baked into the service
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-12-08"
+    Received: "2026-12-07"
+
+      81 |             // and the Mon 12-07 substitute holiday skipped).
+      82 |             expect(dayOf(mocked.computeDueDate(ictMorning('2026-12-04'), 'M1')))
+    > 83 |                 .toBe('2026-12-08');
+         |                  ^
+      84 |             // 1-day PRE_DUE window: due Tue 2026-08-11 → Mon 2026-08-10 (real
+      85 |             // config gives 2026-08-06 — see the reminder suite below).
+      86 |             expect(dayOf(mocked.computeReminderDates(ictMorning('2026-08-11')).PRE_DUE))
+
+      at toBe (__tests__/unit/checkout-schedule-service.test.js:83:18)
+      at Object.isolateModules (__tests__/unit/checkout-schedule-service.test.js:72:14)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/workflow-reject-deadline-holiday.test.js
+  Blocker F — canonical reject deadline is Thai-holiday-aware + Asia/Bangkok
+    ✓ deps barrel exports THE holiday-aware util (identity — not the holiday-blind service) (23 ms)
+    ✕ 5-working-day deadline spanning วันเฉลิมฯ ร.10 (2026-07-28) lands Wed 2026-08-05, not Fri 07-31 (14 ms)
+    ✓ the transitions handler no longer references loadHolidaySet (wiring pin) (1 ms)
+    ✓ the SECOND reject surface (PATCH /applications/:id/reject) uses the holiday-aware engine too (adversarial-verify MUST) (1 ms)
+    ✓ timezone: Friday 23:30 ICT reject still counts Friday as day zero (ICT, not UTC) (4 ms)
+    ✓ lunar-holiday coverage past the table (2028+) warns loudly instead of silently under-counting (4 ms)
+
+  ● Blocker F — canonical reject deadline is Thai-holiday-aware + Asia/Bangkok › 5-working-day deadline spanning วันเฉลิมฯ ร.10 (2026-07-28) lands Wed 2026-08-05, not Fri 07-31
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-08-05"
+    Received: "2026-08-03"
+
+      87 |         // Holiday-aware (correct):    Mon27+1 [Tue28 ร.10, Wed29 อาสาฬหบูชา,
+      88 |         // Thu30 เข้าพรรษา หยุด] Fri31+2 Mon Aug3+3 Tue4+4 Wed5+5.
+    > 89 |         expect(isoDate).toBe('2026-08-05');
+         |                         ^
+      90 |     });
+      91 |
+      92 |     test('the transitions handler no longer references loadHolidaySet (wiring pin)', () => {
+
+      at Object.toBe (__tests__/unit/workflow-reject-deadline-holiday.test.js:89:25)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:23.182Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T07:49:23.210Z"}
+PASS __tests__/unit/sc-ten-1-auditor-tenant-scope.test.js
+  [X3-FIX-D / SC-TEN-1] assignAuditor — tenant-scope auditor lookup
+    ✓ POSITIVE: SCHEDULER from tenant T1 assigning tenant T1 auditor → success (200 path) (25 ms)
+    ✓ NEGATIVE: SCHEDULER from tenant T1 attempting to assign tenant T2 auditor → AUDITOR_NOT_FOUND (404 anti-enumeration) (13 ms)
+    ✓ LEGACY FALLBACK: actor without organizationId still resolves (no regression for system callers) (14 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/working-days.test.js
+  working-days utility (ICT/Asia/Bangkok)
+    isWorkingDay
+      ✓ returns false for Saturday in ICT (2 ms)
+      ✓ returns false for Sunday in ICT (1 ms)
+      ✓ returns true for Monday in ICT (2 ms)
+      ✓ returns false for New Year (Jan 1) (1 ms)
+      ✓ returns false for Songkran (Apr 13) (2 ms)
+      ✓ returns false for Queen Suthida Birthday (Jun 3) (1 ms)
+    isHoliday
+      ✓ detects recurring holidays (12 ms)
+      ✕ detects extra Buddhist holidays for 2026 (2 ms)
+      ✓ returns false for normal working days (1 ms)
+    addWorkingDays
+      ✓ adds 5 working days correctly (simple case, no holidays) (4 ms)
+      ✓ skips weekends correctly (2 ms)
+      ✓ skips holidays correctly (5 ms)
+      ✓ returns end of business day (23:59 ICT) on the deadline date (2 ms)
+      ✓ throws for negative days (6 ms)
+      ✓ honors an explicit timezone parameter (2 ms)
+    ICT timezone edge cases (Bug 3)
+      ✓ Friday 23:00 ICT must still count as Friday for deadline math, even though it is Saturday in UTC (2 ms)
+      ✓ uses ICT calendar to detect Thai holidays even when UTC calendar disagrees (2 ms)
+      ✓ deadline math is invariant under host timezone (uses explicit ICT) (6 ms)
+    countWorkingDaysBetween
+      ✓ counts correctly for a simple week (3 ms)
+      ✓ returns 0 for same instant
+      ✓ returns negative for overdue (2 ms)
+    calculateRevisionDeadline
+      ✓ returns correct deadline with default 5 working days (3 ms)
+    getDeadlineStatus
+      ✓ returns overdue for past dates (3 ms)
+      ✓ returns normal for future dates (5 ms)
+
+  ● working-days utility (ICT/Asia/Bangkok) › isHoliday › detects extra Buddhist holidays for 2026
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      73 |         it('detects extra Buddhist holidays for 2026', () => {
+      74 |             expect(isHoliday(ictMidnight('2026-03-03'))).toBe(true); // Makha Bucha
+    > 75 |             expect(isHoliday(ictMidnight('2026-07-29'))).toBe(true); // Asalha Puja
+         |                                                          ^
+      76 |         });
+      77 |
+      78 |         it('returns false for normal working days', () => {
+
+      at Object.toBe (__tests__/unit/working-days.test.js:75:58)
+
+Test Suites: 5 failed, 4 passed, 9 total
+Tests:       34 failed, 138 passed, 172 total
+Snapshots:   0 total
+Time:        6.903 s, estimated 9 s
+Ran all test suites matching /__tests__\/unit\/bangkok-business-dates.test.js|__tests__\/unit\/working-days.test.js|__tests__\/unit\/checkout-schedule-service.test.js|__tests__\/unit\/workflow-reject-deadline-holiday.test.js|__tests__\/unit\/vat-report-service.test.js|__tests__\/unit\/audit-scheduling-service.test.js|__tests__\/unit\/sc-ten-1-auditor-tenant-scope.test.js|__tests__\/unit\/atomic-decision-letter.test.js|__tests__\/unit\/quotation-gate-error-codes.test.js/i.
+
+## web (TZ=UTC)
+FAIL src/app/(public)/verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx
+  public verify page — Bangkok dates on a UTC server
+    ✓ the simulated process really formats zone-less calls in UTC (19 ms)
+    ✕ prints the issue and expiry dates as the Bangkok day (169 ms)
+    ✕ prints the backend verification time in Bangkok time (147 ms)
+    ✕ prints the page's own clock in Bangkok time when the backend sends no time (168 ms)
+
+  ● public verify page — Bangkok dates on a UTC server › prints the issue and expiry dates as the Bangkok day
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "17 กันยายน 2569"
+    Received string:    "<div class=\"flex min-h-screen flex-col bg-mint-bg\"><header class=\"sticky top-0 z-50 flex h-16 items-center justify-between border-b border-primary-100 bg-card/90 px-5 backdrop-blur-sm dark:border-border sm:px-8\"><a class=\"flex items-center gap-2.5\" href=\"/\"><span class=\"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-leaf-soft text-leaf-onSoft\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-leaf h-5 w-5\" aria-hidden=\"true\"><path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z\"></path><path d=\"M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12\"></path></svg></span><span class=\"leading-tight\"><span class=\"block text-sm font-bold text-primary\">ระบบรับรอง GACP</span><span class=\"block text-[10px] text-muted-foreground\">กรมการแพทย์แผนไทยและการแพทย์ทางเลือก</span></span></a><span class=\"hidden items-center gap-1.5 rounded-full bg-leaf-soft px-3 py-1 text-xs font-semibold text-leaf-onSoft sm:inline-flex\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check h-3.5 w-3.5\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>ตรวจสอบใบรับรองสาธารณะ</span></header><main class=\"flex flex-1 justify-center px-4 py-10 sm:py-14\"><div class=\"w-full max-w-xl\"><div class=\"mb-6 text-center\"><p class=\"text-xs font-bold uppercase text-leaf-800 dark:text-leaf-onSoft\">ตรวจสอบใบรับรองสาธารณะ</p><h1 class=\"mt-2 text-2xl font-bold leading-snug text-primary\">ผลการตรวจสอบใบรับรอง</h1></div><div class=\"rounded-[1.375rem] bg-card text-card-foreground shadow-leaf-card overflow-hidden\"><div class=\"flex items-center gap-3 px-6 py-5 bg-leaf-soft\"><span class=\"flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white bg-leaf\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-circle-check-big h-7 w-7\" aria-hidden=\"true\"><path d=\"M21.801 10A10 10 0 1 1 17 3.335\"></path><path d=\"m9 11 3 3L22 4\"></path></svg></span><div class=\"leading-snug\"><p class=\"text-base font-bold text-leaf-onSoft\">ใบรับรองถูกต้องและยังมีผลบังคับใช้</p><p class=\"text-xs text-leaf-onSoft\">Valid &amp; active certificate</p></div></div><div class=\"flex flex-col gap-6 p-6 sm:flex-row\"><div class=\"flex shrink-0 flex-col items-center text-center sm:items-start\"><div class=\"rounded-2xl border border-primary-100 bg-white p-3 dark:bg-white\"><img src=\"data:image/png;base64,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\" alt=\"QR ตรวจสอบใบรับรอง GACP-TH-2569-A3F7B2\" width=\"176\" height=\"176\" class=\"h-44 w-44\" data-testid=\"qr-image\"/></div><p class=\"mt-2 w-full text-center text-[11px] text-muted-foreground\">สแกนเพื่อตรวจสอบ</p></div><div class=\"flex flex-1 flex-col gap-3\"><div class=\"rounded-xl bg-mint-soft p-3 text-center font-mono text-lg font-bold text-leaf-onSoft\">GACP-TH-2569-A3F7B2</div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">ชื่อแปลง</span><span class=\"text-right text-sm font-semibold text-foreground\">ฟาร์มสมุนไพรบ้านนา</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">จังหวัด</span><span class=\"text-right text-sm font-semibold text-foreground\">เชียงใหม่</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">พืชสมุนไพร</span><span class=\"text-right text-sm font-semibold text-foreground\">ขมิ้นชัน</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันที่ออก</span><span class=\"text-right text-sm font-semibold text-foreground\">16 กันยายน 2569</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันหมดอายุ</span><span class=\"text-right text-sm font-semibold text-foreground\">16 กันยายน 2572</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">มาตรฐาน</span><span class=\"text-right text-sm font-semibold text-foreground\">GACP</span></div><div class=\"flex items-center justify-between pt-1\"><span class=\"text-xs text-muted-foreground\">สถานะ</span><span class=\"inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-leaf-soft text-leaf-onSoft\"><span class=\"mr-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-leaf-600\" aria-hidden=\"true\"></span>รับรองแล้ว</span></div></div></div><div class=\"border-t border-primary-100 bg-mint-soft px-6 py-4 text-center\"><p class=\"text-[11px] text-muted-foreground\">ตรวจสอบเมื่อ 16/9/2569 18:30:00</p><p class=\"mt-0.5 text-[11px] text-muted-foreground\">ระบบรับรองมาตรฐาน GACP สมุนไพร | GACP Thai Platform</p></div></div><p class=\"mt-4 text-center text-[11px] leading-relaxed text-muted-foreground\">ออกโดยกรมการแพทย์แผนไทยและการแพทย์ทางเลือก (DTAM) ภายใต้มาตรฐาน ISO/IEC 17065</p><div class=\"mt-3 text-center\"><a href=\"/\" class=\"inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 text-foreground hover:bg-mint-soft h-12 px-5\"><span class=\"mr-1.5 flex-shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-arrow-left h-4 w-4\" aria-hidden=\"true\"><path d=\"m12 19-7-7 7-7\"></path><path d=\"M19 12H5\"></path></svg></span>กลับหน้าหลัก</a></div></div></main></div>"
+
+      85 |     stubVerifyResponse({ certificate: CERT, verifiedAt: AFTER_MIDNIGHT_BKK });
+      86 |     const html = await renderPage();
+    > 87 |     expect(html).toContain('17 กันยายน 2569');
+         |                  ^
+      88 |     expect(html).toContain('17 กันยายน 2572');
+      89 |     expect(html).not.toContain('16 กันยายน');
+      90 |   });
+
+      at Object.<anonymous> (/home/ubuntu/work/wt-bkk/apps/web-app/src/app/(public)../../../../../../verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx:87:18)
+
+  ● public verify page — Bangkok dates on a UTC server › prints the backend verification time in Bangkok time
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "ตรวจสอบเมื่อ 17/9/2569 01:30:00"
+    Received string:    "<div class=\"flex min-h-screen flex-col bg-mint-bg\"><header class=\"sticky top-0 z-50 flex h-16 items-center justify-between border-b border-primary-100 bg-card/90 px-5 backdrop-blur-sm dark:border-border sm:px-8\"><a class=\"flex items-center gap-2.5\" href=\"/\"><span class=\"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-leaf-soft text-leaf-onSoft\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-leaf h-5 w-5\" aria-hidden=\"true\"><path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z\"></path><path d=\"M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12\"></path></svg></span><span class=\"leading-tight\"><span class=\"block text-sm font-bold text-primary\">ระบบรับรอง GACP</span><span class=\"block text-[10px] text-muted-foreground\">กรมการแพทย์แผนไทยและการแพทย์ทางเลือก</span></span></a><span class=\"hidden items-center gap-1.5 rounded-full bg-leaf-soft px-3 py-1 text-xs font-semibold text-leaf-onSoft sm:inline-flex\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check h-3.5 w-3.5\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>ตรวจสอบใบรับรองสาธารณะ</span></header><main class=\"flex flex-1 justify-center px-4 py-10 sm:py-14\"><div class=\"w-full max-w-xl\"><div class=\"mb-6 text-center\"><p class=\"text-xs font-bold uppercase text-leaf-800 dark:text-leaf-onSoft\">ตรวจสอบใบรับรองสาธารณะ</p><h1 class=\"mt-2 text-2xl font-bold leading-snug text-primary\">ผลการตรวจสอบใบรับรอง</h1></div><div class=\"rounded-[1.375rem] bg-card text-card-foreground shadow-leaf-card overflow-hidden\"><div class=\"flex items-center gap-3 px-6 py-5 bg-leaf-soft\"><span class=\"flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white bg-leaf\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-circle-check-big h-7 w-7\" aria-hidden=\"true\"><path d=\"M21.801 10A10 10 0 1 1 17 3.335\"></path><path d=\"m9 11 3 3L22 4\"></path></svg></span><div class=\"leading-snug\"><p class=\"text-base font-bold text-leaf-onSoft\">ใบรับรองถูกต้องและยังมีผลบังคับใช้</p><p class=\"text-xs text-leaf-onSoft\">Valid &amp; active certificate</p></div></div><div class=\"flex flex-col gap-6 p-6 sm:flex-row\"><div class=\"flex shrink-0 flex-col items-center text-center sm:items-start\"><div class=\"rounded-2xl border border-primary-100 bg-white p-3 dark:bg-white\"><img src=\"data:image/png;base64,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\" alt=\"QR ตรวจสอบใบรับรอง GACP-TH-2569-A3F7B2\" width=\"176\" height=\"176\" class=\"h-44 w-44\" data-testid=\"qr-image\"/></div><p class=\"mt-2 w-full text-center text-[11px] text-muted-foreground\">สแกนเพื่อตรวจสอบ</p></div><div class=\"flex flex-1 flex-col gap-3\"><div class=\"rounded-xl bg-mint-soft p-3 text-center font-mono text-lg font-bold text-leaf-onSoft\">GACP-TH-2569-A3F7B2</div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">ชื่อแปลง</span><span class=\"text-right text-sm font-semibold text-foreground\">ฟาร์มสมุนไพรบ้านนา</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">จังหวัด</span><span class=\"text-right text-sm font-semibold text-foreground\">เชียงใหม่</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">พืชสมุนไพร</span><span class=\"text-right text-sm font-semibold text-foreground\">ขมิ้นชัน</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันที่ออก</span><span class=\"text-right text-sm font-semibold text-foreground\">16 กันยายน 2569</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันหมดอายุ</span><span class=\"text-right text-sm font-semibold text-foreground\">16 กันยายน 2572</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">มาตรฐาน</span><span class=\"text-right text-sm font-semibold text-foreground\">GACP</span></div><div class=\"flex items-center justify-between pt-1\"><span class=\"text-xs text-muted-foreground\">สถานะ</span><span class=\"inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-leaf-soft text-leaf-onSoft\"><span class=\"mr-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-leaf-600\" aria-hidden=\"true\"></span>รับรองแล้ว</span></div></div></div><div class=\"border-t border-primary-100 bg-mint-soft px-6 py-4 text-center\"><p class=\"text-[11px] text-muted-foreground\">ตรวจสอบเมื่อ 16/9/2569 18:30:00</p><p class=\"mt-0.5 text-[11px] text-muted-foreground\">ระบบรับรองมาตรฐาน GACP สมุนไพร | GACP Thai Platform</p></div></div><p class=\"mt-4 text-center text-[11px] leading-relaxed text-muted-foreground\">ออกโดยกรมการแพทย์แผนไทยและการแพทย์ทางเลือก (DTAM) ภายใต้มาตรฐาน ISO/IEC 17065</p><div class=\"mt-3 text-center\"><a href=\"/\" class=\"inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 text-foreground hover:bg-mint-soft h-12 px-5\"><span class=\"mr-1.5 flex-shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-arrow-left h-4 w-4\" aria-hidden=\"true\"><path d=\"m12 19-7-7 7-7\"></path><path d=\"M19 12H5\"></path></svg></span>กลับหน้าหลัก</a></div></div></main></div>"
+
+      93 |     stubVerifyResponse({ certificate: CERT, verifiedAt: AFTER_MIDNIGHT_BKK });
+      94 |     const html = await renderPage();
+    > 95 |     expect(html).toContain('ตรวจสอบเมื่อ 17/9/2569 01:30:00');
+         |                  ^
+      96 |     expect(html).not.toContain('16/9/2569');
+      97 |   });
+      98 |
+
+      at Object.<anonymous> (/home/ubuntu/work/wt-bkk/apps/web-app/src/app/(public)../../../../../../verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx:95:18)
+
+  ● public verify page — Bangkok dates on a UTC server › prints the page's own clock in Bangkok time when the backend sends no time
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "ตรวจสอบเมื่อ 17/9/2569 01:30:00"
+    Received string:    "<div class=\"flex min-h-screen flex-col bg-mint-bg\"><header class=\"sticky top-0 z-50 flex h-16 items-center justify-between border-b border-primary-100 bg-card/90 px-5 backdrop-blur-sm dark:border-border sm:px-8\"><a class=\"flex items-center gap-2.5\" href=\"/\"><span class=\"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-leaf-soft text-leaf-onSoft\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-leaf h-5 w-5\" aria-hidden=\"true\"><path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z\"></path><path d=\"M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12\"></path></svg></span><span class=\"leading-tight\"><span class=\"block text-sm font-bold text-primary\">ระบบรับรอง GACP</span><span class=\"block text-[10px] text-muted-foreground\">กรมการแพทย์แผนไทยและการแพทย์ทางเลือก</span></span></a><span class=\"hidden items-center gap-1.5 rounded-full bg-leaf-soft px-3 py-1 text-xs font-semibold text-leaf-onSoft sm:inline-flex\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check h-3.5 w-3.5\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>ตรวจสอบใบรับรองสาธารณะ</span></header><main class=\"flex flex-1 justify-center px-4 py-10 sm:py-14\"><div class=\"w-full max-w-xl\"><div class=\"mb-6 text-center\"><p class=\"text-xs font-bold uppercase text-leaf-800 dark:text-leaf-onSoft\">ตรวจสอบใบรับรองสาธารณะ</p><h1 class=\"mt-2 text-2xl font-bold leading-snug text-primary\">ผลการตรวจสอบใบรับรอง</h1></div><div class=\"rounded-[1.375rem] bg-card text-card-foreground shadow-leaf-card overflow-hidden\"><div class=\"flex items-center gap-3 px-6 py-5 bg-leaf-soft\"><span class=\"flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white bg-leaf\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-circle-check-big h-7 w-7\" aria-hidden=\"true\"><path d=\"M21.801 10A10 10 0 1 1 17 3.335\"></path><path d=\"m9 11 3 3L22 4\"></path></svg></span><div class=\"leading-snug\"><p class=\"text-base font-bold text-leaf-onSoft\">ใบรับรองถูกต้องและยังมีผลบังคับใช้</p><p class=\"text-xs text-leaf-onSoft\">Valid &amp; active certificate</p></div></div><div class=\"flex flex-col gap-6 p-6 sm:flex-row\"><div class=\"flex shrink-0 flex-col items-center text-center sm:items-start\"><div class=\"rounded-2xl border border-primary-100 bg-white p-3 dark:bg-white\"><img src=\"data:image/png;base64,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\" alt=\"QR ตรวจสอบใบรับรอง GACP-TH-2569-A3F7B2\" width=\"176\" height=\"176\" class=\"h-44 w-44\" data-testid=\"qr-image\"/></div><p class=\"mt-2 w-full text-center text-[11px] text-muted-foreground\">สแกนเพื่อตรวจสอบ</p></div><div class=\"flex flex-1 flex-col gap-3\"><div class=\"rounded-xl bg-mint-soft p-3 text-center font-mono text-lg font-bold text-leaf-onSoft\">GACP-TH-2569-A3F7B2</div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">ชื่อแปลง</span><span class=\"text-right text-sm font-semibold text-foreground\">ฟาร์มสมุนไพรบ้านนา</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">จังหวัด</span><span class=\"text-right text-sm font-semibold text-foreground\">เชียงใหม่</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">พืชสมุนไพร</span><span class=\"text-right text-sm font-semibold text-foreground\">ขมิ้นชัน</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันที่ออก</span><span class=\"text-right text-sm font-semibold text-foreground\">16 กันยายน 2569</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันหมดอายุ</span><span class=\"text-right text-sm font-semibold text-foreground\">16 กันยายน 2572</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">มาตรฐาน</span><span class=\"text-right text-sm font-semibold text-foreground\">GACP</span></div><div class=\"flex items-center justify-between pt-1\"><span class=\"text-xs text-muted-foreground\">สถานะ</span><span class=\"inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-leaf-soft text-leaf-onSoft\"><span class=\"mr-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-leaf-600\" aria-hidden=\"true\"></span>รับรองแล้ว</span></div></div></div><div class=\"border-t border-primary-100 bg-mint-soft px-6 py-4 text-center\"><p class=\"text-[11px] text-muted-foreground\">ตรวจสอบเมื่อ 16/9/2569 18:30:00</p><p class=\"mt-0.5 text-[11px] text-muted-foreground\">ระบบรับรองมาตรฐาน GACP สมุนไพร | GACP Thai Platform</p></div></div><p class=\"mt-4 text-center text-[11px] leading-relaxed text-muted-foreground\">ออกโดยกรมการแพทย์แผนไทยและการแพทย์ทางเลือก (DTAM) ภายใต้มาตรฐาน ISO/IEC 17065</p><div class=\"mt-3 text-center\"><a href=\"/\" class=\"inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 text-foreground hover:bg-mint-soft h-12 px-5\"><span class=\"mr-1.5 flex-shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-arrow-left h-4 w-4\" aria-hidden=\"true\"><path d=\"m12 19-7-7 7-7\"></path><path d=\"M19 12H5\"></path></svg></span>กลับหน้าหลัก</a></div></div></main></div>"
+
+      102 |     stubVerifyResponse({ certificate: CERT });
+      103 |     const html = await renderPage();
+    > 104 |     expect(html).toContain('ตรวจสอบเมื่อ 17/9/2569 01:30:00');
+          |                  ^
+      105 |   });
+      106 | });
+      107 |
+
+      at Object.<anonymous> (/home/ubuntu/work/wt-bkk/apps/web-app/src/app/(public)../../../../../../verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx:104:18)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 1 passed, 4 total
+Snapshots:   0 total
+Time:        2.136 s
+Ran all test suites matching src/app/\(public\)/verify/\[cert-number\]/__tests__/verify-bangkok-dates.test.tsx.

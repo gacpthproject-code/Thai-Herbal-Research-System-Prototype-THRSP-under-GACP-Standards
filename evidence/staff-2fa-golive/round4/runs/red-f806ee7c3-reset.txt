@@ -1,0 +1,46 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-20T21:26:05.354Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-20T21:26:05.359Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-20T21:26:05.361Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-20T21:26:08.093Z"}
+FAIL __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js
+  order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres)
+    ✕ a DTAM admin of the same organization resets a reviewer whose codes are used up: only the three second-factor columns and the session epoch change, one audit row names requester, approver, confirmation and the revocation, and the next sign-in yields the setup ticket only (275 ms)
+    ✓ the platform admin resets a company finance officer of another organization (that admin crosses organizations, order 17) (245 ms)
+    every refusal leaves the row byte-for-byte as it was and writes no audit row
+      ✓ refuses when the flag is off (216 ms)
+      ✓ refuses when the target is an applicant account (220 ms)
+      ✓ refuses when the requester is not an admin (242 ms)
+      ✓ refuses when the admin of the other side asks (226 ms)
+      ✓ refuses when the DTAM admin of another organization asks (230 ms)
+      ✓ refuses when the target still has an unused backup code (242 ms)
+      ✓ refuses when the target never enrolled (228 ms)
+      ✕ refuses when the requester names itself as the target (268 ms)
+      ✓ a missing input is refused with the usage line before the database is touched (50 ms)
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › a DTAM admin of the same organization resets a reviewer whose codes are used up: only the three second-factor columns and the session epoch change, one audit row names requester, approver, confirmation and the revocation, and the next sign-in yields the setup ticket only
+    expect(received).toContain(expected) // indexOf
+    Expected substring: "ตัดการเข้าสู่ระบบ"
+    Received string:    "ล้างการยืนยันตัวตนสองชั้นของบัญชี 52990528-53a5-4c96-a435-2843303efc52 (ผู้ตรวจเอกสาร s***@example.test) แล้วเมื่อ 21 ต.ค. 2569 04:26 ผู้ขอ 0c9d6df2-289f-4244-88d0-8ded52410cb0 (ผู้ดูแลระบบฝั่งกรม) หนังสือยืนยันตัวตน บันทึกข้อความ ที่ สธ 0509/ว123 ลงวันที่ 20 ต.ค. 2569 อนุมัติโดย operator: operator 2026-10-20 แชต 14:05 อนุมัติล้าง 2FA บัญชีนี้ต้องลงทะเบียนแอปยืนยันตัวตนใหม่ในการเข้าสู่ระบบครั้งถัดไป"
+      157 |         expect(resultLines[0]).toContain(APPROVAL);
+      158 |         expect(resultLines[0]).toContain('ลงทะเบียนแอปยืนยันตัวตนใหม่');
+    > 159 |         expect(resultLines[0]).toContain('ตัดการเข้าสู่ระบบ');
+          |                                ^
+      160 |         expect(run.stdout).not.toContain(before.twoFactorSecret);
+      161 |         expect(run.stdout).not.toContain(target.nationalId);
+      162 |
+  ● order 89 ข: the emergency script clears only the second factor of one staff account (real Postgres) › every refusal leaves the row byte-for-byte as it was and writes no audit row › refuses when the requester names itself as the target
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 2
+    Received: 0
+      228 |             const before = await fullRow(target.id);
+      229 |             const run = runScript(resetArgs(target, who[requesterKey]), options);
+    > 230 |             expect(run.status).toBe(2);
+          |                                ^
+      231 |             expect(run.stderr).toMatch(pattern);
+      232 |             expect(run.stdout).not.toContain('ล้างการยืนยันตัวตนสองชั้นของบัญชี');
+      233 |             expect(await fullRow(target.id)).toEqual(before);
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 9 passed, 11 total
+Snapshots:   0 total
+Time:        3.498 s, estimated 4 s
+Ran all test suites matching __tests__/integration/staff-2fa-emergency-reset-real-postgres.test.js.
+jest exit 1

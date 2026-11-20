@@ -1,0 +1,69 @@
+Task 7 — RED evidence (summary; raw jest logs not committed). Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d)
+command: npx jest --config jest.config.cjs <file>  (from the worktree root)
+RED was run with the new tests against HEAD 252ff7f9's requirements.js / document-reviews.js / service.js (files restored from git show HEAD:..., then the implementation copied back).
+
+=== RED 1: apps/backend/__tests__/unit/document-precheck/routes.test.js (TZ=UTC) ===
+    ✕ the owner sees the observations on their in-scope slots: check, result and reason only (62 ms)
+    ✓ never the confidence, the snippet or the extracted text — anywhere in the body (4 ms)
+    ✕ a slot being checked shows PENDING with no observations yet; an in-scope slot never checked and an out-of-scope slot are null (5 ms)
+    ✓ a different health user gets 404 and none of the observations (2 ms)
+    ✕ the pre-check rows are read with explicit selects that never name the extracted text (3 ms)
+    ✕ the owner acknowledges: the time is recorded and the application status is exactly what it was (3 ms)
+    ✕ a non-owner is refused with 404 and nothing is written (5 ms)
+    ✕ a pre-check of another application, named under your own application, is 404 and untouched (3 ms)
+    ✕ an unknown pre-check is 404 (3 ms)
+    ✕ document_reviewer: the same observations plus confidence and the snippet — masked (4 ms)
+    ✕ field_inspector: the same observations plus confidence and the snippet — masked (2 ms)
+    ✕ system_admin_dtam: the same observations plus confidence and the snippet — masked (2 ms)
+    ✕ system_admin_platform: the same observations plus confidence and the snippet — masked (2 ms)
+    ✓ finance_officer_dtam: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ finance_officer_platform: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ dispatcher: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ certificate_approver: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ health: 403 and the body carries nothing of the pre-check (2 ms)
+    ✓ a document reviewer who is not the assigned one: 403 and nothing of the pre-check (2 ms)
+    ✓ no caller: 401, nothing read (2 ms)
+    ✕ the slot's current DONE pre-check id is written on create and on update (9 ms)
+    ✕ a slot whose current pre-check is still PENDING stores null — the superseded DONE is not "current" (2 ms)
+    ✕ a FAILED current pre-check stores null (2 ms)
+    ✕ a slot outside the catalog stores null even if a row exists for it (2 ms)
+    ✕ the applicant's requirements still answer, every slot's precheck null (3 ms)
+    ✕ the officer's document-check still answers, every slot's precheck null (2 ms)
+    ✕ the verdict is still recorded, with precheckId null (3 ms)
+Tests:       18 failed, 9 passed, 27 total
+
+PIN, not fix (green before the change, 9): 'never the confidence...' (no precheck key existed yet), 'a different health user gets 404',
+the five 403 roles, the unassigned reviewer 403, the 401. They pin that the new fields never reach a refused caller.
+
+=== RED 2: apps/backend/__tests__/integration/document-precheck-api.test.js — scratch PG17 (postgres:17-alpine) 127.0.0.1:5436, prisma migrate deploy, random password never printed ===
+    ✓ an officer of org B gets 404 on org A's application and none of its observations (55 ms)
+    ✕ the tenant-bound read itself: org A's pre-check is invisible inside org B and visible inside org A (1 ms)
+    ✕ the officer of org A sees the observations with confidence and the snippet, masked, NOT_FOUND included (35 ms)
+    ✕ the applicant sees check, result and reason only (15 ms)
+    ✕ another health user cannot acknowledge (404, nothing written) (7 ms)
+    ✕ the owner acknowledges: the time is stored and the application status is the same before and after (5 ms)
+    ✕ a verdict row stores the slot's current DONE pre-check id (25 ms)
+Tests:       6 failed, 1 passed, 7 total
+    TypeError: service.currentForSlots is not a function
+    Expected: 200
+    Received: 404
+PIN, not fix: 'officer of org B gets 404' (application.findFirst was already tenant-scoped).
+
+=== Mutation checks (on the implementation, then restored) ===
+-- fail-soft: try/catch removed in requirements.js and around currentDonePrecheckId in document-reviews.js; -t 'warn-only' --
+    ✕ the applicant's requirements still answer, every slot's precheck null (297 ms)
+    ✓ the officer's document-check still answers, every slot's precheck null (5 ms)
+    ✕ the verdict is still recorded, with precheckId null (10 ms)
+Tests:       2 failed, 24 skipped, 1 passed, 27 total
+-- tenant: currentForSlots wrapped in withoutTenantScope(async () => await ...) --
+    ✓ an officer of org B gets 404 on org A's application and none of its observations (57 ms)
+    ✕ the tenant-bound read itself: org A's pre-check is invisible inside org B and visible inside org A (8 ms)
+    ✓ the officer of org A sees the observations with confidence and the snippet, masked, NOT_FOUND included (34 ms)
+    ✓ the applicant sees check, result and reason only (17 ms)
+    ✓ another health user cannot acknowledge (404, nothing written) (9 ms)
+    ✓ the owner acknowledges: the time is stored and the application status is the same before and after (16 ms)
+    ✓ a verdict row stores the slot's current DONE pre-check id (25 ms)
+    Expected: 0
+    Received: 1
+Tests:       1 failed, 6 passed, 7 total
+(a first mutant that returned the un-awaited query from withoutTenantScope SURVIVED: the lazy Prisma query ran in the caller's context, so it was not a real bypass — the awaited form above is.)

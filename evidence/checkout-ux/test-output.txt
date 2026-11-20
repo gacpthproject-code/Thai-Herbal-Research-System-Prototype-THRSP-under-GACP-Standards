@@ -1,0 +1,483 @@
+PASS src/app/health/payments/checkout/__tests__/checkout-shows-application-number.test.tsx
+  checkout page shows the applicationNumber, never the UUID
+    ✓ idle state: shows the applicationNumber, not the raw UUID (50 ms)
+    ✓ created state: shows the applicationNumber, not the raw UUID (57 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       2 passed, 2 total
+Snapshots:   0 total
+Time:        1.7 s, estimated 2 s
+Ran all test suites matching checkout-shows-application-number.
+PASS src/components/payments/__tests__/PaymentInvoiceCard.legacy-state.test.tsx
+  PaymentInvoiceCard — a real legacy STATE row (pre-2026-09-11)
+    ✓ names it truthfully, not "ไม่ระบุ" (35 ms)
+    ✓ shows no VAT line — the state fee was VAT-exempt, not a service fee split into 7% (3 ms)
+    ✓ names no company issuer for a document that was, by law, a government receipt (3 ms)
+    ✓ the total is exactly the stored amount — no money computation changed (2 ms)
+
+PASS src/components/payments/__tests__/TwoCardPaymentSection.test.tsx
+  TwoCardPaymentSection (one-fee residue)
+    ✓ renders one full-width card per invoice, never a side-by-side split pair (34 ms)
+    ✓ reports the combined total in the section header without the two-transfer suffix (3 ms)
+    ✓ renders a single invoice with no "missing side" placeholder (3 ms)
+
+PASS src/components/payments/__tests__/quotation-invoiced-without-acceptance.test.tsx
+  an INVOICED row says which of the two it is (F-G4-64 §3.7)
+    ✓ INVOICED with no acceptedAt is labelled as billed before the acceptance step existed (89 ms)
+    ✓ INVOICED WITH an acceptedAt keeps the ordinary label (24 ms)
+    ✓ a scope mismatch is named on the card, not hidden behind figures that look current (21 ms)
+    ✓ the mismatch notice names the document to quote and promises no new one (30 ms)
+    ✓ a row whose scope still matches says nothing about a mismatch (44 ms)
+
+PASS src/app/health/payments/checkout/__tests__/checkout-promptpay-qr.test.tsx
+  checkout screen: PromptPay QR through Stripe.js, settled only by the webhook
+    ✓ loads Stripe.js with the key the BACKEND returned and opens the PromptPay confirm with the payer email (206 ms)
+    ✓ Stripe.js saying "succeeded" is NOT paid: the screen waits for the webhook-settled invoice, then names the receipt the system issued (39 ms)
+    ✓ once settled, nothing on the screen still says it is waiting for payment (found by the real walk, A09) (40 ms)
+    ✓ only the invoice this order settles counts: another paid invoice does not end the wait (27 ms)
+    ✓ when the webhook has not settled it within the watch window, the screen says so truthfully (51 ms)
+    ✓ closing Stripe's modal without paying does not claim a payment and offers the QR again (15 ms)
+    ✓ a Stripe error shows Thai copy, never Stripe's English message, and keeps the button (27 ms)
+    ✓ Stripe.js that fails to load (blocked, offline) is an error, not a silent no-op (33 ms)
+    ✓ no payer email on record: asks for one, keeps the button disabled until it is well-formed, and sends exactly what was typed (45 ms)
+    ✓ review M-3: a pre-filled payer email sits in an editable field, is re-validated, and what the payer corrects is what Stripe receives (32 ms)
+    ✓ review I-1: re-entering an order whose intent already SUCCEEDED shows no pay button and waits for the webhook, never loading Stripe.js (17 ms)
+    ✓ review I-1: a reused intent that is still processing also waits instead of offering a second confirm (13 ms)
+    ✓ review I-2 (operator 2026-09-27): no sentence on the pay step names the provider (22 ms)
+    ✓ no publishable key in the response: no pay button, Stripe.js never loads, and the screen says the QR cannot be shown and nothing was charged (18 ms)
+    ✓ fix round 3 (N-2): CHECKOUT_INTENT_UNUSABLE and CHECKOUT_ORDER_CHANGED have their own true Thai copy, name no provider, and UNUSABLE sends the payer to the company instead of a retry (15 ms)
+    ✓ the backend fail-closed refusals map to Thai copy that says the QR is not available and nothing was charged (2 ms)
+
+PASS src/app/health/payments/checkout/__tests__/checkout-shows-quotation-and-terms.test.tsx
+  the checkout page names the document and takes the acknowledgment (F-G4-64)
+    ✓ the start button is disabled until the payment terms are acknowledged (212 ms)
+    ✓ the acknowledgment is recorded through the consent API, and the checkout request carries no version string (109 ms)
+    ✓ a consent already on file enables the button and is not recorded twice (31 ms)
+    ✓ a failed consent write stops before the charge and names the cause (19 ms)
+    ✓ the created state names the quotation the charge collects against (25 ms)
+    ✓ a response without a quotation number does not draw an empty row (21 ms)
+    ✓ the QUOTATION_NOT_ISSUED refusal reaches the screen in Thai, never as a raw code (19 ms)
+    ✓ the QUOTATION_NOT_ACCEPTED refusal reaches the screen in Thai, never as a raw code (13 ms)
+    ✓ the QUOTATION_EXPIRED refusal reaches the screen in Thai, never as a raw code (15 ms)
+    ✓ the QUOTATION_GATE_UNAVAILABLE refusal reaches the screen in Thai, never as a raw code (18 ms)
+    ✓ the CHECKOUT_PHASE_NOT_PRICED refusal reaches the screen in Thai, never as a raw code (11 ms)
+    ✓ the CHECKOUT_PRICE_DRIFT refusal reaches the screen in Thai, never as a raw code (24 ms)
+    ✓ the PAYMENT_TERMS_NOT_ACCEPTED refusal reaches the screen in Thai, never as a raw code (17 ms)
+    ✓ the PAYMENT_TERMS_NOT_ACCEPTED refusal puts the box back, so the sentence names a control that exists (27 ms)
+    ✓ every OTHER refusal keeps the failed state and does not reopen the box (8 ms)
+    ✓ the terms refusal points at the box on THIS page, which is the one that clears it (1 ms)
+  the checkout page in mock mode (F-G4-64 fix r2)
+    ✓ reads no consent ledger on mount: there is no backend to read it from (4 ms)
+    ✓ the press writes no consent and still reaches the fixture charge (21 ms)
+    ✓ the disclosure is still shown and still has to be ticked (15 ms)
+  the acknowledgment reads as what it acknowledges (F-G4-64 fix r2)
+    ✓ the tick carries no aria-label, so its name is the sentence in its own label (16 ms)
+  the idle screen names the document and the sum it is about to charge (final round R15)
+    ✓ shows the quotation number, the Thai instalment name and the accepted phase total BEFORE the tick (17 ms)
+    ✓ reads M2 from the URL and shows that instalment instead (19 ms)
+    ✓ falls back to the phase the row records when it carries no snapshot (10 ms)
+    ✓ a pre-W14 row closed by the repair script names the PHASE, not its own slice (17 ms)
+    ✓ a row that never recorded the phase price names the document and no figure (10 ms)
+    ✓ draws nothing when no quotation has been accepted: it may not name a document as accepted (22 ms)
+    ✓ a failed lookup is silent here, and never blocks the disclosure or the button (25 ms)
+    ✓ the created screen names the instalment in Thai, never the raw enum (R16) (35 ms)
+    ✓ the page speaks one voice: คุณ outside the quoted legal bullets (R17) (22 ms)
+    ✓ the recorded-consent line is system voice, so it says คุณ (R17) (8 ms)
+    ✓ the new blocks use token surfaces, so dark mode stays readable (R18) (7 ms)
+
+PASS src/app/health/payments/checkout/__tests__/checkout-shows-application-number.test.tsx
+  checkout page shows the applicationNumber, never the UUID
+    ✓ idle state: shows the applicationNumber, not the raw UUID (68 ms)
+    ✓ created state: shows the applicationNumber, not the raw UUID (58 ms)
+
+PASS src/app/health/payments/checkout/__tests__/checkout-states.test.tsx
+  HealthPaymentsCheckout states (W2-03 D2)
+    ✓ loading: pending createCheckout shows an indicator and disables the start button (132 ms)
+    ✓ success (HAPPY): heading + milestone from the RESPONSE + the payable, without the ledger split (37 ms)
+    ✓ no-client-math proof (HAPPY_NON_SUMMING): total renders 9999 exactly as the response says (17 ms)
+    ✓ no-paid-wording: the created state never claims the payment happened (14 ms)
+    ✓ 409 conflict: ground-truth Thai copy character-for-character + mockScenario passthrough (19 ms)
+    ✓ 5xx: generic Thai failure copy (no raw English code) + path back to the payments list (10 ms)
+    ✓ STRIPE_CHECKOUT_DISABLED: Thai copy saying online payment is not enabled (12 ms)
+    ✓ timeout: Thai retry copy + a retry button that calls createCheckout again (21 ms)
+    ✓ missing ?app: Thai cause + link back to /health/payments, service never called (5 ms)
+    ✓ grep pin: client-view has no constants/fees import and no arithmetic on breakdown fields (4 ms)
+
+PASS src/app/health/payments/__tests__/payments-checkout-entry-needs-accepted-quotation.test.tsx
+  HealthPaymentsPage checkout entry needs an accepted quotation (F-G4-64)
+    ✓ with debt but a PENDING quotation, the pay entry is replaced by a pointer to the quotation card (199 ms)
+    ✓ with debt and an ACCEPTED quotation, the pay entry renders (92 ms)
+    ✓ with debt and an INVOICED quotation, the pay entry renders (post-acceptance terminal) (21 ms)
+    ✓ with debt and NO quotation at all, the pay entry is replaced by the waiting copy, not by the accept pointer (22 ms)
+    ✓ a pre-W14 pair with only the PLATFORM side accepted is not accepted (the gate wants both) (18 ms)
+    ✓ a EXPIRED quotation is not answered with an accept instruction the card below cannot offer (17 ms)
+    ✓ a REJECTED quotation is not answered with an accept instruction the card below cannot offer (22 ms)
+    ✓ a EXPIRED quotation tells the applicant what to quote, not that a replacement will be issued (16 ms)
+    ✓ a REJECTED quotation tells the applicant what to quote, not that a replacement will be issued (21 ms)
+    ✓ a failed lookup is not announced to the applicant as "we are issuing your quotation" (25 ms)
+    ✓ with no debt, nothing renders here whatever the quotation says (F-G4-49 stands) (23 ms)
+  the payments page under the final-round rulings (F-G4-64)
+    ✓ a PENDING row inside its window still points at the card below (16 ms)
+    ✓ a lapsed PENDING row is not answered with an accept instruction (R21) (17 ms)
+    ✓ a lapsed PAIR is not promised a replacement the backend never issues (fix round 1) (20 ms)
+    ✓ the PENDING notice sits on a token surface, readable in dark mode (R18) (45 ms)
+    ✓ the PENDING notice sits on a token surface, readable in dark mode (R18) (21 ms)
+    ✓ the EXPIRED notice sits on a token surface, readable in dark mode (R18) (47 ms)
+    ✓ the waiting notice and the failed-lookup notice are token surfaces too (R18) (58 ms)
+
+PASS src/app/health/payments/__tests__/detail-modal-shows-receipt.test.tsx
+  HealthPaymentsPage detail modal lists the receipt (F-G4-53)
+    ✓ (a) a receipted checkout row: the dialog names the document exactly as the card does, and dates it in BE (226 ms)
+    ✓ (b) a paid checkout row without a receipt: the dialog says nothing about a receipt (106 ms)
+    ✓ (c) a receipt number with no issue date: the number row alone, and no dash stands in for the date (132 ms)
+    ✓ (d) an issue date with no number yet: the date row renders on its own column, not on the number (73 ms)
+
+PASS src/app/health/payments/__tests__/payments-states.test.tsx
+  HealthPaymentsPage states (V1-B)
+    ✓ renders the loading skeleton on initial SSR (loading=true is the default) (53 ms)
+    ✓ renders the empty-state copy when getMyPayments resolves to [] (160 ms)
+    ✓ never claims there are no payments when the read FAILED (17 ms)
+    ✓ offers a way back when the read failed (15 ms)
+    ✓ renders the inline error banner when getMyPayments rejects (21 ms)
+    ✓ renders legacy-table action buttons with WCAG-compliant min-h-[44px] (D6) (68 ms)
+
+PASS src/app/health/payments/__tests__/payments-phase-due-chip.test.tsx
+  the payments page says which instalment to pay now
+    ✓ marks งวดที่ 1 due and งวดที่ 2 not-yet while the filing waits on the document fee (95 ms)
+    ✓ puts งวดที่ 2 FIRST once it is the one that can be paid (62 ms)
+    ✓ never shows two งวด as due at the same time — that is the confusion itself (55 ms)
+    ✓ says it cannot tell, rather than claiming money is due, when the filing status is unreadable (55 ms)
+    ✓ tells the farmer WHY a phase is not payable yet, not just that it is not (131 ms)
+
+PASS src/app/health/payments/__tests__/payments-checkout-rows-are-phases.test.tsx
+  HealthPaymentsPage checkout rows are phases (F-G4-48)
+    ✓ files CERTIFICATION_CHECKOUT_M1 under งวดที่ 1 and _M2 under งวดที่ 2, never ไม่ระบุงวด (80 ms)
+    ✓ renders each checkout invoice as ONE full-width card labelled as the CHECKOUT component (95 ms)
+    ✓ never looks up a bank channel for a checkout invoice and shows no lookup error (74 ms)
+    ✓ keeps the paid total honest: ยอดที่ชำระแล้ว = 35,310 and nothing is owed (53 ms)
+
+  console.error
+    [GACP] [ApiClient] Request failed: ReferenceError: fetch is not defined
+        at ApiClient.request (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/api/api-client.ts:383:30)
+        at ApiClient.get (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/api/api-client.ts:589:21)
+        at Object.getMyApplications (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/services/payment-service.ts:880:31)
+        at /home/ubuntu/work/wt-ckux/apps/web-app/src/app/health/payments/client-view.tsx:241:58
+        at /home/ubuntu/work/wt-ckux/apps/web-app/src/app/health/payments/client-view.tsx:243:7
+        at commitHookEffectListMount (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+        at commitPassiveMountOnFiber (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+        at commitPassiveMountEffects_complete (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+        at commitPassiveMountEffects_begin (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+        at commitPassiveMountEffects (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+        at flushPassiveEffectsImpl (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+        at flushPassiveEffects (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+        at /home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+        at flushActQueue (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2667:24)
+        at recursivelyFlushAsyncActWork (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2633:9)
+        at /home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2545:15
+        at processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at Object.error (src/lib/logger.ts:32:17)
+      at ApiClient.request (src/lib/api/api-client.ts:577:20)
+      at ApiClient.get (src/lib/api/api-client.ts:589:21)
+      at Object.getMyApplications (src/lib/services/payment-service.ts:880:31)
+      at src/app/health/payments/client-view.tsx:241:58
+      at src/app/health/payments/client-view.tsx:243:7
+      at commitHookEffectListMount (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+      at commitPassiveMountOnFiber (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+      at commitPassiveMountEffects_complete (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+      at commitPassiveMountEffects_begin (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+      at commitPassiveMountEffects (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+      at flushPassiveEffectsImpl (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+      at flushPassiveEffects (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+      at ../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+      at flushActQueue (../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2667:24)
+      at recursivelyFlushAsyncActWork (../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2633:9)
+      at ../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2545:15
+
+  console.error
+    [GACP] [ApiClient] Request failed: ReferenceError: fetch is not defined
+        at ApiClient.request (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/api/api-client.ts:383:30)
+        at ApiClient.get (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/api/api-client.ts:589:21)
+        at Object.getMyApplications (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/services/payment-service.ts:880:31)
+        at /home/ubuntu/work/wt-ckux/apps/web-app/src/app/health/payments/client-view.tsx:241:58
+        at /home/ubuntu/work/wt-ckux/apps/web-app/src/app/health/payments/client-view.tsx:243:7
+        at commitHookEffectListMount (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+        at commitPassiveMountOnFiber (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+        at commitPassiveMountEffects_complete (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+        at commitPassiveMountEffects_begin (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+        at commitPassiveMountEffects (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+        at flushPassiveEffectsImpl (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+        at flushPassiveEffects (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+        at /home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+        at flushActQueue (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2667:24)
+        at recursivelyFlushAsyncActWork (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2633:9)
+        at /home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2545:15
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at Object.error (src/lib/logger.ts:32:17)
+      at ApiClient.request (src/lib/api/api-client.ts:577:20)
+      at ApiClient.get (src/lib/api/api-client.ts:589:21)
+      at Object.getMyApplications (src/lib/services/payment-service.ts:880:31)
+      at src/app/health/payments/client-view.tsx:241:58
+      at src/app/health/payments/client-view.tsx:243:7
+      at commitHookEffectListMount (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+      at commitPassiveMountOnFiber (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+      at commitPassiveMountEffects_complete (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+      at commitPassiveMountEffects_begin (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+      at commitPassiveMountEffects (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+      at flushPassiveEffectsImpl (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+      at flushPassiveEffects (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+      at ../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+      at flushActQueue (../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2667:24)
+      at recursivelyFlushAsyncActWork (../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2633:9)
+      at ../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2545:15
+
+  console.error
+    [GACP] [ApiClient] Request failed: ReferenceError: fetch is not defined
+        at ApiClient.request (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/api/api-client.ts:383:30)
+        at ApiClient.get (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/api/api-client.ts:589:21)
+        at Object.getMyApplications (/home/ubuntu/work/wt-ckux/apps/web-app/src/lib/services/payment-service.ts:880:31)
+        at /home/ubuntu/work/wt-ckux/apps/web-app/src/app/health/payments/client-view.tsx:241:58
+        at /home/ubuntu/work/wt-ckux/apps/web-app/src/app/health/payments/client-view.tsx:243:7
+        at commitHookEffectListMount (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+        at commitPassiveMountOnFiber (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+        at commitPassiveMountEffects_complete (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+        at commitPassiveMountEffects_begin (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+        at commitPassiveMountEffects (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+        at flushPassiveEffectsImpl (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+        at flushPassiveEffects (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+        at /home/ubuntu/work/wt-ckux/node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+        at flushActQueue (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2667:24)
+        at recursivelyFlushAsyncActWork (/home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2633:9)
+        at /home/ubuntu/work/wt-ckux/node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2545:15
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at Object.error (src/lib/logger.ts:32:17)
+      at ApiClient.request (src/lib/api/api-client.ts:577:20)
+      at ApiClient.get (src/lib/api/api-client.ts:589:21)
+      at Object.getMyApplications (src/lib/services/payment-service.ts:880:31)
+      at src/app/health/payments/client-view.tsx:241:58
+      at src/app/health/payments/client-view.tsx:243:7
+      at commitHookEffectListMount (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:23189:26)
+      at commitPassiveMountOnFiber (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24970:11)
+      at commitPassiveMountEffects_complete (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24930:9)
+      at commitPassiveMountEffects_begin (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24917:7)
+      at commitPassiveMountEffects (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:24905:3)
+      at flushPassiveEffectsImpl (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27078:3)
+      at flushPassiveEffects (../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:27023:14)
+      at ../../node_modules/.pnpm/react-dom@18.3.1_react@18.3.1/node_modules/react-dom/cjs/react-dom.development.js:26808:9
+      at flushActQueue (../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2667:24)
+      at recursivelyFlushAsyncActWork (../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2633:9)
+      at ../../node_modules/.pnpm/react@18.3.1/node_modules/react/cjs/react.development.js:2545:15
+
+PASS src/app/health/payments/__tests__/payments-cancelled-rows.test.tsx
+  HealthPaymentsPage CANCELLED invoice rows
+    ✓ ยอดรอชำระ sums the pending row only (885), not the cancelled 5,000 (139 ms)
+    ✓ lists the cancelled row under ทั้งหมด with the ยกเลิกแล้ว chip (81 ms)
+    ✓ ยกเลิกแล้ว chip uses token neutrals, no stock slate/zinc/emerald palette (110 ms)
+    ✓ รอชำระ tab hides the cancelled row; ทั้งหมด shows it again (109 ms)
+
+PASS src/components/payments/__tests__/quotation-review-section.test.tsx
+  QuotationReviewSection (PR2)
+    ✓ renders DTAM + PLATFORM cards with per-phase line items and an accept button (17 ms)
+    ✓ calls acceptQuotation and bubbles onAccepted when the accept button is clicked (19 ms)
+    ✓ shows the accepted state (no accept button) for an already-ACCEPTED quotation (7 ms)
+    ✓ renders nothing when no quotation has been issued (both sides null) (2 ms)
+    ✓ while loading it instructs nothing: it says, visibly, that it is loading (4 ms)
+    ✓ after the load resolves with a PENDING quotation the header and the instruction take over from the placeholder (8 ms)
+    ✓ an ACCEPTED quotation keeps the header but drops the instruction: there is nothing left to accept (6 ms)
+  QuotationReviewSection under the final-round rulings
+    ✓ prints the date the offer stands until, on the card that asks for the acceptance (R21) (16 ms)
+    ✓ a lapsed PENDING row draws no accept button and says what the system will do (R21) (13 ms)
+    ✓ a lapsed pre-W14 PAIR is told the truth: the replacement is not automatic (fix round 1) (24 ms)
+    ✓ names both instalments from the one constant every other surface reads (14 ms)
+    ✓ the accept-failure sentence is a live region (R19) (126 ms)
+    ✓ SNAPSHOT_REQUIRED is not answered with a retry, and names the document (R20) (51 ms)
+    ✓ INVALID_QUOTATION_STATUS re-reads the row instead of asking for a retry (R20) (62 ms)
+
+PASS src/app/health/payments/__tests__/invoice-download-failure-visible.test.tsx
+  B1 — invoice PDF download failure is visible to the farmer
+    ✓ shows a Thai error naming the cause and the next action when the download fails (418 ms)
+    ✓ stays silent (no alert) when the download succeeds (109 ms)
+    ✓ clears a previous failure when a retry succeeds (177 ms)
+
+PASS src/app/health/payments/__tests__/one-fee-residue-copy.test.tsx
+  HealthPaymentsPage — one-fee residue copy
+    ✓ a STATE-component invoice with no line items: the detail modal names no ค่าธรรมเนียมภาครัฐ row, no VAT-exempt claim (83 ms)
+    ✓ a non-CHECKOUT invoice with no line items: the fallback names ค่าบริการ, not ค่าบริการแพลตฟอร์ม (10%) (47 ms)
+    ✓ a real legacy STATE row (fix round 1, 2026-09-26): named truthfully, not ไม่ระบุ, no invented VAT, no company issuer (81 ms)
+  client-view.tsx source — stale two-card comment
+    ✓ the phase-loop comment no longer describes two side-by-side STATE + PLATFORM cards (4 ms)
+
+PASS src/app/health/payments/__tests__/payments-checkout-flag-off-notice.test.tsx
+  HealthPaymentsPage checkout flag OFF notice (UX-9)
+    ✓ flag OFF + unpaid invoice: the notice names the cause and the next action (55 ms)
+    ✓ flag OFF + everything paid: no notice, nothing is owed (52 ms)
+    ✓ flag ON + unpaid invoice: no notice, the checkout entry renders instead (52 ms)
+
+PASS src/app/health/payments/__tests__/phase-card-shows-receipt.test.tsx
+  HealthPaymentsPage phase card shows the receipt (F-G4-53)
+    ✓ (a) a receipted checkout row: chip reads ออกใบเสร็จแล้ว and the card quotes the receipt number (174 ms)
+    ✓ (b) a paid checkout row without a receipt: chip reads ชำระแล้ว and no receipt number is shown (49 ms)
+    ✓ (c) an unpaid checkout row: chip reads รอชำระ (29 ms)
+
+PASS src/app/health/payments/checkout/__tests__/checkout-does-not-promise-online-payment.test.tsx
+  checkout screen: no promise of an online payment it cannot take
+    ✓ before the press: states only what holds whether or not the QR can be shown, and does not call it online payment (49 ms)
+    ✓ after the press with no publishable key in the response: names no next payment step, says nothing was charged and why (27 ms)
+    ✓ the refund disclosure above the tick is the payment-terms v1.1 §2 rule (22 ms)
+    ✓ STRIPE_CHECKOUT_DISABLED does not send the applicant to finance staff to pay (19 ms)
+    ✓ no refusal on this screen tells the applicant that staff will take the payment (4 ms)
+
+PASS src/app/health/payments/__tests__/payments-does-not-promise-online-payment.test.tsx
+  /health/payments: no promise of an online payment it cannot take
+    ✓ flag on, debt, accepted quotation: the entry says how paying works without promising or denying it (59 ms)
+    ✓ flag on, pending quotation: the pointer does not promise online payment after acceptance (59 ms)
+    ✓ flag on, failed quotation lookup: names no online-payment button (44 ms)
+    ✓ flag off, debt: the notice does not send the applicant to staff to pay, and says nothing was charged (22 ms)
+    ✓ the phase chips say whether an instalment is due, not that it can be paid now (1 ms)
+    ✓ no sentence in the page source sends the applicant to staff to pay (1 ms)
+
+PASS src/app/health/payments/__tests__/payments-checkout-entry-needs-debt.test.tsx
+  HealthPaymentsPage checkout entry needs debt (F-G4-49)
+    ✓ flag ON + every row paid: no checkout link and no online-payment wording (66 ms)
+    ✓ flag ON + only a CANCELLED unpaid row: still nothing owed, no checkout link (29 ms)
+    ✓ flag ON + one unpaid row: the checkout link renders for the active application (74 ms)
+
+PASS src/app/health/payments/checkout/__tests__/checkout-page-flag-guard.test.tsx
+  /health/payments/checkout route guard (P0-4)
+    ✓ flag unset (fail-closed default): the route 404s and renders no checkout markup (26 ms)
+    ✓ flag on: the page renders unchanged — main wrapper plus the client view (2 ms)
+    ✓ flag set to "TRUE" is not the exact string true: the route 404s
+    ✓ flag set to "True" is not the exact string true: the route 404s (1 ms)
+    ✓ flag set to " true" is not the exact string true: the route 404s
+    ✓ flag set to "true " is not the exact string true: the route 404s (1 ms)
+    ✓ flag set to "1" is not the exact string true: the route 404s
+    ✓ flag set to "yes" is not the exact string true: the route 404s (1 ms)
+    ✓ flag set to "false" is not the exact string true: the route 404s
+    ✓ flag set to "" is not the exact string true: the route 404s (1 ms)
+    ✓ flag on then off within one process: the guard re-reads the flag every request (1 ms)
+
+PASS src/app/health/payments/__tests__/payments-checkout-entry-flag.test.tsx
+  HealthPaymentsPage checkout entry flag (W2-03 D2)
+    ✓ flag OFF (default fail-closed): no checkout link, no online-payment wording (100 ms)
+    ✓ flag ON: renders the checkout entry link with the active applicationId (45 ms)
+
+PASS src/app/health/payments/__tests__/phase-due-state.test.ts
+  which instalment is collectable today
+    ✓ งวดที่ 1 is due while the filing sits at PENDING_DOC_FEE (22 ms)
+    ✓ งวดที่ 2 is NOT due at the same moment — the queue has not reached it (1 ms)
+    ✓ งวดที่ 2 becomes due once the documents are approved (1 ms)
+    ✓ งวดที่ 1 stops being due once its own bill is paid, whatever the filing is doing
+    ✓ a filing status nobody can pay in is NOT_YET, not DUE_NOW
+    ✓ the filing status is read case-insensitively — the register is not consistent (1 ms)
+    ✓ the chip and the pay button agree on งวดที่ 2 under review
+    ✓ the chip and the pay button agree on งวดที่ 2 the moment it opens (6 ms)
+  what counts as a debt
+    ✓ an unpaid, uncancelled bill is owed — the page’s own รอชำระ rule (1 ms)
+    ✓ a paid bill is not owed
+    ✓ a cancelled bill is not owed, and does not hold the phase open (1 ms)
+    ✓ a cancelled bill never shadows a live one beside it (1 ms)
+    ✓ a row that says neither is treated as owed — silence is not a receipt
+    ✓ a phase with no bills at all is settled — there is nothing to pay
+  what the screen may not claim
+    ✓ an unknown filing status with money owed says UNKNOWN — never DUE_NOW (1 ms)
+    ✓ an unknown status with nothing owed is still SETTLED — no debt needs no status
+  a box holding more than one filing’s bills
+    ✓ refuses to claim a due state when another filing’s bill is in the box (1 ms)
+    ✓ still says SETTLED when nothing in the box is owed, whoever owns it
+    ✓ answers normally when every bill in the box is this filing’s
+    ✓ a row that names no filing does not block the answer
+    ✓ with no filing named, the caller gets the old unscoped answer
+  the order the phases are shown in
+    ✓ what can be paid today sorts above what cannot (1 ms)
+    ✓ a phase whose state cannot be decided is not buried under settled ones (1 ms)
+
+PASS src/app/health/payments/__tests__/quotation-accept-badge-no-reload.test.tsx
+  quotation card badge after accept — no manual reload needed
+    ✓ shows the accepted state right after a 200 accept, without a page reload (246 ms)
+
+PASS src/app/health/payments/checkout/__tests__/checkout-error-copy-covers-the-quotation-gate.test.ts
+  CHECKOUT_ERROR_MAP covers every refusal of the gated card rail
+    ✓ QUOTATION_NOT_ISSUED has Thai copy of its own (25 ms)
+    ✓ QUOTATION_NOT_ACCEPTED has Thai copy of its own (14 ms)
+    ✓ QUOTATION_EXPIRED has Thai copy of its own
+    ✓ QUOTATION_GATE_UNAVAILABLE has Thai copy of its own (1 ms)
+    ✓ CHECKOUT_PHASE_NOT_PRICED has Thai copy of its own (1 ms)
+    ✓ CHECKOUT_PRICE_DRIFT has Thai copy of its own
+    ✓ PAYMENT_TERMS_NOT_ACCEPTED has Thai copy of its own (1 ms)
+    ✓ no two refusals share the same sentence (11 ms)
+    ✓ an unaccepted quotation names the button the applicant has to press (1 ms)
+    ✓ the terms refusal points at the terms, not at a retry
+    ✓ the codes the applicant cannot act on name staff, and do not ask for a retry (1 ms)
+    ✓ QUOTATION_NOT_ISSUED claims an alert only when the rail actually sends one
+    ✓ QUOTATION_NOT_ACCEPTED claims an alert only when the rail actually sends one (1 ms)
+    ✓ QUOTATION_EXPIRED claims an alert only when the rail actually sends one
+    ✓ QUOTATION_GATE_UNAVAILABLE claims an alert only when the rail actually sends one
+    ✓ CHECKOUT_PHASE_NOT_PRICED claims an alert only when the rail actually sends one
+    ✓ CHECKOUT_PRICE_DRIFT claims an alert only when the rail actually sends one
+    ✓ PAYMENT_TERMS_NOT_ACCEPTED claims an alert only when the rail actually sends one (1 ms)
+    ✓ a missing quotation mirrors the catalogue and asks for the application number
+    ✓ an expired quotation points at the list without promising a document it may not get (1 ms)
+    ✓ the phase-not-priced refusal asks for the number instead of promising a new document
+    ✓ a gate lookup failure is the one that says it is temporary, and that no charge was made (1 ms)
+
+PASS src/app/health/payments/__tests__/checkout-entry-owes.test.ts
+  when the checkout entry has something to collect
+    ✓ an unpaid invoice row is debt — the old rule holds (3 ms)
+    ✓ an accepted quotation nobody has collected on is debt — the walked dead end
+    ✓ งวดที่ 2 is NOT offered before the documents are approved — not due yet (1 ms)
+    ✓ an UNKNOWN application state is no debt — fail closed, the old behaviour
+    ✓ phase 2 due (PENDING_AUDIT_FEE) and uncollected — debt
+    ✓ LEGACY-paid application: rows exist for both phases, quotation never stamped — no debt (F-G4-49 stands)
+    ✓ everything billed through checkout and everything paid — no debt
+    ✓ an unaccepted quotation is not debt — accepting it is the applicant's call
+  which phases already have an invoice row
+    ✓ reads INVOICE and RECEIPT rows of this application only (1 ms)
+
+PASS src/app/health/payments/__tests__/payments-application-id.test.ts
+  which application the payments page gates on
+    ✓ the URL always wins — a link from the submit hand-over is explicit (4 ms)
+    ✓ an invoice row wins over the list — money already billed comes first (1 ms)
+    ✓ no invoices and no URL: the payable filing from the applicant's own list (1 ms)
+    ✓ a DRAFT is never picked — nothing is due on an unfiled application (1 ms)
+    ✓ nothing anywhere is an empty answer, not a crash (1 ms)
+
+PASS src/app/health/payments/__tests__/finance-documents-are-three.test.ts
+  แถบขั้นตอนเอกสารการเงิน
+    ✓ มีสามใบ (1 ms)
+    ✓ ใบที่ 2 พูดทั้งสองชื่อ เพราะเป็นใบเดียวกัน
+    ✓ ใบที่ 3 รวมใบเสร็จกับใบกำกับภาษีไว้ด้วยกัน
+    ✓ คำอธิบายใต้แถบก็เล่าสามใบ ไม่ใช่สี่ (1 ms)
+    ✓ ไม่มีใบที่ 4 แยกต่างหากอีกแล้ว
+
+Test Suites: 29 passed, 29 total
+Tests:       231 passed, 231 total
+Snapshots:   0 total
+Time:        7.79 s
+Ran all test suites matching src/app/health/payments|src/components/payments.

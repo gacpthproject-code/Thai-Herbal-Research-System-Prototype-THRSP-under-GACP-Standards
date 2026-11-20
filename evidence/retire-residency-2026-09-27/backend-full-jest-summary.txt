@@ -1,0 +1,37 @@
+backend-full-jest — SUMMARY (raw log kept out of the repo per plan rule; see scratchpad note below)
+
+Command: NODE_OPTIONS=--max-old-space-size=3072 npx jest --maxWorkers=2
+(apps/backend, fresh SIGNING_KEY_DIR=$(mktemp -d))
+
+Result:
+Test Suites: 3 failed, 32 skipped, 853 passed, 856 of 888 total
+Tests:       4 failed, 221 skipped, 11016 passed, 11241 total
+Snapshots:   0 total
+Time:        3363.732 s
+
+Failing suites/tests (4, all in 3 files — none import any file this branch touches):
+- __tests__/unit/draft-document-upload-content-guard.test.js
+  - "a zero-byte file is refused" — expected no new file on disk, found 1
+  - "a real one-page permit PDF is accepted, stored, and recorded" — expected 1 new file, found 2
+- __tests__/unit/the-upload-door-refuses-an-accepted-slot.test.js
+  - "ไฟล์ที่ถูกปฏิเสธไม่ค้างบนดิสก์" — expected no new file on disk, found 1
+- __tests__/unit/the-farmer-can-answer-the-defect-list.test.js
+  - "เขียนไฟล์ลงโฟลเดอร์เดียวกับที่ express เสิร์ฟเป็น /uploads — ไม่ ENOENT" — expected >0 new
+    files, found 0
+
+Diagnosis: all 4 failures are disk-state assertions (a test compares the set of files in an
+uploads directory before/after an HTTP call). `ps aux` at the time of this run showed
+concurrent `jest` processes from two OTHER worktrees (`wt-finview`,
+`/tmp/gacp-gate-*`) writing to the same shared uploads directory at the same time. Re-running
+exactly these 3 suites alone, in isolation, twice, passed 19/19 both times — see
+`backend-flake-isolation-retest.txt` (kept in-repo, small, targeted). Treated as environmental
+flake from concurrent worktrees, not a regression from this branch; not silently discounted
+(see resid-report.md for the L1 framing).
+
+Key-integrity check: `stat` mtime on `apps/backend/keys/private.pem` was `1788623435` before
+this run and `1788623435` after — unchanged.
+
+The full raw jest output (32433 lines, per-test console output for all 11241 tests) is not
+committed — per the operator's plan rule, raw full-suite logs stay outside the repository.
+It was captured to a scratch path during the session and is not preserved past the session
+(this summary and `backend-flake-isolation-retest.txt` are the durable evidence).

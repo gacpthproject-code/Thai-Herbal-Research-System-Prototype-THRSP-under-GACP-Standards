@@ -1,0 +1,52 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "ข้ามไปยังเนื้อหาหลัก" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - main [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - paragraph [ref=e6]: 4 · ตัดสินผล
+        - heading "คำขอ APP-2569-MSYUKZAQ-D69D9D" [level=1] [ref=e7]
+        - paragraph [ref=e8]: เฟสศูนย์ พิสูจน์ท่อ
+        - paragraph
+      - generic [ref=e9]:
+        - generic [ref=e10]:
+          - heading "ตัดสินผลการตรวจ" [level=2] [ref=e11]
+          - group "เลือกผลการตัดสิน" [ref=e12]:
+            - generic [ref=e13]: เลือกผลการตัดสิน
+            - button "ผ่าน" [pressed] [ref=e14] [cursor=pointer]
+            - button "ต้องทบทวน" [ref=e15] [cursor=pointer]
+            - button "ไม่ผ่าน" [ref=e16] [cursor=pointer]
+        - generic [ref=e18]:
+          - text: สรุปผลการตรวจ
+          - textbox "สรุปผลการตรวจ" [ref=e19]:
+            - /placeholder: สรุปผลการตรวจประเมินภาคสนาม
+            - text: Phase 0 C12 (resume) — ตรวจประเมินภาคสนามครบทุกข้อ มีภาพหลักฐานและบันทึกพิกัดครบ ผลการตรวจผ่าน
+        - generic [ref=e20]:
+          - generic [ref=e21]:
+            - heading "ข้อค้นพบสำคัญ (Critical Findings)" [level=3] [ref=e22]
+            - button "เพิ่มรายการ" [ref=e23] [cursor=pointer]
+          - list [ref=e24]:
+            - listitem [ref=e25]:
+              - textbox "ระบุข้อค้นพบ" [ref=e26]
+        - generic [ref=e27]:
+          - button "กลับไปทบทวน" [ref=e28] [cursor=pointer]
+          - button "ส่งผลการตรวจ" [ref=e29] [cursor=pointer]
+  - region "Notifications alt+T"
+  - generic [ref=e34] [cursor=pointer]:
+    - button "Open Next.js Dev Tools" [ref=e35]:
+      - img [ref=e36]
+    - generic [ref=e39]:
+      - button "Open issues overlay" [ref=e40]:
+        - generic [ref=e41]:
+          - generic [ref=e42]: "3"
+          - generic [ref=e43]: "4"
+        - generic [ref=e44]:
+          - text: Issue
+          - generic [ref=e45]: s
+      - button "Collapse issues badge" [ref=e46]:
+        - img [ref=e47]
+  - alert [ref=e49]: ตรวจประเมินภาคสนาม | GACP
+```

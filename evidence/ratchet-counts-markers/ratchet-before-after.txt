@@ -1,0 +1,135 @@
+ratchet-counts-markers: the todo counter counts debt markers, not the order-10 ID mask (order 68(2))
+measured at 03e15ef13585d03973482eed4837f92688a30bcb
+  logic: 3a80ee89b + c2a60495b (selftest strengthened after the independent review) · baseline: af9893bdf
+  round 2 (second independent review, findings F2 to F5): plural clause c006666e7 · gate step 188328bb3 · measured at 188328bb3, last section
+  tools: grep (GNU grep) 3.7 / bash 5.1.16(1)-release, Linux 5.15.0-106-generic
+  Everything above the "round 2" section is the round-1 record, measured at 03e15ef13. The pattern of round 2 keeps exactly the same 40 lines.
+
+files in this directory
+  ratchet-before-after.txt  this file
+  red-output.txt            round 1: --selftest (15 cases) with the OLD pattern, only the regex reverted and LC_ALL=C kept: 10 of 15 cases fail
+  red-output-plural.txt     round 2: --selftest (17 cases) with the round-1 pattern, which has no plural clause: P and Q fail, the other 15 pass
+  test-output.txt           --selftest with the current pattern: 17/17 cases PASS
+  negative-controls.sh/.txt 21 mutations of the probe plus the unmutated probe; each reddens exactly the expected cases
+  count-trees.sh/.txt       the todo count on both trees with three patterns, and which lines each pattern keeps
+  gate-step.txt             round 2: the ratchet-selftest step of local-gate.sh run alone, passing and failing
+  gate-light-vs-base.txt    round 1: scripts/ci/local-gate.sh on the base and on this branch, per probe
+  probe-results.json        round 1: probe-gate output of the gate run on this branch
+
+todo counter (lines matched in apps/backend/{services,routes,jobs,middleware,shared,config}/**/*.js)
+  tree                                         old pattern  new pattern 
+  origin/main 5828c0b0e                        51           40          
+  local main 536874c34 + this branch           57           40          
+    of which dataset-export-service.js         6            0           
+  this branch's apps/ tree is identical to origin/main's: yes
+  scratch merge of this branch into local main (536874c34 at that time): exit 0, Merge made by the 'ort' strategy.; it adds 12 files, 0 of them under apps/
+
+baseline in AUDIT_LEDGER.md as the probe reads it
+  before (origin/main): hardcode=36 todo=56 env-direct=122 dup-source=2 
+  after  (this branch): hardcode=36 todo=40 env-direct=122 dup-source=2 
+  only todo moved: 56 -> 40 (down). The other three are untouched.
+
+ratchet.sh, default run (round 1)
+  on this branch:       PASS: no counter above baseline — current: hardcode=26 todo=40 env-direct=99 dup-source=0
+  on the scratch merge (with 536874c34): PASS: no counter above baseline — current: hardcode=26 todo=40 env-direct=98 dup-source=0
+  --selftest on the scratch merge (with 536874c34): ratchet --selftest: 15/15 cases PASS
+  (env-direct is 98 on the merge and 99 on the base: that is the merged code, not this change)
+
+the 11 lines the old pattern counted on origin/main and the new one does not (file:line  text around the match)
+  config/jwt-security.js:101  CTION-USE-XXXXXXXXXXXXX
+  config/jwt-security.js:102  CTION-USE-XXXXXXXXXXXXX
+  services/notification-fanout-service.js:758   Accepts 0XXXXXXXXX, +6
+  services/pdf/car-report-service.js:144  r || 'CAR-XXXX')}</div>
+  services/pdf/certificate-template-service.js:110  ns 6-10 → XXXXX.
+  services/pdf/certificate-template-service.js:111  ce(1, 5)}-XXXXX-${strip
+  services/pdf/certificate-template-service.js:94  → '1-2345-XXXXX-67-8'
+  services/pdf/certificate-template-service.js:95  → '1-2345-XXXXX-12-3'  
+  services/purchase-invoice-service.js:89  haiId → 1-XXXX-XXXX-X-0
+  services/traceability/auto-first-cycle-trace.js:6  haiId → 1-XXXX-XXXX-X-0
+  shared/error-codes.js:36  → appends TODO_* sentine
+
+the 40 lines that still count on origin/main, labelled by reading each line
+  STATE   = TODO is the WorkActivity state name (a quoted value or prose naming the state)
+  DEBT    = a TODO left in a comment as work to do
+  MENTION = prose that talks about a TODO marker
+  DEBT    config/secrets.js:465  // TODO(iter-27): wire @hashicorp/vault-client.
+  DEBT    config/secrets.js:471  // TODO(iter-27): wire @aws-sdk/client-secrets-manager.
+  DEBT    config/secrets.js:478  // TODO(iter-27): wire @azure/keyvault-secrets.
+  STATE   jobs/revision-deadline-checker.js:151  //     (CLAIMED/IN_PROGRESS/TODO) are auto-cancelled with
+  DEBT    jobs/scheduler.js:128  // alerting; weekly full scan TODO).
+  STATE   jobs/work-activity-sla-monitor.js:23  const OPEN_STATES = ['TODO', 'CLAIMED', 'IN_PROGRESS'];
+  STATE   jobs/work-activity-sla-monitor.js:3  // Runs hourly. For every open activity (TODO/CLAIMED/IN_PROGRESS):
+  STATE   routes/api/applications/application-workflow-handlers.js:137  case 'TODO': return 'pending';
+  DEBT    routes/api/finance/credit-notes.js:18  *   GET    /:id/pdf           render ใบลดหนี้ PDF (TODO: wire PDF template
+  STATE   routes/api/provider/analytics-work-kpis.js:15  *   stateCounts   distribution across TODO/CLAIMED/IN_PROGRESS/DONE/CANCELLED
+  DEBT    services/application-service/application-provider-query-methods.js:591  * TODO(X3.5): Product decision required — see docs/handoffs/iter-X3/X3-D.md AUD-FA-OBV finding
+  STATE   services/application-status-writer.js:1739  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/application-status-writer.js:1752  // activity stays on the pull model (TODO/unassigned) as before.
+  DEBT    services/credit-note-service.js:1045  // TODO(B20-B journal owner): add `recordCreditNoteEntry({ invoiceId,
+  DEBT    services/debit-note-service.js:611  // TODO(B20-B journal owner): add `recordDebitNoteEntry({ invoiceId,
+  DEBT    services/prisma-pdpa-extension.js:37  *     callers over. See `prisma/schema/auth.prisma` TODO.
+  MENTION services/vat-report-service.js:33  *     with a TODO marker so the finance officer compiles manually.
+  STATE   services/work-activity-analytics-service.js:19  const OPEN_STATES = Object.freeze(['TODO', 'CLAIMED', 'IN_PROGRESS']);
+  STATE   services/work-activity-service.js:107  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/work-activity-service.js:10  * (TODO/CLAIMED/IN_PROGRESS/DONE/CANCELLED) and an SLA target.
+  STATE   services/work-activity-service.js:130  // the TODO pool is redundant — create it CLAIMED + assigned directly.
+  STATE   services/work-activity-service.js:132  // model (TODO, no assignee). Gate on candidateGroup OR workType so a
+  STATE   services/work-activity-service.js:143  state: preAssign ? 'CLAIMED' : 'TODO',
+  STATE   services/work-activity-service.js:185  * TODO row, caller supplies the dueAt (event-specific SLA).
+  STATE   services/work-activity-service.js:205  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/work-activity-service.js:216  state: 'TODO',
+  STATE   services/work-activity-service.js:240  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/work-activity-service.js:271  * admin). State transitions TODO → CLAIMED.
+  STATE   services/work-activity-service.js:282  if (activity.state !== 'TODO') {
+  STATE   services/work-activity-service.js:335  * CLAIMED|IN_PROGRESS → TODO.
+  STATE   services/work-activity-service.js:356  state: 'TODO',
+  STATE   services/work-activity-service.js:493  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/work-activity-service.js:537  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/work-activity-service.js:541  ? { state: 'TODO', assignedUserId: null }
+  STATE   services/work-activity-service.js:542  : { state: 'TODO', candidateGroup: { in: groups }, assignedUserId: null },
+  STATE   services/work-activity-service.js:590  where.state = { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] };
+  STATE   services/work-activity-service.js:622  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/work-activity-service.js:665  state: { in: ['TODO', 'CLAIMED', 'IN_PROGRESS'] },
+  STATE   services/work-activity-service.js:68  *   (state CLAIMED, assignedUserId=reviewerId) instead of TODO/null. This is the
+  STATE   services/work-activity-service.js:71  *   scheduler) keep the pull model — TODO with no assignee. Ignored unless an
+  totals: STATE 30, DEBT 9, MENTION 1
+  marker words among the 40: TODO 40  FIXME 0  HACK 0  XXX 0  
+  limits of the new rule: a quoted 'TODO' used as data still counts (case O pins it);
+  an XXX between hyphens, such as 0XX-XXX-XXXX or (XXXX-XXXX-XXX), still counts as a standalone XXX.
+
+round 2: plural clause and gate step (measured at 188328bb3, probe and gate script as committed there)
+
+todo counter with three patterns over the same scope (count-trees.txt)
+  tree                              old  round 1  current  lines kept vs round 1  old-only  current-only
+  origin/main 5828c0b0e             51   40       40       identical              11        0
+  local main 15c651442              57   40       40       identical              17        0
+  the main checkout, read in place  57   40       40       identical              17        0
+  this branch 188328bb3             51   40       40       identical              11        0
+  old = TODO|FIXME|HACK|XXX · round 1 = \b(TODO|FIXME|HACK|XXX)\b · current = \b((TODO|FIXME|HACK)s?|XXX)\b
+  The current pattern accepts everything the round-1 pattern accepts, so 40 = 40 alone would not show the lines are the same.
+  The line-by-line comparison does: no line gained and none lost on any tree, so the plural clause adds 0 lines today.
+  The main checkout was read through a symlink: its HEAD stayed 15c651442 and git reported no tracked change before and after.
+
+ratchet.sh, default run (round 2)
+  on this branch:                                   PASS: no counter above baseline — current: hardcode=26 todo=40 env-direct=99 dup-source=0
+  on the scratch merge with local main 15c651442:   PASS: no counter above baseline — current: hardcode=26 todo=40 env-direct=98 dup-source=0
+  --selftest on the scratch merge:                  ratchet --selftest: 17/17 cases PASS
+  baselines on the scratch merge, as the probe reads them: hardcode=36 todo=40 env-direct=122 dup-source=2 suite-tests=6872
+  local main has the same five values except todo=56, so the merge moves todo 56 -> 40 (down) and nothing else.
+
+scratch merge of 188328bb3 into local main 15c651442 (detached worktree outside this one, merge not committed, worktree removed)
+  conflict: HARNESS_LOG.md only. Both sides append an entry in the same place (local main: two B0 entries; this branch: the ratchet entry).
+  HARNESS.md and scripts/ci/local-gate.sh merge cleanly. Files changed under apps/: 0.
+  For the measurement the conflict was resolved by keeping every entry of both sides (git merge-file --union, local main first):
+  0 conflict markers left and 3 entries dated 2026-10-09 in the merged log.
+
+selftest
+  RED    red-output-plural.txt: with the round-1 pattern, P fails (todo count 0 != 1) and Q fails (todo count 0 != 2); the other 15 cases pass
+  GREEN  test-output.txt: 17/17, also with LANG=C, LANG=en_US.UTF-8 and LANG=C.UTF-8 on the caller
+  negative-controls.txt: the unmutated probe and M0 to M20 all red exactly where predicted before the run.
+         New: M16 to M20 on the plural clause. M13 and M14 now also redden Q (two matching lines in one file).
+
+gate step (gate-step.txt)
+  ratchet-selftest passes on this tree and fails (flag 1) when the probe has the round-1 pattern.
+  Before this change local-gate.sh had no ratchet step at all.
+  The whole light gate on the tip against the base (every step, every probe): PENDING when this file was written.

@@ -1,0 +1,123 @@
+'use strict';
+
+/**
+ * N+1 query batching — Step 3 of the post-canonicalization mandate.
+ *
+ * Six sites survived triage as GENUINE N+1 (out of 36 candidates; the rest
+ * are scanner artifacts, bounded config seeds, or per-row semantics like
+ * confirm-then-stamp that MUST stay sequential — see the triage table in the
+ * PR). Each test pins the query count, not the source text: the assertion is
+ * "N rows cost O(1) queries", counted on a mock prisma.
+ *
+ *   work-activity createForStage   per-config idempotency findFirst + SLA
+ *                                  findUnique — runs on EVERY workflow
+ *                                  transition (hottest of the six).
+ *   subscription renewal cron      per-candidate findFirst + per-candidate
+ *                                  invoice findUnique.
+ *   survey submitResponse          per-answer create (public farmer path).
+ *   survey createTemplate          per-question create.
+ *   (wizard submission, per-plot create, went with the /api/wizard door in
+ *    R2 Task 10; the live submit door creates no plots.)
+ *
+ * The tenant-prisma-extension maps organizationId over createMany row arrays
+ * (tenant-prisma-extension.js `createMany` hook), so the loop→createMany swaps
+ * keep org injection for TENANT_SCOPED models (Plot, InvoiceLineItem).
+ */
+
+jest.mock('../../shared/logger', () => {
+    const l = { debug: jest.fn(), info: jest.fn(), warn: jest.fn(), error: jest.fn() };
+    return { ...l, createLogger: jest.fn(() => l) };
+});
+
+describe('work-activity createForStage — one probe per stage, not per config', () => {
+    jest.mock('../../services/work-activity-notifications', () => ({
+        notifyAssigned: jest.fn(async () => 0),
+        notifyWarning: jest.fn(async () => 0),
+        notifyBreach: jest.fn(async () => 0),
+        workTypeLabel: (s) => s,
+    }));
+
+    const wa = require('../../services/work-activity-service');
+
+    function makePrisma({ configs, openRows, policies }) {
+        return {
+            stageActivityConfig: { findMany: jest.fn(async () => configs) },
+            workActivity: {
+                findFirst: jest.fn(async () => null),
+                findMany: jest.fn(async () => openRows),
+                create: jest.fn(async ({ data }) => ({ id: `wa-${data.workType}`, ...data })),
+            },
+            slaPolicy: {
+                findUnique: jest.fn(async ({ where }) =>
+                    policies.find((p) => p.workType === where.workType) || null),
+                findMany: jest.fn(async ({ where }) =>
+                    policies.filter((p) => where.workType.in.includes(p.workType))),
+            },
+        };
+    }
+
+    test('N configs cost one workActivity probe and one slaPolicy read', async () => {
+        const prisma = makePrisma({
+            configs: [
+                { workType: 'DOC_REVIEW', candidateGroup: 'document_reviewer', displayOrder: 1 },
+                { workType: 'AUDIT_VISIT', candidateGroup: 'auditor', displayOrder: 2 },
+                { workType: 'ACCOUNT_CHECK', candidateGroup: 'account', displayOrder: 3 },
+            ],
+            openRows: [],
+            policies: [{ workType: 'DOC_REVIEW', targetHours: 72, warningHours: 48 }],
+        });
+
+        const created = await wa.createForStage({
+            prisma, applicationId: 'app1', toStatus: 'ASSIGNED_FOR_REVIEW', organizationId: 'org1',
+        });
+
+        expect(created).toHaveLength(3);
+        // The idempotency probe is ONE findMany over all three workTypes.
+        expect(prisma.workActivity.findFirst).not.toHaveBeenCalled();
+        expect(prisma.workActivity.findMany).toHaveBeenCalledTimes(1);
+        // The SLA policies come back in ONE read, not one per config.
+        const slaReads = prisma.slaPolicy.findUnique.mock.calls.length
+            + prisma.slaPolicy.findMany.mock.calls.length;
+        expect(slaReads).toBe(1);
+    });
+
+    test('idempotency survives the batching — an open row still suppresses its config', async () => {
+        const prisma = makePrisma({
+            configs: [
+                { workType: 'DOC_REVIEW', candidateGroup: 'document_reviewer', displayOrder: 1 },
+                { workType: 'AUDIT_VISIT', candidateGroup: 'auditor', displayOrder: 2 },
+            ],
+            openRows: [{ workType: 'DOC_REVIEW' }],
+            policies: [],
+        });
+
+        const created = await wa.createForStage({
+            prisma, applicationId: 'app1', toStatus: 'ASSIGNED_FOR_REVIEW', organizationId: 'org1',
+        });
+
+        expect(created).toHaveLength(1);
+        expect(created[0].workType).toBe('AUDIT_VISIT');
+        expect(prisma.workActivity.create).toHaveBeenCalledTimes(1);
+    });
+
+    test('SLA policy still lands on dueAt/warningAt after the batch read', async () => {
+        const prisma = makePrisma({
+            configs: [{ workType: 'DOC_REVIEW', candidateGroup: 'document_reviewer', displayOrder: 1 }],
+            openRows: [],
+            policies: [{ workType: 'DOC_REVIEW', targetHours: 72, warningHours: 48 }],
+        });
+
+        const created = await wa.createForStage({
+            prisma, applicationId: 'app1', toStatus: 'ASSIGNED_FOR_REVIEW', organizationId: 'org1',
+        });
+
+        expect(created[0].dueAt).toBeInstanceOf(Date);
+        expect(created[0].warningAt).toBeInstanceOf(Date);
+        expect(created[0].dueAt.getTime()).toBeGreaterThan(created[0].warningAt.getTime());
+    });
+});
+
+// The 'subscription renewal cron — prefetched probes' block lived here. It
+// covered createRenewalInvoicesForDueSubscriptions(), the cron that re-billed
+// an expiring membership. M3 (operator 2026-08-23, 'ไม่มีค่าสมาชิก') deleted the
+// function and the cron, so there is no N+1 left to guard.

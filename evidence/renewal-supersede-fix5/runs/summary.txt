@@ -1,0 +1,28 @@
+renewal-supersede fix round 5 - run summary (raw logs kept outside the repo in ~/work/state/reviews/renewal-supersede-fix5-runs/)
+
+RED  e4fea85e5 (code = 1e6939d3c), renewal-supersede-real-postgres: 31 failed, 50 passed, 81 total
+  MEDIUM-2 revoked predecessor: lot / batch / generic lot / generic batch 200 (expected 410); partner producedInForce true
+  MEDIUM-2 suspended predecessor: same
+  L1 generic batch lab_analysis labName = renewal's lab; generic lot lab_analysis null
+  129(5)(a) 31 days late: accepted on all 5 doors (2xx)
+  129(5) future date: accepted on all 5 doors
+  5a before planting: accepted on 4 doors; legacy door 400 with no code (English message)
+  batch without a cycle: future and 31-days-late accepted
+  backdated mark: staff cycle detail has no backdatedBatches (provider and admin)
+  controls passing before and after: 30 days late accepted on all 5 doors; public doors carry no mark
+
+GREEN renewal-supersede-real-postgres: 81 passed, 0 failed
+Web: provider/tracking + admin/planting suites 42 passed (incl. backdated-harvest-batches-shown-to-staff);
+     mutation check: removing the render line fails the new test (1 failed, 1 passed)
+tsc --noEmit (web): exit 0 · eslint on changed files: 0 errors
+
+Full backend on real Postgres (two runs; the first aborted with a heap OOM after 716 suites):
+  part 1: 716 suites, 711 pass, 5 fail (9 tests)
+    4 suites / 8 tests same as the baseline reported in fix rounds 3 and 4:
+      a0-pr2-per-hop-invariant, dtam-schema-drop-migration-real-postgres, onsite-decision-mint-e2e, status-writer-audit-default-invariant
+    1 new: dataset-export-service K4 (HarvestBatch.backdatedCertificateId undecided) -> withheld with a reason, data dictionary regenerated
+  part 2: the 448 suites part 1 never reached + dataset-export-service + error-codes-source-pointers:
+    447 passed, 2 skipped, 0 failed (3684 tests passed, 52 skipped)
+
+extract-error-codes --markdown then --validate: 483/483
+check-tenant-conventions: PASS · check-prisma-select-fields: exit 0

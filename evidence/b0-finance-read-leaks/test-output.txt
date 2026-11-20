@@ -1,0 +1,31 @@
+Full suites — fix/finance-read-leaks at 67749d128
+Run through ~/work/state/heavy.sh (09:46-10:02 UTC 2026-10-09), NODE_OPTIONS=--max-old-space-size=3072,
+private SIGNING_KEY_DIR, own Postgres 17 container (finleaks-pg), never a shared database.
+
+backend unit   (--maxWorkers=2, every suite except __tests__/integration)
+  904 suites · 12,324 tests · 12,284 passed · 1 failed · 39 skipped
+  the 1 failure: __tests__/unit/invoice-list-names-the-service.test.js
+    "the application formData that answered it is not returned" — it read findMany(...).include,
+    and the payer list now reads with a select allowlist. Its behaviour checks passed. Fixed in
+    e120f0dcb (reads select, and also asserts the read asks for neither healthId nor metadata).
+  main baseline (gate 2b2dbfd4 suite-green): the only unit suite failing there is
+    finance-paper-text-inside-print-margin (render timeouts under load); it passed in this run.
+  count check: main 14,045 total − 1,744 integration = 12,301 unit; branch 12,324 = +24 new
+    (generated-finance-pdfs-are-never-public 15, move-generated-pdfs-out-of-public 9) − 1 removed
+    (the internal maskHealthId helper test; the masked output is asserted through the statement).
+
+backend integration   (serial as the gate runs it, fresh database migrated from empty)
+  171 suites · 1,761 tests · 1,725 passed · 23 failed · 13 skipped
+  main baseline (2b2dbfd4 integration.json): 1,744 tests · 1,708 passed · 23 failed · 13 skipped
+  by name: 23 = 23 · new 0 · fixed 0
+    (integration-failures-main-2b2dbfd4.txt vs integration-failures-branch-67749d128.txt)
+  +17 passed = finance-read-leaks-real-postgres.test.js (17 tests)
+
+web jest (--maxWorkers=2)   485 suites · 3,944 tests · 3,944 passed
+web tsc --noEmit            exit 0, no output
+(this branch changes no file under apps/web-app)
+
+backend unit rerun at the final code 9b22fb4b5 (10:41-10:48 UTC, heavy.sh, --maxWorkers=2)
+  904 suites · 12,324 tests · 12,285 passed · 0 failed · 39 skipped · exit 0
+  (9b22fb4b5 differs from 67749d128 by the invoice-list test assertion and comments only; the
+  integration, web jest and tsc results above stand for it)

@@ -1,0 +1,57 @@
+# Backend, all unit + integration, tree 73f538b3d, rolesplit-pg gacp_r3_test (Postgres 17), private SIGNING_KEY_DIR,
+# NODE_OPTIONS=--max-old-space-size=3072, --maxWorkers=2, each run through ~/work/state/heavy.sh; evidence/payer-block restored after each run.
+# Baseline: the 23 names of ~/work/state/gate/out/evidence/gate/logs/e5c3849765b808ee09995720f7f68123c1eda25b/integration-pg.log (same list as rounds 1 and 2).
+
+## Single run (bjest.sh --maxWorkers=2 --json): aborted
+The jest parent ran out of its 3 GB heap after 1024 suites (FATAL ERROR: Ineffective mark-compacts near heap limit; exit 134).
+jest.config.cjs sets detectOpenHandles, which runs every file in the parent, so the heap grows across the whole suite.
+Failing names among those 1024 suites (from the log): 25 = the 23 baseline names + the 2 holder-scope Q3 names below.
+
+## Rerun in two halves, same flags plus --ci --silent
+### A: everything but __tests__/integration/
+suites 904 (failed 0) · tests 12396 (failed 0, passed 12357, pending 39)
+failing names: 0 · in the baseline: 0 · NEW (not in the baseline): 0 · baseline names that pass now: 23
+(the 23 baseline names are integration tests, so they are absent from half A by construction)
+### B: __tests__/integration/
+suites 176 (failed 8) · tests 1871 (failed 25, passed 1833, pending 13)
+failing names: 25 · in the baseline: 23 · NEW (not in the baseline): 2 · baseline names that pass now: 0
+NEW failures:
+  __tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by O2 (OWNER of C, not the filer) → 200, one order minted; V on the same filing → 403, nothing written
+  __tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by A (OWNER, holds SUBMIT_APPLICATION) → 200, one order minted through the gateway
+
+## Total
+suites 1080 (failed 8) · tests 14267 (failed 25, passed 14190, pending 52)
+Net new failures from this branch: 0. All 23 baseline names fail as on main. The 2 names outside the baseline:
+
+## The two holder-scope Q3 names, branch vs main in the same environment
+Both fail with 'expect(gatewaySpy).toHaveBeenCalledTimes(1) / Received number of calls: 0' (the checkout's payment adapter is not the spied mock here).
+main 5828c0b0e (git archive, same node_modules, database and env; ~/work/state/rolesplit-r3/main-compare.sh): holder-scope-real-postgres.test.js 2 failed, 74 passed, the same 2 names.
+branch 73f538b3d, the file alone: 2 failed, 74 passed, the same 2 names.
+Round 2 recorded the same pair failing on main in this environment. This round touches no checkout or payment code.
+
+## Every failing name of half B
+__tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by O2 (OWNER of C, not the filer) → 200, one order minted; V on the same filing → 403, nothing written
+__tests__/integration/holder-scope-real-postgres.test.js :: R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › Q3 checkout gate (real Postgres; the mock adapter is the only stub) › checkout by A (OWNER, holds SUBMIT_APPLICATION) → 200, one order minted through the gateway
+__tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) › AC2 — a non-member is refused 403 ENTITY_PERMISSION_DENIED and the refusal is on the record
+__tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) › AC3 — an ACTIVE membership carrying a SUBMIT_APPLICATION GRANT is allowed, and names the entity
+__tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) › AC2 — a REVOKE row wins over the grant (fail closed), still audited
+__tests__/integration/m1-submit-enforcement.test.js :: M1 submit enforcement (real Postgres) › AC2 — an application naming no entity is 400 VALIDATION_ERROR, audited with a null holder
+__tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres › #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+__tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres › #7 — PATCH /admin/applications/:id/status — admin override › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+__tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres › #13 — POST /applications/:id/car — late CAR evidence expires the case › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+__tests__/integration/a0-pr2-per-hop-invariant.test.js :: A0 PR-2 — per-hop invariant, real routes on real Postgres › #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+__tests__/integration/m1-erasure-holder-survives.test.js :: M1: erasing a member never kills the farm certificate (AC4) › juristic-held cert (past retention): valid + verifiable + holder name unchanged after member erasure
+__tests__/integration/m1-erasure-holder-survives.test.js :: M1: erasing a member never kills the farm certificate (AC4) › LEGACY_PERSON and INDIVIDUAL certs (past retention): holder name IS wiped to sentinel (person data duty wins)
+__tests__/integration/m1-erasure-holder-survives.test.js :: M1: erasing a member never kills the farm certificate (AC4) › schema-default (live) cert: retention active, so erasure retains it — applicantName + holder name untouched, row listed in summary.retained
+__tests__/integration/officer-review-round-trip.test.js :: วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 3. รับใบหนึ่ง และขอเพิ่มอีกใบพร้อมเหตุผลและวันครบกำหนดที่เป็นวันทำการ
+__tests__/integration/officer-review-round-trip.test.js :: วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 4. เกษตรกรเห็น **เฉพาะ** ใบที่ถูกขอ ไม่ใช่บันทึกภายในของใบที่รับไปแล้ว
+__tests__/integration/officer-review-round-trip.test.js :: วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 5. ส่งกลับโดยยังไม่แก้อะไร = ถูกปฏิเสธ และบอกชื่อใบที่ยังค้าง
+__tests__/integration/officer-review-round-trip.test.js :: วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 6. แนบไฟล์ใหม่แล้วส่งกลับ = ผ่าน และคำขอกลับเข้าคิวตรวจ
+__tests__/integration/onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) › HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+__tests__/integration/onsite-decision-mint-e2e.test.js :: onsite PASS through /decision auto-mints a Certificate (e2e closure) › PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+__tests__/integration/status-writer-audit-default-invariant.test.js :: A0 PR-1 — writer emits the canonical transition row by default, in the same tx › (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+__tests__/integration/m2a-submit-enforcement.test.js :: M2a submit enforcement (real Postgres) › AC1 — a JURISTIC filing with no document on file is refused, naming the slot
+__tests__/integration/m2a-submit-enforcement.test.js :: M2a submit enforcement (real Postgres) › AC1 — the same law asks nothing of an INDIVIDUAL filing
+__tests__/integration/m2a-submit-enforcement.test.js :: M2a submit enforcement (real Postgres) › AC2 — a client flag is not evidence, an ApplicationDocument row is
+__tests__/integration/m2a-submit-enforcement.test.js :: M2a submit enforcement (real Postgres) › AC3 — a rule filed after the stamp cannot refuse the resubmit
+__tests__/integration/m2a-submit-enforcement.test.js :: M2a submit enforcement (real Postgres) › AC3 — closing a rule stops it firing for filings made afterwards

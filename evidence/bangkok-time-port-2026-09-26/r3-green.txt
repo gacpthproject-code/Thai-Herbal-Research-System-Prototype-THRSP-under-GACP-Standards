@@ -1,0 +1,109 @@
+# Fix round 3 GREEN — fix/bangkok-time 59e6a4b0, 2026-09-26, host VM-0-3-ubuntu
+
+## real Postgres: throwaway postgres:17-alpine (container bkk-r3-pg, random 127.0.0.1 port, dummy creds, all migrations incl. 20260926120000 applied, container removed after)
+### note-issue-concurrency.test.js, host TZ and TZ=UTC
+      ✓ two concurrent issues of the same draft: one succeeds, one number is drawn, the audit names only it (210 ms)
+      ✓ an abandoned draft takes no number; the next issued note is the next number (no gap) (129 ms)
+      ✓ a draft that already holds a number (made before 2026-09-26) keeps it at issue (71 ms)
+      ✓ two concurrent issues of the same draft: one succeeds, one number is drawn, the audit names only it (122 ms)
+      ✓ an abandoned draft takes no number; the next issued note is the next number (no gap) (70 ms)
+      ✓ a draft that already holds a number (made before 2026-09-26) keeps it at issue (68 ms)
+Tests:       6 passed, 6 total
+Tests:       6 passed, 6 total
+
+### whole __tests__/integration against that database
+Test Suites: 10 failed, 1 skipped, 67 passed, 77 of 78 total
+Tests:       32 failed, 13 skipped, 457 passed, 502 total
+exit=1
+FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+FAIL __tests__/integration/m1-submit-enforcement.test.js
+FAIL __tests__/integration/m2a-submit-enforcement.test.js
+FAIL __tests__/integration/officer-review-round-trip.test.js
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+FAIL __tests__/integration/onsite-evidence-unfreeze.test.js
+FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+FAIL __tests__/integration/staff-scope-contract.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+main attestation f6932758 failing integration suites: the same 10 (its 11th, unit/renewal-fast-path, passes here); note-issue-concurrency PASS
+
+## backend FULL suite, TZ=DEFAULT (no DATABASE_URL: integration self-skips), fresh SIGNING_KEY_DIR, 3GB heap
+Test Suites: 32 skipped, 849 passed, 849 of 881 total
+Tests:       213 skipped, 10980 passed, 11193 total
+exit=0
+FAIL lines: 0
+
+## backend FULL suite, TZ=America/Los_Angeles (no DATABASE_URL: integration self-skips), fresh SIGNING_KEY_DIR, 3GB heap
+Test Suites: 32 skipped, 849 passed, 849 of 881 total
+Tests:       213 skipped, 10980 passed, 11193 total
+exit=0
+FAIL lines: 0
+keys/private.pem mtime before/after: 2026-09-05 22:50:35.069951192 +0700 / 2026-09-05 22:50:35.069951192 +0700
+
+## web full
+Test Suites: 389 passed, 389 total
+Tests:       3207 passed, 3207 total
+exit=0
+tsc --noEmit exit 0 · gitleaks main..HEAD: no leaks · ratchet 27/53/102/0 = main · holiday-single-source PASS · TIER=C
+
+## per-test (DEFAULT full run)
+    ✓ period-close-service fails to load → the guard refuses (151 ms)
+    ✓ period-close-service fails to load → journal-entry-service refuses (181 ms)
+    ✓ the guard fails to load → journal-entry-service refuses (216 ms)
+    ✓ period-close-service fails to load → manual journal entry refuses (140 ms)
+    ✓ the guard fails to load → manual journal entry refuses (88 ms)
+    ✓ flags const s = user.lastLogin.toLocaleString('th-TH');
+    ✓ flags const s = cert.expiration.toLocaleString('th-TH'); (1 ms)
+    ✓ flags const s = row.createdOn.toLocaleString('th-TH'); (1 ms)
+    ✓ flags const s = session.toLocaleString('th-TH');
+    ✓ flags const s = (row.createdAt || now).toLocaleString('th-TH');
+    ✓ flags const s = invoice.due.toLocaleString('th-TH'); (1 ms)
+    ✓ flags const at = new Date(day + 'T00:00:00'); (4 ms)
+    ✓ flags const y = d['getFullYear'](); (1 ms)
+      ✓ fails CLOSED when period-close-service has no isPeriodClosed (controller ruling 2026-09-26) (25 ms)
+      ✓ fails CLOSED when period-close-service throws while loading (16 ms)
+      ✓ the ADMIN recovery flag still bypasses even when period-close cannot load (16 ms)
+      ✓ stamps the session epoch and revokes live tokens, so the old password cannot keep a session (350 ms)
+    ✓ a draft that already holds a number (made before 2026-09-26) keeps it at issue — no new number, no gap (34 ms)
+    ✓ a draft that already holds a number (made before 2026-09-26) keeps it at issue — no new number, no gap (21 ms)
+    ✓ refresh token issued before disableUser is refused (session-epoch stamp) (8 ms)
+    ✓ an MFA challenge issued before the disable cannot be completed into a session (6 ms)
+    ✓ an ACTIVE staff challenge still completes into a provider session (4 ms)
+      ✓ POST /api/provider/auditor/applications/:id/session/checkin returns 401 without a token (10 ms)
+      ✓ POST /api/provider/auditor/applications/:id/session/evidence returns 401 without a token (8 ms)
+      ✓ POST /api/provider/auditor/applications/:id/session/notes returns 401 without a token (7 ms)
+    ✓ requires no authentication — the login page has no session yet (108 ms)
+      ✓ PATCH role change stamps sessionsRevokedAt (11 ms)
+      ✓ PATCH isActive change stamps sessionsRevokedAt (8 ms)
+      ✓ PUT password change stamps sessionsRevokedAt (8 ms)
+      ✓ PATCH name-only change does NOT stamp sessionsRevokedAt (12 ms)
+      ✓ PATCH re-submitting the UNCHANGED role does NOT stamp sessionsRevokedAt (8 ms)
+      ✓ DELETE stamps sessionsRevokedAt on the soft delete (8 ms)
+    ✓ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (29 ms)
+    ✓ บัญชี status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (19 ms)
+    ✓ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session (20 ms)
+    ✓ SUSPENDED existing user → 403 ACCOUNT_INACTIVE, NO session minted, audit FAILURE (49 ms)
+    ✓ SECU-03: soft-deleted user whose status still reads ACTIVE → 403 ACCOUNT_INACTIVE, NO session (29 ms)
+    ✓ ACTIVE user (HEALTH role) → 200, session minted via issueTokensForAuthenticatedUser, auth_token cookie (Item 1) (29 ms)
+    ✓ PENDING_VERIFICATION (freshly provisioned citizen) → 200, session minted, auth_token cookie (24 ms)
+    ✓ (a) TOTP-enrolled user → mfa challenge contract, NO tokens, NO session cookie, NO identity_links write (Item 2) (37 ms)
+    ✓ the minted mfa_session decodes with purpose=mfa_challenge + the correct method claim (27 ms)
+      ✓ unchanged role (auditor → AUDITOR) does NOT stamp sessionsRevokedAt (12 ms)
+      ✓ real role change (auditor → scheduler) stamps sessionsRevokedAt (12 ms)
+      ✓ rows carry isActive / isLocked / username / lastLoginAt (11 ms)
+    ✓ the bank reference and the caller reach the service; the tenant comes from the session, never the body (16 ms)
+    ✓ token minted BEFORE sessionsRevokedAt → 401 (epoch eviction) (36 ms)
+    ✓ token minted AFTER sessionsRevokedAt (fresh re-login) → 200 (7 ms)
+      ✓ refuses self-supersession (4 ms)
+    ✓ no session AND no signature → 401 (unchanged) (23 ms)
+    ✓ existing session-based access still works (no signature needed) (23 ms)
+      ✓ does not fail the change if session revoke throws (best-effort, BE-AUTH-03-02) (3 ms)
+    ✓ type-guard: non-string mfa_session → 400 (13 ms)
+      ✓ stamps sessionsRevokedAt so the deleted user's live tokens are evicted (10 ms)
+    ✓ checkout.session.completed → SETTLED (2 ms)
+    ✓ checkout.session.async_payment_failed → FAILED (2 ms)
+    ✓ checkout.session.expired → CANCELLED (2 ms)
+    ✓ writes THROUGH the caller's tx — never the global prisma client (1 ms)
+    ✓ existing row → update touches ONLY lastLoginAt, never forces isActive (8 ms)
+    ✓ the session/security handlers expose no requestPasswordReset (5 ms)
+    ✓ disableUser stamps sessionsRevokedAt so live tokens are evicted (3 ms)

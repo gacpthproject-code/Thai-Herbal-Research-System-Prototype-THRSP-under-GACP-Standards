@@ -1,0 +1,48 @@
+# RED round 0 — web QR path + CSP before implementation
+# Summary of a jest run (raw log not committed: raw jest logs trip gitleaks). Test lines + counts + failure lines.
+FAIL src/__tests__/csp-admits-stripe-promptpay.test.ts
+    ✕ script-src admits Stripe.js (js.stripe.com and its frame subdomains) (7 ms)
+    ✕ frame-src admits the Stripe frames the QR modal is drawn in, and keeps self (3 ms)
+    ✕ connect-src admits the Stripe API (1 ms)
+    ✓ nothing else from Stripe's list rides along: no maps host, no wildcard stripe.com, no bare https: (3 ms)
+FAIL src/app/health/payments/checkout/__tests__/checkout-promptpay-qr.test.tsx
+    ✕ loads Stripe.js with the key the BACKEND returned and opens the PromptPay confirm with the payer email (126 ms)
+    ✕ Stripe.js saying "succeeded" is NOT paid: the screen waits for the webhook-settled invoice, then names the receipt the system issued (17 ms)
+    ✕ only the invoice this order settles counts: another paid invoice does not end the wait (23 ms)
+    ✕ when the webhook has not settled it within the watch window, the screen says so truthfully (14 ms)
+    ✕ closing Stripe's modal without paying does not claim a payment and offers the QR again (13 ms)
+    ✕ a Stripe error shows Thai copy, never Stripe's English message, and keeps the button (11 ms)
+    ✕ Stripe.js that fails to load (blocked, offline) is an error, not a silent no-op (11 ms)
+    ✕ no payer email on record: asks for one, keeps the button disabled until it is well-formed, and sends exactly what was typed (17 ms)
+    ✓ no publishable key in the response: no pay button, Stripe.js never loads, and the screen says the QR cannot be shown and nothing was charged (20 ms)
+    ✕ the backend fail-closed refusals map to Thai copy that says the QR is not available and nothing was charged (4 ms)
+Test Suites: 2 failed, 2 total
+Tests:       12 failed, 2 passed, 14 total
+
+## failure excerpts
+  ● checkout CSP — Stripe.js and the PromptPay modal can load › script-src admits Stripe.js (js.stripe.com and its frame subdomains)
+    Expected value: "https://js.stripe.com"
+    Received array: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://static.cloudflareinsights.com"]
+  ● checkout CSP — Stripe.js and the PromptPay modal can load › frame-src admits the Stripe frames the QR modal is drawn in, and keeps self
+  ● checkout CSP — Stripe.js and the PromptPay modal can load › connect-src admits the Stripe API
+    Expected value: "https://api.stripe.com"
+    Received array: ["'self'", "https://gacpth.com", "https://cloudflareinsights.com", "http://localhost:*"]
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › loads Stripe.js with the key the BACKEND returned and opens the PromptPay confirm with the payer email
+    Received: undefined
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › Stripe.js saying "succeeded" is NOT paid: the screen waits for the webhook-settled invoice, then names the receipt the system issued
+    Received: undefined
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › only the invoice this order settles counts: another paid invoice does not end the wait
+    Received: undefined
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › when the webhook has not settled it within the watch window, the screen says so truthfully
+    Received: undefined
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › closing Stripe's modal without paying does not claim a payment and offers the QR again
+    Received: undefined
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › a Stripe error shows Thai copy, never Stripe's English message, and keeps the button
+    Received: undefined
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › Stripe.js that fails to load (blocked, offline) is an error, not a silent no-op
+    Received: undefined
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › no payer email on record: asks for one, keeps the button disabled until it is well-formed, and sends exactly what was typed
+    Received: null
+  ● checkout screen: PromptPay QR through Stripe.js, settled only by the webhook › the backend fail-closed refusals map to Thai copy that says the QR is not available and nothing was charged
+    Expected: "STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED: string"
+    Received: "STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED: undefined"

@@ -1,0 +1,748 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+FAIL __tests__/unit/quotation-api-renders-the-row.test.js
+  buildQuotationLineItemsFromRow — the stored row, never a recompute
+    √ line items come from the stored installments, at the row scopeCount (6 ms)
+    √ a row written under the retired VAT base renders THAT row, not the current formula (1 ms)
+    √ a 3-scope row splits the stored totals across the three methods, summing back exactly (2 ms)
+    √ an accepted row renders its FROZEN snapshot, even if the installments were later touched (1 ms)
+    √ each pre-W14 card shows ITS OWN money, and its lines sum to its own total (2 ms)
+    √ the VAT column follows the issuer: the state fee is VAT-exempt, the platform fee is not (1 ms)
+    √ a pre-GAP-5 row falls back to its `amount`, never to a row of zeros (2 ms)
+    √ a frozen snapshot of a pre-W14 side renders the frozen `amount`, not the full-phase split (1 ms)
+  GET /api/applications/:id/quotations — the API renders the row
+    √ returns per-side line items taken from the stored installments (pre-W14 pair) (91 ms)
+    √ renders the FROZEN snapshot of an accepted row, not the row installments that followed it (12 ms)
+  POST /api/applications/:id/quotations/:issuerType/accept — freezes the row
+    √ stores the snapshot built from THAT row, with its hash (26 ms)
+    √ REFUSES a pre-GAP-5 row with the catalogued SNAPSHOT_REQUIRED copy, and writes nothing (12 ms)
+    × answers the snapshot refusal as a 409, not a 500 (12 ms)
+    × REFUSES a lapsed offer with the catalogued QUOTATION_EXPIRED copy, and writes nothing (12 ms)
+  GET /:issuerType/pdf — the document is the row
+    √ prints the W14 row figures for phase 1 (5,885 per scope, not the platform-only 885) (187 ms)
+    √ REFUSES phase 1 of a renewal quotation instead of printing a 0.00 numbered document (12 ms)
+  buildQuotationLineItemsFromRow — a revision cannot move the row (N1)
+    √ accepted at 3 methods, revised to 1: three lines summing to the row total (2 ms)
+    √ accepted at 1 method, revised to 3: one line summing to the row total (1 ms)
+  GET /api/applications/:id/quotations — the scope mismatch is declared (N1)
+    √ flags the row priced for three methods under an application now naming one (13 ms)
+    √ flags the row priced for one method under an application now naming three (12 ms)
+    √ no mismatch when the counts agree: per-method labels, flag false (19 ms)
+  GET /:issuerType/pdf — the document keeps the row line count (N1)
+    √ prints three lines and the row phase-1 figure when the application names one method (89 ms)
+    √ prints ONE line and the row phase-1 figure when the application names three (95 ms)
+
+  ● POST /api/applications/:id/quotations/:issuerType/accept — freezes the row › answers the snapshot refusal as a 409, not a 500
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 500
+
+    [0m [90m 375 |[39m             [33m.[39msend({})[33m;[39m
+     [90m 376 |[39m
+    [31m[1m>[22m[39m[90m 377 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m409[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 378 |[39m     })[33m;[39m
+     [90m 379 |[39m
+     [90m 380 |[39m     [90m/**[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-api-renders-the-row.test.js:377:28)
+
+  ● POST /api/applications/:id/quotations/:issuerType/accept — freezes the row › REFUSES a lapsed offer with the catalogued QUOTATION_EXPIRED copy, and writes nothing
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+    [0m [90m 397 |[39m             [33m.[39msend({})[33m;[39m
+     [90m 398 |[39m
+    [31m[1m>[22m[39m[90m 399 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe(lookup([32m'QUOTATION_EXPIRED'[39m)[33m.[39mhttpStatus)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 400 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m409[39m)[33m;[39m
+     [90m 401 |[39m         expect(res[33m.[39mbody[33m.[39merror)[33m.[39mtoBe([32m'QUOTATION_EXPIRED'[39m)[33m;[39m
+     [90m 402 |[39m         expect(res[33m.[39mbody[33m.[39mmessage)[33m.[39mtoBe(getMessage([32m'QUOTATION_EXPIRED'[39m[33m,[39m [32m'th'[39m))[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-api-renders-the-row.test.js:399:28)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-expiry-binds-at-acceptance.test.js
+  markQuotationAccepted refuses a lapsed offer
+    × a PENDING row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written (3 ms)
+    × a SENT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written (2 ms)
+    × a DRAFT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written (1 ms)
+    √ a row still inside its window is accepted normally (1 ms)
+    √ a row with no validUntil at all is accepted (a legacy row is not a lapsed one) (1 ms)
+    √ an ALREADY-ACCEPTED lapsed row is still the idempotent no-op, not an expiry refusal (1 ms)
+    × the refusal carries the catalogued code, so both rails read one vocabulary (1 ms)
+  reissueLapsedQuotation — the expired row and its replacement move together
+    × soft-deletes the lapsed row and issues the replacement inside ONE transaction (1 ms)
+    × prices the replacement from the fee calculator, never from the retired row (1 ms)
+  the gate after a re-accept
+    √ passes the replacement row and hands back its snapshot (3 ms)
+
+  ● markQuotationAccepted refuses a lapsed offer › a PENDING row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"acceptedAt": 2026-08-29T09:00:00.000Z, "acceptedBy": "user-1", "acceptedSnapshot": {"currency": "THB", "feeTable": {"phase1RatePerScope": "5000.00", "phase2RatePerScope": "25000.00", "platformRate": "0.10", "vatRate": "0.07"}, "installments": [{"amount": "5885.00", "phase": "PHASE_1", "phaseTotal": "5885.00", "platformAmount": "500.00", "stateAmount": "5000.00", "vatAmount": "385.00"}, {"amount": "29425.00", "phase": "PHASE_2", "phaseTotal": "29425.00", "platformAmount": "2500.00", "stateAmount": "25000.00", "vatAmount": "1925.00"}], "issuerType": "PLATFORM", "quotationNumber": "QT-PRD-2026-000001", "renderedAt": "2026-08-29T09:00:00.000Z", "scopeCount": 1, "subtotal": "33000.00", "totalAmount": "35310.00", "validUntil": "2026-09-20T00:00:00.000Z", "vat": "2310.00"}, "acceptedSnapshotHash": "c8e1c1bc609eb97d4317f30f569b716c65d1bd4b87f579526d4630223b240de9", "applicationId": "app-1", "id": "qt-1", "installments": [{"amount": 5885, "phase": "PHASE_1", "platformAmount": 500, "scopeCount": 1, "stateAmount": 5000, "vatAmount": 385}, {"amount": 29425, "phase": "PHASE_2", "platformAmount": 2500, "scopeCount": 1, "stateAmount": 25000, "vatAmount": 1925}], "isDeleted": false, "issuerType": "PLATFORM", "quotationNumber": "QT-PRD-2026-000001", "status": "ACCEPTED", "subtotal": "33000.00", "totalAmount": "35310.00", "updatedBy": "user-1", "validUntil": 2026-07-15T00:00:00.000Z, "vat": "2310.00"}
+
+    [0m [90m 77 |[39m             [36mconst[39m snapshot [33m=[39m quotationService[33m.[39mbuildAcceptanceSnapshot(row()[33m,[39m { renderedAt[33m:[39m [33mNOW[39m })[33m;[39m
+     [90m 78 |[39m
+    [31m[1m>[22m[39m[90m 79 |[39m             [36mawait[39m expect(quotationService[33m.[39mmarkQuotationAccepted([32m'qt-1'[39m[33m,[39m {
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 80 |[39m                 acceptedBy[33m:[39m [32m'user-1'[39m[33m,[39m acceptedAt[33m:[39m [33mNOW[39m[33m,[39m snapshot[33m,[39m
+     [90m 81 |[39m             }))[33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'QUOTATION_EXPIRED'[39m })[33m;[39m
+     [90m 82 |[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at expect (__tests__/unit/quotation-expiry-binds-at-acceptance.test.js:79:19)
+
+  ● markQuotationAccepted refuses a lapsed offer › a SENT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"acceptedAt": 2026-08-29T09:00:00.000Z, "acceptedBy": "user-1", "acceptedSnapshot": {"currency": "THB", "feeTable": {"phase1RatePerScope": "5000.00", "phase2RatePerScope": "25000.00", "platformRate": "0.10", "vatRate": "0.07"}, "installments": [{"amount": "5885.00", "phase": "PHASE_1", "phaseTotal": "5885.00", "platformAmount": "500.00", "stateAmount": "5000.00", "vatAmount": "385.00"}, {"amount": "29425.00", "phase": "PHASE_2", "phaseTotal": "29425.00", "platformAmount": "2500.00", "stateAmount": "25000.00", "vatAmount": "1925.00"}], "issuerType": "PLATFORM", "quotationNumber": "QT-PRD-2026-000001", "renderedAt": "2026-08-29T09:00:00.000Z", "scopeCount": 1, "subtotal": "33000.00", "totalAmount": "35310.00", "validUntil": "2026-09-20T00:00:00.000Z", "vat": "2310.00"}, "acceptedSnapshotHash": "c8e1c1bc609eb97d4317f30f569b716c65d1bd4b87f579526d4630223b240de9", "applicationId": "app-1", "id": "qt-1", "installments": [{"amount": 5885, "phase": "PHASE_1", "platformAmount": 500, "scopeCount": 1, "stateAmount": 5000, "vatAmount": 385}, {"amount": 29425, "phase": "PHASE_2", "platformAmount": 2500, "scopeCount": 1, "stateAmount": 25000, "vatAmount": 1925}], "isDeleted": false, "issuerType": "PLATFORM", "quotationNumber": "QT-PRD-2026-000001", "status": "ACCEPTED", "subtotal": "33000.00", "totalAmount": "35310.00", "updatedBy": "user-1", "validUntil": 2026-07-15T00:00:00.000Z, "vat": "2310.00"}
+
+    [0m [90m 77 |[39m             [36mconst[39m snapshot [33m=[39m quotationService[33m.[39mbuildAcceptanceSnapshot(row()[33m,[39m { renderedAt[33m:[39m [33mNOW[39m })[33m;[39m
+     [90m 78 |[39m
+    [31m[1m>[22m[39m[90m 79 |[39m             [36mawait[39m expect(quotationService[33m.[39mmarkQuotationAccepted([32m'qt-1'[39m[33m,[39m {
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 80 |[39m                 acceptedBy[33m:[39m [32m'user-1'[39m[33m,[39m acceptedAt[33m:[39m [33mNOW[39m[33m,[39m snapshot[33m,[39m
+     [90m 81 |[39m             }))[33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'QUOTATION_EXPIRED'[39m })[33m;[39m
+     [90m 82 |[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at expect (__tests__/unit/quotation-expiry-binds-at-acceptance.test.js:79:19)
+
+  ● markQuotationAccepted refuses a lapsed offer › a DRAFT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"acceptedAt": 2026-08-29T09:00:00.000Z, "acceptedBy": "user-1", "acceptedSnapshot": {"currency": "THB", "feeTable": {"phase1RatePerScope": "5000.00", "phase2RatePerScope": "25000.00", "platformRate": "0.10", "vatRate": "0.07"}, "installments": [{"amount": "5885.00", "phase": "PHASE_1", "phaseTotal": "5885.00", "platformAmount": "500.00", "stateAmount": "5000.00", "vatAmount": "385.00"}, {"amount": "29425.00", "phase": "PHASE_2", "phaseTotal": "29425.00", "platformAmount": "2500.00", "stateAmount": "25000.00", "vatAmount": "1925.00"}], "issuerType": "PLATFORM", "quotationNumber": "QT-PRD-2026-000001", "renderedAt": "2026-08-29T09:00:00.000Z", "scopeCount": 1, "subtotal": "33000.00", "totalAmount": "35310.00", "validUntil": "2026-09-20T00:00:00.000Z", "vat": "2310.00"}, "acceptedSnapshotHash": "c8e1c1bc609eb97d4317f30f569b716c65d1bd4b87f579526d4630223b240de9", "applicationId": "app-1", "id": "qt-1", "installments": [{"amount": 5885, "phase": "PHASE_1", "platformAmount": 500, "scopeCount": 1, "stateAmount": 5000, "vatAmount": 385}, {"amount": 29425, "phase": "PHASE_2", "platformAmount": 2500, "scopeCount": 1, "stateAmount": 25000, "vatAmount": 1925}], "isDeleted": false, "issuerType": "PLATFORM", "quotationNumber": "QT-PRD-2026-000001", "status": "ACCEPTED", "subtotal": "33000.00", "totalAmount": "35310.00", "updatedBy": "user-1", "validUntil": 2026-07-15T00:00:00.000Z, "vat": "2310.00"}
+
+    [0m [90m 77 |[39m             [36mconst[39m snapshot [33m=[39m quotationService[33m.[39mbuildAcceptanceSnapshot(row()[33m,[39m { renderedAt[33m:[39m [33mNOW[39m })[33m;[39m
+     [90m 78 |[39m
+    [31m[1m>[22m[39m[90m 79 |[39m             [36mawait[39m expect(quotationService[33m.[39mmarkQuotationAccepted([32m'qt-1'[39m[33m,[39m {
+     [90m    |[39m                   [31m[1m^[22m[39m
+     [90m 80 |[39m                 acceptedBy[33m:[39m [32m'user-1'[39m[33m,[39m acceptedAt[33m:[39m [33mNOW[39m[33m,[39m snapshot[33m,[39m
+     [90m 81 |[39m             }))[33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'QUOTATION_EXPIRED'[39m })[33m;[39m
+     [90m 82 |[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at expect (__tests__/unit/quotation-expiry-binds-at-acceptance.test.js:79:19)
+
+  ● markQuotationAccepted refuses a lapsed offer › the refusal carries the catalogued code, so both rails read one vocabulary
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+    [0m [90m 131 |[39m         })[33m.[39m[36mcatch[39m((e) [33m=>[39m e)[33m;[39m
+     [90m 132 |[39m
+    [31m[1m>[22m[39m[90m 133 |[39m         expect([33mERROR_CODES[39m[err[33m.[39mcode])[33m.[39mtoBeDefined()[33m;[39m
+     [90m     |[39m                                       [31m[1m^[22m[39m
+     [90m 134 |[39m         expect(err[33m.[39mcode)[33m.[39mtoBe([32m'QUOTATION_EXPIRED'[39m)[33m;[39m
+     [90m 135 |[39m     })[33m;[39m
+     [90m 136 |[39m })[33m;[39m[0m
+
+      at Object.toBeDefined (__tests__/unit/quotation-expiry-binds-at-acceptance.test.js:133:39)
+
+  ● reissueLapsedQuotation — the expired row and its replacement move together › soft-deletes the lapsed row and issues the replacement inside ONE transaction
+
+    TypeError: quotationService.reissueLapsedQuotation is not a function
+
+    [0m [90m 212 |[39m         mockPrisma [33m=[39m makeReissuePrisma(lapsed)[33m;[39m
+     [90m 213 |[39m
+    [31m[1m>[22m[39m[90m 214 |[39m         [36mconst[39m out [33m=[39m [36mawait[39m quotationService[33m.[39mreissueLapsedQuotation([32m'app-1'[39m[33m,[39m {
+     [90m     |[39m                                            [31m[1m^[22m[39m
+     [90m 215 |[39m             lapsed[33m,[39m actorId[33m:[39m [32m'user-1'[39m[33m,[39m at[33m:[39m [33mNOW[39m[33m,[39m
+     [90m 216 |[39m         })[33m;[39m
+     [90m 217 |[39m[0m
+
+      at Object.reissueLapsedQuotation (__tests__/unit/quotation-expiry-binds-at-acceptance.test.js:214:44)
+
+  ● reissueLapsedQuotation — the expired row and its replacement move together › prices the replacement from the fee calculator, never from the retired row
+
+    TypeError: quotationService.reissueLapsedQuotation is not a function
+
+    [0m [90m 236 |[39m         mockPrisma [33m=[39m makeReissuePrisma(lapsed)[33m;[39m
+     [90m 237 |[39m
+    [31m[1m>[22m[39m[90m 238 |[39m         [36mconst[39m out [33m=[39m [36mawait[39m quotationService[33m.[39mreissueLapsedQuotation([32m'app-1'[39m[33m,[39m {
+     [90m     |[39m                                            [31m[1m^[22m[39m
+     [90m 239 |[39m             lapsed[33m,[39m actorId[33m:[39m [32m'user-1'[39m[33m,[39m at[33m:[39m [33mNOW[39m[33m,[39m
+     [90m 240 |[39m         })[33m;[39m
+     [90m 241 |[39m[0m
+
+      at Object.reissueLapsedQuotation (__tests__/unit/quotation-expiry-binds-at-acceptance.test.js:238:44)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-get-self-heals.test.js
+  √ a DRAFT application is never quoted by the self-heal (23 ms)
+  √ an application past DRAFT with no quotation is issued one, marked ISSUED_LATE (2 ms)
+  √ an application that already has a quotation is left completely alone (1 ms)
+  √ a self-heal failure returns the empty result rather than failing the read (1 ms)
+  √ a re-read that fails AFTER the row was minted still does not fail the read (1 ms)
+  √ an application whose status is unknown is not quoted (1 ms)
+  √ the ISSUED_LATE record carries the CALLER's role, not a default (1 ms)
+  only the applicant-owner can make a read mint a document
+    √ a admin read is a read, not an issuance (1 ms)
+    √ a account read is a read, not an issuance (2 ms)
+    √ a account_platform read is a read, not an issuance (1 ms)
+    √ a document_reviewer read is a read, not an issuance (1 ms)
+    √ a auditor read is a read, not an issuance (1 ms)
+    √ a caller with no role at all does not mint either (1 ms)
+  only an application inside the payable window is quoted late
+    √ SUBMITTED is inside the window, so a missing quotation is healed (1 ms)
+    √ PENDING_DOC_FEE is inside the window, so a missing quotation is healed (2 ms)
+    √ REJECTED is outside the window, so the read stays a read (1 ms)
+    √ EXPIRED is outside the window, so the read stays a read (2 ms)
+    √ CANCEL_EXPIRED is outside the window, so the read stays a read (1 ms)
+    √ CERTIFIED is outside the window, so the read stays a read (1 ms)
+    √ REVOKED is outside the window, so the read stays a read (1 ms)
+    √ DOC_FEE_PAID is outside the window, so the read stays a read (2 ms)
+    √ AUDIT_FEE_PAID is outside the window, so the read stays a read (1 ms)
+    √ AUDIT_PASSED is outside the window, so the read stays a read (1 ms)
+    √ REVISION_REQUESTED is outside the window, so the read stays a read (1 ms)
+    × DOC_APPROVED is outside the window, so the read stays a read (11 ms)
+    × PENDING_AUDIT_FEE is outside the window, so the read stays a read (1 ms)
+    × the window is the card rail's own M1 list, not a second list (3 ms)
+    × no state in which งวดที่ 1 has been collected can mint a document (3 ms)
+  a lapsed, still-unaccepted quotation is replaced by the read
+    × the lapsed row is retired, a replacement is issued, and the trail names both (1 ms)
+    × exactly once: the next read sees the replacement and leaves it alone (1 ms)
+    √ an ACCEPTED row past its validity is an agreement, not a lapsed offer (1 ms)
+    √ a PROVIDER read never replaces a document either (1 ms)
+    √ a lapsed row on an application outside the window is left as it is (1 ms)
+    √ a lapsed pre-W14 PAIR is not silently repriced into one document (1 ms)
+    √ a failed replacement never fails the read (1 ms)
+
+  ● only an application inside the payable window is quoted late › DOC_APPROVED is outside the window, so the read stays a read
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "app-1", {"actorId": "user-1", "notes": "ISSUED_LATE: MISSING_AT_READ"}
+
+    [0m [90m 209 |[39m         })[33m;[39m
+     [90m 210 |[39m         expect(out)[33m.[39mtoEqual({ dtam[33m:[39m [36mnull[39m[33m,[39m platform[33m:[39m [36mnull[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 211 |[39m         expect(mockIssue)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 212 |[39m     })[33m;[39m
+     [90m 213 |[39m
+     [90m 214 |[39m     test([32m'the window is the card rail\'s own M1 list, not a second list'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at toHaveBeenCalled (__tests__/unit/quotation-get-self-heals.test.js:211:31)
+
+  ● only an application inside the payable window is quoted late › PENDING_AUDIT_FEE is outside the window, so the read stays a read
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: "app-1", {"actorId": "user-1", "notes": "ISSUED_LATE: MISSING_AT_READ"}
+
+    [0m [90m 209 |[39m         })[33m;[39m
+     [90m 210 |[39m         expect(out)[33m.[39mtoEqual({ dtam[33m:[39m [36mnull[39m[33m,[39m platform[33m:[39m [36mnull[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 211 |[39m         expect(mockIssue)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 212 |[39m     })[33m;[39m
+     [90m 213 |[39m
+     [90m 214 |[39m     test([32m'the window is the card rail\'s own M1 list, not a second list'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at toHaveBeenCalled (__tests__/unit/quotation-get-self-heals.test.js:211:31)
+
+  ● only an application inside the payable window is quoted late › the window is the card rail's own M1 list, not a second list
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 2
+
+      Array [
+    +   "DOC_APPROVED",
+    +   "PENDING_AUDIT_FEE",
+        "PENDING_DOC_FEE",
+        "SUBMITTED",
+      ]
+
+    [0m [90m 216 |[39m         [90m// module must follow it without an edit here.[39m
+     [90m 217 |[39m         [36mconst[39m { [33mSELF_HEAL_STATUSES[39m } [33m=[39m require([32m'../../services/quotation-issuance-on-submit'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 218 |[39m         expect([[33m...[39m[33mSELF_HEAL_STATUSES[39m][33m.[39msort())[33m.[39mtoEqual([33mPAYABLE[39m[33m.[39msort())[33m;[39m
+     [90m     |[39m                                                [31m[1m^[22m[39m
+     [90m 219 |[39m     })[33m;[39m
+     [90m 220 |[39m
+     [90m 221 |[39m     test([32m'no state in which งวดที่ 1 has been collected can mint a document'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toEqual (__tests__/unit/quotation-get-self-heals.test.js:218:48)
+
+  ● only an application inside the payable window is quoted late › no state in which งวดที่ 1 has been collected can mint a document
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "DOC_APPROVED: false"
+    Received: "DOC_APPROVED: true"
+
+    [0m [90m 222 |[39m         [36mconst[39m { [33mSELF_HEAL_STATUSES[39m } [33m=[39m require([32m'../../services/quotation-issuance-on-submit'[39m)[33m;[39m
+     [90m 223 |[39m         [36mfor[39m ([36mconst[39m paid [36mof[39m [33mPAYABLE_STATES[39m[33m.[39m[33mM2[39m) {
+    [31m[1m>[22m[39m[90m 224 |[39m             expect([32m`${paid}: ${SELF_HEAL_STATUSES.has(paid)}`[39m)[33m.[39mtoBe([32m`${paid}: false`[39m)[33m;[39m
+     [90m     |[39m                                                                [31m[1m^[22m[39m
+     [90m 225 |[39m         }
+     [90m 226 |[39m     })[33m;[39m
+     [90m 227 |[39m })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-get-self-heals.test.js:224:64)
+
+  ● a lapsed, still-unaccepted quotation is replaced by the read › the lapsed row is retired, a replacement is issued, and the trail names both
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+    [0m [90m 312 |[39m         })[33m;[39m
+     [90m 313 |[39m
+    [31m[1m>[22m[39m[90m 314 |[39m         expect(mockReissue)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m     |[39m                             [31m[1m^[22m[39m
+     [90m 315 |[39m         expect(mockReissue)[33m.[39mtoHaveBeenCalledWith([32m'app-1'[39m[33m,[39m expect[33m.[39mobjectContaining({
+     [90m 316 |[39m             lapsed[33m:[39m expect[33m.[39mobjectContaining({ id[33m:[39m [32m'qt-old'[39m })[33m,[39m
+     [90m 317 |[39m         }))[33m;[39m[0m
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/quotation-get-self-heals.test.js:314:29)
+
+  ● a lapsed, still-unaccepted quotation is replaced by the read › exactly once: the next read sees the replacement and leaves it alone
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+    [0m [90m 340 |[39m         })[33m;[39m
+     [90m 341 |[39m
+    [31m[1m>[22m[39m[90m 342 |[39m         expect(mockReissue)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m     |[39m                             [31m[1m^[22m[39m
+     [90m 343 |[39m         expect(second[33m.[39mplatform[33m.[39mid)[33m.[39mtoBe([32m'qt-new'[39m)[33m;[39m
+     [90m 344 |[39m     })[33m;[39m
+     [90m 345 |[39m[0m
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/quotation-get-self-heals.test.js:342:29)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-record-phase-invoiced.test.js
+  √ M1 stamps phase 1 and does NOT close a quotation that still prices งวดที่ 2 (3 ms)
+  × M2 closes it once BOTH instalments the row prices are billed (2 ms)
+  √ a renewal prices PHASE_2 only, so that ONE stamp closes the document (11 ms)
+  √ a legacy row with no installments is only closed when BOTH phases are stamped (1 ms)
+  √ a row nobody ever accepted is STAMPED but never flipped, and says so in its notes (2 ms)
+  √ an existing note is appended to, never overwritten (1 ms)
+  √ a second settlement for the same phase keeps the FIRST instant (1 ms)
+  √ re-driving the same phase on a never-accepted row leaves ONE note, not one per attempt (1 ms)
+  √ a heal pass over a row that is already correct issues no write at all (1 ms)
+  √ an order minted before the binding falls back to the applicationId, preferring the company row (1 ms)
+  √ no quotation anywhere returns null and writes nothing — the caller logs it (1 ms)
+  √ a soft-deleted row is not a quotation to stamp (1 ms)
+  √ an unknown milestone throws UNKNOWN_MILESTONE and writes nothing (1 ms)
+  √ the argument vocabulary tolerates PHASE_1/PHASE_2 as well as M1/M2 — the slip rail`s words (1 ms)
+  √ a row already INVOICED is stamped without a redundant status write (1 ms)
+  √ the fallback refuses to stamp a document whose accepted figure is not what was collected (1 ms)
+  √ the fallback stamps when the accepted phase total matches the charge to the satang (1 ms)
+  √ the fallback refuses a document that does not price the instalment being billed at all (1 ms)
+  √ the fallback refuses an accepted document when the caller cannot say what was collected (2 ms)
+  √ a row nobody accepted has no frozen figure to disagree with, so the fallback still stamps it and says why in its notes (1 ms)
+  √ a BOUND quotationId is stamped without re-comparing — the mint-time drift gate already did that (1 ms)
+  two closes that interleave
+    × the LAST writer flips the document, even though both read it unstamped (2 ms)
+    √ a redelivery of the first phase cannot un-close a document already closed (1 ms)
+    √ a never-accepted row is stamped by both phases and still not flipped (2 ms)
+
+  ● M2 closes it once BOTH instalments the row prices are billed
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+        "phase2InvoicedAt": 2026-08-28T10:00:00.000Z,
+    +   "status": "INVOICED",
+      }
+
+    [0m [90m 128 |[39m     [90m// caller's fact, the close is a claim about the whole document and is[39m
+     [90m 129 |[39m     [90m// therefore decided by the database against the row's own columns.[39m
+    [31m[1m>[22m[39m[90m 130 |[39m     expect(update[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata)[33m.[39mtoEqual({ phase2InvoicedAt[33m:[39m [33mAT[39m })[33m;[39m
+     [90m     |[39m                                          [31m[1m^[22m[39m
+     [90m 131 |[39m     expect(updateMany[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata)[33m.[39mtoEqual({ status[33m:[39m [33mQUOTATION_STATUS[39m[33m.[39m[33mINVOICED[39m })[33m;[39m
+     [90m 132 |[39m     expect(r)[33m.[39mtoEqual({
+     [90m 133 |[39m         quotationId[33m:[39m [32m'qt-1'[39m[33m,[39m phase[33m:[39m [32m'PHASE_2'[39m[33m,[39m closed[33m:[39m [36mtrue[39m[33m,[39m status[33m:[39m [33mQUOTATION_STATUS[39m[33m.[39m[33mINVOICED[39m[33m,[39m[0m
+
+      at Object.toEqual (__tests__/unit/quotation-record-phase-invoiced.test.js:130:42)
+
+  ● two closes that interleave › the LAST writer flips the document, even though both read it unstamped
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "INVOICED"
+    Received: "ACCEPTED"
+
+    [0m [90m 319 |[39m         [36mconst[39m [a[33m,[39m b] [33m=[39m [36mawait[39m [33mPromise[39m[33m.[39mall([first[33m,[39m second])[33m;[39m
+     [90m 320 |[39m
+    [31m[1m>[22m[39m[90m 321 |[39m         expect(rows[33m.[39m[36mget[39m([32m'qt-1'[39m)[33m.[39mstatus)[33m.[39mtoBe([33mQUOTATION_STATUS[39m[33m.[39m[33mINVOICED[39m)[33m;[39m
+     [90m     |[39m                                         [31m[1m^[22m[39m
+     [90m 322 |[39m         expect(rows[33m.[39m[36mget[39m([32m'qt-1'[39m)[33m.[39mphase1InvoicedAt)[33m.[39mtoBe([33mAT[39m)[33m;[39m
+     [90m 323 |[39m         expect(rows[33m.[39m[36mget[39m([32m'qt-1'[39m)[33m.[39mphase2InvoicedAt)[33m.[39mtoBe([33mAT[39m)[33m;[39m
+     [90m 324 |[39m         [90m// Exactly one of the two performed the flip; the other answered[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-record-phase-invoiced.test.js:321:41)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    √ QUOTATION_NOT_ISSUED is catalogued with status 409 (3 ms)
+    √ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (2 ms)
+    √ QUOTATION_EXPIRED is catalogued with status 409 (2 ms)
+    √ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (1 ms)
+    √ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (1 ms)
+    √ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    √ QUOTATION_ISSUE_FAILED is catalogued with status 500 (1 ms)
+    √ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (13 ms)
+    √ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    × SNAPSHOT_REQUIRED is catalogued with status 409 (1 ms)
+    √ the four gate codes point at the shared gate module, not at one rail (1 ms)
+    √ every gate code`s source line is the line that actually raises it (2 ms)
+    × the two shared refusals name the line that actually raises them (2 ms)
+    × the two not-priced refusals are separate rows pointing at their own door (2 ms)
+    × neither not-priced copy sends the applicant to a staff door that does not exist (4 ms)
+    × no applicant-facing row on this path promises a staff re-issue (1 ms)
+    × the snapshot refusal names the cause and an action staff can actually take (1 ms)
+    × the expiry copy names the replacement the system issues by itself (1 ms)
+    √ the price-drift remediation names the step that unblocks the applicant (1 ms)
+    √ the payment-terms remediation no longer names the request body ruling 2 deleted (1 ms)
+    √ the two rail-specific messages no longer name only the slip (1 ms)
+    √ no Thai message uses an em dash (thai-ui-copy rule) (5 ms)
+    √ only the rows that actually alert staff say staff were alerted (3 ms)
+    √ the close-failure copy still tells the applicant their money and receipt stand (3 ms)
+
+  ● quotation gate error codes › SNAPSHOT_REQUIRED is catalogued with status 409
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 500
+
+    [0m [90m 41 |[39m         [36mconst[39m row [33m=[39m [33mERROR_CODES[39m[code][33m;[39m
+     [90m 42 |[39m         expect(row)[33m.[39mtoBeDefined()[33m;[39m
+    [31m[1m>[22m[39m[90m 43 |[39m         expect(row[33m.[39mhttpStatus)[33m.[39mtoBe(status)[33m;[39m
+     [90m    |[39m                                [31m[1m^[22m[39m
+     [90m 44 |[39m         expect(row[33m.[39mmessageTh[33m.[39mlength)[33m.[39mtoBeGreaterThan([35m0[39m)[33m;[39m
+     [90m 45 |[39m         expect(row[33m.[39mmessageEn[33m.[39mlength)[33m.[39mtoBeGreaterThan([35m0[39m)[33m;[39m
+     [90m 46 |[39m         expect(row[33m.[39msource)[33m.[39mtoMatch([35m/^[^:]+:\d+$/[39m)[33m;[39m[0m
+
+      at toBe (__tests__/unit/quotation-gate-error-codes.test.js:43:32)
+
+  ● quotation gate error codes › the two shared refusals name the line that actually raises them
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "catalogError('CHECKOUT_PRICE_DRIFT')"
+    Received string:    "289: milestone,"
+
+    [0m [90m 93 |[39m         expect(driftFile)[33m.[39mtoBe([32m'services/checkout/stripe-checkout-service.js'[39m)[33m;[39m
+     [90m 94 |[39m         expect([32m`${driftLine}: ${readLine(driftFile, Number(driftLine))}`[39m)
+    [31m[1m>[22m[39m[90m 95 |[39m             [33m.[39mtoContain([32m"catalogError('CHECKOUT_PRICE_DRIFT')"[39m)[33m;[39m
+     [90m    |[39m              [31m[1m^[22m[39m
+     [90m 96 |[39m     })[33m;[39m
+     [90m 97 |[39m
+     [90m 98 |[39m     [90m// Fix round 2 (reviewer, minor 2). The renderer's row was being raised to[39m[0m
+
+      at Object.toContain (__tests__/unit/quotation-gate-error-codes.test.js:95:14)
+
+  ● quotation gate error codes › the two not-priced refusals are separate rows pointing at their own door
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "catalogError('CHECKOUT_PHASE_NOT_PRICED')"
+    Received string:    "214: milestone,"
+
+    [0m [90m 115 |[39m         expect(payFile)[33m.[39mtoBe([32m'services/checkout/stripe-checkout-service.js'[39m)[33m;[39m
+     [90m 116 |[39m         expect([32m`${payLine}: ${readLine(payFile, Number(payLine))}`[39m)
+    [31m[1m>[22m[39m[90m 117 |[39m             [33m.[39mtoContain([32m"catalogError('CHECKOUT_PHASE_NOT_PRICED')"[39m)[33m;[39m
+     [90m     |[39m              [31m[1m^[22m[39m
+     [90m 118 |[39m     })[33m;[39m
+     [90m 119 |[39m
+     [90m 120 |[39m     [90m/**[39m[0m
+
+      at Object.toContain (__tests__/unit/quotation-gate-error-codes.test.js:117:14)
+
+  ● quotation gate error codes › neither not-priced copy sends the applicant to a staff door that does not exist
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "QUOTATION_PHASE_NOT_PRICED: งวดนี้ไม่อยู่ในใบเสนอราคาของคำขอ กรุณาเลือกงวดที่ถูกต้อง หากยังพบข้อความนี้ กรุณาติดต่อเจ้าหน้าที่พร้อมแจ้งเลขที่ใบเสนอราคา"
+    Received: "QUOTATION_PHASE_NOT_PRICED: ใบเสนอราคาฉบับนี้ไม่ได้ระบุค่าใช้จ่ายของงวดที่คุณเปิด ระบบจึงไม่ออกเอกสาร กรุณาเปิดเอกสารของงวดที่ใบเสนอราคานี้ระบุไว้"
+
+    [0m [90m 132 |[39m             [33m+[39m [32m'หากยังพบข้อความนี้ กรุณาติดต่อเจ้าหน้าที่พร้อมแจ้งเลขที่ใบเสนอราคา'[39m[33m;[39m
+     [90m 133 |[39m         [36mfor[39m ([36mconst[39m code [36mof[39m [[32m'QUOTATION_PHASE_NOT_PRICED'[39m[33m,[39m [32m'CHECKOUT_PHASE_NOT_PRICED'[39m]) {
+    [31m[1m>[22m[39m[90m 134 |[39m             expect([32m`${code}: ${ERROR_CODES[code].messageTh}`[39m)[33m.[39mtoBe([32m`${code}: ${EXPECTED}`[39m)[33m;[39m
+     [90m     |[39m                                                               [31m[1m^[22m[39m
+     [90m 135 |[39m             expect([33mERROR_CODES[39m[code][33m.[39mmessageEn[33m.[39mlength)[33m.[39mtoBeGreaterThan([35m0[39m)[33m;[39m
+     [90m 136 |[39m         }
+     [90m 137 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-gate-error-codes.test.js:134:63)
+
+  ● quotation gate error codes › no applicant-facing row on this path promises a staff re-issue
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "QUOTATION_EXPIRED: false"
+    Received: "QUOTATION_EXPIRED: true"
+
+    [0m [90m 143 |[39m         [36mfor[39m ([36mconst[39m code [36mof[39m [33mObject[39m[33m.[39mkeys([33mEXPECTED_STATUS[39m)) {
+     [90m 144 |[39m             expect([32m`${code}: ${/เจ้าหน้าที่เพื่อออกใบ/.test(ERROR_CODES[code].messageTh)}`[39m)
+    [31m[1m>[22m[39m[90m 145 |[39m                 [33m.[39mtoBe([32m`${code}: false`[39m)[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 146 |[39m         }
+     [90m 147 |[39m     })[33m;[39m
+     [90m 148 |[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-gate-error-codes.test.js:145:18)
+
+  ● quotation gate error codes › the snapshot refusal names the cause and an action staff can actually take
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ระบบบันทึกการยอมรับใบเสนอราคาไม่ได้เพราะใบนี้ไม่มีตัวเลขครบ กรุณาติดต่อเจ้าหน้าที่พร้อมแจ้งเลขที่ใบเสนอราคา"
+    Received: "ไม่สามารถบันทึกการยอมรับใบเสนอราคาได้ กรุณาลองใหม่อีกครั้ง"
+
+    [0m [90m 149 |[39m     it([32m'the snapshot refusal names the cause and an action staff can actually take'[39m[33m,[39m () [33m=>[39m {
+     [90m 150 |[39m         [36mconst[39m row [33m=[39m [33mERROR_CODES[39m[33m.[39m[33mSNAPSHOT_REQUIRED[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 151 |[39m         expect(row[33m.[39mmessageTh)[33m.[39mtoBe(
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 152 |[39m             [32m'ระบบบันทึกการยอมรับใบเสนอราคาไม่ได้เพราะใบนี้ไม่มีตัวเลขครบ '[39m
+     [90m 153 |[39m             [33m+[39m [32m'กรุณาติดต่อเจ้าหน้าที่พร้อมแจ้งเลขที่ใบเสนอราคา'[39m[33m,[39m
+     [90m 154 |[39m         )[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-gate-error-codes.test.js:151:31)
+
+  ● quotation gate error codes › the expiry copy names the replacement the system issues by itself
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ใบเสนอราคาเกินกำหนดยืนราคาแล้ว ระบบจะออกใบใหม่ให้เมื่อคุณกลับไปที่หน้ารายการชำระเงิน กรุณายอมรับใบใหม่ก่อนชำระเงิน"
+    Received: "ใบเสนอราคาของคำขอนี้เกินกำหนดยืนราคาแล้ว กรุณาติดต่อเจ้าหน้าที่เพื่อออกใบใหม่"
+
+    [0m [90m 166 |[39m     it([32m'the expiry copy names the replacement the system issues by itself'[39m[33m,[39m () [33m=>[39m {
+     [90m 167 |[39m         [36mconst[39m row [33m=[39m [33mERROR_CODES[39m[33m.[39m[33mQUOTATION_EXPIRED[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 168 |[39m         expect(row[33m.[39mmessageTh)[33m.[39mtoBe(
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 169 |[39m             [32m'ใบเสนอราคาเกินกำหนดยืนราคาแล้ว ระบบจะออกใบใหม่ให้เมื่อคุณกลับไปที่หน้ารายการชำระเงิน '[39m
+     [90m 170 |[39m             [33m+[39m [32m'กรุณายอมรับใบใหม่ก่อนชำระเงิน'[39m[33m,[39m
+     [90m 171 |[39m         )[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-gate-error-codes.test.js:168:31)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-money-path-lookups-are-unscoped.test.js
+  recordPhaseInvoiced resolves the document under withoutTenantScope
+    × the by-id lookup (settlement, order-bound) is not narrowed by the actor`s org (7 ms)
+    × the applicationId fallback (slip approval by an ACCOUNT reviewer) is not narrowed either (1 ms)
+  the gate resolves the row under withoutTenantScope
+    × a bound foreign tenant context does not turn a real quotation into QUOTATION_NOT_ISSUED (1 ms)
+  the applicant`s own read is untouched
+    √ findQuotationsByApplicationId called with no context bound still reads (1 ms)
+
+  ● recordPhaseInvoiced resolves the document under withoutTenantScope › the by-id lookup (settlement, order-bound) is not narrowed by the actor`s org
+
+    expect(received).toContainEqual(expected) // deep equality
+
+    Expected value: {"op": "findFirst", "unscoped": true}
+    Received array: [{"op": "findFirst", "unscoped": false}]
+
+    [0m [90m 79 |[39m         }))[33m;[39m
+     [90m 80 |[39m
+    [31m[1m>[22m[39m[90m 81 |[39m         expect(seen)[33m.[39mtoContainEqual({ op[33m:[39m [32m'findFirst'[39m[33m,[39m unscoped[33m:[39m [36mtrue[39m })[33m;[39m
+     [90m    |[39m                      [31m[1m^[22m[39m
+     [90m 82 |[39m     })[33m;[39m
+     [90m 83 |[39m
+     [90m 84 |[39m     it([32m'the applicationId fallback (slip approval by an ACCOUNT reviewer) is not narrowed either'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toContainEqual (__tests__/unit/quotation-money-path-lookups-are-unscoped.test.js:81:22)
+
+  ● recordPhaseInvoiced resolves the document under withoutTenantScope › the applicationId fallback (slip approval by an ACCOUNT reviewer) is not narrowed either
+
+    expect(received).toContainEqual(expected) // deep equality
+
+    Expected value: {"op": "findMany", "unscoped": true}
+    Received array: [{"op": "findMany", "unscoped": false}]
+
+    [0m [90m 90 |[39m         }))[33m;[39m
+     [90m 91 |[39m
+    [31m[1m>[22m[39m[90m 92 |[39m         expect(seen)[33m.[39mtoContainEqual({ op[33m:[39m [32m'findMany'[39m[33m,[39m unscoped[33m:[39m [36mtrue[39m })[33m;[39m
+     [90m    |[39m                      [31m[1m^[22m[39m
+     [90m 93 |[39m     })[33m;[39m
+     [90m 94 |[39m })[33m;[39m
+     [90m 95 |[39m[0m
+
+      at Object.toContainEqual (__tests__/unit/quotation-money-path-lookups-are-unscoped.test.js:92:22)
+
+  ● the gate resolves the row under withoutTenantScope › a bound foreign tenant context does not turn a real quotation into QUOTATION_NOT_ISSUED
+
+    expect(received).toContainEqual(expected) // deep equality
+
+    Expected value: {"op": "findMany", "unscoped": true}
+    Received array: [{"op": "findMany", "unscoped": false}]
+
+    [0m [90m 103 |[39m
+     [90m 104 |[39m         expect(out[33m.[39mquotation[33m.[39mid)[33m.[39mtoBe([32m'qt-1'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 105 |[39m         expect(seen)[33m.[39mtoContainEqual({ op[33m:[39m [32m'findMany'[39m[33m,[39m unscoped[33m:[39m [36mtrue[39m })[33m;[39m
+     [90m     |[39m                      [31m[1m^[22m[39m
+     [90m 106 |[39m     })[33m;[39m
+     [90m 107 |[39m })[33m;[39m
+     [90m 108 |[39m[0m
+
+      at Object.toContainEqual (__tests__/unit/quotation-money-path-lookups-are-unscoped.test.js:105:22)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-issuance-idempotency.test.js
+  the partial unique index that makes issuance idempotent
+    √ is declared in this branch's own migration, on (applicationId, issuerType) WHERE not deleted (1 ms)
+    √ is PARTIAL, so a soft-deleted row can never block a re-issue (2 ms)
+    √ is documented on the Prisma model, because Prisma cannot express it (1 ms)
+  two issuances that race
+    √ produce ONE quotation row and no error at either caller (8 ms)
+    √ the loser is served by a re-read, so a create that clashes is never rethrown (2 ms)
+    √ a unique violation that leaves NO readable row is still raised (1 ms)
+  a unique violation inside a caller-owned transaction
+    × is rethrown to the caller instead of read back on the aborted handle (1 ms)
+    √ still recovers by re-reading when the transaction is this function`s own (1 ms)
+
+  ● a unique violation inside a caller-owned transaction › is rethrown to the caller instead of read back on the aborted handle
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"company": {"applicationId": "app-1", "id": "qt-winner", "isDeleted": false, "issuerType": "PLATFORM"}, "dtam": null, "platform": {"applicationId": "app-1", "id": "qt-winner", "isDeleted": false, "issuerType": "PLATFORM"}}
+
+    [0m [90m 219 |[39m         [36mconst[39m { $transaction[33m,[39m [33m...[39mtxHandle } [33m=[39m mockPrisma[33m;[39m
+     [90m 220 |[39m
+    [31m[1m>[22m[39m[90m 221 |[39m         [36mawait[39m expect(quotationService[33m.[39missueQuotationsForApplication([32m'app-1'[39m[33m,[39m { tx[33m:[39m txHandle }))
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 222 |[39m             [33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'P2002'[39m })[33m;[39m
+     [90m 223 |[39m
+     [90m 224 |[39m         [90m// Two probes ran BEFORE the create (the idempotency probe and the[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/quotation-issuance-idempotency.test.js:221:15)
+
+Test Suites: 7 failed, 7 total
+Tests:       27 failed, 101 passed, 128 total
+Snapshots:   0 total
+Time:        5.166 s, estimated 6 s
+Ran all test suites matching /__tests__\\unit\\quotation-expiry-binds-at-acceptance.test.js|__tests__\\unit\\quotation-money-path-lookups-are-unscoped.test.js|__tests__\\unit\\quotation-get-self-heals.test.js|__tests__\\unit\\quotation-record-phase-invoiced.test.js|__tests__\\unit\\quotation-issuance-idempotency.test.js|__tests__\\unit\\quotation-gate-error-codes.test.js|__tests__\\unit\\quotation-api-renders-the-row.test.js/i.

@@ -1,0 +1,27 @@
+Rerun of the 3 suites that failed, on the branch:
+
+FAIL __tests__/integration/approver-decision-tools-real-postgres.test.js (21.221 s)
+      ✕ สคริปต์ซ่อม: APPROVED ที่ถือใบแล้ว → CERTIFIED ปิดงานค้าง · รันซ้ำไม่ทำอะไร · APPROVED ที่ไม่มีใบไม่แตะ (1277 ms)
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+    ✕ HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx) (325 ms)
+    ✕ PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row (225 ms)
+PASS __tests__/unit/audit-onsite-ownership.test.js
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       3 failed, 82 passed, 85 total
+exit 1
+
+The same 2 real-Postgres suites on main a5d88227a (the main checkout's code), SAME scratch database, same session:
+
+FAIL __tests__/integration/approver-decision-tools-real-postgres.test.js (26.415 s)
+      ✕ สคริปต์ซ่อม: APPROVED ที่ถือใบแล้ว → CERTIFIED ปิดงานค้าง · รันซ้ำไม่ทำอะไร · APPROVED ที่ไม่มีใบไม่แตะ (1341 ms)
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+    ✕ HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx) (240 ms)
+    ✕ PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row (197 ms)
+Test Suites: 2 failed, 2 total
+Tests:       3 failed, 76 passed, 79 total
+exit 1
+
+Reading:
+- onsite-decision-mint-e2e HEADLINE and PIN-PROPAGATION: on the recorded main baseline (wt-uploads evidence/uploads-fail-closed/integration-failures-baseline-23.txt lines 18-19); they fail inside the order-31 status-writer refusal, before any photo is read.
+- approver-decision-tools สคริปต์ซ่อม: the heal script counts every APPROVED application in the database; this scratch DB also holds seed-gacp's APP-68-002 (APPROVED, one active certificate), which the test never created. main fails it identically on this DB (Expected 1 / Received 2).
+- New failures from this branch in the targeted set: 0.

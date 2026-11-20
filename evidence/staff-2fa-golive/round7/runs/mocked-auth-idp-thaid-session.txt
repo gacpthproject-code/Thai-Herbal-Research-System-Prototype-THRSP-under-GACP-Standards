@@ -1,0 +1,21 @@
+PASS __tests__/unit/auth-idp-thaid-session.test.js
+  resolveThaidSession — status gate (auth-idp.js)
+    ✓ SUSPENDED existing user → 403 ACCOUNT_INACTIVE, NO session minted, audit FAILURE (79 ms)
+    ✓ SECU-03: soft-deleted user whose status still reads ACTIVE → 403 ACCOUNT_INACTIVE, NO session (17 ms)
+    ✓ ACTIVE user (HEALTH role) → 200, session minted via issueTokensForAuthenticatedUser, auth_token cookie (Item 1) (20 ms)
+    ✓ PENDING_VERIFICATION (freshly provisioned citizen) → 200, session minted, auth_token cookie (19 ms)
+  resolveThaidSession — MFA gate at the mint boundary (R-A Task 2)
+    ✓ (a) TOTP-enrolled user → mfa challenge contract, NO tokens, NO session cookie, NO identity_links write (Item 2) (65 ms)
+    ✓ (b) a service result naming the retired EMAIL method fails closed — no challenge, no cookies, NO identity_links write (15 ms)
+    ✓ (c) existing-link user w/ 2FA enrolled → challenge, NO identity_links touch (15 ms)
+    ✓ the minted mfa_session decodes with purpose=mfa_challenge + the correct method claim (17 ms)
+  ThaID-minted mfa_session is verifiable at POST /api/mfa/verify (R-A Task 2)
+    ✓ completes login: real challenge mint → real /verify accepts it (binding + purpose pass) (51 ms)
+  resolveThaidSession — existing-link rider surfaces at the route (R-A Task 2)
+    ✓ (d) staff existing-link rejection (AUTH_AUTOPROVISION_ROLE_FORBIDDEN) → 403 + audit FAILURE, no mint (15 ms)
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+Snapshots:   0 total
+Time:        1.073 s, estimated 2 s
+Ran all test suites matching __tests__/unit/auth-idp-thaid-session.test.js.
+jest exit 0

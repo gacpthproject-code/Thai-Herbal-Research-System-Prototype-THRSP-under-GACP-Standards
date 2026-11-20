@@ -1,0 +1,116 @@
+/**
+ * TEMPORARY PROBE — not committed. Verifies the metadata-shape fix WITHOUT
+ * Postgres.
+ *
+ * Two things make this probe worth trusting:
+ *  1. the value under assertion is produced by the REAL write path
+ *     (`statusTransitionAuditHook` -> `logWithin` -> `_buildAuditRow`, the exact
+ *     path `writeApplicationStatus` takes), captured at `auditLog.create` — i.e.
+ *     literally what Prisma persists into the `Json?` column and returns on read;
+ *  2. the assertion helper is not re-typed here — it is EXTRACTED FROM THE TWO
+ *     EDITED TEST FILES at runtime, so this cannot drift from what ships.
+ */
+
+'use strict';
+
+const fs = require('fs');
+const path = require('path');
+
+const captured = [];
+
+const fakeTx = {
+    $executeRaw: jest.fn().mockResolvedValue(1),
+    auditLog: {
+        findFirst: jest.fn().mockResolvedValue(null),
+        create: jest.fn(async ({ data }) => { captured.push(data); return { id: 'audit-probe', ...data }; }),
+    },
+};
+
+jest.mock('../services/prisma-database', () => ({
+    prisma: {
+        auditLog: { findFirst: jest.fn().mockResolvedValue(null), create: jest.fn() },
+        organization: { findFirst: jest.fn().mockResolvedValue({ id: 'org-probe' }) },
+    },
+}));
+
+jest.mock('../services/tenant-context', () => ({
+    getTenantContext: () => ({ organizationId: 'org-probe' }),
+}));
+
+const { statusTransitionAuditHook } = require('../middleware/audit-logger');
+
+const FILES = [
+    'integration/status-writer-audit-default-invariant.test.js',
+    'integration/a0-pr2-per-hop-invariant.test.js',
+];
+
+/** Pull the shipped `persistedAuditMetadata` source out of a test file. */
+function extractHelperSource(rel) {
+    const src = fs.readFileSync(path.join(__dirname, rel), 'utf8');
+    const m = src.match(/function persistedAuditMetadata\(value\) \{[\s\S]*?\n\}/);
+    if (!m) { throw new Error(`helper not found in ${rel}`); }
+    return m[0];
+}
+
+describe('PROBE — the shipped metadata assertion, against the real persisted value', () => {
+    let persisted;
+    let persistedAuditMetadata;
+
+    beforeAll(async () => {
+        // Same call shape application-status-writer makes for hop
+        // SUBMITTED -> PENDING_DOC_FEE in the A0 PR-1 test.
+        await statusTransitionAuditHook({ tx: fakeTx })({
+            applicationId: 'app-probe',
+            fromStatus: 'SUBMITTED',
+            toStatus: 'PENDING_DOC_FEE',
+            actorId: 'a0-pr1-actor',
+            actorRole: 'health',
+            reason: 'A0 PR1 invariant (1)',
+            organizationId: 'org-probe',
+        });
+        persisted = captured[0].metadata;
+
+        const sources = FILES.map(extractHelperSource);
+        // eslint-disable-next-line no-console
+        console.log('\n>>> helper source SHIPPED in both files:\n' + sources[0]);
+        // eslint-disable-next-line no-console
+        console.log('\n>>> PERSISTED metadata typeof =', typeof persisted, '\n>>> value =', persisted, '\n');
+        expect(sources[0]).toBe(sources[1]); // the two copies must not drift
+        // eslint-disable-next-line no-new-func
+        persistedAuditMetadata = new Function('expect', `${sources[0]}; return persistedAuditMetadata;`)(expect);
+    });
+
+    test('the two shipped copies of the helper are byte-identical', () => {
+        const [a, b] = FILES.map(extractHelperSource);
+        expect(a).toBe(b);
+    });
+
+    test('GREEN — status-writer :183 form, on the real persisted value', () => {
+        expect(persistedAuditMetadata(persisted)).toMatchObject({
+            fromStatus: 'SUBMITTED',
+            toStatus: 'PENDING_DOC_FEE',
+        });
+    });
+
+    test('GREEN — a0-pr2 :379 form (per-edge), on the real persisted value', () => {
+        const [from, to] = ['SUBMITTED', 'PENDING_DOC_FEE'];
+        expect(persistedAuditMetadata(persisted)).toMatchObject({ fromStatus: from, toStatus: to });
+    });
+
+    test('GREEN — every field the OLD assertion named still gets matched (nothing dropped)', () => {
+        expect(persistedAuditMetadata(persisted)).toMatchObject({
+            fromStatus: 'SUBMITTED',
+            toStatus: 'PENDING_DOC_FEE',
+            reason: 'A0 PR1 invariant (1)',
+        });
+    });
+
+    test('NEGATIVE CONTROL — the helper REJECTS an object, so the storage contract is really pinned', () => {
+        const asObject = JSON.parse(persisted); // hypothetical "writer switched to storing an object"
+        expect(() => persistedAuditMetadata(asObject)).toThrow();
+    });
+
+    test('NEGATIVE CONTROL — the helper REJECTS null metadata', () => {
+        expect(() => persistedAuditMetadata(null)).toThrow();
+    });
+});

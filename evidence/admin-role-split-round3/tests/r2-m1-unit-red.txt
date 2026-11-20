@@ -1,0 +1,82 @@
+# tree da7ab616a + uncommitted unit cases (RED run, before the R2-M1 fix)
+# command: ~/work/state/rolesplit-r3/bjest.sh __tests__/unit/user-groups.test.js
+FAIL __tests__/unit/user-groups.test.js
+  getUserGroups
+    ✓ returns codes from active memberships (7 ms)
+    ✓ skips inactive group memberships (3 ms)
+    ✓ falls back to User.role when no memberships exist (3 ms)
+    ✓ returns [] for unknown user (2 ms)
+    ✓ returns [] when userId is falsy (3 ms)
+  userInGroup
+    ✓ returns true when user is in the group via M2M (3 ms)
+    ✓ returns false when user has memberships but not the requested group (2 ms)
+    ✓ admin shortcut: admin user can claim any group (2 ms)
+    ✓ falls back to User.role when no memberships exist (3 ms)
+    ✓ returns false when userId or groupCode is falsy (2 ms)
+  listGroupMemberUserIds
+    ✓ returns members from M2M memberships scoped to organization (3 ms)
+    ✓ union with canonical User.role users in the same org (2 ms)
+    ✓ a legacy-spelled row no longer resolves — such rows cannot exist post-migration (2 ms)
+    ✓ dedupes when a user is in BOTH M2M and the User.role fallback (8 ms)
+    ✓ returns [] when both sources are empty (2 ms)
+  a membership counts only on the account's own side (orders 13, 34(2))
+    ✓ a DTAM group left on a company account grants nothing; the account keeps its role (3 ms)
+    ✓ a staff group on an applicant grants nothing (2 ms)
+    ✓ an account whose role reads as nothing gets nothing from its memberships (1 ms)
+    ✓ a same-side cross-role membership still counts (2 ms)
+    ✓ group member lists leave out accounts of the other side (2 ms)
+  the admin group counts only while the account's role is system_admin_dtam (review R2-M1)
+    ✕ a demoted account keeps the admin row, gets no admin shortcut and falls back to its role (6 ms)
+    ✕ the admin group's member list leaves out a demoted account and keeps the admin (3 ms)
+  listGroupMemberUserIds — cache ที่ค้างข้ามการเปลี่ยนคำของ role_groups
+    ✓ หา code ที่ยังไม่เคยเห็นไม่เจอ ต้องอ่านทะเบียนใหม่ ไม่ใช่คืนลิสต์สั้นเงียบ ๆ (2 ms)
+
+  ● the admin group counts only while the account's role is system_admin_dtam (review R2-M1) › a demoted account keeps the admin row, gets no admin shortcut and falls back to its role
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "dispatcher",
+    +   "system_admin_dtam",
+      ]
+
+      316 |             users: [{ id: 'u-dem', role: 'dispatcher' }],
+      317 |         });
+    > 318 |         expect(await userGroups.getUserGroups(prisma, 'u-dem')).toEqual(['dispatcher']);
+          |                                                                 ^
+      319 |         await expect(userGroups.userInGroup(prisma, 'u-dem', 'field_inspector')).resolves.toBe(false);
+      320 |         await expect(userGroups.userInGroup(prisma, 'u-dem', 'system_admin_dtam')).resolves.toBe(false);
+      321 |         await expect(userGroups.userInGroup(prisma, 'u-dem', 'dispatcher')).resolves.toBe(true);
+
+      at Object.toEqual (__tests__/unit/user-groups.test.js:318:65)
+
+  ● the admin group counts only while the account's role is system_admin_dtam (review R2-M1) › the admin group's member list leaves out a demoted account and keeps the admin
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+        "u-admin",
+    +   "u-dem",
+      ]
+
+      334 |             ],
+      335 |         });
+    > 336 |         expect(await userGroups.listGroupMemberUserIds(prisma, 'org-1', 'system_admin_dtam')).toEqual(['u-admin']);
+          |                                                                                               ^
+      337 |     });
+      338 | });
+      339 |
+
+      at Object.toEqual (__tests__/unit/user-groups.test.js:336:95)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 21 passed, 23 total
+Snapshots:   0 total
+Time:        0.706 s, estimated 1 s
+Ran all test suites matching __tests__/unit/user-groups.test.js.

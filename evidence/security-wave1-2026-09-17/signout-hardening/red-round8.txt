@@ -1,0 +1,100 @@
+# RED round 8 (jest) — production code at ff9b9359
+  console.error
+    [AuthService] Failed to decode JWT
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at decodeJwtToken (src/lib/services/auth-service-jwt.ts:16:17)
+      at getJwtExpiry (src/lib/services/auth-service-jwt.ts:22:21)
+      at getMsUntilJwtExpiry (src/lib/services/auth-service-jwt.ts:34:20)
+      at AuthServiceClass.getTimeUntilExpiry (src/lib/services/auth-service.ts:292:35)
+      at AuthServiceClass.scheduleTokenRefresh (src/lib/services/auth-service.ts:566:38)
+      at AuthServiceClass.saveSession (src/lib/services/auth-service.ts:346:14)
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:187:9)
+
+FAIL src/lib/api/__tests__/sign-out-leaves-once.test.ts
+  marker บน https
+    ✓ ตั้งเป็น __Host-signed_out_reason ไม่ใช่ชื่อธรรมดา (10 ms)
+    ✓ หน้าล็อกอินรับเฉพาะชื่อ __Host- และลบทิ้งหลังอ่าน (3 ms)
+    ✓ ชื่อธรรมดาที่ใครตั้งไว้ ไม่ทำให้หน้าล็อกอินขึ้นข้อความว่าบัญชีถูกระงับ (1 ms)
+  พาออกครั้งเดียว
+    ✓ หลังเริ่มพาออกเพราะถูกระงับ 401 ที่ตามมาไม่พาไป ?expired=true (13 ms)
+    ✓ 401 ที่มาก่อน แล้วตามด้วย ACCOUNT_INACTIVE ระหว่างรอ — ปลายทางคือหน้าที่บอกเหตุผล ครั้งเดียว (9 ms)
+    ✓ 401 พร้อมกันหลายคำขอ ยิง clear-cookie ครั้งเดียวและนำทางครั้งเดียว (8 ms)
+  เหตุผลของ session ไม่อ่อนลง และหน้าต่างกันซ้ำไม่ค้าง (รีวิวรอบสามและสี่)
+    ✓ ผู้ใช้กดอยู่ต่อ (หน้าไม่ถูกปิด) — 401 ที่มาภายหลังพาออกได้อีกครั้ง (8 ms)
+    ✓ ล็อกอินใหม่ในหน้าเดิม — session ใหม่เริ่มสะอาด ไม่รับสถานะของ session ก่อน (37 ms)
+    ✓ ระหว่างที่กำลังออกอยู่ 401 ที่ตามมายังล้าง session ฝั่งเครื่อง แม้ไม่นำทางซ้ำ (7 ms)
+    ✓ กล่องถาม "ออกจากหน้านี้?" ค้างนานกว่าหน้าต่าง — 401 ที่ตามมาไม่พาไปหน้าหมดเวลา (8 ms)
+    ✓ อยู่ต่อหลังถูกพาออกเพราะบัญชีถูกระงับ — 401 ภายหลังพาไปหน้าที่บอกเหตุผลเดิม ไม่ใช่ "หมดเวลา" (8 ms)
+    ✓ หน้าหมดเวลากำลังนำทางอยู่ แล้ว ACCOUNT_INACTIVE มาถึง — เปลี่ยนปลายทางเป็นหน้าที่บอกเหตุผล พร้อม marker (9 ms)
+    ✓ เครือข่ายช้า หน้าต่างหมดก่อนหน้าเปลี่ยน — การนำทางซ้ำไปที่เดิมเท่านั้น ไม่อ่อนลงเป็น "หมดเวลา" (9 ms)
+    ✓ นาฬิกาเครื่องถูกตั้งย้อน — ไม่ทำให้หน้าต่างยืดออก (ใช้นาฬิกา monotonic) (7 ms)
+  ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่)
+    ✓ อีกคนล็อกอินจากแท็บอื่นหลังบัญชีเดิมถูกระงับ — session ของเขาหมดเวลาก็ไปหน้าหมดเวลา ไม่ใช่หน้า "ถูกระงับ" (7 ms)
+    ✓ แท็บที่ตั้ง marker เองไปจบที่หน้าล็อกอินที่ไม่มี reason — ลบ marker ทิ้ง ไม่ให้ค้าง (2 ms)
+    ✓ สองแท็บ: หน้าล็อกอินธรรมดาของอีกแท็บไม่ลบ marker ก่อนแท็บที่ตั้งมันจะไปถึงหน้าที่บอกเหตุผล (1 ms)
+    ✓ flag "แท็บนี้ตั้ง" ที่เก่ากว่าอายุ marker ไม่ลบ marker ใหม่ของผู้ใช้อีกคน (รีวิวรอบหก กรณี Z) (1 ms)
+    ✕ flag ของแท็บนี้ที่ยังใหม่ ก็ไม่ลบ marker ที่อีกแท็บตั้งให้ผู้ใช้อีกคน (กรณี Z ในเบราว์เซอร์จริง: ห่างกัน 3.5 วินาที) (2 ms)
+    ✓ เครือข่ายช้ามาก + 401 ถี่ — การนำทางซ้ำเว้นห่างขึ้นทุกครั้ง หน้ามีโอกาสได้เปลี่ยนจริง (9 ms)
+
+  ● ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่) › flag ของแท็บนี้ที่ยังใหม่ ก็ไม่ลบ marker ที่อีกแท็บตั้งให้ผู้ใช้อีกคน (กรณี Z ในเบราว์เซอร์จริง: ห่างกัน 3.5 วินาที)
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not "__Host-signed_out_reason=account_inactive"
+
+      351 |         sessionStorage.clear();
+      352 |         markAccountInactiveSignOut();
+    > 353 |         expect(document.cookie).not.toBe(ownMarker);   // marker แต่ละครั้งแยกกันได้
+          |                                     ^
+      354 |         sessionStorage.clear();
+      355 |         for (const [key, value] of Object.entries(flagHere)) sessionStorage.setItem(key, String(value));
+      356 |
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:353:37)
+
+FAIL src/__tests__/inactive-sign-out-marker-hardening.test.ts
+  บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น
+    ✓ marker ชื่อธรรมดา (ที่ subdomain พี่น้องตั้งให้ได้) ไม่พาเจ้าหน้าที่ออกจากระบบ (6 ms)
+    ✓ marker ชื่อ __Host- (ตั้งได้จากหน้าของเราเองเท่านั้น) ยังทำงานตามเดิม (3 ms)
+    ✕ marker ที่มี id ของการพาออกครั้งนั้น (หน้าเวอร์ชันใหม่ตั้งแบบนี้) ทำงานเหมือนกัน (3 ms)
+    ✓ ค่าอื่นที่แค่ขึ้นต้นเหมือน marker ไม่ถูกนับ (1 ms)
+    ✓ URL ที่เป็น https อยู่แล้ว (ไม่มี header) ก็ถือเป็น https เช่นกัน (1 ms)
+  บน http (เครื่องนักพัฒนา) ชื่อธรรมดายังใช้ได้ — browser ไม่ยอมตั้ง cookie Secure บน http
+    ✓ ปล่อยผ่านและลบ session cookie (2 ms)
+  ทางลัดเปิดเฉพาะหน้าล็อกอินสองหน้าที่มีจริง
+    ✓ /auth/provider/login/x ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (6 ms)
+    ✓ /auth/health/login/anything ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (1 ms)
+    ✓ /auth/provider/login/ ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (1 ms)
+
+  ● บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น › marker ที่มี id ของการพาออกครั้งนั้น (หน้าเวอร์ชันใหม่ตั้งแบบนี้) ทำงานเหมือนกัน
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      72 |         ]));
+      73 |
+    > 74 |         expect(isPassThrough(res)).toBe(true);
+         |                                    ^
+      75 |         expect(clearedSessionCookies(res).sort()).toEqual([...SESSION_COOKIES].sort());
+      76 |     });
+      77 |
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:74:36)
+
+Test Suites: 2 failed, 2 total
+Tests:       2 failed, 27 passed, 29 total
+Snapshots:   0 total
+Time:        1.374 s
+Ran all test suites matching src/lib/api/__tests__/sign-out-leaves-once.test.ts|src/__tests__/inactive-sign-out-marker-hardening.test.ts.
+EXIT=1

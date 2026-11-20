@@ -1,0 +1,131 @@
+=== A0-AUDIT-EMISSION / PR-A0-1 — GREEN evidence ===
+date:     2026-08-06
+worktree: /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b
+branch:   worktree-agent-af83f1241f0725d4b
+cwd for all jest commands: apps/backend
+
+##########################################################################
+# 1. TARGET UNIT SUITE — GREEN (the 6 RED tests now pass)
+##########################################################################
+$ node node_modules/jest/bin/jest.js --config jest.config.cjs \
+    __tests__/unit/application-status-writer-audit-default.test.js \
+    __tests__/integration/status-writer-audit-default-invariant.test.js --forceExit
+
+PASS __tests__/unit/application-status-writer-audit-default.test.js
+  application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1)
+    ✓ (a) onAudit omitted + bare client → opens an internal tx and emits ONE canonical row bound to that tx (18 ms)
+    ✓ (a) envelope: canonical event + transition fields + actorRole in metadata (4 ms)
+    ✓ (a) onAudit omitted + caller-supplied tx handle → emits into the CALLER tx, no nested tx (3 ms)
+    ✓ (a) client without an auditLog namespace → no internal tx, exactly one UPDATE (legacy stub shape preserved) (3 ms)
+    ✓ (b) onAudit function → callback fires once, writer emits nothing itself, no internal tx (3 ms)
+    ✓ (b) onAudit function that throws is still swallowed (fail-open unchanged) (2 ms)
+    ✓ (c) onAudit false → deliberate silence: no callback, no default row, no internal tx (2 ms)
+    ✓ fail-open: a failing default emission inside the internal tx still lands the status write (3 ms)
+    ✓ fail-open: a failing default emission inside a CALLER tx does not throw to the caller (4 ms)
+    ✓ a real UPDATE failure inside the internal tx is re-thrown, not swallowed as an audit hiccup (3 ms)
+
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+  ● Test suite failed to run
+    Cannot find module '.prisma/client/default' from
+    '../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js'
+      > 30 | const { PrismaClient } = require('@prisma/client');
+
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       10 passed, 10 total
+
+  ^ the integration suite is BLOCKED on this box (ungeneratable Prisma client —
+    proxy 403; see red-output.txt). It is neither RED nor GREEN here. Its verdict
+    belongs to a runner with Postgres. NOT claimed as passing.
+
+##########################################################################
+# 2. WRITER-ADJACENT UNIT SUITES — no regression
+##########################################################################
+$ node node_modules/jest/bin/jest.js --config jest.config.cjs \
+    __tests__/unit/application-status-writer.test.js \
+    __tests__/unit/application-status-writer-cert-hook.test.js \
+    __tests__/unit/status-writer-workflowstate-sync.test.js \
+    __tests__/unit/admin-override-transition-audit.test.js \
+    __tests__/unit/waiver-reopen-service.test.js --forceExit
+
+PASS __tests__/unit/waiver-reopen-service.test.js
+PASS __tests__/unit/application-status-writer-cert-hook.test.js
+PASS __tests__/unit/admin-override-transition-audit.test.js
+PASS __tests__/unit/status-writer-workflowstate-sync.test.js
+PASS __tests__/unit/application-status-writer.test.js
+Test Suites: 5 passed, 5 total
+Tests:       105 passed, 105 total
+
+##########################################################################
+# 3. FULL BACKEND SUITE (CLAUDE.md §4.2 — whole suite, not just my files)
+##########################################################################
+$ node node_modules/jest/bin/jest.js --config jest.config.cjs --forceExit
+  (raw stdout: full-suite-raw.txt, 21440 lines)
+
+Test Suites: 12 failed, 3 skipped, 539 passed, 551 of 554 total
+Tests:       2 failed, 58 skipped, 7280 passed, 7340 total
+
+The 12 failing suites:
+  FAIL __tests__/integration/identity-links.test.js
+  FAIL __tests__/integration/pdpa-retention-legal-hold.test.js
+  FAIL __tests__/unit/dataset-export-service.test.js
+  FAIL __tests__/integration/correction-append-only-be.test.js
+  FAIL __tests__/integration/payment-closure-be.test.js
+  FAIL __tests__/integration/correction-deadline-expired-be.test.js
+  FAIL __tests__/unit/provider-legacy-alias-flag.test.js
+  FAIL __tests__/integration/tenant-isolation-cross-org-be.test.js
+  FAIL __tests__/integration/cert-issuance-atomicity-be-t1.test.js
+  FAIL __tests__/unit/trace-plant-cert-revocation.test.js
+  FAIL __tests__/integration/status-writer-audit-default-invariant.test.js   ← NEW FILE (this PR)
+  FAIL __tests__/integration/optimistic-lock-wf-f7.test.js
+
+Every one of them fails with the SAME environment error, never with an assertion
+about the writer:
+  Cannot find module '.prisma/client/default' from
+  '.../@prisma+client@5.22.0/node_modules/@prisma/client/default.js'
+(the 2 failing TESTS are the two suites that fail inside a test body rather than
+at load: dataset-export-service "STATIC GUARD … (DMMF)" = known L-005 sandbox-only,
+and provider-legacy-alias-flag "hard-cuts legacy provider-cms alias endpoints",
+whose stack is the same missing '.prisma/client/default' via services/metrics-service.js:2.)
+
+--------------------------------------------------------------------------
+CLEAN-TREE BASELINE — proves those failures are pre-existing, not this diff
+--------------------------------------------------------------------------
+$ git stash push -u -m "a0-pr1-wip"      # tree back to HEAD, my 3 files removed
+$ node node_modules/jest/bin/jest.js --config jest.config.cjs \
+    <the same 11 pre-existing suites> --forceExit
+
+FAIL __tests__/unit/provider-legacy-alias-flag.test.js
+FAIL __tests__/unit/dataset-export-service.test.js
+FAIL __tests__/unit/trace-plant-cert-revocation.test.js
+FAIL __tests__/integration/tenant-isolation-cross-org-be.test.js
+FAIL __tests__/integration/pdpa-retention-legal-hold.test.js
+FAIL __tests__/integration/payment-closure-be.test.js
+FAIL __tests__/integration/optimistic-lock-wf-f7.test.js
+FAIL __tests__/integration/identity-links.test.js
+FAIL __tests__/integration/correction-deadline-expired-be.test.js
+FAIL __tests__/integration/correction-append-only-be.test.js
+FAIL __tests__/integration/cert-issuance-atomicity-be-t1.test.js
+Test Suites: 11 failed, 11 total
+Tests:       2 failed, 13 passed, 15 total
+(raw: baseline-failures-clean-tree.txt)
+$ git stash pop                          # work restored, unit suite re-verified 10/10 green
+
+⇒ 11 of the 12 failures reproduce byte-identically WITHOUT this diff. The 12th is
+  this PR's own new integration file, blocked by the same environment cause.
+  Delta introduced by PR-A0-1 on runnable suites: 0 regressions, +10 passing tests.
+
+##########################################################################
+# 4. LINT (eslint 8.57.1, from apps/backend)
+##########################################################################
+$ npx eslint services/application-status-writer.js \
+    __tests__/unit/application-status-writer-audit-default.test.js \
+    __tests__/integration/status-writer-audit-default-invariant.test.js
+(no output = 0 errors, 0 warnings)
+
+##########################################################################
+# 5. WHAT IS STILL UNPROVEN (do not read this pack as DONE)
+##########################################################################
+  * INVARIANT A0 (1)(2)(3) on real Postgres — needs a runner. PENDING.
+  * The "same transaction" claim is asserted by the integration file only; the
+    unit file pins the BINDING (which client the emission is handed), never the
+    commit semantics — a mock cannot prove atomicity (design-decision.md §4).

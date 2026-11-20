@@ -1,0 +1,25 @@
+== walk green-fixed 2026-10-13T12:12:42Z audit=98fa007e-1929-45fa-ab97-c5ad612a5f7f photo=photo-2.jpg bytes=275830 sha256=21fbe9f4d6e89e7ab2d1dfe292c9ab319179100acdd6788a41b32c91ce432a04
+-- 0. GET /api/audit/onsite/98fa007e-1929-45fa-ab97-c5ad612a5f7f/context (inspector session)
+HTTP 404
+   success: false startedAt: null savedAnswers: 0 photoIds: 0
+-- 1. POST /api/audit/onsite/98fa007e-1929-45fa-ab97-c5ad612a5f7f/photo (multipart photo + gps json + itemId 1.1)
+HTTP 200
+   success: true code: - error: -
+   photoId: ff93434f-95d1-4f35-b079-4d65b85f806c
+   url: /uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791893562734-de4fa66b-4e27-4208-b6d5-c8ae3141c5d6.jpg
+   fileHash: 21fbe9f4d6e89e7ab2d1dfe292c9ab319179100acdd6788a41b32c91ce432a04
+-- 2. POST /api/files/signed-url {fileUrl} (what the web SignedImage does)
+HTTP 200
+   success: true code: - error: -
+   minted: /uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791893562734-de4fa66b-4e27-4208-b6d5-c8ae3141c5d6.jpg?exp=1791893862&sub=<masked>&sig=<masked> expiresAt: 2026-10-13T12:17:42.000Z
+-- 3. GET the signed url with no session (how <img src> loads it)
+HTTP 200 bytes 275830 type image/jpeg
+   body sha256: 21fbe9f4d6e89e7ab2d1dfe292c9ab319179100acdd6788a41b32c91ce432a04
+-- 4. GET the stored url with the inspector session (unsigned)
+HTTP 200 bytes 275830 type image/jpeg
+-- 5. disk: files under apps/backend/public/uploads written since the upload
+public/uploads/audits/98fa007e-1929-45fa-ab97-c5ad612a5f7f/1791893562734-de4fa66b-4e27-4208-b6d5-c8ae3141c5d6.jpg
+   count: 1
+-- 6. database rows for this url
+   attachment: {"id":"5d5dd6ef-29a9-4802-aadf-bffa4e1a4ccb","resModel":"FarmAuditPhoto","resId":"98fa007e-1929-45fa-ab97-c5ad612a5f7f","fileName":"photo-2.jpg","fileSize":275830,"fileHash":"21fbe9f4d6e89e7ab2d1dfe292c9ab319179100acdd6788a41b32c91ce432a04","mimeType":"image/jpeg"}
+   farmAuditPhoto: {"id":"ff93434f-95d1-4f35-b079-4d65b85f806c","fileHash":"21fbe9f4d6e89e7ab2d1dfe292c9ab319179100acdd6788a41b32c91ce432a04","checklistItemId":null}

@@ -1,0 +1,64 @@
+# W1-2 LIVE PROOF — 2026-08-22, backend :8000
+# NODE_ENV=development PORT=8000 DOTENV_CONFIG_PATH=<repo>/.env  node -r dotenv/config server.js
+# Boot: 'Server accepting requests on 0.0.0.0:8000'. Real Supabase DB.
+# Farmer = synthetic account 1999000123453 (uploads-proof@example.test), token from POST /api/auth/health/login -> data.tokens.accessToken
+
+== STEP 1 — upload an avatar (unchanged) ==
+$ curl -s -X POST http://localhost:8000/api/auth/health/me/avatar -H "Authorization: Bearer $TOKEN" -F "avatar=@up-proof.png;type=image/png"
+{"success":true,"message":"อัปโหลดรูปโปรไฟล์สำเร็จ","data":{"profileImage":"/uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png"},"requestId":"f58e8667-a6c1-47d7-9f8a-984f60254ccb","timestamp":"2026-08-22T03:44:36.886Z","path":"/api/auth/health/me/avatar","method":"POST"}
+HTTP:200
+
+$ ls -l "apps/backend/public/uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png"
+-rw-r--r-- 1 charo 197609 67 Aug 22 10:44 apps/backend/public/uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png
+
+== STEP 2 — GET with the Authorization header (still works) ==
+$ curl -o /dev/null -w "..." -H "Authorization: Bearer $TOKEN" http://localhost:8000/uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png
+status=200 type=image/png size=67
+
+== STEP 3 — bare GET, NO auth header, NO signature (what a browser <img> did before) ==
+$ curl http://localhost:8000/uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png
+{"success":false,"error":"Unauthorized","message":"No token provided","code":"NO_TOKEN"}
+status=401
+
+== STEP 4 — mint a signed URL for that object (authenticated, once) ==
+$ curl -s -X POST http://localhost:8000/api/files/signed-url -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" -d "{\"fileUrl\":\"/uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png\"}"
+{"success":true,"data":{"url":"/uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png?exp=1787370594&sub=1d5df908febf68cc&sig=<SIGNATURE-REDACTED-IN-REPORT>","expiresAt":"2026-08-22T03:49:54.000Z"}}
+
+== STEP 5 — THE FIX: GET the signed URL with NO Authorization header at all ==
+$ curl -o /dev/null -w "..." "http://localhost:8000<path>?exp=...&sub=...&sig=..."     # no -H, no cookie jar
+status=200 type=image/png size=67
+
+== STEP 6 — a bare unsigned GET is STILL 401 (the gate is not weakened) ==
+{"success":false,"error":"Unauthorized","message":"No token provided","code":"NO_TOKEN"}
+status=401
+
+== STEP 7 — negative cases, live ==
+-- 7a TAMPERED signature (last 2 chars flipped) --
+status=401
+-- 7b the SAME signature pointed at a DIFFERENT object --
+status=401
+-- 7c exp stretched by a day without re-signing --
+status=401
+-- 7d mint refused for a root file that is NOT the caller's own avatar (404, no URL) --
+{"success":false,"error":"NOT_FOUND","code":"NOT_FOUND","message":"ไม่พบไฟล์นี้ หรือบัญชีของคุณไม่มีสิทธิ์เปิดดู คุณติดต่อผู้ดูแลระบบได้หากคิดว่าเป็นความผิดพลาด"}
+status=404
+-- 7e mint refused for a traversal path (400 INVALID_PATH) --
+{"success":false,"error":"Bad Request","code":"INVALID_PATH","message":"ที่อยู่ไฟล์ไม่ถูกต้อง คุณกลับไปที่หน้ารายการแล้วเปิดไฟล์อีกครั้งได้"}
+status=400
+-- 7f mint refused with no session (401) --
+{"success":false,"error":"Unauthorized","message":"No token provided","code":"NO_TOKEN"}
+status=401
+
+== STEP 8 — the access log must not contain the signature ==
+$ grep "GET /uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png?" <backend stdout log>
+GET /uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png?exp=1787370594&sub=1d5df908febf68cc&sig=REDACTED HTTP/1.1
+GET /uploads/1787370276370-f8535335-73b9-4c3d-8d8a-552f69e87abc.png?exp=1787456994&sub=1d5df908febf68cc&sig=REDACTED HTTP/1.1
+
+-- every sig= value ever written to the access log --
+sig=REDACTED
+distinct non-REDACTED sig values in the log: 0
+
+== STEP 7g — the SAME signature re-fetched after its 10-minute window closed ==
+# minted exp=1787370594 (2026-08-22T03:49:54Z); waited past it, then re-issued the identical GET
+$ curl -o /dev/null -w "%{http_code}" "http://localhost:8000<same signed url>"
+expired_signature_status=401

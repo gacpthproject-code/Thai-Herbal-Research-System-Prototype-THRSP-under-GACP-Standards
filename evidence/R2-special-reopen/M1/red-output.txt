@@ -1,0 +1,239 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/official-letter.test.js
+  SSOT vocab — shared/notification-kind.js
+    ✕ exists and exports the frozen GENERAL/OFFICIAL_LETTER vocabulary (7 ms)
+    ✓ no backend .js file outside the SSOT file spells the official-letter literal (164 ms)
+  schema EXPAND — Notification.kind
+    ✕ PSL declares kind String @default("GENERAL") on the Notification model (13 ms)
+    ✕ exactly one add_notification_kind migration exists and is EXPAND-only (3 ms)
+  weekly cleanup (job-scheduler) — D-9 exception
+    ✕ does NOT delete an official letter even when isRead and older than 30 days (4 ms)
+    ✓ still deletes old read GENERAL notifications (existing behaviour preserved) (2 ms)
+  PDPA erasure — D-9 exception
+    ✕ keeps the erased user's official letters (4 ms)
+    ✓ still deletes the erased user's other notifications, scoped to that user (3 ms)
+  createOfficialLetter — mandatory in-app letter (D-9) + tx contract (D-8 dep)
+    ✓ negative control (pin, green-at-birth): all-off prefs suppress the normal in-app row (3 ms)
+    ✕ writes the letter row even when every preference is off (4 ms)
+    ✕ writes THROUGH the caller's tx — never the global prisma client (2 ms)
+    ✕ stamps kind=OFFICIAL_LETTER on the created row (2 ms)
+    ✕ does not swallow write errors — a failing letter rejects so the caller's tx fails (2 ms)
+    ✕ rejects when called without a tx (atomicity is not optional) (3 ms)
+
+  ● SSOT vocab — shared/notification-kind.js › exists and exports the frozen GENERAL/OFFICIAL_LETTER vocabulary
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      185 |
+      186 |     it('exists and exports the frozen GENERAL/OFFICIAL_LETTER vocabulary', () => {
+    > 187 |         expect(fs.existsSync(VOCAB_PATH)).toBe(true);
+          |                                           ^
+      188 |         // eslint-disable-next-line global-require
+      189 |         const vocab = require(VOCAB_PATH);
+      190 |         expect(vocab.NOTIFICATION_KIND).toEqual({ GENERAL, OFFICIAL_LETTER: OFFICIAL });
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:187:43)
+
+  ● schema EXPAND — Notification.kind › PSL declares kind String @default("GENERAL") on the Notification model
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /kind\s+String\s+@default\("GENERAL"\)/
+    Received string:  "model Notification {
+      id        String   @id @default(uuid())
+      uuid      String   @unique @default(uuid())
+      createdAt DateTime @default(now())·
+      // Owner
+      userId String
+      user   User   @relation(fields: [userId], references: [id])·
+      // Content
+      title    String
+      message  String
+      type     String // INFO, WARNING, SUCCESS, ERROR, QUOTE_RECEIVED, INVOICE_RECEIVED
+      category String?·
+      // Status
+      isRead   Boolean   @default(false)
+      readAt   DateTime?
+      priority Int       @default(0)·
+      // Metadata (JSON)
+      metadata Json?·
+      // Tenancy (ADR-014, Phase 1)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)·
+      @@index([userId])
+      @@index([userId, isRead])
+      @@index([createdAt(sort: Desc)])
+      @@index([organizationId])
+      "
+
+      222 |             psl.indexOf('@@map("notifications")'),
+      223 |         );
+    > 224 |         expect(notificationBlock).toMatch(/kind\s+String\s+@default\("GENERAL"\)/);
+          |                                   ^
+      225 |     });
+      226 |
+      227 |     it('exactly one add_notification_kind migration exists and is EXPAND-only', () => {
+
+      at Object.toMatch (__tests__/unit/official-letter.test.js:224:35)
+
+  ● schema EXPAND — Notification.kind › exactly one add_notification_kind migration exists and is EXPAND-only
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      229 |             ? fs.readdirSync(MIGRATIONS_DIR).filter((d) => /^20260803\d{6}_add_notification_kind$/.test(d))
+      230 |             : [];
+    > 231 |         expect(dirs).toHaveLength(1);
+          |                      ^
+      232 |
+      233 |         const sql = fs.readFileSync(path.join(MIGRATIONS_DIR, dirs[0], 'migration.sql'), 'utf8');
+      234 |         // EXPAND idiom (wave1_checkout_engine_expand): tx-wrapped, idempotent.
+
+      at Object.toHaveLength (__tests__/unit/official-letter.test.js:231:22)
+
+  ● weekly cleanup (job-scheduler) — D-9 exception › does NOT delete an official letter even when isRead and older than 30 days
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      274 |             userId: USER_ID,
+      275 |         };
+    > 276 |         expect(rowMatchesWhere(oldReadLetter, where)).toBe(false);
+          |                                                       ^
+      277 |     });
+      278 |
+      279 |     it('still deletes old read GENERAL notifications (existing behaviour preserved)', async () => {
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:276:55)
+
+  ● PDPA erasure — D-9 exception › keeps the erased user's official letters
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      318 |         const where = await runErasureAndGetWhere();
+      319 |         const usersLetter = { userId: USER_ID, kind: OFFICIAL, isRead: true };
+    > 320 |         expect(rowMatchesWhere(usersLetter, where)).toBe(false);
+          |                                                     ^
+      321 |     });
+      322 |
+      323 |     it('still deletes the erased user\'s other notifications, scoped to that user', async () => {
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:320:53)
+
+  ● createOfficialLetter — mandatory in-app letter (D-9) + tx contract (D-8 dep) › writes the letter row even when every preference is off
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "function"
+    Received: "undefined"
+
+      365 |
+      366 |     it('writes the letter row even when every preference is off', async () => {
+    > 367 |         expect(typeof notificationService.createOfficialLetter).toBe('function');
+          |                                                                 ^
+      368 |         // Same all-off settings that the negative control PROVES suppress the
+      369 |         // normal path — the letter path must not even look at them.
+      370 |         prisma.user.findUnique.mockResolvedValue({
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:367:65)
+
+  ● createOfficialLetter — mandatory in-app letter (D-9) + tx contract (D-8 dep) › writes THROUGH the caller's tx — never the global prisma client
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "function"
+    Received: "undefined"
+
+      387 |
+      388 |     it('writes THROUGH the caller\'s tx — never the global prisma client', async () => {
+    > 389 |         expect(typeof notificationService.createOfficialLetter).toBe('function');
+          |                                                                 ^
+      390 |         const tx = makeTx();
+      391 |         await notificationService.createOfficialLetter({ tx, ...LETTER_ARGS });
+      392 |         expect(tx.notification.create).toHaveBeenCalledTimes(1);
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:389:65)
+
+  ● createOfficialLetter — mandatory in-app letter (D-9) + tx contract (D-8 dep) › stamps kind=OFFICIAL_LETTER on the created row
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "function"
+    Received: "undefined"
+
+      395 |
+      396 |     it('stamps kind=OFFICIAL_LETTER on the created row', async () => {
+    > 397 |         expect(typeof notificationService.createOfficialLetter).toBe('function');
+          |                                                                 ^
+      398 |         const tx = makeTx();
+      399 |         await notificationService.createOfficialLetter({ tx, ...LETTER_ARGS });
+      400 |         expect(tx.notification.create.mock.calls[0][0].data.kind).toBe(OFFICIAL);
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:397:65)
+
+  ● createOfficialLetter — mandatory in-app letter (D-9) + tx contract (D-8 dep) › does not swallow write errors — a failing letter rejects so the caller's tx fails
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "function"
+    Received: "undefined"
+
+      402 |
+      403 |     it('does not swallow write errors — a failing letter rejects so the caller\'s tx fails', async () => {
+    > 404 |         expect(typeof notificationService.createOfficialLetter).toBe('function');
+          |                                                                 ^
+      405 |         const tx = makeTx();
+      406 |         tx.notification.create.mockRejectedValue(new Error('db down'));
+      407 |         await expect(
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:404:65)
+
+  ● createOfficialLetter — mandatory in-app letter (D-9) + tx contract (D-8 dep) › rejects when called without a tx (atomicity is not optional)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "function"
+    Received: "undefined"
+
+      411 |
+      412 |     it('rejects when called without a tx (atomicity is not optional)', async () => {
+    > 413 |         expect(typeof notificationService.createOfficialLetter).toBe('function');
+          |                                                                 ^
+      414 |         await expect(
+      415 |             notificationService.createOfficialLetter({ ...LETTER_ARGS }),
+      416 |         ).rejects.toThrow(/tx/i);
+
+      at Object.toBe (__tests__/unit/official-letter.test.js:413:65)
+
+Test Suites: 1 failed, 1 total
+Tests:       10 failed, 4 passed, 14 total
+Snapshots:   0 total
+Time:        1.633 s
+Ran all test suites matching /__tests__\/unit\/official-letter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

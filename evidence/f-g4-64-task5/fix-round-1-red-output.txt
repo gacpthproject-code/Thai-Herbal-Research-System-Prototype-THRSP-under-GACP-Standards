@@ -1,0 +1,233 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/checkout-requires-accepted-quotation.test.js
+  RED proof 1 - a PENDING quotation must not be payable
+    √ refuses with QUOTATION_NOT_ACCEPTED and mints nothing (15 ms)
+  RED proof 2 - no quotation at all must not be payable (application A2)
+    √ refuses with QUOTATION_NOT_ISSUED and mints nothing (2 ms)
+  RED proof 4 - a charge that differs from the accepted snapshot must not be created
+    √ refuses with CHECKOUT_PRICE_DRIFT, writes an audit row, and mints nothing (13 ms)
+  the accepted path
+    √ mints the order, bound to the quotation and to the hash of what was accepted (30 ms)
+    √ records the acceptance hash the row already stores when it has one (8 ms)
+    √ refuses without a granted payment-terms consent (Q4, now on this rail too) (2 ms)
+    √ a client-supplied acknowledgment is not a door: only the consent ledger opens it (2 ms)
+    √ a consent granted under an OLDER terms version does not satisfy the gate (2 ms)
+    √ an INVOICED quotation with no snapshot (a repaired pre-gate row) passes the gate but is not drift-checked (7 ms)
+  DRAFT is no longer an M1-payable state
+    √ refuses CHECKOUT_MILESTONE_NOT_PAYABLE before it even looks for a quotation (2 ms)
+  re-entry is gated too
+    √ an existing PENDING_PAYMENT order cannot be re-entered while the quotation is PENDING (2 ms)
+    × a drain-window order priced below the accepted document is refused, not re-entered (3 ms)
+    √ an order that matches the accepted document is still re-entered unchanged (2 ms)
+  the drift refusal reaches a human, because its copy says it did
+    × notifies the admin queue with both figures and the document number (3 ms)
+    × still notifies, and still refuses, when the audit row cannot be written (2 ms)
+    √ still refuses when the notification sink is down (2 ms)
+  a snapshot that is silent about the instalment being charged
+    × refuses QUOTATION_PHASE_NOT_PRICED rather than charging against a silent document (9 ms)
+  the comparison is on value, not on how the snapshot was serialised
+    × a snapshot whose money fields are numbers is not a drift (1 ms)
+
+  ● re-entry is gated too › a drain-window order priced below the accepted document is refused, not re-entered
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"breakdown": {"dtamFeeAmount": 5000, "platformFeeGross": 885, "platformFeeNet": 500, "platformFeeVat": 385, "totalPayableAmount": 5885}, "checkoutOrderId": "co-old", "clientSecret": "pi_1_secret", "milestone": "M1", "paymentIntentId": "pi_1", "quotationNumber": "QT-PRD-2026-000001"}
+
+    [0m [90m 327 |[39m         mockFindQuotations[33m.[39mmockResolvedValue({ dtam[33m:[39m [36mnull[39m[33m,[39m platform[33m:[39m acceptedThreeScopeRow() })[33m;[39m
+     [90m 328 |[39m
+    [31m[1m>[22m[39m[90m 329 |[39m         [36mawait[39m expect(call())[33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'CHECKOUT_PRICE_DRIFT'[39m[33m,[39m status[33m:[39m [35m409[39m })[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 330 |[39m
+     [90m 331 |[39m         [90m// Nothing was minted, nothing was asked of the gateway, and the stale[39m
+     [90m 332 |[39m         [90m// order was not touched.[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/checkout-requires-accepted-quotation.test.js:329:15)
+
+  ● the drift refusal reaches a human, because its copy says it did › notifies the admin queue with both figures and the document number
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"acceptedPhaseTotal": "17655.00", "applicationId": "app-1", "applicationNumber": "APP-2026-000001", "livePhaseTotal": "5885.00", "quotationNumber": "QT-PRD-2026-000001"}
+
+    Number of calls: 0
+
+    [0m [90m 370 |[39m         [36mawait[39m expect(call())[33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'CHECKOUT_PRICE_DRIFT'[39m })[33m;[39m
+     [90m 371 |[39m
+    [31m[1m>[22m[39m[90m 372 |[39m         expect(mockNotifyDrift)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mobjectContaining({
+     [90m     |[39m                                 [31m[1m^[22m[39m
+     [90m 373 |[39m             applicationId[33m:[39m [32m'app-1'[39m[33m,[39m
+     [90m 374 |[39m             applicationNumber[33m:[39m [32m'APP-2026-000001'[39m[33m,[39m
+     [90m 375 |[39m             quotationNumber[33m:[39m [32m'QT-PRD-2026-000001'[39m[33m,[39m[0m
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/checkout-requires-accepted-quotation.test.js:372:33)
+
+  ● the drift refusal reaches a human, because its copy says it did › still notifies, and still refuses, when the audit row cannot be written
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+    [0m [90m 385 |[39m         [36mawait[39m expect(call())[33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'CHECKOUT_PRICE_DRIFT'[39m[33m,[39m status[33m:[39m [35m409[39m })[33m;[39m
+     [90m 386 |[39m
+    [31m[1m>[22m[39m[90m 387 |[39m         expect(mockNotifyDrift)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m     |[39m                                 [31m[1m^[22m[39m
+     [90m 388 |[39m         expect(mockDb[33m.[39mcheckoutOrder[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 389 |[39m     })[33m;[39m
+     [90m 390 |[39m[0m
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/checkout-requires-accepted-quotation.test.js:387:33)
+
+  ● a snapshot that is silent about the instalment being charged › refuses QUOTATION_PHASE_NOT_PRICED rather than charging against a silent document
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"breakdown": {"dtamFeeAmount": 5000, "platformFeeGross": 885, "platformFeeNet": 500, "platformFeeVat": 385, "totalPayableAmount": 5885}, "checkoutOrderId": "co-1", "clientSecret": "pi_1_secret", "milestone": "M1", "paymentIntentId": "pi_1", "quotationNumber": "QT-PRD-2026-000001"}
+
+    [0m [90m 413 |[39m         mockFindQuotations[33m.[39mmockResolvedValue({ dtam[33m:[39m [36mnull[39m[33m,[39m platform[33m:[39m phase2Only })[33m;[39m
+     [90m 414 |[39m
+    [31m[1m>[22m[39m[90m 415 |[39m         [36mawait[39m expect(call())[33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'QUOTATION_PHASE_NOT_PRICED'[39m[33m,[39m status[33m:[39m [35m409[39m })[33m;[39m
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 416 |[39m         expect(mockDb[33m.[39mcheckoutOrder[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 417 |[39m         expect(mockIntentCreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 418 |[39m     })[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/checkout-requires-accepted-quotation.test.js:415:15)
+
+  ● the comparison is on value, not on how the snapshot was serialised › a snapshot whose money fields are numbers is not a drift
+
+    ยอดที่จะเรียกเก็บไม่ตรงกับใบเสนอราคาที่คุณยอมรับไว้ ระบบจึงไม่สร้างรายการชำระเงิน เจ้าหน้าที่ได้รับแจ้งแล้ว
+
+    [0m [90m 91 |[39m
+     [90m 92 |[39m [36mfunction[39m httpError(status[33m,[39m code[33m,[39m message) {
+    [31m[1m>[22m[39m[90m 93 |[39m     [36mreturn[39m [33mObject[39m[33m.[39massign([36mnew[39m [33mError[39m(message)[33m,[39m { status[33m,[39m statusCode[33m:[39m status[33m,[39m code })[33m;[39m
+     [90m    |[39m                          [31m[1m^[22m[39m
+     [90m 94 |[39m }
+     [90m 95 |[39m
+     [90m 96 |[39m [90m/**[39m[0m
+
+      at httpError (services/checkout/stripe-checkout-service.js:93:26)
+      at httpError (services/checkout/stripe-checkout-service.js:107:12)
+      at catalogError (services/checkout/stripe-checkout-service.js:353:23)
+      at Object.<anonymous> (__tests__/unit/checkout-requires-accepted-quotation.test.js:445:24)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    √ QUOTATION_NOT_ISSUED is catalogued with status 409 (3 ms)
+    √ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    √ QUOTATION_EXPIRED is catalogued with status 409 (1 ms)
+    √ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (1 ms)
+    √ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (1 ms)
+    √ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    √ QUOTATION_ISSUE_FAILED is catalogued with status 500 (1 ms)
+    √ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    √ SNAPSHOT_REQUIRED is catalogued with status 500 (1 ms)
+    √ the four gate codes point at the shared gate module, not at one rail (1 ms)
+    √ every gate code`s source line is the line that actually raises it (2 ms)
+    × the two shared refusals name the line that actually raises them (3 ms)
+    × the payment-terms remediation no longer names the request body ruling 2 deleted (1 ms)
+    √ the two rail-specific messages no longer name only the slip (1 ms)
+    √ no Thai message uses an em dash (thai-ui-copy rule) (1 ms)
+
+  ● quotation gate error codes › the two shared refusals name the line that actually raises them
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "services/billing/payment-terms-gate.js"
+    Received: "services/payment-slip-service.js"
+
+    [0m [90m 79 |[39m
+     [90m 80 |[39m         [36mconst[39m [termsFile[33m,[39m termsLine] [33m=[39m [33mERROR_CODES[39m[33m.[39m[33mPAYMENT_TERMS_NOT_ACCEPTED[39m[33m.[39msource[33m.[39msplit([32m':'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 81 |[39m         expect(termsFile)[33m.[39mtoBe([32m'services/billing/payment-terms-gate.js'[39m)[33m;[39m
+     [90m    |[39m                           [31m[1m^[22m[39m
+     [90m 82 |[39m         expect([32m`${termsLine}: ${readLine(termsFile, Number(termsLine))}`[39m)
+     [90m 83 |[39m             [33m.[39mtoContain([32m'throw termsError()'[39m)[33m;[39m
+     [90m 84 |[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-gate-error-codes.test.js:81:27)
+
+  ● quotation gate error codes › the payment-terms remediation no longer names the request body ruling 2 deleted
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /paymentTermsAccepted/
+    Received string:      "Slip rail: a granted PAYMENT_TERMS consent (POST /api/consent). Card rail: the checkout page sends paymentTermsAccepted { version, acceptedAt }. Terms text: docs/legal/payment-terms-th-v1.1.md."
+
+    [0m [90m 91 |[39m     it([32m'the payment-terms remediation no longer names the request body ruling 2 deleted'[39m[33m,[39m () [33m=>[39m {
+     [90m 92 |[39m         [36mconst[39m { remediation } [33m=[39m [33mERROR_CODES[39m[33m.[39m[33mPAYMENT_TERMS_NOT_ACCEPTED[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 93 |[39m         expect(remediation)[33m.[39mnot[33m.[39mtoMatch([35m/paymentTermsAccepted/[39m)[33m;[39m
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 94 |[39m         expect(remediation)[33m.[39mtoMatch([35m/ConsentVersions\.PAYMENT_TERMS/[39m)[33m;[39m
+     [90m 95 |[39m     })[33m;[39m
+     [90m 96 |[39m[0m
+
+      at Object.toMatch (__tests__/unit/quotation-gate-error-codes.test.js:93:33)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/checkout-renewal-price.test.js
+  M2 — renewal pricing on the checkout rail
+    √ one scope: the renewal checkout charges 35,310, not the phase-2 29,425 (16 ms)
+    √ two and three scopes: 70,620 and 105,930 (23 ms)
+    √ a NON-renewal M2 is untouched: still 29,425 at one scope (12 ms)
+    √ a renewal is never billed a phase-1 instalment: CHECKOUT_RENEWAL_SINGLE_CHARGE (2 ms)
+    √ DRAFT is refused at the status door, before the renewal rule is reached (1 ms)
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       7 failed, 31 passed, 38 total
+Snapshots:   0 total
+Time:        2.174 s, estimated 4 s
+Ran all test suites matching /__tests__\\unit\\checkout-requires-accepted-quotation.test.js|__tests__\\unit\\quotation-gate-error-codes.test.js|__tests__\\unit\\checkout-renewal-price.test.js/i.

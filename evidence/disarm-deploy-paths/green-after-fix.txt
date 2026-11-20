@@ -1,0 +1,30 @@
+=== GREEN — หลังแก้ (HEAD) ===
+guard ที่เพิ่มเข้ามา:
+    # ── Guard: never restore into the default database ──────────────────
+    # docs/operations/runbooks/deploy-staging-manual.md documented this exact
+    # command for a STAGING rollback, while DB_NAME defaults to gacp_db above.
+    # The pre-deploy dump that runbook refers to is produced by
+
+syntax check:
+  bash -n: OK
+
+ทดสอบครบ 3 เคส:
+  DB_NAME ไม่ตั้ง      -> BLOCK  (เดิมจะเขียนลง gacp_db)
+  DB_NAME=gacp_staging -> ALLOW
+  DB_NAME=gacp_db -> ALLOW
+
+=== production.yml — trigger ก่อน/หลัง ===
+ก่อน (HEAD~1):
+  on:
+    push:
+      branches: [deploy/production]
+      tags:
+        - 'v*'
+    workflow_dispatch:
+  
+  env:
+หลัง (HEAD):
+  on:
+    workflow_dispatch:
+  
+  env:

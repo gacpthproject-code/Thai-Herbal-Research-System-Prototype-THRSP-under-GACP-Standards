@@ -1,0 +1,125 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T14:19:33.946Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-09T14:19:33.950Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T14:19:33.951Z"}
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T14:19:34.016Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-09T14:19:34.018Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T14:19:34.019Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T14:19:34.024Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T14:19:34.024Z"}
+PASS __tests__/unit/loading-the-qr-service-starts-no-key-work.test.js
+  the QR service
+    ✓ loading it builds no signature service (277 ms)
+    ✓ its first use reaches the one signature service (43 ms)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at Object.require (routes/api/interoperability/interoperability-core.js:5:20)
+      at Object.require (routes/api/integration/interoperability.js:30:5)
+      at require (__tests__/unit/interop-resolve.test.js:86:34)
+      at Object.buildApp (__tests__/unit/interop-resolve.test.js:120:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at Object.require (routes/api/interoperability/interoperability-core.js:5:20)
+      at Object.require (routes/api/integration/interoperability.js:30:5)
+      at require (__tests__/unit/interop-resolve.test.js:86:34)
+      at Object.buildApp (__tests__/unit/interop-resolve.test.js:120:35)
+
+PASS __tests__/unit/interop-resolve.test.js
+  GET /interoperability/v1/resolve — partner gate
+    ✓ 401 without a partner key (fail-closed like every partner endpoint) (159 ms)
+    ✓ 400 when code param is missing/blank (11 ms)
+  GET /interoperability/v1/resolve — deterministic prefixes
+    ✓ GACP-* resolves a certificate with trust status + PII-safe provenance (no applicantName) (11 ms)
+    ✓ PU-* and UNIT-* no longer resolve — per-plant tracking is retired (R8) (16 ms)
+    ✓ BATCH-* resolves a harvest batch by batchNumber (8 ms)
+    ✓ LOT-* probes Lot.lotNumber FIRST, then falls back to legacy batchNumber (41 ms)
+  GET /interoperability/v1/resolve — URL normalization
+    ✓ a /trace/plant/ URL does not resolve, plain or legacy-doubled (R8) (31 ms)
+    ✓ cert verify URL (gacpth.com/verify/<n>) resolves the certificate (23 ms)
+  GET /interoperability/v1/resolve — TraceQrSecurity index + cascade
+    ✓ bare UUID found in the TraceQrSecurity index resolves a plot-cycle QR (8 ms)
+    ✓ unknown code → 404 resolved:false with the probe trail (9 ms)
+  partner access log — best-effort, never breaks the request
+    ✓ a resolved call records partnerId + endpoint (10 ms)
+    ✓ an access-log failure does NOT fail the request (9 ms)
+
+PASS __tests__/unit/one-qr-id-format.test.js
+  the prefix format is gone
+    ✓ services/trace-service/common.js no longer defines, exports or calls generateQRCodeString (2 ms)
+    ✓ routes/api/trace/trace.js no longer defines, exports or calls generateQRCodeString (1 ms)
+    ✓ routes/api/trace/trace-verification-routes.js no longer defines, exports or calls generateQRCodeString
+    ✓ nothing builds a TR-/CY-/BT- code any more (1 ms)
+  the one format is the UUID the rest of the platform already used
+    ✓ the regenerate door mints a UUID (1 ms)
+    ✓ it is minted where it is USED, not before the branch that ignores it (1 ms)
+    ✓ the qrcode service is still the one place a trace id is minted (1 ms)
+
+PASS __tests__/unit/harvest-batch-cross-farm-create.test.js
+  A3 — create rejects a cross-farm cycle binding
+    ✓ cycleId whose cycle.farmId !== farmId → rejected, batch NOT created (24 ms)
+    ✓ cycleId that does not resolve to a cycle → rejected, batch NOT created (9 ms)
+  A3 — legit paths still create
+    ✓ cycleId whose cycle.farmId === farmId → 201, batch created with cycleId (8 ms)
+    ✓ no cycleId → 201, batch created (no cycle check) (8 ms)
+
+PASS __tests__/unit/harvest-freeze-holds-the-lot-lock.test.js
+  harvest-lock (b) — the freeze check and the write share lot issuance's row lock
+    ✓ lot issuance itself starts its transaction with that lock (the reference this mirrors) (3 ms)
+    ✓ PUT /:id: lock first, then count, then write — all inside one transaction (3 ms)
+    ✓ POST /:id/harvest: lock first, then the batch read, the count and the write — one transaction (3 ms)
+    ✓ both doors take exactly the statement lot issuance takes, on the same row (2 ms)
+    ✓ PUT /:id: a lot issued while the edit waits for the row lock is seen, and the edit is refused (6 ms)
+    ✓ POST /:id/harvest: a lot issued while the edit waits for the row lock is seen, and the edit is refused (2 ms)
+    ✓ a batch that is gone by the time the lock is taken is 404, with nothing counted or written (2 ms)
+
+PASS __tests__/unit/entity-permission-cycle-route-wiring.test.js
+  Wave B chunk 4 — cycle route registers the per-permission gates
+    ✓ registers HARVEST_RECORD twice (harvest-batches + legacy harvest) (2 ms)
+    ✓ registers UNIT_MANAGE nowhere — the four per-plant routes it gated are gone (1 ms)
+    ✓ registers QR_GENERATE once (plot-qrs/generate) (1 ms)
+    ✓ registers the per-type activity resolver for POST /:id/activities (1 ms)
+  Wave B chunk 4 — POST / (cycle create) asserts CYCLE_CREATE
+    ✓ allowed → 201, assertFarmPermission called with CYCLE_CREATE (33 ms)
+    ✓ denied → 403 ENTITY_PERMISSION_DENIED naming the permission (8 ms)
+
+PASS __tests__/unit/trace-generic-resolves-plot-cycle-fallback.test.js
+  resolveTraceByGenericQr — falls back to plot-cycle resolution
+    ✓ resolves a plot-cycle code to the SAME PLOT_CYCLE projection a real QR scan gets, instead of 404 (7 ms)
+    ✓ still 404s (with the full generic not-found body) when NOTHING matches at all (2 ms)
+
+PASS __tests__/unit/lot-quota-counts-printed-tombstones.test.js
+  createLotWithQuotaCheck — a printed label keeps consuming quota after deletion
+    ✓ refuses a lot whose weight is only available because a PRINTED lot was deleted (21 ms)
+    ✓ still returns the weight of a lot deleted BEFORE printing, because nothing was issued (20 ms)
+    ✓ still counts active lots, so the original guard is intact (16 ms)
+
+Test Suites: 8 passed, 8 total
+Tests:       43 passed, 43 total
+Snapshots:   0 total
+Time:        3.771 s, estimated 6 s
+Ran all test suites matching __tests__/unit/loading-the-qr-service-starts-no-key-work.test.js|__tests__/unit/lot-quota-counts-printed-tombstones.test.js|__tests__/unit/one-qr-id-format.test.js|__tests__/unit/interop-resolve.test.js|__tests__/unit/trace-generic-resolves-plot-cycle-fallback.test.js|__tests__/unit/harvest-freeze-holds-the-lot-lock.test.js|__tests__/unit/harvest-batch-cross-farm-create.test.js|__tests__/unit/entity-permission-cycle-route-wiring.test.js.

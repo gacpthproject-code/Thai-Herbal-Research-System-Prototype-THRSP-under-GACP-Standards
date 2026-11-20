@@ -1,0 +1,679 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/slip-approval-closes-quotation.test.js
+  an approved slip closes the quotation the same way a settled card charge does
+    √ stamps the instalment, naming the application, the phase, the receipt document and what was collected (28 ms)
+    √ runs AFTER the approval transaction commits, never inside it (2 ms)
+    √ hands over the total of the PAID invoices of this phase, not this one slip`s invoice (2 ms)
+    √ a quotation that cannot be closed never fails the approval, and says so out loud (3 ms)
+    √ a subscription slip has no instalment to close (1 ms)
+    a legacy state-only instalment closes against the state figure
+      √ binds the document it just proved, so 5,000 collected closes a 5,000 state instalment (2 ms)
+      √ a state figure that does NOT match still goes unbound, so the whole-phase check refuses (1 ms)
+      √ a split PHASE_1 (state + platform) is untouched: no binding, whole-phase comparand (9 ms)
+      √ a lookup failure leaves the close exactly as it was: unbound, never a throw (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+PASS __tests__/unit/quotation-api-renders-the-row.test.js
+  buildQuotationLineItemsFromRow — the stored row, never a recompute
+    √ line items come from the stored installments, at the row scopeCount (2 ms)
+    √ a row written under the retired VAT base renders THAT row, not the current formula (1 ms)
+    √ a 3-scope row splits the stored totals across the three methods, summing back exactly (1 ms)
+    √ an accepted row renders its FROZEN snapshot, even if the installments were later touched (1 ms)
+    √ each pre-W14 card shows ITS OWN money, and its lines sum to its own total (1 ms)
+    √ the VAT column follows the issuer: the state fee is VAT-exempt, the platform fee is not (2 ms)
+    √ a pre-GAP-5 row falls back to its `amount`, never to a row of zeros (1 ms)
+    √ a frozen snapshot of a pre-W14 side renders the frozen `amount`, not the full-phase split (1 ms)
+  GET /api/applications/:id/quotations — the API renders the row
+    √ returns per-side line items taken from the stored installments (pre-W14 pair) (91 ms)
+    √ renders the FROZEN snapshot of an accepted row, not the row installments that followed it (11 ms)
+  POST /api/applications/:id/quotations/:issuerType/accept — freezes the row
+    √ stores the snapshot built from THAT row, with its hash (26 ms)
+    √ REFUSES a pre-GAP-5 row with the catalogued SNAPSHOT_REQUIRED copy, and writes nothing (11 ms)
+    √ answers the snapshot refusal as a 409, not a 500 (16 ms)
+    √ REFUSES a lapsed offer with the catalogued QUOTATION_EXPIRED copy, and writes nothing (11 ms)
+  GET /:issuerType/pdf — the document is the row
+    √ prints the W14 row figures for phase 1 (5,885 per scope, not the platform-only 885) (182 ms)
+    √ REFUSES phase 1 of a renewal quotation instead of printing a 0.00 numbered document (20 ms)
+  buildQuotationLineItemsFromRow — a revision cannot move the row (N1)
+    √ accepted at 3 methods, revised to 1: three lines summing to the row total (2 ms)
+    √ accepted at 1 method, revised to 3: one line summing to the row total (1 ms)
+  GET /api/applications/:id/quotations — the scope mismatch is declared (N1)
+    √ flags the row priced for three methods under an application now naming one (12 ms)
+    √ flags the row priced for one method under an application now naming three (14 ms)
+    √ no mismatch when the counts agree: per-method labels, flag false (18 ms)
+  GET /:issuerType/pdf — the document keeps the row line count (N1)
+    √ prints the ROW`s three scopes and its phase-1 figure when the application names one method (179 ms)
+    √ prints the ROW`s ONE scope and its phase-1 figure when the application names three (177 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/phase1-payment-requires-accepted-quotation.test.js
+  POST /api/payments/phase1/:id asks the quotation gate before minting
+    √ asks the ONE gate, in the phase vocabulary, for this application (101 ms)
+    √ a refusal answers with the catalogued code and status, and NOTHING is minted (12 ms)
+    √ an application with no quotation at all is refused, not billed (application A2`s shape) (11 ms)
+    √ a gate lookup failure is a 503, never a pass (11 ms)
+    √ DRAFT is not phase-1 payable here either, and the gate is not even asked (12 ms)
+    √ an accepted quotation still mints exactly as before (10 ms)
+    √ an application that is not the caller`s is 404, and the gate is not asked (10 ms)
+  POST /api/payments/create asks the quotation gate before minting
+    √ asks the ONE gate, in the phase vocabulary, for this application (11 ms)
+    √ a refusal answers with the catalogued code and status, and NOTHING is minted (21 ms)
+    √ an application with no quotation at all is refused, not billed (application A2`s shape) (11 ms)
+    √ a gate lookup failure is a 503, never a pass (10 ms)
+    √ DRAFT is not phase-1 payable here either, and the gate is not even asked (11 ms)
+    √ an accepted quotation still mints exactly as before (10 ms)
+    √ an application that is not the caller`s is 404, and the gate is not asked (9 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/error-codes-catalog.test.js
+  shared/error-codes catalog
+    √ exports a frozen object with at least 80 entries (RFC W4-B floor) (1 ms)
+    √ every entry has all 6 required fields with the right types (319 ms)
+    √ every httpStatus is a 4xx or 5xx HTTP status code (51 ms)
+    √ catalog codes are unique (no duplicate keys across the object) (1 ms)
+    √ contains every code listed in shared/api-response.js DEFAULT_ERROR_MESSAGES (3 ms)
+    √ contains every code thrown by shared/errors.js AppError + JWT branches (2 ms)
+    √ exposes getMessage() that returns localised strings with fallback (1 ms)
+    √ exposes lookup() that returns the full row or undefined (1 ms)
+    √ extract-error-codes script runs and discovers ≥ catalog floor codes (137 ms)
+    √ extractor loadCatalog returns same module as direct require (2 ms)
+    √ every discovered code is catalogued (no drift between code and catalog) (162 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-get-route-self-heal-wiring.test.js
+  the GET door's self-heal branch
+    √ mints the missing quotation for the applicant-owner and renders it in the same response (46 ms)
+    √ an ACCOUNTANT reading the same application creates nothing (25 ms)
+    √ an application outside the payable window is read, not quoted (9 ms)
+    √ a failed issuance still answers the read, it does not 500 it (22 ms)
+    √ a non-owner applicant is 404'd before the self-heal is ever reached (10 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/checkout-requires-accepted-quotation.test.js
+  RED proof 1 - a PENDING quotation must not be payable
+    √ refuses with QUOTATION_NOT_ACCEPTED and mints nothing (3 ms)
+  RED proof 2 - no quotation at all must not be payable (application A2)
+    √ refuses with QUOTATION_NOT_ISSUED and mints nothing (2 ms)
+  RED proof 4 - a charge that differs from the accepted snapshot must not be created
+    √ refuses with CHECKOUT_PRICE_DRIFT, writes an audit row, and mints nothing (7 ms)
+  the accepted path
+    √ mints the order, bound to the quotation and to the hash of what was accepted (32 ms)
+    √ records the acceptance hash the row already stores when it has one (7 ms)
+    √ refuses without a granted payment-terms consent (Q4, now on this rail too) (2 ms)
+    √ a client-supplied acknowledgment is not a door: only the consent ledger opens it (2 ms)
+    √ a consent granted under an OLDER terms version does not satisfy the gate (1 ms)
+    √ an INVOICED quotation with no snapshot (a repaired pre-gate row) passes the gate but is not drift-checked (7 ms)
+  DRAFT is no longer an M1-payable state
+    √ refuses CHECKOUT_MILESTONE_NOT_PAYABLE before it even looks for a quotation (1 ms)
+  re-entry is gated too
+    √ an existing PENDING_PAYMENT order cannot be re-entered while the quotation is PENDING (1 ms)
+    √ a drain-window order priced below the accepted document is refused, not re-entered (2 ms)
+    √ an order that matches the accepted document is still re-entered, not refused (1 ms)
+    √ a matching drain-window order is bound to the document it was just checked against (1 ms)
+    √ an order that already names the same quotation is not re-stamped (1 ms)
+    √ an order naming a different quotation is re-stamped to the one just checked (1 ms)
+  the drift refusal reaches a human, because its copy says it did
+    √ notifies the admin queue with both figures and the document number (2 ms)
+    √ still notifies, and still refuses, when the audit row cannot be written (1 ms)
+    √ still refuses when the notification sink is down (2 ms)
+  a snapshot that is silent about the instalment being charged
+    √ refuses CHECKOUT_PHASE_NOT_PRICED rather than charging against a silent document (2 ms)
+  the comparison is on value, not on how the snapshot was serialised
+    √ a snapshot whose money fields are numbers is not a drift (6 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.558Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.564Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.567Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.570Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.572Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.575Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.577Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.582Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.584Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.587Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.590Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.594Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.597Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.600Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.603Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.606Z"}
+[31merror[39m: [quotation-service] DB allocator failed - refusing to issue QT number. Run `npx prisma migrate deploy` to apply the ReceiptSequence migration. Underlying: prisma.receiptSequence delegate unavailable {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.608Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.610Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.613Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.615Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:56.617Z"}
+PASS __tests__/unit/quotation-service.test.js
+  [B18-A] quotation-service — issueQuotationsForApplication
+    √ creates ONE company quotation on first call (was a DTAM+PLATFORM pair) (28 ms)
+    √ the company quotation: subtotal = ค่าบริการ, vat = 7% of it, total = payable (3 ms)
+    √ is idempotent — second call returns the same row, not a duplicate (3 ms)
+    √ opts.notes is stored on the row, so the ISSUED_LATE marker survives the write (2 ms)
+    √ a quotation issued the normal way carries no ISSUED_LATE marker (2 ms)
+    √ allocates the company number with the QT-PRD prefix (3 ms)
+    √ multi-scope (3 cultivation methods) — ค่าบริการ 99,000, vat 6,930, payable 105,930 (3 ms)
+    √ throws APPLICATION_NOT_FOUND when applicationId does not exist (1 ms)
+    √ respects soft-deleted application (1 ms)
+  [B18-A] quotation-service — findQuotationById reviewerSide (legacy filter)
+    √ a new company quotation is visible to the company reviewer (2 ms)
+    √ the legacy DTAM filter matches nothing newly issued (2 ms)
+    √ no reviewerSide filter returns the row (2 ms)
+  [B18-A] quotation-service — findQuotationsByApplicationId
+    √ returns the ONE company row; the DTAM slot is empty (W14) (3 ms)
+    √ returns nulls when no quotations exist (2 ms)
+  [B18-A] quotation-service — markQuotationAccepted
+    √ flips PENDING → ACCEPTED and records acceptedAt (2 ms)
+    √ is a no-op when already ACCEPTED (idempotent) (3 ms)
+    √ throws INVALID_QUOTATION_STATUS for non-acceptable states (2 ms)
+    √ throws QUOTATION_NOT_FOUND for an unknown id (1 ms)
+  [B18-A] quotation-service — markQuotationInvoiced
+    √ flips ACCEPTED → INVOICED (2 ms)
+    √ refuses to move PENDING → INVOICED directly (2 ms)
+  [R6-B] quotation-service — production safety (no in-memory fallback)
+    √ NODE_ENV=production throws QUOTATION_NUMBER_DB_UNAVAILABLE when prisma.receiptSequence is missing (2 ms)
+    √ NODE_ENV=test keeps the existing in-memory fallback (back-compat) (3 ms)
+    √ NODE_ENV=development keeps the existing in-memory fallback (back-compat) (2 ms)
+  getFrozenPhaseFees — frozen price-of-record reader
+    √ reconstructs the per-phase breakdown from issued quotations (single scope) (2 ms)
+    √ reconstructs multi-scope breakdown (3 cultivation methods) (2 ms)
+    √ returns null when no quotation exists (→ caller recomputes) (1 ms)
+    √ returns null for a legacy quotation whose installments lack the split (→ caller recomputes) (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-08-29T08:27:57.038Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-08-29T08:27:57.040Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-08-29T08:27:57.042Z"}
+[31merror[39m: [quotation-issuance] issue failed at submit {"applicationId":"app-1","applicationNumber":"APP-2026-000001","errCode":"SEQ_LOCK","errMessage":"receipt sequence locked","service":"quotation-issuance","timestamp":"2026-08-29T08:27:57.098Z"}
+[31merror[39m: [quotation-issuance] issue failed at submit {"applicationId":"app-1","applicationNumber":"APP-2026-000001","errCode":null,"errMessage":"boom","service":"quotation-issuance","timestamp":"2026-08-29T08:27:57.124Z"}
+[31merror[39m: [quotation-issuance] issue failed at submit {"applicationId":"app-1","applicationNumber":"APP-2026-000001","errCode":null,"errMessage":"boom","service":"quotation-issuance","timestamp":"2026-08-29T08:27:57.125Z"}
+[31merror[39m: [quotation-issuance] issue failed at submit {"applicationId":"app-1","applicationNumber":"APP-2026-000001","errCode":null,"errMessage":"boom","service":"quotation-issuance","timestamp":"2026-08-29T08:27:57.127Z"}
+[31merror[39m: [quotation-issuance] could not record QUOTATION_ISSUE_FAILED {"applicationId":"app-1","errMessage":"audit sink down","service":"quotation-issuance","timestamp":"2026-08-29T08:27:57.128Z"}
+PASS __tests__/unit/quotation-issuance-fails-loud.test.js
+  √ a successful issue reports issued:true and writes no failure record (23 ms)
+  √ it AWAITS the issue: the result is not reported before the call resolves (20 ms)
+  √ a failure is reported, audited and pushed to the admin queue, and never rethrown (26 ms)
+  √ the failure record carries a non-null actorRole, or the audit row never lands (3 ms)
+  √ a failing audit sink does not turn a submitted application into a 500 (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-get-self-heals.test.js
+  √ a DRAFT application is never quoted by the self-heal (24 ms)
+  √ an application past DRAFT with no quotation is issued one, marked ISSUED_LATE (2 ms)
+  √ an application that already has a quotation is left completely alone (1 ms)
+  √ a self-heal failure returns the empty result rather than failing the read (1 ms)
+  √ a re-read that fails AFTER the row was minted still does not fail the read (1 ms)
+  √ an application whose status is unknown is not quoted (1 ms)
+  √ the ISSUED_LATE record carries the CALLER's role, not a default (1 ms)
+  only the applicant-owner can make a read mint a document
+    √ a admin read is a read, not an issuance (1 ms)
+    √ a account read is a read, not an issuance (1 ms)
+    √ a account_platform read is a read, not an issuance (2 ms)
+    √ a document_reviewer read is a read, not an issuance (1 ms)
+    √ a auditor read is a read, not an issuance (1 ms)
+    √ a caller with no role at all does not mint either (1 ms)
+  only an application inside the payable window is quoted late
+    √ SUBMITTED is inside the window, so a missing quotation is healed (1 ms)
+    √ PENDING_DOC_FEE is inside the window, so a missing quotation is healed (1 ms)
+    √ REJECTED is outside the window, so the read stays a read (1 ms)
+    √ EXPIRED is outside the window, so the read stays a read (1 ms)
+    √ CANCEL_EXPIRED is outside the window, so the read stays a read (1 ms)
+    √ CERTIFIED is outside the window, so the read stays a read (1 ms)
+    √ REVOKED is outside the window, so the read stays a read (1 ms)
+    √ DOC_FEE_PAID is outside the window, so the read stays a read (1 ms)
+    √ AUDIT_FEE_PAID is outside the window, so the read stays a read (1 ms)
+    √ AUDIT_PASSED is outside the window, so the read stays a read (1 ms)
+    √ REVISION_REQUESTED is outside the window, so the read stays a read (1 ms)
+    √ DOC_APPROVED is outside the window, so the read stays a read (1 ms)
+    √ PENDING_AUDIT_FEE is outside the window, so the read stays a read (1 ms)
+    √ the window is the card rail's own M1 list, not a second list (1 ms)
+    √ no state in which งวดที่ 1 has been collected can mint a document (1 ms)
+  a lapsed, still-unaccepted quotation is replaced by the read
+    √ the lapsed row is retired, a replacement is issued, and the trail names both (2 ms)
+    √ exactly once: the next read sees the replacement and leaves it alone (1 ms)
+    √ an ACCEPTED row past its validity is an agreement, not a lapsed offer (1 ms)
+    √ a PROVIDER read never replaces a document either (1 ms)
+    √ a lapsed row on an application outside the window is left as it is (1 ms)
+    √ a lapsed pre-W14 PAIR is not silently repriced into one document (1 ms)
+    √ a failed replacement never fails the read (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    √ QUOTATION_NOT_ISSUED is catalogued with status 409 (1 ms)
+    √ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    √ QUOTATION_EXPIRED is catalogued with status 409 (1 ms)
+    √ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (1 ms)
+    √ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (1 ms)
+    √ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409
+    √ QUOTATION_ISSUE_FAILED is catalogued with status 500 (1 ms)
+    √ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    √ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    √ SNAPSHOT_REQUIRED is catalogued with status 409 (1 ms)
+    √ the four gate codes point at the shared gate module, not at one rail (1 ms)
+    √ every gate code`s source line is the line that actually raises it (1 ms)
+    √ the two shared refusals name the line that actually raises them (1 ms)
+    √ the two not-priced refusals are separate rows pointing at their own door (2 ms)
+    √ neither not-priced copy sends the applicant to a staff door that does not exist (1 ms)
+    √ no applicant-facing row on this path promises a staff re-issue (1 ms)
+    √ the snapshot refusal names the cause and an action staff can actually take (1 ms)
+    √ the expiry copy names the replacement the system issues by itself (1 ms)
+    √ the price-drift remediation names the step that unblocks the applicant (1 ms)
+    √ the payment-terms remediation no longer names the request body ruling 2 deleted (1 ms)
+    √ the two rail-specific messages no longer name only the slip (1 ms)
+    √ no Thai message uses an em dash (thai-ui-copy rule) (1 ms)
+    √ only the rows that actually alert staff say staff were alerted (1 ms)
+    √ the close-failure copy still tells the applicant their money and receipt stand (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-record-phase-invoiced.test.js
+  √ M1 stamps phase 1 and does NOT close a quotation that still prices งวดที่ 2 (3 ms)
+  √ M2 closes it once BOTH instalments the row prices are billed (1 ms)
+  √ a renewal prices PHASE_2 only, so that ONE stamp closes the document (1 ms)
+  √ a legacy row with no installments is only closed when BOTH phases are stamped (1 ms)
+  √ a row nobody ever accepted is STAMPED but never flipped, and says so in its notes (2 ms)
+  √ an existing note is appended to, never overwritten (1 ms)
+  √ a second settlement for the same phase keeps the FIRST instant (1 ms)
+  √ re-driving the same phase on a never-accepted row leaves ONE note, not one per attempt (1 ms)
+  √ a heal pass over a row that is already correct issues no write at all (1 ms)
+  √ an order minted before the binding falls back to the applicationId, preferring the company row (1 ms)
+  √ no quotation anywhere returns null and writes nothing — the caller logs it (1 ms)
+  √ a soft-deleted row is not a quotation to stamp (1 ms)
+  √ an unknown milestone throws UNKNOWN_MILESTONE and writes nothing (2 ms)
+  √ the argument vocabulary tolerates PHASE_1/PHASE_2 as well as M1/M2 — the slip rail`s words (1 ms)
+  √ a row already INVOICED is stamped without a redundant status write (1 ms)
+  √ the fallback refuses to stamp a document whose accepted figure is not what was collected (1 ms)
+  √ the fallback stamps when the accepted phase total matches the charge to the satang (1 ms)
+  √ the fallback refuses a document that does not price the instalment being billed at all (1 ms)
+  √ the fallback refuses an accepted document when the caller cannot say what was collected (1 ms)
+  √ a row nobody accepted has no frozen figure to disagree with, so the fallback still stamps it and says why in its notes (1 ms)
+  √ a BOUND quotationId is stamped without re-comparing — the mint-time drift gate already did that (1 ms)
+  two closes that interleave
+    √ the LAST writer flips the document, even though both read it unstamped (1 ms)
+    √ a redelivery of the first phase cannot un-close a document already closed (2 ms)
+    √ a never-accepted row is stamped by both phases and still not flipped (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-gate.test.js
+  √ an ACCEPTED quotation passes and hands back the row, the phase and the snapshot (2 ms)
+  √ INVOICED passes too (post-acceptance terminal) (2 ms)
+  √ NO quotation is QUOTATION_NOT_ISSUED 409, never a pass (1 ms)
+  √ PENDING is QUOTATION_NOT_ACCEPTED 409 (2 ms)
+  √ a still-unaccepted quotation past validUntil is QUOTATION_EXPIRED 409 (1 ms)
+  √ an ACCEPTED quotation does NOT expire (1 ms)
+  √ a lookup failure is QUOTATION_GATE_UNAVAILABLE 503, never a pass (1 ms)
+  √ a pre-W14 application with BOTH issuer rows requires BOTH to be accepted (1 ms)
+  √ both rails speak their own milestone vocabulary onto the same two phases (1 ms)
+  √ an unknown milestone is refused rather than silently allowed (11 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:59.391Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:59.396Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:59.398Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:59.401Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-08-29T08:27:59.403Z"}
+PASS __tests__/integration/quotation-accept-to-phase1-gate-flow.test.js
+  [PR4] quotation accept → Phase-1 payment gate (end-to-end flow)
+    √ blocks EVERY side while PENDING, then unblocks all of them on the ONE acceptance (26 ms)
+    √ a STATE-side slip is still GATED, not silently failed open (2 ms)
+    √ gates PHASE_2 as well, because a renewal has no PHASE_1 to have gated it (2 ms)
+    √ PHASE_2 is allowed once the one quotation is accepted (2 ms)
+    √ still allows the slip after the quotation advances to INVOICED (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-acceptance-snapshot.test.js
+  buildAcceptanceSnapshot — the row, and only the row
+    √ carries every instalment with a 2-decimal string per money field (12 ms)
+    √ reads no rate table: a row whose figures predate a rate change snapshots the OLD figures (1 ms)
+    √ a renewal row (PHASE_2 only) snapshots one instalment, not two (1 ms)
+    √ freezes each pre-W14 side at ITS OWN amount, and the amounts sum to that row totalAmount (2 ms)
+    √ keeps phaseTotal as the FULL phase, so the split is still recoverable from either side (1 ms)
+    √ REFUSES a pre-GAP-5 row ({phase, amount} only) instead of freezing zeros (22 ms)
+    √ REFUSES a row with no instalments at all (1 ms)
+  canonicalSnapshotHash
+    √ is sha256 over key-sorted JSON, so key order cannot change the hash (1 ms)
+    √ changes when one satang changes (1 ms)
+    √ matches an independently computed sha256 of the canonical form (1 ms)
+  markQuotationAccepted — records the actor, the instant, the snapshot and its hash
+    √ writes acceptedSnapshot, acceptedSnapshotHash, acceptedBy and acceptedAt (1 ms)
+    √ refuses to record an acceptance with no snapshot: an acceptance of nothing is not evidence (2 ms)
+    √ an already-ACCEPTED row is still an idempotent no-op and its snapshot is NOT overwritten (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-issuance-idempotency.test.js
+  the partial unique index that makes issuance idempotent
+    √ is declared in this branch's own migration, on (applicationId, issuerType) WHERE not deleted (2 ms)
+    √ is PARTIAL, so a soft-deleted row can never block a re-issue (1 ms)
+    √ is documented on the Prisma model, because Prisma cannot express it (2 ms)
+  two issuances that race
+    √ produce ONE quotation row and no error at either caller (8 ms)
+    √ the loser is served by a re-read, so a create that clashes is never rethrown (1 ms)
+    √ a unique violation that leaves NO readable row is still raised (2 ms)
+  a unique violation inside a caller-owned transaction
+    √ is rethrown to the caller instead of read back on the aborted handle (1 ms)
+    √ still recovers by re-reading when the transaction is this function`s own (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-expiry-binds-at-acceptance.test.js
+  markQuotationAccepted refuses a lapsed offer
+    √ a PENDING row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written (3 ms)
+    √ a SENT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written (2 ms)
+    √ a DRAFT row whose validUntil has passed is QUOTATION_EXPIRED, and nothing is written (1 ms)
+    √ a row still inside its window is accepted normally (1 ms)
+    √ a row with no validUntil at all is accepted (a legacy row is not a lapsed one) (2 ms)
+    √ an ALREADY-ACCEPTED lapsed row is still the idempotent no-op, not an expiry refusal (1 ms)
+    √ the refusal carries the catalogued code, so both rails read one vocabulary (2 ms)
+  reissueLapsedQuotation — the expired row and its replacement move together
+    √ soft-deletes the lapsed row and issues the replacement inside ONE transaction (3 ms)
+    √ prices the replacement from the fee calculator, never from the retired row (2 ms)
+  the gate after a re-accept
+    √ passes the replacement row and hands back its snapshot (4 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/settlement-closes-quotation.test.js
+  √ a settled M1 stamps the PHASE_1 instalment on the bound quotation (3 ms)
+  √ the close runs AFTER the transaction commits, never inside it (1 ms)
+  √ an order with no quotationId (minted before the binding) falls back to the applicationId (2 ms)
+  √ a close failure never fails the settlement: the money, the receipt and the status stand (12 ms)
+  √ a quotation that was never accepted is stamped but NOT flipped, and it is logged loudly (1 ms)
+  √ an order already SETTLED still closes its quotation — the heal path for a crash between the commit and the close (2 ms)
+  √ a heal-path close failure still answers alreadySettled and records QUOTATION_CLOSE_FAILED (1 ms)
+  √ settlement tells the close what was actually collected, so the fallback can refuse a document it does not match (1 ms)
+  √ a refusal to stamp is logged as loudly as an unaccepted row, and the money still stands (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-accepted-states-single-source.test.js
+  √ a state the gate calls accepted is treated as accepted when the last instalment is billed (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/tenant-scope-drift.test.js
+  C3-01 — TENANT_SCOPED_MODELS vs prisma schema (drift ratchet)
+    √ every model with a REQUIRED organizationId is in the registry or documented in KNOWN_DRIFT (2 ms)
+    √ KNOWN_DRIFT is a ratchet — every exemption is still genuinely drifted (1 ms)
+    √ every registry entry exists in the schema with a REQUIRED organizationId (no stale entries) (1 ms)
+    √ sanity floor — the scanner still parses the schema (regex not silently broken) (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/quotation-money-path-lookups-are-unscoped.test.js
+  recordPhaseInvoiced resolves the document under withoutTenantScope
+    √ the by-id lookup (settlement, order-bound) is not narrowed by the actor`s org (8 ms)
+    √ the applicationId fallback (slip approval by an ACCOUNT reviewer) is not narrowed either (2 ms)
+  the gate resolves the row under withoutTenantScope
+    √ a bound foreign tenant context does not turn a real quotation into QUOTATION_NOT_ISSUED (2 ms)
+  the applicant`s own read is untouched
+    √ findQuotationsByApplicationId called with no context bound still reads (1 ms)
+
+Test Suites: 20 passed, 20 total
+Tests:       262 passed, 262 total
+Snapshots:   0 total
+Time:        12.416 s, estimated 14 s
+Ran all test suites matching /__tests__\\unit\\quotation-service.test.js|__tests__\\unit\\quotation-gate.test.js|__tests__\\unit\\quotation-get-self-heals.test.js|__tests__\\unit\\quotation-issuance-fails-loud.test.js|__tests__\\unit\\quotation-issuance-idempotency.test.js|__tests__\\unit\\quotation-get-route-self-heal-wiring.test.js|__tests__\\unit\\quotation-api-renders-the-row.test.js|__tests__\\unit\\quotation-acceptance-snapshot.test.js|__tests__\\unit\\quotation-gate-error-codes.test.js|__tests__\\unit\\error-codes-catalog.test.js|__tests__\\unit\\settlement-closes-quotation.test.js|__tests__\\unit\\tenant-scope-drift.test.js|__tests__\\integration\\quotation-accept-to-phase1-gate-flow.test.js|__tests__\\unit\\quotation-expiry-binds-at-acceptance.test.js|__tests__\\unit\\quotation-money-path-lookups-are-unscoped.test.js|__tests__\\unit\\quotation-record-phase-invoiced.test.js|__tests__\\unit\\quotation-accepted-states-single-source.test.js|__tests__\\unit\\slip-approval-closes-quotation.test.js|__tests__\\unit\\checkout-requires-accepted-quotation.test.js|__tests__\\unit\\phase1-payment-requires-accepted-quotation.test.js/i.

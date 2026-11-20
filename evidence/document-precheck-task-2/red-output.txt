@@ -1,0 +1,32 @@
+Task 2 — normalize.js — RED evidence (summary, no raw jest log per Global Constraints)
+
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/normalize.test.js
+Date: 2026-09-27
+Node: v24.21.0 (nvm use 24)
+
+Result: Test Suites: 1 failed, 1 total / Tests: 0 total
+Failure: "Cannot find module '../../../services/document-precheck/normalize' from
+'__tests__/unit/document-precheck/normalize.test.js'" (module did not exist yet —
+expected per plan Step 2: "Run the tests. Expected: FAIL (module missing).")
+
+private.pem mtime before this run: 1788623435 (2026-09-05 22:50:35 +0700) — unchanged after.
+
+=== Fix round 1 (.superpowers/sdd/2026-09-27-document-precheck/task-2-review.md) ===
+Command: same, run against the pre-fix (committed 6a32f3aa) normalize.js with the
+new/updated test cases added (git stash used to isolate: test file edited first,
+normalize.js reverted to committed HEAD, run, then the fix restored via stash pop).
+Result: Test Suites: 1 failed / Tests: 11 failed, 44 passed, 55 total.
+Failing (RED), one representative case per review item:
+  - Critical #1: nameMatchLevel('บริษัท นายทุน จำกัด','ทุน จำกัด','COMPANY')
+    -> got 'EXACT', expected 'DIFFERENT' (+3 more normalizeName sub-cases + the
+    kind-required throw case, 5 failures total for this item)
+  - Critical #2: parseThaiDates('27 กันยายน 2026') -> got 1483-09-26T18:00:00.000Z,
+    expected 2026-09-26T17:00:00.000Z (+1: a 3-digit out-of-bucket year not dropped)
+  - Critical #3: parseThaiDates('31 กุมภาพันธ์ พ.ศ. 2569') -> got
+    2026-03-02T17:00:00.000Z (silently rolled forward), expected [] (+2: 29 ก.พ.
+    non-leap-year, 31 เม.ย.)
+  - Important #4: findThirteenDigitIds('เลขที่ 1234 567890123') -> got
+    ['1234567890123'], expected []
+
+private.pem mtime before/after this RED run: 1788623435 (2026-09-05 22:50:35 +0700)
+— unchanged.

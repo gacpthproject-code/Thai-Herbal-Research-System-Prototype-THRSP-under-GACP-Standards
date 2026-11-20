@@ -1,0 +1,49 @@
+RED รอบ 3: เทสต์ใหม่บนหน้าเดิม (commit 7ef51fe4e เทสต์ ก่อน 19b3b5b37 แก้) ผ่าน ~/work/state/heavy.sh
+สรุปจาก .audit/r3/12-red-web.txt และ 13-red-backend.txt บนเครื่องทำงาน (ไฟล์ดิบไม่ commit ตามคำสั่ง 82)
+
+== web (11 ไฟล์ใน privacy-policy/__tests__ + certificate-issuer-is-future-tense)
+PASS src/__tests__/truthful-copy/certificate-issuer-is-future-tense.test.tsx
+FAIL src/app/(marketing)/privacy-policy/__tests__/controller-is-the-company.test.tsx
+    ✕ §1 names the company by the name its finance documents carry, and the department only as the future issuer
+    ✕ §1 gives the department's address and phone nowhere as the controller's
+    ✕ §3 names the public-task basis only for the certificates the department will issue
+    ✕ shows version 1.4, with a changelog line that says what changed
+FAIL src/app/(marketing)/privacy-policy/__tests__/no-card-wording.test.tsx
+    ✕ §4 says which payment data is kept, and that paying the service fee stores no bank account number
+    ✕ §4 says a refund needs a bank account the applicant sends by email, used for that transfer only (payment terms v1.3 §7.4)
+FAIL src/app/(marketing)/privacy-policy/__tests__/says-what-is-kept.test.tsx
+    ✕ §4 says the software that reached the system, a browser being one kind (the stored client string comes from any client)
+    ✕ calls the tax invoice a tax invoice, with no electronic tax invoice claim (no e-Tax Invoice registration on record)
+PASS src/app/(marketing)/privacy-policy/__tests__/thai-words-only.test.tsx
+FAIL src/app/(marketing)/privacy-policy/__tests__/who-sees-the-site-contact.test.tsx
+    ✕ names the staff who read the whole application, contacts included, each inside its own organization
+    ✕ says what both finance roles read, and what only the company finance officer reads in full and on paper
+PASS src/app/(marketing)/privacy-policy/__tests__/on-site-contact-is-covered.test.tsx
+PASS src/app/(marketing)/privacy-policy/__tests__/payment-provider-line-is-thai.test.tsx
+PASS src/app/(marketing)/privacy-policy/__tests__/effective-date-has-one-home.test.tsx
+PASS src/app/(marketing)/privacy-policy/__tests__/residency-claim-removed.test.tsx
+PASS src/app/(marketing)/privacy-policy/__tests__/encryption-claim-accuracy.test.tsx
+Test Suites: 4 failed, 7 passed, 11 total
+Tests:       10 failed, 39 passed, 49 total
+
+ทุกข้อที่ล้มเป็นข้อความบนหน้าไม่ตรงกับที่เทสต์คาด (Expected/Received เป็นข้อความ ไม่มี exception) เช่น
+  controller-is-the-company › shows version 1.4: Expected "1.4" Received "1.3"
+  says-what-is-kept › tax invoice: Expected pattern not /ใบกำกับภาษี\s*อิเล็กทรอนิกส์/ (หน้าเดิมมีคำนั้น)
+  who-sees-the-site-contact › full-form readers: ไม่พบประโยค "ผู้ตรวจเอกสาร ผู้อนุมัติใบรับรอง ผู้ดูแลระบบ และผู้ดูแลแพลตฟอร์มเห็นคำขอฉบับเต็ม ... ภายในขอบเขตงานและหน่วยงานของตน"
+
+== backend (ด่านใหม่ + mirror ชื่อบริษัท)
+PASS __tests__/unit/frontend-service-facts-mirror.test.js
+PASS __tests__/unit/privacy-notice-platform-admin-reads-own-organization.test.js
+PASS __tests__/unit/privacy-notice-site-contact-stages.test.js
+Test Suites: 3 passed, 3 total
+Tests:       14 passed, 14 total
+ด่าน backend เขียวบนโค้ดจริงเพราะระบบจำกัดหน่วยงานอยู่แล้ว สิ่งที่พิสูจน์ว่ามันจับได้คือการกลายพันธุ์ M1-M5 ใน mutations.txt
+
+== รับช่วงต่อ 2026-10-20: ชุดสุดท้ายบน 8d7b65fbd แดง 2 (.audit/r3/30-final-green-web.txt)
+Test Suites: 2 failed, 30 passed, 32 total
+Tests:       2 failed, 195 passed, 197 total
+  no-card-payment-copy › no source file under src/ mentions credit or debit cards or PCI-DSS
+    + "app/(marketing)/privacy-policy/page.tsx:34: //     and §6's PCI-DSS clause on the payment provider. Thai words for the remai"
+  no-fabricated-fees › does not advertise a card / PCI-DSS payment gateway
+    Expected: "privacy:false"  Received: "privacy:true"
+ต้นเหตุ: วลีในคอมเมนต์บันทึกเวอร์ชันที่เพิ่มหลังรอบ GREEN ของ job1 (ไฟล์ที่ job1 ทดสอบไม่มีวลีนี้) แก้ใน 4b3de4b7c ด้วยการลบวลี

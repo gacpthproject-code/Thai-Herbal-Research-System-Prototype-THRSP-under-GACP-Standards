@@ -1,0 +1,62 @@
+# R2 Task 12 — GREEN (feat/remove-workspace-mode, working tree on 000a2b31) — 2026-10-03
+Real Postgres 17 :55439 (ws-pg-55439, migrate deploy), jest -i, witness THROW (NODE_ENV=test). Key mtime 1788623435 before/after every run.
+
+## 1. Task 12 cases (holder-scope-real-postgres.test.js) — 77/77 passed, 0 skipped
+  case 1 B (no header) lists X, D (not Y), opens X / invoiceX pdf / receiptX / certX → 200
+  case 2 S lists none, 404 on all four (was 403 on the invoice and receipt)
+  case 5 S with stale x-active-entity-id: C → 200, nothing listed, 404s, never ACTIVE_ENTITY_MISMATCH
+  case 8 A REVOKED on C → X gone from A's list, 404 by id (PIN: green at base too)
+  case 9 F provider listing returns X, D, Y with and without the header (was 403 with it)
+  carried 6: revision / deadline / CAR / revision-resubmit — V 403 (nothing written), O2 (OWNER, not filer) 200
+  carried 7: checkout by O2 (OWNER, not filer) 200 + one order; V 403, nothing written
+  gates found by the matrix: quotation accept V/B 403, S 404, O2 200; report filing V 403, S 404, B 201
+  CAR refusal (V 403, S 404) keeps no file; renewal by O2 → 403 FORBIDDEN_NOT_OWNER (PIN, kept, operator question)
+  null-holder rows now 404 for everyone (renewal source, certificate download/list) — spec §3.1 no filer fallback
+
+## 2. Door walk (health-door-walk-real-postgres) — 10/10, no actor sends a header
+  counts equal lists for B: farm counter 1 = /farms/my 1 (carried 5; was 0 vs 1)
+  stranger refusals are all 404 except 4 doors refused after the read, unchanged since R1
+  (credit-notes FORBIDDEN_ROLE; harvest-batches ×3 behind the farm gate, T&T freeze)
+
+## 3. Re-recorded expected files (carried 4) — every row checked by an oracle of the R2 rule
+  Rule: a row is readable iff its holder ∈ the actor's ACTIVE memberships (no filer, no header, null holder = nobody);
+  writes ask the holder (submit guard / SUBMIT_APPLICATION for resubmit, checkout, quotation accept;
+  RECORDS_MANAGE for report filing; non-VIEWER for draft edits; §3.3 for bundles, ignoring ids that fail).
+  file                                   rows  moved  rows matching the oracle
+  r1-billing-doors-neutral               702   556    702/702
+  r1-application-reads-neutral          1339   741   1339/1339
+  r1-cert-doc-finance-reads-neutral     2044  1161   2043/2043 + QT-PRD counter 0 = 0
+  r1-task6-write-doors-neutral            28     7   by hand: B revision/deadline/CAR 404→403 (submit guard),
+                                                     B lapsed quotations 404→200 (+ reissue), S quote accept/reject 403→404
+  health-door-walk                       492    74   by hand: B/V read C's rows 404→200 (V download 403 PRINT_QR,
+                                                     lots qr/print 500 = BACKLOG), A also reads Y, S 403→404 ×10
+  Moved categories (application/cert-doc/billing): 403→404 for non-members (1642), 404/403→200/201 for co-members,
+  200→404 only for null-holder rows (aN, gN, nN, zN), a REVOKED filer (F) and a hash-only personal entity (G),
+  200→403 only for the new gates (M/W accept). Pinned "Task 12 answers" flipped: /my/statuses = /my, farm counter = /farms/my, 403→404.
+
+## 4. Full backend suite
+  non-integration (-w 4, no DB): 858 passed / 2 failed → both fixed (quotation-api-renders-the-row: mock the engine;
+    the-farmer…: read the discarded path) → re-run PASS; renewal-fast-path ADMIN_ALERT is the known DATABASE_URL case.
+  integration (-i): 9 failed suites / 31 failed tests / 13 skipped / 856 passed (115 suites)
+    base cc87292a same DB setup (:55437): 10 / 32 / 13 / 833 — comm -3 of failure names: 0 new; 1 gone (onsite HEADLINE flake)
+  focused real-PG (26 suites incl. all r1-*, walk, holder-*, renewal-*, draft-*, billing, bundle, car-refusal): 320/320, 0 skipped
+## 5. Probes / web
+  ratchet 26/53/99/0 (env-direct 101→99: middleware env read + AUTH_LOOKUP_USE_HMAC in the deleted lookup)
+  retired-words, no-skip, no-secret (layer1 0, gitleaks clean), settle-webhook-only, green-mask, copy guard, error-code pointers PASS
+  web: 447 suites / 3700 tests PASS, tsc --noEmit 0 (no web file changed)
+
+## ROUND 2 — operator ruling 2026-10-03: any member with SUBMIT_APPLICATION on the source holder may renew
+RED (ad04359a code, new tests): holder-scope -t "renewal by a member who did not file": 4 failed / 1 passed
+  O2 (OWNER, not filer) 403 FORBIDDEN_NOT_OWNER (expected 201) · B+grant 403 FORBIDDEN_NOT_OWNER (expected 201)
+  B (no grant) / V: 403 FORBIDDEN_NOT_OWNER (expected ENTITY_PERMISSION_DENIED) · S 404 (pin)
+  renewal-wizard-holder-gate -t "another member filed": notice PREVIOUS_CERTIFICATE_NOT_YOURS, requestType NEW (expected RENEWAL)
+GREEN: renewal-service drops the filer check; the renewal is created under the source holder with
+  healthId = the actor's canonicalId and submitterId = the actor (their own lists/notifications/payments);
+  law dimensions drop the filer match. Downstream checked: quotation payer = holder entity; checkout invoice
+  healthId = application.healthId (the renewer); issuance holder = app.entityId, farm by entity leg first.
+  real-PG: holder-scope + renewal-* + draft-renewal + r1-* + walk: 9 suites / 127 passed, 0 skipped
+  unit (no DB): 860 suites / 11952 passed, 0 failed · pointers refreshed (CERT_NOT_ACTIVE, CERT_ALREADY_EXPIRED,
+  SOURCE_APP_NOT_FOUND); FORBIDDEN_NOT_OWNER removed from the catalogue (no thrower)
+  full integration: 33 failed / 11 suites = base 32 set + 1: holder-scope 'audit … onBehalfOfEntityId' — the audit
+  metadata masker rewrote a random UUID holding a 13-digit run (BACKLOG); passes on re-run. 0 other new.
+  ratchet 26/53/99/0 · retired-words · no-skip PASS · key mtime 1788623435 unchanged

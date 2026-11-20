@@ -1,0 +1,48 @@
+=== A0-AUDIT-EMISSION / PR-A0-1 — ratchet before/after ===
+probe:    bash scripts/probes/ratchet.sh   (run from the worktree root, twice)
+worktree: /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b
+date:     2026-08-06
+
+--------------------------------------------------------------------------
+BEFORE — tree at HEAD (no edits yet; the two new test files did not exist)
+--------------------------------------------------------------------------
+$ bash scripts/probes/ratchet.sh
+  dup [holiday-calendar] 3 sources: apps/backend/services/working-days-service.js apps/backend/utils/working-days.js apps/backend/routes/api/provider/handlers/workflow-handler-deps.js
+  dup [fee-table] 3 sources: apps/backend/modules/billing/internal/fee-service.js apps/backend/config/business-rules.js apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4
+
+--------------------------------------------------------------------------
+AFTER — writer diff + 2 new test files in the tree
+--------------------------------------------------------------------------
+$ bash scripts/probes/ratchet.sh
+  dup [holiday-calendar] 3 sources: apps/backend/services/working-days-service.js apps/backend/utils/working-days.js apps/backend/routes/api/provider/handlers/workflow-handler-deps.js
+  dup [fee-table] 3 sources: apps/backend/modules/billing/internal/fee-service.js apps/backend/config/business-rules.js apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4
+
+--------------------------------------------------------------------------
+DELTA
+--------------------------------------------------------------------------
+hardcode    43 → 43   (0)
+todo        59 → 59   (0)
+env-direct 169 → 169  (0)
+dup-source   4 → 4    (0)
+
+Note on dup-source (Law 3.6): the default emission deliberately reuses
+`statusTransitionAuditHook` (apps/backend/middleware/audit-logger.js:834-850)
+instead of rebuilding the APPLICATION transition envelope inside the writer, so
+no second source of that envelope was created. The unit test pins this
+(`expect(mockAuditState.logWithin).not.toHaveBeenCalled()` —
+apps/backend/__tests__/unit/application-status-writer-audit-default.test.js:181).
+The action string is also collapsed into one constant
+(`STATUS_TRANSITION_EVENT`, apps/backend/services/application-status-writer.js)
+shared by both emitters, replacing two separate literals.

@@ -1,0 +1,274 @@
+# Fix round 1 GREEN — after the fixes for review r0 F1/F2/F3/F4/F5/F6
+#
+# Command: cd apps/backend && npx jest \
+#   __tests__/unit/requirement-rule-service.test.js \
+#   __tests__/unit/requirement-rules-case-dims.test.js \
+#   __tests__/unit/admin-requirement-rules-routes.test.js \
+#   __tests__/unit/m2a-doc-requirements.test.js \
+#   __tests__/unit/m2a-doc-requirements-doors.test.js \
+#   __tests__/unit/error-codes-catalog.test.js --runInBand
+# Result: 6 suites / 125 tests PASS (round 0: 6 suites / 114 tests)
+# Also, from the same tree:
+#   npx eslint services/requirement-rule-service.js routes/api/admin/requirement-rules.js
+#     + the three suites                                        -> exit 0, no output
+#   bash scripts/probes/ratchet.sh                              -> PASS hardcode=33 todo=56 env-direct=122 dup-source=2
+#   node scripts/ci/check-prisma-migration-consistency.js        -> pairing passed (strict drift skipped, no SHADOW_DATABASE_URL)
+# No database was written; no prisma migrate of any kind was run.
+# Captured on the FINAL tree (re-run after the last comment-only edit to the route).
+# ---------------------------------------------------------------------------
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/admin-requirement-rules-routes.test.js (30.653 s)
+  the surface is admin-only — and mounted (both proven by one request)
+    √ document_reviewer cannot read the rules (403, no query fired) (1101 ms)
+    √ scheduler cannot read the rules (403, no query fired) (44 ms)
+    √ auditor cannot read the rules (403, no query fired) (17 ms)
+    √ account_dtam cannot read the rules (403, no query fired) (70 ms)
+    √ health cannot read the rules (403, no query fired) (22 ms)
+    √ document_reviewer cannot write a rule (403, nothing created, nothing audited) (234 ms)
+    √ scheduler cannot write a rule (403, nothing created, nothing audited) (16 ms)
+    √ auditor cannot write a rule (403, nothing created, nothing audited) (13 ms)
+    √ account_dtam cannot write a rule (403, nothing created, nothing audited) (14 ms)
+    √ health cannot write a rule (403, nothing created, nothing audited) (18 ms)
+    √ document_reviewer cannot close a rule (403, no update) (13 ms)
+    √ scheduler cannot close a rule (403, no update) (20 ms)
+    √ auditor cannot close a rule (403, no update) (30 ms)
+    √ account_dtam cannot close a rule (403, no update) (14 ms)
+    √ health cannot close a rule (403, no update) (11 ms)
+    √ an anonymous caller gets 401, not 403 (auth sits before the admin gate) (40 ms)
+  GET / — the law as of a date
+    √ returns the rules in force NOW by default (open window, deterministic order) (58 ms)
+    √ ?at= asks the question as of THAT instant, not now (16 ms)
+    √ ?includeClosed=true drops the window so retired rules stay readable (AC3) (13 ms)
+    √ ?at=garbage is refused (400) instead of silently answering about now (14 ms)
+  POST / — new law enters as a row
+    √ 201: the row is created under the caller and an audit row is emitted (48 ms)
+    √ a slot written through an old alias is stored canonical (LAND_TITLE → land_deed) (10 ms)
+    √ all three dimensions omitted = a rule that binds everyone (201, NULLs stored) (11 ms)
+    √ an explicit null dimension is accepted the same way (11 ms)
+    √ an unknown slot is refused (400) — a law about a slot that does not exist can never fire (16 ms)
+    √ a missing slot is refused (400) (12 ms)
+    √ an unknown holderType is refused (400) and the answer names the accepted set (11 ms)
+    √ 'RENEW' is refused (400): the vocabulary is NEW/RENEWAL/REPLACEMENT and gets no fifth word (11 ms)
+    √ NEW is accepted (9 ms)
+    √ RENEWAL is accepted (10 ms)
+    √ REPLACEMENT is accepted (17 ms)
+    √ INDIVIDUAL is accepted (14 ms)
+    √ JURISTIC is accepted (12 ms)
+    √ COMMUNITY_ENTERPRISE is accepted (14 ms)
+    √ a per-plant rule is refused (400) instead of being filed as law that can never fire (15 ms)
+    √ the refusal says WHY, so the admin does not simply retype it (14 ms)
+    √ plantCode null still means "every plant" (201) (11 ms)
+    √ plantCode "" still means "every plant" (201) (9 ms)
+    √ 201: landTenure/areaType/certScope reach the row and the audit row (11 ms)
+    √ the case dimensions are optional — omitted still means "every case" (201, NULLs) (11 ms)
+    √ a mistyped landTenure is refused (400) and the answer names the accepted set (11 ms)
+    √ a mistyped areaType is refused (400) and the answer names the accepted set (14 ms)
+    √ a mistyped certScope is refused (400) and the answer names the accepted set (15 ms)
+    √ an unparsable effectiveFrom surfaces as 400, not 500 (15 ms)
+    √ a DB failure is a 500 that leaks no internals (16 ms)
+  POST /:id/close — retiring a rule is the only touch a row ever gets
+    √ 200: exactly effectiveTo/closedBy/closedAt are written, plus an audit row (14 ms)
+    √ closing a rule that was already closed is a 409, not a second stamp (15 ms)
+    √ closing a rule that does not exist is a 404 (10 ms)
+    √ there is no route that edits a rule body — PUT/PATCH/DELETE do not exist (34 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/m2a-doc-requirements-doors.test.js (5.258 s)
+  M2a — POST /submit, DRAFT branch = first submit
+    √ JURISTIC with no company registration on file → 422, and NOTHING is written (150 ms)
+    √ a client flag cannot buy the way in — documents[].uploaded stays worthless at the door (AC2) (12 ms)
+    √ with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers (553 ms)
+    √ SUBMITTED echoes the REAL status — no transition, no writer call, an honest nextRequiredAction (F-SUBMIT-ECHO-LIES fix, Ruling 6) (16 ms)
+    √ PENDING_DOC_FEE stays a true no-op echo — nothing written, nothing audited, never re-judged (13 ms)
+  M2a — POST /submit, REVISION_REQUESTED / CAR_PENDING branch = resubmit
+    √ judges by the stamp, not by todays law — a rule filed later cannot 422 it (AC3) (23 ms)
+    √ the stamped set is still enforced on resubmit → 422 before any write (12 ms)
+    √ an application filed before M2a carries no stamp — it is let through, not refused (11 ms)
+  M2a — POST /bundles/:id/submit
+    √ one linked case short of a document refuses the WHOLE bundle → 422, no transaction opened (54 ms)
+    √ every linked case is stamped inside the existing transaction, applicant data intact (11 ms)
+    √ the linked-case projection loads formData — without it the door would stamp over an empty blob (11 ms)
+  M2a — POST /applications/:id/car (resubmit)
+    √ a stamped slot the server cannot see → 422, no status write (31 ms)
+    √ stamped and satisfied → the CAR resubmit proceeds, judged by the stamp alone (10 ms)
+  M2a — PUT /revision-deadline/:id/submit
+    √ an applicant missing a stamped document → 422, the deadline row is untouched (29 ms)
+    √ the projection now carries formData and status — the check has nothing to read without them (12 ms)
+    √ the provider bypass skips the document check entirely, exactly as it skips the entity check (10 ms)
+    √ applicant with the stamped document on file → 200 (10 ms)
+  M2a — PUT /applications/:id/revision
+    √ a stamped slot the server cannot see → 422, submitRevision never runs (132 ms)
+    √ satisfied → the revision goes through, judged by the stamp (25 ms)
+    √ a DRAFT here is a FIRST submit — todays law is read and the missing document is refused (17 ms)
+    √ a satisfied DRAFT is stamped BY THE DOOR — the snapshot travels as server data, not as client formData (13 ms)
+    √ a REVISION_REQUESTED row is still judged by its stamp, and carries no fresh stamp (11 ms)
+  M2a — the applicant cannot write the stamp through /prepare
+    √ both M2 snapshot keys are declared server-owned (1 ms)
+    √ a full-replacement merge keeps the stored stamp, whatever the client sends (1 ms)
+    √ POST /prepare strips a forged stamp at the edge — the stored one survives (12 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/error-codes-catalog.test.js (8.77 s)
+  shared/error-codes catalog
+    √ exports a frozen object with at least 80 entries (RFC W4-B floor) (1 ms)
+    √ every entry has all 6 required fields with the right types (323 ms)
+    √ every httpStatus is a 4xx or 5xx HTTP status code (42 ms)
+    √ catalog codes are unique (no duplicate keys across the object) (1 ms)
+    √ contains every code listed in shared/api-response.js DEFAULT_ERROR_MESSAGES (2 ms)
+    √ contains every code thrown by shared/errors.js AppError + JWT branches (2 ms)
+    √ exposes getMessage() that returns localised strings with fallback (26 ms)
+    √ exposes lookup() that returns the full row or undefined (1 ms)
+    √ extract-error-codes script runs and discovers ≥ catalog floor codes (7723 ms)
+    √ extractor loadCatalog returns same module as direct require (2 ms)
+    √ every discovered code is catalogued (no drift between code and catalog) (170 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/requirement-rules-case-dims.test.js
+  requirement rules — กทล.1 case dimensions
+    √ rulesAt filters landTenure/areaType/certScope with NULL-as-wildcard (3 ms)
+    √ an unknown dimension value is refused, not silently widened (2 ms)
+    √ rulesAt refuses a case dimension outside the vocabulary instead of querying for nothing (2 ms)
+    √ rulesAt reads a padded value as the word it is, not as no match at all (1 ms)
+    √ a caller that names no case dimension still gets only the rules that bind everyone (1 ms)
+    √ vocabulary is the closed set the spec names (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/m2a-doc-requirements.test.js
+  first-submit — the law as of today, per holder type (AC1)
+    √ JURISTIC with no server-side COMPANY_REG → 422 APPLICATION_INCOMPLETE naming the slot (2 ms)
+    √ COMMUNITY_ENTERPRISE is asked for its own document, not the company one (1 ms)
+    √ INDIVIDUAL is asked for nothing extra — no rule of theirs is in force (2 ms)
+    √ a rule with every dimension NULL binds even the INDIVIDUAL filing (1 ms)
+    √ a rule that is not yet in force does not fire, a closed one stops firing (1 ms)
+    √ isRequired:false is a rule on the books that demands nothing (2 ms)
+    √ a renewal is judged by the RENEWAL law, never by a word this codebase does not speak (1 ms)
+  evidence is what the SERVER holds (AC2)
+    √ a draftDocuments entry recorded under an old alias satisfies the rule (1 ms)
+    √ an ApplicationDocument row satisfies it through documentType — the row id is NOT a slot (2 ms)
+    √ a client flag alone is worth nothing — documents[].uploaded = true still 422s (1 ms)
+    √ reads the rows of THIS application only (2 ms)
+  resubmit is judged by the stamp, not by todays law (AC3)
+    √ a rule filed after the first submit cannot 422 the resubmit (1 ms)
+    √ the stamped set is still enforced — a stamped slot gone missing is a 422 (1 ms)
+    √ a stamped slot written in an old spelling is compared canonically (1 ms)
+    √ an application filed before M2a has no stamp — it is grandfathered, and the warn says so (2 ms)
+    √ the mode is the DOORs word — the service never guesses it from a status (65 ms)
+  buildRequirementSnapshot — what gets written on the application
+    √ records the rules consulted and the slots they demanded, canonically (2 ms)
+    √ an empty law still produces a stamp — "nothing was demanded" is an answer worth keeping (1 ms)
+    √ is pure — the same rules stamp the same slots twice (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/requirement-rule-service.test.js
+  rulesAt — the law in force on the day asked about
+    √ a rule effective yesterday..open applies today; effective tomorrow does not; closed yesterday does not (3 ms)
+    √ dimension null matches everything; a JURISTIC rule never fires for COMMUNITY_ENTERPRISE (2 ms)
+    √ runs on the caller-supplied client when given one (submit gate passes its tx) (2 ms)
+  createRule — a new row is the only way to change the law
+    √ stores the slot in canonical form, so a rule written through an alias still fires (1 ms)
+    √ writes only whitelisted columns — a caller cannot choose the id or forge the closing stamps (1 ms)
+    √ refuses a rule with no slot and a rule with no actor — createdBy/slotId are NOT NULL (1 ms)
+    √ writes an audit row carrying the substance of the rule (1 ms)
+    √ persists landTenure/areaType/certScope onto the row AND into the audit row (2 ms)
+    √ a rule that names no case dimension binds every case (all three stored NULL) (1 ms)
+    √ trims a dimension value, so a stray space in a seed row is not a different word (1 ms)
+  closeRule — retiring a rule is the only touch an existing row ever gets
+    √ updates exactly effectiveTo/closedBy/closedAt and nothing else (2 ms)
+    √ writes the REQUIREMENT_RULE_CLOSED audit row with the reason (1 ms)
+    √ refuses to re-close a closed rule, and refuses a rule that does not exist (1 ms)
+  the service exposes NO way to edit a rule body
+    √ exports exactly rulesAt/createRule/closeRule + the vocabulary — no updateRule, no deleteRule (1 ms)
+    √ closeRule has nowhere to put a slotId — the signature is (id, actor, reason) (1 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       125 passed, 125 total
+Snapshots:   0 total
+Time:        49.502 s
+Ran all test suites matching /__tests__\\unit\\requirement-rule-service.test.js|__tests__\\unit\\requirement-rules-case-dims.test.js|__tests__\\unit\\admin-requirement-rules-routes.test.js|__tests__\\unit\\m2a-doc-requirements.test.js|__tests__\\unit\\m2a-doc-requirements-doors.test.js|__tests__\\unit\\error-codes-catalog.test.js/i.

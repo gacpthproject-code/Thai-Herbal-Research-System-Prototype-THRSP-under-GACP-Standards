@@ -1,0 +1,443 @@
+GREEN: fixed tree 19de59c35, same scratch Postgres, same heavy.sh job
+PASS __tests__/unit/notification-fanout-service.test.js
+    ✓ dispatches IN_APP only; EMAIL/SMS channel names come back CHANNEL_RETIRED and never touch the transports 
+    ✓ dedupes a second call within the 60-min window (same userId+type+invoiceId) — IN_APP dispatched once 
+    ✓ IN_APP opt-out is still respected; EMAIL/SMS are unconditionally CHANNEL_RETIRED regardless of opt-out 
+    ✓ respects `channels` filter (IN_APP only) — EMAIL/SMS stay NOT_REQUESTED, not CHANNEL_RETIRED 
+    ✓ default channels (caller omits `channels`) dispatch IN_APP only — ALL_CHANNELS shrank to [IN_APP] 
+    ✓ returns empty result when user not found 
+    ✓ PDPA_ERASURE_REQUESTED: the in-app row message carries the full confirm URL end to end 
+    ✓ REFUND_DUPLICATE_CHARGE → Thai subject + body names the credit note 
+    ✓ CERTIFICATE_ISSUED → deleted (zero-caller fanout template; certificate-issued notices are in-app only) → getTemplateForType returns null 
+    ✓ REVISION_REQUESTED (fanout email/SMS variant) → deleted (zero-caller; in-app variant lives in notification-service.js) → getTemplateForType returns null 
+    ✓ AUDIT_SCHEDULED → formats date in Buddhist-Era 
+    ✓ AUDIT_RESULT_CAR → Thai subject + body include application number, summary, and critical findings 
+    ✓ AUDIT_RESULT_CAR → renders cleanly with no summary + empty findings (defaults safe) 
+    ✓ AUDIT_RESULT_NEEDS_REVIEW → Thai subject + body signal "under further review", no action required 
+    ✓ AUDIT_RESULT_NEEDS_REVIEW → renders cleanly without summary (defaults safe) 
+    ✓ unknown type → null (caller can fall back to IN_APP-only) 
+    ✓ PDPA_ERASURE_REQUESTED → cites ม.32, embeds confirm URL with requestId + token + webBaseUrl 
+    ✓ PDPA_ERASURE_REQUESTED → missing webBaseUrl falls back to [WEB_BASE_URL_NOT_CONFIGURED] sentinel (NOT a relative URL) 
+    ✓ PDPA_ERASURE_EXECUTED → enumerates preserved tables citing ม.32 + ม.87/3 ป.รัษฎากร 
+    ✓ BREACH_NOTIFICATION_SUBJECT → deleted (zero-caller fanout template) → getTemplateForType returns null 
+    ✓ NO PII leak invariant — none of the 2 surviving PDPA-erasure templates echo raw phone (>=10 digits) or @gmail.com when given a realistic PII payload 
+    ✓ _normalizePhone: 0XXXXXXXXX → +66XXXXXXXXX 
+    ✓ _makeDedupeKey: same key for identical inputs, different for different 
+    ✓ formatBE: produces a Buddhist-Era string for 2026 AD 
+    ✓ formatTHB: emits 2-decimal Thai locale string 
+    ✓ dedupes a second send() within window using Redis NX (single process) 
+    ✓ two concurrent send() calls collapse via Redis NX — exactly ONE IN_APP dispatch 
+    ✓ cross-process: dedupe survives a fresh module load with the SAME Redis store 
+    ✓ falls back to per-process Map when Redis is unavailable (logs warn once) 
+    ✓ _isOutcomeRetriable: only transient failures (ok:false + no skipped) are retriable 
+    ✓ re-attempts ONLY the failed IN_APP dispatch on the next send; a third send fully dedupes 
+    ✓ permanent skip (IN_APP OPT_OUT) is NOT retried — second send fully dedupes 
+PASS __tests__/unit/pdpa-erasure-service.test.js
+      ✓ rejects when healthId is missing 
+      ✓ rejects when actorId is missing 
+      ✓ rejects unknown data subject 
+      ✓ rejects when legalHold is set 
+      ✓ returns requestId + expiresAt + token; persists envelope; emits audit + fanout 
+      ✓ returns PDPA_ERASURE_IN_PROGRESS when a REQUESTED envelope already exists 
+      ✓ rejects when token mismatches 
+      ✓ rejects and marks EXPIRED when the window has passed 
+      ✓ rejects when requestId does not match the envelope 
+      ✓ executes erasure on valid token and returns the summary 
+      ✓ anonymises user, application formData, and certificates; deletes drafts + notifications 
+      ✓ blocks erasure when legalHold is set on the user row 
+      ✓ requires either healthId or userId 
+      ✓ clears known PII keys at every level of a nested blob 
+      ✓ passes through null / primitive inputs unchanged 
+      ✓ returns envelopes without the token field 
+      ✓ filters by status when provided 
+      ✓ falls back to a broad scan when JSON-path filter is unsupported 
+      ✓ flips status to CANCELED and strips the token 
+      ✓ refuses to cancel a non-REQUESTED envelope 
+      ✓ (d) executeErasure ALSO nulls the *Hmac columns + sets canonicalId = user.id 
+      ✓ (d) anonymises the personal INDIVIDUAL Entity row (name, slug, national ID and both hashes) 
+      ✓ (d) Application anonymise queries by the post-cascade FK value (resolvedUserId), not the old national ID 
+      ✓ (b) requestErasure resolves the subject by the national-ID HASH (not a canonicalId value WHERE) 
+      ✓ asks Postgres for holderType — without it every branch below reads undefined 
+      ✓ wipes holderDisplayName to the sentinel when holderType is LEGACY_PERSON (a person is behind that name) 
+      ✓ wipes holderDisplayName to the sentinel when holderType is INDIVIDUAL (a person is behind that name) 
+      ✓ never writes holderDisplayName at all when holderType is JURISTIC (AC4 — the farm keeps its certificate) 
+      ✓ never writes holderDisplayName at all when holderType is COMMUNITY_ENTERPRISE (AC4 — the farm keeps its certificate) 
+      ✓ leaves holderDisplayName alone for a row whose holderType is still NULL (pre-backfill safety) 
+PASS __tests__/integration/account-anonymization-real-postgres.test.js
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links 
+    ✓ the seed gives every text column of the users row and the personal entity a value, so each clear above is proven 
+    ✓ a staff account past retention is anonymized the same way 
+    ✓ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it 
+    ✓ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist 
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep 
+    ✓ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends 
+    ✓ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run 
+    ✓ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints 
+    ✓ a credit note issued after an old receipt keeps the payer name for its own retention 
+    ✓ a company the swept person owns keeps its name and registration: only the personal entity is the person 
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were 
+    ✓ §7 item 2 is five years: a receipt issued six years ago no longer keeps the payer name 
+    ✓ a receipt issued four years ago still keeps the payer name 
+PASS __tests__/unit/pdpa-retention-job.test.js
+    ✓ anonymises users whose retainUntil is past, leaving future users alone 
+    ✓ anonymisation nulls ALL identity + PII fields and replaces names and password with PDPA_ERASED 
+    ✓ never retries without isAnonymized/anonymizedAt — a marker failure is recorded, not routed around 
+    ✓ error in a single user update is recorded but does not halt the sweep 
+    ✓ exits the loop cleanly when findMany returns empty batch 
+    ✓ filters legalHold rows out at the query layer 
+    ✓ a hold placed after the findMany read wins: nothing of that user changes 
+    ✓ never anonymises a legal-hold user whose retainUntil is in the past 
+    ✓ fails closed when the isAnonymized column is missing — no unfiltered fallback re-query 
+    ✓ fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody 
+    ✓ skips a held row whose retainUntil elapsed 36 years ago 
+    ✓ the query excludes held rows unconditionally, not by shifting the date window 
+    ✓ never writes retainUntil or legalHold — the sweep cannot defer or clear a hold 
+    ✓ every column in the WHERE clause is declared on model User 
+    ✓ every column in the SELECT clause is declared on model User 
+    ✓ every column the anonymization payload writes is declared on model User 
+    ✓ passes no null predicate to a column the schema declares NOT NULL 
+    ✓ every column the sweep touches is materialised by a migration, not only declared 
+    ✓ anonymizes the user, then clears extractedText and every evidenceSnippet of the user's applications 
+    ✓ a failed clear fails the user's one transaction, so the database rolls the anonymization back for the next run 
+    ✓ a pre-check still PENDING is failed (with the failure flag) before the text is cleared 
+    ✓ a user under legal hold: no pre-check text is touched 
+PASS __tests__/integration/research-data-privacy-real-postgres.test.js
+      ✓ ส่งออก CSV: ผู้ดูแลกรมองค์กร A ได้ไฟล์ · ทุกบทบาทอื่น 403 · ผู้ดูแลองค์กร B ไม่เห็นแบบสำรวจของ A 
+      ✓ สถิติ: บทบาทอื่นยังไม่เห็นตัวเลขขณะเปิดรับคำตอบ ไม่มีคำที่ระบุตัวคน · ผู้ดูแลกรมเห็นครบ 
+      ✓ สถิติข้ามองค์กร: เจ้าหน้าที่องค์กร B ไม่เห็นแบบสำรวจของ A · ไม่รู้องค์กร = ปฏิเสธ 
+      ✓ รายการสัมภาษณ์: เฉพาะผู้ดูแลกรมขององค์กรนั้น 
+      ✓ สร้าง/เปิด/ปิดแบบสำรวจยังเป็นของ system_admin_dtam เท่านั้น 
+      ✓ ข้อความแจ้งเป็นภาษาไทยพร้อมรุ่น 
+      ✓ ไม่ยินยอม = ส่งไม่ได้ (403) และไม่มีแถวถูกบันทึก · รุ่นเก่า = 409 · ยินยอม = บันทึกรุ่นและเวลา 
+      ✓ บันทึกสัมภาษณ์ต้องมีความยินยอมของผู้ให้สัมภาษณ์และวันที่ 
+      ✓ ลบบัญชี: คำตอบไม่ผูกตัวคน ข้อความที่พิมพ์เองถูกลบ คะแนนและตัวเลือกยังอยู่ · คนอื่นไม่ถูกแตะ 
+      ✓ ผู้ตอบถอนความยินยอมเอง: คำตอบไม่ผูกตัวคน ข้อความถูกลบ และไม่ถูกส่งออก 
+      ✓ ผู้ดูแลกรมทำบทสัมภาษณ์ให้ระบุตัวไม่ได้เมื่อผู้ให้สัมภาษณ์ถอนความยินยอม · บทบาทอื่นทำไม่ได้ 
+      ✓ คำตอบแบบสำรวจ: ไม่มีรหัสบัญชี ชื่อ หรือรหัสคำตอบจริง · เฉพาะคำตอบที่ยินยอมและยังไม่ถอน 
+      ✓ รหัสฟาร์มเป็นรหัสแฝง: คงที่ภายในการส่งออก ต่างกันเมื่อกุญแจต่างกัน 
+      ✓ ผู้ดูแลกรมองค์กร B ส่งออกได้เฉพาะข้อมูลขององค์กร B 
+PASS __tests__/unit/m2a-doc-requirements-doors.test.js
+    ✓ JURISTIC with no company registration on file → 422, and NOTHING is written 
+    ✓ a client flag cannot buy the way in — documents[].uploaded stays worthless at the door (AC2) 
+    ✓ with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers 
+    ✓ SUBMITTED echoes the REAL status — no transition, no writer call, an honest nextRequiredAction (F-SUBMIT-ECHO-LIES fix, Ruling 6) 
+    ✓ PENDING_DOC_FEE stays a true no-op echo — nothing written, nothing audited, never re-judged 
+    ✓ judges by the stamp, not by todays law — a rule filed later cannot 422 it (AC3) 
+    ✓ the stamped set is still enforced on resubmit → 422 before any write 
+    ✓ an application filed before M2a carries no stamp — it is let through, not refused 
+    ✓ a stamped slot the server cannot see → 422, no status write 
+    ✓ stamped and satisfied → the CAR resubmit proceeds, judged by the stamp alone 
+    ✓ POST /submit (DRAFT) 
+    ✓ both M2 snapshot keys are declared server-owned 
+    ✓ the answers merge keeps the stored stamp, whatever the client sends 
+    ✓ POST /prepare strips a forged stamp at the edge — the stored one survives 
+PASS __tests__/unit/official-letter.test.js
+    ✓ exists and exports the frozen GENERAL/OFFICIAL_LETTER vocabulary 
+    ✓ no backend .js file outside the SSOT file re-spells the official-letter literal 
+    ✓ PSL declares kind String @default("GENERAL") on the Notification model 
+    ✓ exactly one add_notification_kind migration exists and is EXPAND-only 
+    ✓ does NOT delete an official letter even when isRead and older than 30 days 
+    ✓ still deletes old read GENERAL notifications (existing behaviour preserved) 
+    ✓ keeps the erased user's official letters 
+    ✓ still deletes the erased user's other notifications, scoped to that user 
+    ✓ negative control (pin, green-at-birth): all-off prefs suppress the normal in-app row 
+    ✓ writes the letter row even when every preference is off 
+    ✓ writes THROUGH the caller's tx — never the global prisma client 
+    ✓ stamps kind=OFFICIAL_LETTER on the created row 
+    ✓ does not swallow write errors — a failing letter rejects so the caller's tx fails 
+    ✓ rejects when called without a tx (atomicity is not optional) 
+PASS __tests__/unit/draft-document-upload-content-guard.test.js
+    ✓ the 70-byte PNG is refused by the ภท.11 slot, in Thai, naming the cause 
+    ✓ the same pixel is refused by a slot that DOES take images, for having no content 
+    ✓ a PNG named deed.pdf and declared application/pdf is refused 
+    ✓ an executable renamed permit.pdf is refused as unreadable 
+    ✓ a file over the ceiling is refused with a Thai 413, not a 500 
+    ✓ a zero-byte file is refused 
+    ✓ a real one-page permit PDF is accepted, stored, and recorded 
+    ✓ a real site photo is accepted by the photo slot 
+PASS __tests__/integration/m1-erasure-holder-survives.test.js
+    ✓ juristic-held cert (past retention): valid + verifiable + holder name unchanged after member erasure 
+    ✓ LEGACY_PERSON and INDIVIDUAL certs (past retention): holder name IS wiped to sentinel (person data duty wins) 
+    ✓ schema-default (live) cert: retention active, so erasure retains it — applicantName + holder name untouched, row listed in summary.retained 
+PASS __tests__/unit/pdpa-erasure-respects-certificate-retention.test.js
+    ✓ (a) retainUntil in the future, no hold → never updated, retained as RETENTION_ACTIVE, not counted 
+    ✓ (b) legalHold true with retainUntil already past → retained as LEGAL_HOLD, never updated 
+    ✓ (c) retainUntil past, no hold → anonymised with exactly the pre-existing payload (person holder) 
+    ✓ (c') retainUntil past, no hold, JURISTIC holder → payload omits holderDisplayName exactly as before 
+    ✓ (d) mixed list of three → exactly one update, two retained, one warn per retained certificate 
+    ✓ (e) asks Postgres for retainUntil + legalHold — without them every branch reads undefined and a live certificate is silently anonymised 
+    ✓ (f) summary + audit cite the register basis; retained list exists even when nothing is retained 
+    ✓ (g) the summary and the warn name the state "retained", never "deferred" — nothing in the tree anonymises the row later 
+PASS __tests__/unit/the-upload-door-refuses-an-accepted-slot.test.js
+    ✓ ช่องที่เจ้าหน้าที่กดผ่าน → 409 และไม่มีอะไรถูกเขียน 
+    ✓ ชื่อช่องที่ผู้ยื่นส่งมาไม่ใช่ชื่อที่ตารางผลตรวจเก็บ — ด่านต้องแปลงก่อนเทียบ 
+    ✓ ไฟล์ที่ถูกปฏิเสธไม่ค้างบนดิสก์ 
+    ✓ ช่องที่เจ้าหน้าที่ขอให้แก้ → อัปได้ตามปกติ 
+    ✓ ช่องที่ยังไม่เคยถูกตรวจ → อัปได้ 
+    ✓ เจ้าหน้าที่กลับคำเป็นขอแก้ในรอบถัดไป → เปิดให้อัปอีกครั้ง 
+    ✓ ลบเอกสารของช่องที่ผ่านแล้ว → 409 
+    ✓ ลบเอกสารของช่องที่ถูกขอให้แก้ → ทำได้ 
+PASS __tests__/unit/closing-review-fixes.test.js
+    ✓ account anonymization (retention sweep + erasure) writes twoFactorSecret (not mfaSecret) 
+    ✓ prisma-auth-service.js login() reads twoFactorEnabled (with mfaEnabled legacy fallback) 
+    ✓ routes/api/cultivation/harvest-batches.js masks healthId in actorIdentity field 
+    ✓ routes/api/provider/handlers/auditor-audit-decision-handler.js masks healthId in actorIdentity field 
+    ✓ routes/api/provider/handlers/auditor-inspection-start-handler.js masks healthId in actorIdentity field 
+    ✓ routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js masks healthId in actorIdentity field 
+    ✓ routes/api/provider/handlers/workflow-revision-expirations-handler.js masks healthId in actorIdentity field 
+    ✓ routes/api/provider/handlers/workflow-side-effects.js masks healthId in actorIdentity field 
+    ✓ repo-wide sweep: no raw healthId write to actorIdentity field remains 
+    ✓ POST /setup writes twoFactorSecret + twoFactorEnabled (not mfa*) 
+    ✓ POST /verify-setup reads twoFactorSecret and writes twoFactorEnabled/twoFactorBackupCodes as a native array 
+    ✓ POST /verify selects canonical twoFactor* trio in the user lookup 
+    ✓ DELETE /disable writes twoFactorEnabled: false + nulls canonical columns 
+    ✓ No live code references the broken mfaSecret/mfaBackupCodes column names 
+    ✓ wraps application.update + audit write in prisma.$transaction 
+    ✓ no longer uses the best-effort try/catch audit pattern 
+    ✓ retries the whole transaction on audit P2002 sequence conflicts 
+    ✓ no duplicate logger.error calls in catch blocks 
+PASS __tests__/integration/pdpa-retention-legal-hold.test.js
+    ✓ a user under legal hold keeps healthId, providerId and healthIdHash after a real sweep 
+    ✓ an expired user with no hold IS anonymized by the same sweep 
+    ✓ anonymizedAt is written to Postgres during the sweep and reads back as a real timestamp 
+    ✓ a row already anonymized is not swept a second time — the marker, not luck, excludes it 
+    ✓ Postgres accepts the guard predicate and excludes the held row from the candidate set 
+PASS __tests__/integration/pdpa-erasure-clears-precheck-text.test.js
+    ✓ erasure clears the page text and every snippet of the user's pre-checks; status and results stay 
+    ✓ negative control: an application under legal hold keeps its text; the user's other application is cleared 
+    ✓ I3: a pre-check still PENDING at erasure becomes FAILED with the failure flag, and its late job writes no text 
+    ✓ I3 control: the same late job on a PENDING row of a user who was NOT erased does write the text 
+    ✓ I3 legal hold: a PENDING pre-check on a held application stays PENDING (a held application keeps its text) 
+PASS __tests__/unit/upload-doors-declare-multipart-limits.test.js
+    ✓ declares every multipart limit as a finite number 
+    ✓ refuses a body of 200 text fields 
+    ✓ refuses a single 256 KB text field 
+    ✓ refuses a field name longer than 100 characters 
+    ✓ answers the published two-field crash with a refusal, not a dead process 
+    ✓ still accepts the text fields its real client sends 
+    ✓ declares every multipart limit as a finite number 
+    ✓ refuses a body of 200 text fields 
+    ✓ refuses a single 256 KB text field 
+    ✓ refuses a field name longer than 100 characters 
+    ✓ answers the published two-field crash with a refusal, not a dead process 
+    ✓ still accepts the text fields its real client sends 
+    ✓ declares every multipart limit as a finite number 
+    ✓ refuses a body of 200 text fields 
+    ✓ refuses a single 256 KB text field 
+    ✓ refuses a field name longer than 100 characters 
+    ✓ answers the published two-field crash with a refusal, not a dead process 
+    ✓ still accepts the text fields its real client sends 
+    ✓ declares every multipart limit as a finite number 
+    ✓ refuses a body of 200 text fields 
+    ✓ refuses a single 256 KB text field 
+    ✓ refuses a field name longer than 100 characters 
+    ✓ answers the published two-field crash with a refusal, not a dead process 
+    ✓ still accepts the text fields its real client sends 
+    ✓ declares every multipart limit as a finite number 
+    ✓ refuses a body of 200 text fields 
+    ✓ refuses a single 256 KB text field 
+    ✓ refuses a field name longer than 100 characters 
+    ✓ answers the published two-field crash with a refusal, not a dead process 
+    ✓ still accepts the text fields its real client sends 
+    ✓ declares every multipart limit as a finite number 
+    ✓ refuses a body of 200 text fields 
+    ✓ refuses a single 256 KB text field 
+    ✓ refuses a field name longer than 100 characters 
+    ✓ answers the published two-field crash with a refusal, not a dead process 
+    ✓ still accepts the text fields its real client sends 
+    ✓ declares every multipart limit as a finite number 
+    ✓ refuses a body of 200 text fields 
+    ✓ refuses a single 256 KB text field 
+    ✓ refuses a field name longer than 100 characters 
+    ✓ answers the published two-field crash with a refusal, not a dead process 
+    ✓ still accepts the text fields its real client sends 
+    ✓ no other production file requires multer 
+PASS __tests__/unit/pdpa-service.test.js
+      ✓ throws when userId is missing 
+      ✓ throws when user not found 
+      ✓ uses canonicalId for Application + Invoice and id for everything else 
+      ✓ caps notification export at 500 rows (most-recent first) 
+      ✓ returns a JSON-serializable shape with PDPA citation + retention notice 
+      ✓ does NOT include sensitive credential fields in the user payload 
+      ✓ looks up the user by User.id (UUID), never by User.healthId plaintext 
+      ✓ passes `user.canonicalId` (not `user.healthId`) into the Application/Invoice FK WHERE 
+      ✓ short-circuits FK-keyed queries to [] when canonicalId is missing 
+PASS __tests__/unit/every-sensitive-upload-is-decided-by-ownership.test.js
+    ✓ car/finding-response.pdf ถูกจัดเป็นชนิด car และเป็นข้อมูลส่วนบุคคล 
+    ✓ audits/a-1/plot-photo.jpg ถูกจัดเป็นชนิด audit และเป็นข้อมูลส่วนบุคคล 
+    ✓ id-card-front.png ถูกจัดเป็นชนิด root และเป็นข้อมูลส่วนบุคคล 
+    ✓ application-drafts/x.pdf ถูกจัดเป็นชนิด draft และเป็นข้อมูลส่วนบุคคล 
+    ✓ /uploads/car/finding-response.pdf — คนที่ไม่ใช่เจ้าของไม่ได้ไฟล์ 
+    ✓ /uploads/audits/a-1/plot-photo.jpg — คนที่ไม่ใช่เจ้าของไม่ได้ไฟล์ 
+    ✓ /uploads/id-card-front.png — คนที่ไม่ใช่เจ้าของไม่ได้ไฟล์ 
+    ✓ /uploads/application-drafts/x.pdf — คนที่ไม่ใช่เจ้าของไม่ได้ไฟล์ 
+    ✓ car/ — สมาชิก ACTIVE ของนิติบุคคลผู้ถือคำขอ 
+    ✓ audits/ — ผู้ตรวจที่เห็นคำขอนั้น ส่วนผู้ยื่นไม่มีประตูดูภาพหลักฐานการตรวจ 
+    ✓ ไฟล์ที่ราก — เฉพาะรูปประจำตัวของเขาเอง 
+    ✓ ไฟล์ที่รากของคนอื่น ไม่ได้ แม้จะมีรูปประจำตัวของตัวเองอยู่ 
+    ✓ lab-results/ ผ่านโดยไม่ต้องมีเซสชัน 
+    ✓ หาเจ้าของไม่เจอ = ปฏิเสธ ไม่ใช่ปล่อยผ่าน 
+    ✓ ไม่มีเซสชันเลยกับไฟล์ส่วนบุคคล = 401 
+    ✓ ฐานข้อมูลล่ม ไม่ได้แปลว่าให้ไฟล์ 
+    ✓ เดินย้อนขึ้นไปจากโฟลเดอร์สาธารณะเข้าหาแฟ้มส่วนบุคคล ถูกปฏิเสธ 
+PASS __tests__/integration/pdpa-retention-clears-precheck-text.test.js
+    ✓ an expired applicant: every pre-check loses its page text and every snippet; status and results stay 
+    ✓ an applicant still inside the window keeps the text 
+    ✓ a user under legal hold keeps the text 
+    ✓ an application under legal hold keeps the text even when its applicant is anonymized 
+PASS __tests__/unit/privacy-notice-section7-no-automatic-deletion.test.js
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep 
+    ✓ the rules do catch a deletion when one is there 
+    ✓ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays 
+    ✓ the one file deletion allowed on a timer reaches only a file at the root of the uploads folder 
+PASS __tests__/unit/business-dates-go-through-bangkok-helpers.test.js
+    ✓ flags const y = new Date().getFullYear() + 543; 
+    ✓ flags d.setHours(0, 0, 0, 0); 
+    ✓ flags const m = d.getUTCMonth() + 1; 
+    ✓ flags if (when.toDateString() === now.toDateString()) {} 
+    ✓ flags const s = when.toLocaleString('th-TH'); 
+    ✓ flags const s = row.createdAt.toLocaleString('th-TH'); 
+    ✓ flags const s = x.toLocaleString('th-TH'); 
+    ✓ flags const hh = d.getHours(); 
+    ✓ flags const mm = d.getMinutes(); 
+    ✓ flags const hh = d.getUTCHours(); 
+    ✓ flags const y = Date.prototype.getFullYear.call(d); 
+    ✓ flags const day = d.toJSON().slice(0, 10); 
+    ✓ flags const start = new Date(`${day}T00:00:00`); 
+    ✓ flags const at = new Date('2026-09-17T09:00'); 
+    ✓ flags const s = user.lastLogin.toLocaleString('th-TH'); 
+    ✓ flags const s = cert.expiration.toLocaleString('th-TH'); 
+    ✓ flags const s = row.createdOn.toLocaleString('th-TH'); 
+    ✓ flags const s = session.toLocaleString('th-TH'); 
+    ✓ flags const s = (row.createdAt || now).toLocaleString('th-TH'); 
+    ✓ flags const s = invoice.due.toLocaleString('th-TH'); 
+    ✓ flags const at = new Date(day + 'T00:00:00'); 
+    ✓ flags const y = d['getFullYear'](); 
+    ✓ flags const day = new Date().toISOString().slice(0, 10); 
+    ✓ flags const day = new Date().toISOString().split('T')[0]; 
+    ✓ flags d.toLocaleDateString('th-TH') 
+    ✓ flags d.toLocaleTimeString('th-TH', { hour: '2-digit' }) 
+    ✓ flags new Date(x).toLocaleString('th-TH') 
+    ✓ flags new Intl.DateTimeFormat('th-TH', {
+    ✓ flags const start = new Date(y, m - 1, 1); 
+    ✓ passes d.toLocaleDateString('th-TH', { timeZone: DEFAULT_TIME_ZONE }) 
+    ✓ passes new Intl.DateTimeFormat('th-TH', {
+    ✓ passes amount.toLocaleString('th-TH') 
+    ✓ passes Number(v).toLocaleString('th-TH') 
+    ✓ passes invoice.totalAmount.toLocaleString('th-TH') 
+    ✓ passes (a + b).toLocaleString() 
+    ✓ passes (data.amount || 0).toLocaleString() 
+    ✓ passes n.toLocaleString('th-TH', { minimumFractionDigits: 2 }) 
+    ✓ passes invoice.dueAmount.toLocaleString('th-TH') 
+    ✓ passes const at = new Date(day + 'T00:00:00+07:00'); 
+    ✓ passes const start = new Date(`${day}T00:00:00+07:00`); 
+    ✓ passes const at = new Date('2026-09-17T02:00:00.000Z'); 
+    ✓ passes const due = new Date(Date.UTC(y, m, 15)); 
+    ✓ passes const later = new Date(
+    ✓ passes // comment: d.getFullYear() would be wrong here 
+    ✓ passes /* d.getDate() */ const x = getZonedParts(d).day; 
+    ✓ scans a real tree (not an empty glob) 
+    ✓ has no process-clock or UTC calendar reads, UTC day slices or zone-less locale dates 
+PASS __tests__/unit/uploads-signed-url.test.js
+    ✓ mints a URL for the object path with an expiry + signature, and no secret in it 
+    ✓ a freshly minted signature verifies for its own object 
+    ✓ an EXPIRED signature does not verify 
+    ✓ a TAMPERED signature does not verify 
+    ✓ extending the expiry without re-signing does not verify 
+    ✓ a signature minted for ONE object does not unlock another 
+    ✓ a missing signature is not "valid by omission" 
+    ✓ the lifetime is capped in minutes, not hours 
+    ✓ the signing key is derived from the secret manager, never a literal in code 
+    ✓ delegates to MinIO presignedGetObject instead of the local HMAC scheme 
+PASS __tests__/unit/finance-paper-text-inside-print-margin.test.js
+    ✓ receipt-tax-invoice.html: every text run ends inside the printable area with clearance 
+    ✓ invoice.html: every text run ends inside the printable area with clearance 
+    ✓ credit-note.html: every text run ends inside the printable area with clearance 
+    ✓ debit-note.html: every text run ends inside the printable area with clearance 
+    ✓ the receipt / tax invoice is still ONE A4 page and prints the full "5,885.00 บาท" 
+    ✓ the invoice is still ONE A4 page and prints the full "5,885.00 บาท" 
+PASS __tests__/unit/uploads-signed-url-route.test.js
+    ✓ anonymous → 401 
+    ✓ a non-/uploads path → 400 INVALID_PATH 
+    ✓ a traversal path → 400 INVALID_PATH 
+    ✓ the avatar owner can mint 
+    ✓ another user cannot mint for someone else's avatar → 404 
+    ✓ an ACTIVE member of the document's holder can mint 
+    ✓ the user who uploaded it but is no longer a member → 404 
+    ✓ a member of another holder in another tenant → 404, though the document has an owner 
+    ✓ the response carries only url + expiresAt 
+    ✓ a lab-report path mints without an object lookup (already anonymous) 
+PASS __tests__/unit/account-anonymization-covers-every-column.test.js
+    ✓ the kept lists name only columns that exist 
+    ✓ the retention sweep writes every User column that is not on the kept list 
+    ✓ the retention sweep writes every column of the personal entity that is not on the kept list 
+    ✓ the confirmed erasure writes every User column that is not on the kept list 
+    ✓ the confirmed erasure writes every column of the personal entity that is not on the kept list 
+PASS __tests__/unit/public-urls-are-configured-not-guessed.test.js
+    ✓ appBaseUrl refuses when nothing is configured in production 
+    ✓ traceBaseUrl refuses when nothing is configured in production 
+    ✓ verifyBaseUrl refuses when nothing is configured in production 
+    ✓ the refusal names the variable an operator has to set 
+    ✓ the fallback is usable 
+    ✓ every service reads the SAME fallback — not its own copy 
+    ✓ APP_PUBLIC_URL is used by appBaseUrl 
+    ✓ TRACE_BASE_URL is used by traceBaseUrl 
+    ✓ CERT_VERIFY_BASE_URL is used by verifyBaseUrl 
+    ✓ a trailing slash never doubles up in a built URL 
+    ✓ the older env names still work — a deploy is not broken by this refactor 
+    ✓ a value that is not a URL is refused rather than pasted into a QR code 
+    ✓ it exposes the env names it honours, so a runbook can be generated from it 
+PASS __tests__/unit/pdpa-erasure-passes-tx-to-precheck-clear.test.js
+    ✓ is called once, with the transaction client and the erased user id 
+    ✓ a failing clear fails the erasure (it is inside the transaction, not best-effort) 
+PASS __tests__/unit/nginx-never-serves-uploads-from-disk.test.js
+    ✓ the scan finds the nginx configs and their /uploads locations 
+    ✓ nginx/bluegreen-upstream.conf.template: every location that can answer /uploads proxies it to the backend 
+    ✓ nginx/gacp.production.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ nginx/nginx.local.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ nginx/nginx.qa.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ deploy/nginx/demo.gacpth.com.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ deploy/nginx/gacp-platform.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ deploy/nginx/preview.gacpth.com.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ deploy/nginx/staging.gacpth.com.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ docker/nginx/default.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ docker/nginx/modsecurity.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ docker/nginx/production.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ docker/nginx/ssl.conf: every location that can answer /uploads proxies it to the backend 
+    ✓ an alias 
+    ✓ a root inside the location 
+    ✓ a bare location under a server-level root 
+    ✓ an alternation regex 
+    ✓ a static-file regex that captures /uploads/*.pdf 
+    ✓ a location that proxies /uploads to the backend passes 
+    ✓ a config in a subfolder is scanned 
+PASS __tests__/unit/uploads-public-folder-serves-no-link.test.js
+    ✓ a lab report still opens without a session 
+    ✓ a symlink to a stored certificate copy answers 404 and sends no bytes 
+    ✓ a symlink to a file outside the uploads root answers 404 and sends no bytes 
+    ✓ a file under a symlinked folder answers 404 and sends no bytes 
+    ✓ a symlink is refused even when it points at another lab report 
+PASS __tests__/unit/visit-reminder-scheduled.test.js
+  ✓ no block runs the visit reminder while the applicant cannot ask for another date (order 65(3)) 
+  ✓ nobody can mute it 
+PASS __tests__/unit/legal-hold-guard.test.js
+    ✓ legalHoldExclusion() is the where-fragment that skips held rows 
+    ✓ returns a fresh object each call so a caller cannot poison the guard 
+    ✓ names every model that carries a legalHold column — no more, no less 
+    ✓ is frozen so no caller can shrink the list at runtime 
+PASS __tests__/unit/tax-document-retention-is-five-years.test.js
+    ✓ the scan reaches the erasure notices, the erasure page and the anonymization rule 
+    ✓ no file citing ม.87/3 says seven years 
+PASS __tests__/unit/uploads-access.test.js
+    ✓ anonymous CANNOT fetch a root-level file (ID card / avatar) → 401 
+    ✓ anonymous CANNOT fetch a payment slip → 401 
+    ✓ a forged token on a sensitive path is still rejected → 401 
+    ✓ anonymous CANNOT fetch an application-drafts asset → 401 
+    ✓ anonymous CANNOT fetch from the retired wizard-drafts folder → 401 
+    ✓ a lab report under lab-results/ is served anonymously (consumer trace) 
+PASS __tests__/unit/one-step-account-delete-door-removed.test.js
+  ✓ the self-service data export door is still routed (control) 
+  ✓ there is no one-step account delete door 
+Test Suites: 33 passed, 33 total
+Tests:       406 passed, 406 total
+exit=0

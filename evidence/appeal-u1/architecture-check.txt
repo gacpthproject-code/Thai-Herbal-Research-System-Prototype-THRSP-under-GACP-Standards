@@ -1,0 +1,54 @@
+node scripts/docs/check-architecture.js (the local gate's architecture-doc step)
+
+A. main 0a23ec877 (--root on the main checkout):
+PASS K1 container บนสองเครื่องครบในส่วนการติดตั้ง
+PASS K2 บทบาทครบพร้อมชื่อไทย ป้ายบนจอ และสังกัด ไม่มีชื่อบทบาทชุดเก่า
+PASS K3 สถานะคำขอครบ ป้ายตรงจอ และแผนภาพสถานะสร้างจากโค้ด
+PASS K4 ทุก Prisma model อยู่ในกลุ่มโดเมนเดียว
+FAIL K5 ทุก route group พร้อม path ที่แขวน
+     - /api/dispatch-due (apps/backend/routes/api/dispatch-due.js) แขวนใน index.js แต่เอกสารไม่ได้ระบุ
+PASS K6 data dictionary สร้างใหม่แล้วตรงกับที่ commit
+PASS K7 เวอร์ชันซอฟต์แวร์หลักตรงกับโค้ด
+PASS K8 ตัวเชื่อมภายนอกครบ มีสถานะหนึ่งในสามคำ และสถานะผู้ให้บริการตัวตนตรงกับประตูสาธารณะ
+PASS K9 ไม่มีคำของที่ถอดแล้วนอกภาคผนวก ไม่มี บพข. และเรียกผู้ให้บริการตามหน้าที่
+PASS K10 ทุก path ที่อ้างมีอยู่จริง และทุก ADR อยู่ในทะเบียน
+PASS K11 ไม่มี IP เครื่อง และไม่มีวันตรวจรับหรือกำหนดส่ง
+PASS K12 หัวเอกสารระบุ sha ที่ตรวจ และมีผลรันที่ผ่านของ sha นั้น
+RESULT: FAIL
+
+B. this branch at 5ecf744fa, before the docs were regenerated:
+FAIL K3 สถานะคำขอครบ ป้ายตรงจอ และแผนภาพสถานะสร้างจากโค้ด
+     - สถานะ ในโค้ดแต่ไม่มีในเอกสาร: AUDIT_NOT_PASSED
+     - REJECTED: ป้ายในเอกสาร "ปฏิเสธ" แต่บนจอคือ "ไม่ได้รับการรับรอง"
+     - docs/architecture/diagrams/application-states.md ไม่ตรงกับที่สร้างใหม่จากโค้ด (รัน node scripts/docs/generate-architecture-diagrams.js แล้ว commit)
+     - docs/architecture/workflow-state-machine.md ไม่ตรงกับที่สร้างใหม่จากโค้ด (รัน node scripts/docs/generate-architecture-diagrams.js แล้ว commit)
+FAIL K5 ทุก route group พร้อม path ที่แขวน
+     - /api/dispatch-due (apps/backend/routes/api/dispatch-due.js) แขวนใน index.js แต่เอกสารไม่ได้ระบุ
+RESULT: FAIL
+
+C. this branch after node scripts/docs/generate-architecture-diagrams.js and the README state table:
+PASS K1 container บนสองเครื่องครบในส่วนการติดตั้ง
+PASS K2 บทบาทครบพร้อมชื่อไทย ป้ายบนจอ และสังกัด ไม่มีชื่อบทบาทชุดเก่า
+PASS K3 สถานะคำขอครบ ป้ายตรงจอ และแผนภาพสถานะสร้างจากโค้ด
+PASS K4 ทุก Prisma model อยู่ในกลุ่มโดเมนเดียว
+FAIL K5 ทุก route group พร้อม path ที่แขวน
+     - /api/dispatch-due (apps/backend/routes/api/dispatch-due.js) แขวนใน index.js แต่เอกสารไม่ได้ระบุ
+PASS K6 data dictionary สร้างใหม่แล้วตรงกับที่ commit
+PASS K7 เวอร์ชันซอฟต์แวร์หลักตรงกับโค้ด
+PASS K8 ตัวเชื่อมภายนอกครบ มีสถานะหนึ่งในสามคำ และสถานะผู้ให้บริการตัวตนตรงกับประตูสาธารณะ
+PASS K9 ไม่มีคำของที่ถอดแล้วนอกภาคผนวก ไม่มี บพข. และเรียกผู้ให้บริการตามหน้าที่
+PASS K10 ทุก path ที่อ้างมีอยู่จริง และทุก ADR อยู่ในทะเบียน
+PASS K11 ไม่มี IP เครื่อง และไม่มีวันตรวจรับหรือกำหนดส่ง
+PASS K12 หัวเอกสารระบุ sha ที่ตรวจ และมีผลรันที่ผ่านของ sha นั้น
+RESULT: FAIL
+
+node scripts/docs/check-architecture.selftest.js: the same failing cases on a scratch checkout of main 0a23ec877 and on this branch:
+FAIL K5 route group ใหม่: ฐาน FAIL หลังแก้ FAIL
+FAIL K5 path ใหม่ใน route group เดิม: ฐาน FAIL หลังแก้ FAIL
+FAIL K5 path ใหม่ที่เขียน .use หลายบรรทัด: ฐาน FAIL หลังแก้ FAIL
+FAIL K5 path เป็นตัวแปร: ฐาน FAIL หลังแก้ FAIL
+FAIL K5 แขวน router ที่ไม่รู้ว่ามาจากโฟลเดอร์ใด: ฐาน FAIL หลังแก้ FAIL
+FAIL K5 sub-router ที่ไม่ได้ประกาศใน index.js: ฐาน FAIL หลังแก้ FAIL
+FAIL K5 แขวนไฟล์เดี่ยวที่ path ใหม่โดยเอกสารไม่ได้ระบุ: ฐาน FAIL หลังแก้ FAIL
+FAIL K2 ป้ายบนจอต่างจากมติแต่ย่อหน้าใต้ตารางไม่ได้ระบุ: ฐาน PASS หลังแก้ PASS
+RESULT: FAIL (8)

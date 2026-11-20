@@ -1,0 +1,83 @@
+=== A0-AUDIT-EMISSION / PR-A0-1 — RED evidence (Law 3.11) ===
+date:     2026-08-06
+worktree: /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b
+branch:   worktree-agent-af83f1241f0725d4b
+command:  node node_modules/jest/bin/jest.js --config jest.config.cjs \
+            __tests__/unit/application-status-writer-audit-default.test.js \
+            __tests__/integration/status-writer-audit-default-invariant.test.js --forceExit
+          (cwd: apps/backend)
+when:     BEFORE any edit to apps/backend/services/application-status-writer.js
+          (both test files were written first; the writer was still the opt-in version)
+raw:      red-raw-jest.txt in this directory (unedited stdout+stderr, 183 lines)
+
+--------------------------------------------------------------------------
+UNIT — REAL RED IN THIS ENVIRONMENT: 6 failed, 4 passed, 10 total
+--------------------------------------------------------------------------
+6 tests that failed first and pass after the diff (fail-then-fix):
+  ✕ (a) onAudit omitted + bare client → opens an internal tx and emits ONE canonical row bound to that tx
+        expect(prisma.$transaction).toHaveBeenCalledTimes(1) → Received: 0
+  ✕ (a) envelope: canonical event + transition fields + actorRole in metadata
+        TypeError: Cannot read properties of undefined (reading '0')  [hookCallback never invoked]
+  ✕ (a) onAudit omitted + caller-supplied tx handle → emits into the CALLER tx, no nested tx
+        expect(hookFactory).toHaveBeenCalledTimes(1) → Received: 0
+  ✕ fail-open: a failing default emission inside the internal tx still lands the status write
+        expect(tx.application.update).toHaveBeenCalledTimes(1) → Received: 0
+  ✕ fail-open: a failing default emission inside a CALLER tx does not throw to the caller
+        expect(warnSpy).toHaveBeenCalled() → Received: 0
+  ✕ a real UPDATE failure inside the internal tx is re-thrown, not swallowed as an audit hiccup
+        Received promise resolved instead of rejected
+
+4 tests that were GREEN AT BIRTH — declared as PIN, NOT FIX (Law 3.11):
+they assert behaviour that ALREADY held before the diff; they exist so PR-A0-1
+cannot change it by accident, and they must not be read as evidence of a fix.
+  ✓ (a) client without an auditLog namespace → no internal tx, exactly one UPDATE
+  ✓ (b) onAudit function → callback fires once, writer emits nothing itself, no internal tx
+  ✓ (b) onAudit function that throws is still swallowed (fail-open unchanged)
+  ✓ (c) onAudit false → deliberate silence: no callback, no default row, no internal tx
+
+--------------------------------------------------------------------------
+INTEGRATION — NOT PROVEN RED IN THIS ENVIRONMENT (reported, not routed around)
+--------------------------------------------------------------------------
+__tests__/integration/status-writer-audit-default-invariant.test.js did not RUN
+here at all. It failed to LOAD:
+
+  ● Test suite failed to run
+    Cannot find module '.prisma/client/default' from
+    '../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js'
+      > 30 | const { PrismaClient } = require('@prisma/client');
+
+Root cause is the environment, not the test: @prisma/client is not generated and
+CANNOT be generated in this sandbox (gacp-debug known trap — proxy blocks the
+engine download). Both documented escape hatches were tried and both 403:
+
+  $ npx prisma generate --schema prisma/schema
+  Error: Failed to fetch sha256 checksum at
+  https://binaries.prisma.sh/all_commits/605197351a3c8bdd595af2d2a9bc3025bca48ea2/debian-openssl-3.0.x/schema-engine.gz.sha256 - 403 Forbidden
+
+  $ PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma generate --schema prisma/schema
+  Error: Failed to fetch the engine file at
+  https://binaries.prisma.sh/all_commits/605197351a3c8bdd595af2d2a9bc3025bca48ea2/debian-openssl-3.0.x/libquery_engine.so.node.gz - 403 Forbidden
+
+The SAME load failure hits the pre-existing M4-pattern integration suites on the
+UNTOUCHED tree (optimistic-lock-wf-f7, payment-closure-be, cert-issuance-atomicity-be-t1,
+… — 11 suites; see test-output.txt "clean-tree baseline"), so it is environmental
+and pre-existing, not introduced here.
+
+CONSEQUENCE, stated plainly (Law 3.2 / 3.8):
+  * NO claim is made that INVARIANT A0 clauses (1)(2)(3) were observed failing.
+  * The integration RED **and** GREEN for this PR count ONLY on a runner with a
+    generated Prisma client and a migrated Postgres (DATABASE_URL set).
+  * Without DATABASE_URL the suite self-skips (HAS_DB guard) — and a skip is NOT
+    a pass (R-R2-1). The gate is the runner, not this box.
+
+================= RAW OUTPUT (unedited, tail) =================
+FAIL __tests__/unit/application-status-writer-audit-default.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+
+Test Suites: 2 failed, 2 total
+Tests:       6 failed, 4 passed, 10 total
+Snapshots:   0 total
+Time:        1.109 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/application-status-writer-audit-default.test.js|__tests__\/integration\/status-writer-audit-default-invariant.test.js/i.
+
+(full 183-line stdout: red-raw-jest.txt)

@@ -1,0 +1,69 @@
+Transcript captured in-session (2026-08-07) at the INTERMEDIATE state of L-001, after the
+loader was deleted from apps/backend/services/working-days-service.js but while the replacement
+comments in that file, routes/api/system/system.js and routes/api/system/cron.js still spelled the
+env-var / systemConfig-row names verbatim.
+
+Command:
+  bash scripts/probes/holiday-single-source.sh
+  bash scripts/probes/ratchet.sh
+
+Output:
+
+FAIL: 2 holiday sources: /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/services/working-days-service.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/utils/working-days.js
+exit=1
+=== ratchet ===
+  dup [holiday-calendar] 4 sources: /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/services/working-days-service.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/utils/working-days.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/routes/api/system/cron.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/routes/api/system/system.js
+  dup [fee-table] 3 sources: /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/modules/billing/internal/fee-service.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/config/business-rules.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-aaf0f07dc6d0ee7bf/apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 168
+dup-source: 5
+dead-route: DRAFT (no mechanical counter yet)
+FAIL: ratchet increased: dup-source(5>4) — new debt is forbidden (CLAUDE.md 3.5/3.6)
+exit=1
+
+Reading:
+  The code duplication was ALREADY gone at this point — the loader, the env read and the
+  systemConfig read had all been deleted. dup-source still went UP (4 -> 5) and the probe still
+  FAILED, purely because three comments explaining the removal mentioned the token names.
+  The counters grep for token occurrences, not for declarations, so prose that documents
+  "do not bring the second source back" is charged as a second source.
+
+  Fixed here by rewriting the three comments to describe the removed inputs
+  ("an environment variable with a system-configuration row, both named in AUDIT_LEDGER.md
+  L-001") instead of naming them. The rationale is preserved; the exact identifiers now live
+  only in the ledger. Logged as a probe-design item in BACKLOG-FOUND.md — scripts/probes/ is
+  operator-owned (Law 3.12), so the pattern itself was not touched.
+
+────────────────────────────────────────────────────────────────────────────────
+SECOND OCCURRENCE — 2026-08-07, during the fix for review finding F3.
+
+F3 required correcting a comment in apps/backend/services/working-days-service.js that
+over-claimed what the guards catch. The corrected comment stated the guard's real scope by
+quoting the three identifiers it greps for. Writing that sentence — a comment, no code change —
+put the tokens back in the file and re-armed the trap:
+
+  $ node scripts/ci/probe-gate.js     (delegates to scripts/check-done.sh)
+  $ node -e '...print holiday-single-source + ratchet from evidence/probe-results.json...'
+  holiday-single-source => FAIL | FAIL: 2 holiday sources: apps/backend/services/working-days-service.js apps/backend/utils/working-days.js
+  ratchet => PASS |   dup [holiday-calendar] 2 sources: apps/backend/services/working-days-service.js apps/backend/utils/working-days.js   dup [fee-table] 3 sources: ...
+
+holiday-single-source: PASS -> FAIL, and dup-source 2 -> 3, from prose alone.
+
+Resolved the same way as the first occurrence: the comment now cites the identifiers BY LOCATION
+(scripts/probes/holiday-single-source.sh:5, scripts/probes/ssot-domains.txt:5) instead of quoting
+them, and says explicitly why. Re-verified after the rewrite:
+
+  $ bash scripts/probes/holiday-single-source.sh
+  PASS: single calendar source: .../apps/backend/utils/working-days.js
+  probe exit=0
+  $ bash scripts/probes/ratchet.sh
+  dup-source: 2
+  PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=168 dup-source=2
+
+Why this occurrence matters more than the first: the comment that tripped the guard was the
+comment DOCUMENTING THE GUARD'S LIMITS — required by a review finding. Under these patterns,
+accurately describing the guardrail is penalised by the guardrail. Any reviewer asking for
+precision about scope is asking for something the ratchet charges for. Filed against the probe
+patterns in BACKLOG-FOUND.md; scripts/probes/ is operator-owned (Law 3.12) so the patterns
+themselves were not touched.

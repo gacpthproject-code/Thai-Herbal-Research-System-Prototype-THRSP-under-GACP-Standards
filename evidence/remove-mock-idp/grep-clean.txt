@@ -1,0 +1,40 @@
+# Task 6 Step 3 — grep gate (spec 2026-08-14-remove-mock-idp-design.md §7.5)
+# run: 2026-08-14T13:45:53Z  HEAD=24e09fbe  branch=feat/remove-mock-idp
+
+== A. LITERAL command from plan Task 6 Step 3 ==
+$ grep -rn "mock-idp\|MOCK_KEY\|MOCK_FIXTURE_CODES\|resolveMockSession\|AUTH_MOCK_STATE\|hardNavigate" apps/ | grep -v node_modules || echo "CLEAN: no matches"
+apps/backend/config/auth-providers.js:14: *     spec docs/superpowers/specs/2026-08-14-remove-mock-idp-design.md §5)
+apps/backend/__tests__/unit/auth-idp-routes.test.js:243:     * spec §7.3 (docs/superpowers/specs/2026-08-14-remove-mock-idp-design.md:83) เขียนว่า
+apps/backend/__tests__/unit/auth-providers-config.test.js:11: *     spec docs/superpowers/specs/2026-08-14-remove-mock-idp-design.md §5)
+apps/backend/__tests__/unit/identity-provider-naming-collision.test.js:232: * คือ services/auth/idp/mock-idp-adapter.js:69 ซึ่งถูกลบไปพร้อม mock ⇒ ตอนนี้ SCAN_DIRS
+apps/backend/__tests__/unit/identity-provider-naming-collision.test.js:461:        // services/auth/idp/mock-idp-adapter.js:69 ซึ่งถูกลบพร้อม mock IdP 2026-08-14
+apps/backend/__tests__/unit/idp-adapter.test.js:18: * mock — ถูกลบพร้อม services/auth/idp/mock-idp-adapter.js เมื่อ 2026-08-14
+apps/backend/__tests__/unit/idp-adapter.test.js:20: * 2026-08-14-remove-mock-idp-design.md §2 + เกณฑ์ §3 "เทสพฤติกรรมเฉพาะ mock = ลบ")
+apps/backend/__tests__/unit/oauth-clientid-hardcode-guard.test.js:212:        // production source ('gacp-mock-idp-client'). That specimen was deleted
+
+== DEVIATION (reported, not hidden) ==
+The literal command returns 8 lines, not 0. Every one is prose in a comment, none is a
+live artifact:
+  - 7 lines are inside apps/backend/__tests__/ — spec §7.5 states the gate is 'outside
+    __tests__/jest doubles'; they are tombstone/history comments recording the deletion.
+  - 1 line is outside __tests__: apps/backend/config/auth-providers.js:14. Its 'mock-idp'
+    substring comes from the SPEC FILENAME it cites (2026-08-14-remove-mock-idp-design.md)
+    on a comment line that asserts the opposite of a mock existing:
+      'ไม่มี provider จำลองในทะเบียนนี้ ไม่ว่า environment ใด'
+    That file is out of scope for this task and is not edited.
+
+== B. GATE AS INTENDED (spec §7.5 carve-out + spec-filename citations excluded) ==
+$ grep -rn "<same pattern>" apps/ | grep -v node_modules | grep -v "/__tests__/" | grep -v "remove-mock-idp-design.md" || echo "CLEAN: no matches"
+CLEAN: no matches
+
+== C. NON-VACUITY: the same refined gate run against HEAD (pre-deletion tree) ==
+$ git grep -nE "<same pattern>" HEAD -- apps/ | grep -v "/__tests__/" | grep -v "remove-mock-idp-design.md"
+HEAD:apps/web-app/src/app/auth/mock-idp/authorize/page.tsx:4: * /auth/mock-idp/authorize — the mock IdP's consent screen.
+HEAD:apps/web-app/src/app/auth/mock-idp/authorize/page.tsx:8: * `/auth/mock-idp/authorize?...` (config/auth-providers.js MOCK_DEFAULTS), the
+HEAD:apps/web-app/src/app/auth/mock-idp/authorize/page.tsx:30: * (apps/backend/services/auth/idp/mock-idp-adapter.js:28 MOCK_FIXTURE_CODES).
+HEAD:apps/web-app/src/app/auth/mock-idp/authorize/page.tsx:43:    const redirectUri = params.get('redirect_uri') ?? '/auth/mock-idp/callback';
+HEAD:apps/web-app/src/app/auth/mock-idp/callback/page.tsx:4: * /auth/mock-idp/callback — where the mock IdP's redirect lands.
+HEAD:apps/web-app/src/app/auth/mock-idp/callback/page.tsx:15: * On success it hard-navigates (hardNavigate — a full page load, same
+HEAD:apps/web-app/src/app/auth/mock-idp/callback/page.tsx:27:import { hardNavigate } from '@/lib/navigation';
+HEAD:apps/web-app/src/app/auth/mock-idp/callback/page.tsx:56:                    hardNavigate(PROVIDER_DASHBOARD_ROUTE);
+HEAD:apps/web-app/src/lib/navigation.ts:12:export function hardNavigate(href: string): void {

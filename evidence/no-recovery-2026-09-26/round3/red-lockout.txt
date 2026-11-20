@@ -1,0 +1,260 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/staff-password-doors.test.js
+  directory doors never write a password
+    ○ skipped admin PUT a staff password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, hash unchanged
+    ○ skipped admin PUT a farmer password → 400, the farmer hash unchanged and the old password still works
+    ○ skipped a password riding along with a legitimate edit refuses the whole request (nothing written)
+    ○ skipped admin PUT their OWN password through the directory → 400 (own change needs the old password)
+    ○ skipped platform admin (cross-tenant) PUT a password → 400
+    ○ skipped PATCH carrying a password → 400 as well (the field used to be dropped silently)
+    ○ skipped control: an empty password string is "no password" — the edit goes through and the hash stays
+  directory mutations reach staff accounts only
+    ○ skipped PUT a farmer (no providerId) → 404, nothing written
+    ○ skipped PATCH a farmer → 404
+    ○ skipped DELETE a farmer → 404, the account is not deleted
+    ○ skipped an account with a providerId but the health role → 404
+    ○ skipped platform admin cannot reach a farmer either → 404
+    ○ skipped kept: cross-org staff → 404 for a dtam admin
+    ○ skipped kept: a non-admin caller → 403
+    ○ skipped control: PATCH a staff member in the same org still works
+  POST /api/auth/provider/change-password — staff change their own password
+    ○ skipped old + new → 200; the new password verifies, sessions revoked, audit written
+    ○ skipped changes only the caller: a userId in the body is ignored
+    ○ skipped wrong old password → the same 400 as the health door, hash unchanged
+    ○ skipped a weak new password → 400 VALIDATION_ERROR (the registration policy), hash unchanged
+    ○ skipped no old password → 400, hash unchanged
+    ○ skipped not signed in → 401
+  change-password counts failures per account (the login lockout)
+    ✕ provider: the 5th wrong current password locks the account for 15 minutes (87 ms)
+    ✕ health: the 5th wrong current password locks the account for 15 minutes (19 ms)
+    ✕ provider: while locked, even the right current password changes nothing (59 ms)
+    ✕ health: while locked, even the right current password changes nothing (25 ms)
+    ✕ provider: an expired lock clears itself and a right change resets the count (55 ms)
+    ✕ health: an expired lock clears itself and a right change resets the count (30 ms)
+    ✕ provider: a failed attempt is audited as FAILURE, with no password material (16 ms)
+    ✕ health: a failed attempt is audited as FAILURE, with no password material (65 ms)
+    ✕ the lock that locks the change door also locks sign-in (one counter, not two) (128 ms)
+  server.js mounts one change-password limiter on both doors, both prefixes
+    ✓ the limiter exists and counts failures only (5 ms)
+    ○ skipped mounted on /auth/health/change-password inside the prefix loop
+    ○ skipped mounted on /auth/provider/change-password inside the prefix loop
+
+  ● change-password counts failures per account (the login lockout) › provider: the 5th wrong current password locks the account for 15 minutes
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: undefined
+
+      373 |             expect(res.status).toBe(400);
+      374 |             expect(res.body.code).toBe('INVALID_CREDENTIALS');
+    > 375 |             expect(mockUsers.get(id).loginAttempts).toBe(i);
+          |                                                     ^
+      376 |         }
+      377 |         const fifth = await post(path, id, role, { oldPassword: 'Wrong#Pass5000', newPassword: NEW_PASSWORD });
+      378 |         expect(fifth.status).toBe(423);
+
+      at toBe (__tests__/unit/staff-password-doors.test.js:375:53)
+
+  ● change-password counts failures per account (the login lockout) › health: the 5th wrong current password locks the account for 15 minutes
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: undefined
+
+      373 |             expect(res.status).toBe(400);
+      374 |             expect(res.body.code).toBe('INVALID_CREDENTIALS');
+    > 375 |             expect(mockUsers.get(id).loginAttempts).toBe(i);
+          |                                                     ^
+      376 |         }
+      377 |         const fifth = await post(path, id, role, { oldPassword: 'Wrong#Pass5000', newPassword: NEW_PASSWORD });
+      378 |         expect(fifth.status).toBe(423);
+
+      at toBe (__tests__/unit/staff-password-doors.test.js:375:53)
+
+  ● change-password counts failures per account (the login lockout) › provider: while locked, even the right current password changes nothing
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 423
+    Received: 200
+
+      389 |         Object.assign(mockUsers.get(id), { loginAttempts: 5, isLocked: true, lockedUntil: new Date(Date.now() + 10 * 60000) });
+      390 |         const res = await post(path, id, role, { oldPassword: oldPw, newPassword: NEW_PASSWORD });
+    > 391 |         expect(res.status).toBe(423);
+          |                            ^
+      392 |         expect(res.body.code).toBe('ACCOUNT_LOCKED');
+      393 |         expect(mockUsers.get(id).password).toBe(before);
+      394 |     });
+
+      at toBe (__tests__/unit/staff-password-doors.test.js:391:28)
+
+  ● change-password counts failures per account (the login lockout) › health: while locked, even the right current password changes nothing
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 423
+    Received: 200
+
+      389 |         Object.assign(mockUsers.get(id), { loginAttempts: 5, isLocked: true, lockedUntil: new Date(Date.now() + 10 * 60000) });
+      390 |         const res = await post(path, id, role, { oldPassword: oldPw, newPassword: NEW_PASSWORD });
+    > 391 |         expect(res.status).toBe(423);
+          |                            ^
+      392 |         expect(res.body.code).toBe('ACCOUNT_LOCKED');
+      393 |         expect(mockUsers.get(id).password).toBe(before);
+      394 |     });
+
+      at toBe (__tests__/unit/staff-password-doors.test.js:391:28)
+
+  ● change-password counts failures per account (the login lockout) › provider: an expired lock clears itself and a right change resets the count
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  4
+    + Received  + 14
+
+    - ObjectContaining {
+    -   "isLocked": false,
+    -   "lockedUntil": null,
+    -   "loginAttempts": 0,
+    + Object {
+    +   "firstName": "สมชาย",
+    +   "healthId": null,
+    +   "id": "staff-1",
+    +   "isDeleted": false,
+    +   "isLocked": true,
+    +   "lockedUntil": 2026-09-26T10:35:16.095Z,
+    +   "loginAttempts": 5,
+    +   "organizationId": "org-1",
+    +   "password": "$2b$04$u6PF2evqxcl4cD0hYaZG3uDzfLU8DGFtL1MmadAvul7kIZWb84f9y",
+    +   "providerId": "2222222222222",
+    +   "role": "document_reviewer",
+    +   "sessionsRevokedAt": 2026-09-26T10:36:17.000Z,
+    +   "status": "ACTIVE",
+      }
+
+      400 |         const row = mockUsers.get(id);
+      401 |         expect(await bcrypt.compare(NEW_PASSWORD, row.password)).toBe(true);
+    > 402 |         expect(row).toEqual(expect.objectContaining({ loginAttempts: 0, isLocked: false, lockedUntil: null }));
+          |                     ^
+      403 |     });
+      404 |
+      405 |     test.each(doors)('%s: a failed attempt is audited as FAILURE, with no password material', async (_d, path, id, role, _pw, actorType) => {
+
+      at toEqual (__tests__/unit/staff-password-doors.test.js:402:21)
+
+  ● change-password counts failures per account (the login lockout) › health: an expired lock clears itself and a right change resets the count
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  4
+    + Received  + 14
+
+    - ObjectContaining {
+    -   "isLocked": false,
+    -   "lockedUntil": null,
+    -   "loginAttempts": 0,
+    + Object {
+    +   "firstName": "ชาวไร่",
+    +   "healthId": "4444444444444",
+    +   "id": "farmer-1",
+    +   "isDeleted": false,
+    +   "isLocked": true,
+    +   "lockedUntil": 2026-09-26T10:35:16.150Z,
+    +   "loginAttempts": 5,
+    +   "organizationId": "org-1",
+    +   "password": "$2b$04$t.TDU88PD5RhZ03p5GJaEOiGiZzTFY/zfiDrjr2j1iYNAPoyew2QK",
+    +   "providerId": null,
+    +   "role": "health",
+    +   "sessionsRevokedAt": 2026-09-26T10:36:17.000Z,
+    +   "status": "ACTIVE",
+      }
+
+      400 |         const row = mockUsers.get(id);
+      401 |         expect(await bcrypt.compare(NEW_PASSWORD, row.password)).toBe(true);
+    > 402 |         expect(row).toEqual(expect.objectContaining({ loginAttempts: 0, isLocked: false, lockedUntil: null }));
+          |                     ^
+      403 |     });
+      404 |
+      405 |     test.each(doors)('%s: a failed attempt is audited as FAILURE, with no password material', async (_d, path, id, role, _pw, actorType) => {
+
+      at toEqual (__tests__/unit/staff-password-doors.test.js:402:21)
+
+  ● change-password counts failures per account (the login lockout) › provider: a failed attempt is audited as FAILURE, with no password material
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      406 |         const wrong = 'Wrong#Secret9876';
+      407 |         await post(path, id, role, { oldPassword: wrong, newPassword: NEW_PASSWORD });
+    > 408 |         expect(mockLogAuth).toHaveBeenCalledTimes(1);
+          |                             ^
+      409 |         const call = mockLogAuth.mock.calls[0];
+      410 |         expect(call.slice(0, 4)).toEqual(['PASSWORD_CHANGE', id, actorType, 'FAILURE']);
+      411 |         expect(call[6]).toEqual({ reason: 'WRONG_CURRENT_PASSWORD', failedAttempts: 1 });
+
+      at toHaveBeenCalledTimes (__tests__/unit/staff-password-doors.test.js:408:29)
+
+  ● change-password counts failures per account (the login lockout) › health: a failed attempt is audited as FAILURE, with no password material
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      406 |         const wrong = 'Wrong#Secret9876';
+      407 |         await post(path, id, role, { oldPassword: wrong, newPassword: NEW_PASSWORD });
+    > 408 |         expect(mockLogAuth).toHaveBeenCalledTimes(1);
+          |                             ^
+      409 |         const call = mockLogAuth.mock.calls[0];
+      410 |         expect(call.slice(0, 4)).toEqual(['PASSWORD_CHANGE', id, actorType, 'FAILURE']);
+      411 |         expect(call[6]).toEqual({ reason: 'WRONG_CURRENT_PASSWORD', failedAttempts: 1 });
+
+      at toHaveBeenCalledTimes (__tests__/unit/staff-password-doors.test.js:408:29)
+
+  ● change-password counts failures per account (the login lockout) › the lock that locks the change door also locks sign-in (one counter, not two)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: undefined
+
+      423 |         const row = mockUsers.get('staff-1');
+      424 |         // The same three columns the provider login reads (auth-provider.js lockout check).
+    > 425 |         expect(row.isLocked).toBe(true);
+          |                              ^
+      426 |         expect(row.loginAttempts).toBe(5);
+      427 |         expect(new Date(row.lockedUntil).getTime()).toBeGreaterThan(Date.now());
+      428 |     });
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:425:30)
+
+Test Suites: 1 failed, 1 total
+Tests:       9 failed, 23 skipped, 1 passed, 33 total
+Snapshots:   0 total
+Time:        2.77 s
+Ran all test suites matching /__tests__\/unit\/staff-password-doors.test.js/i with tests matching "counts failures".

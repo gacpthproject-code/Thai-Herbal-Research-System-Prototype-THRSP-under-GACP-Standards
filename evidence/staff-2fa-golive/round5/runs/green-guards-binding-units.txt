@@ -1,0 +1,270 @@
+PASS __tests__/unit/disabled-account-cannot-hold-session.test.js
+  SECU-03 — password login refuses a disabled applicant
+    ✓ an applicant disabled by an admin cannot log back in with the correct password (23 ms)
+    ✓ status SUSPENDED is refused (7 ms)
+    ✓ status LOCKED is refused (6 ms)
+    ✓ status INACTIVE is refused (6 ms)
+    ✓ a soft-deleted account is refused even when its status still reads ACTIVE (6 ms)
+    ✓ a disabled account with 2FA enrolled is refused, not handed an MFA challenge (7 ms)
+    ✓ a wrong password on a disabled account still answers INVALID_CREDENTIALS (no status oracle) (31 ms)
+    ✓ a newly registered applicant (PENDING_VERIFICATION) still logs in (5 ms)
+    ✓ re-enabling the account lets the applicant log in again (6 ms)
+  SECU-03 — tokens issued before the account was disabled stop working
+    ✓ refresh token issued before disableUser is refused (session-epoch stamp) (6 ms)
+    ✓ refresh token is refused when the account was deactivated by a write that did not stamp the epoch (5 ms)
+    ✓ refresh token minted after the disable stamp is still refused while the account is disabled (3 ms)
+    ✓ refresh token of a PDPA-erased account (isDeleted, status untouched) is refused (4 ms)
+    ✓ an ACTIVE applicant can still refresh (5 ms)
+    ✓ a staff refresh token is refused at /refresh once the account is PENDING_VERIFICATION (2 ms)
+    ✓ an ACTIVE staff refresh token is refused too: staff sessions are never renewed (2 ms)
+    ✓ access token issued before disableUser is refused by authenticateHealth (5 ms)
+  SECU-03 — every access-token guard reads the owner's status itself
+    ✓ authenticateHealth refuses a token once the owner is SUSPENDED without an epoch stamp (3 ms)
+    ✓ authenticateProvider refuses a token once the owner is SUSPENDED without an epoch stamp (2 ms)
+    ✓ authenticateAny (staff token) refuses a token once the owner is SUSPENDED without an epoch stamp (2 ms)
+    ✓ authenticateAny (applicant token) refuses a token once the owner is SUSPENDED without an epoch stamp (2 ms)
+    ✓ authenticateHealth refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateProvider refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateAny (staff token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (1 ms)
+    ✓ authenticateAny (applicant token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateHealth refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateProvider refuses a token whose owner row no longer exists (1 ms)
+    ✓ authenticateAny (staff token) refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateAny (applicant token) refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateHealth still admits a legacy lowercase "active" status (2 ms)
+    ✓ authenticateProvider still admits a legacy lowercase "active" status (1 ms)
+    ✓ authenticateAny (staff token) still admits a legacy lowercase "active" status (2 ms)
+    ✓ authenticateAny (applicant token) still admits a legacy lowercase "active" status (1 ms)
+    ✓ authenticateHealth still admits a PENDING_VERIFICATION applicant (new registrations must log in) (2 ms)
+    ✓ authenticateAny (applicant token) still admits a PENDING_VERIFICATION applicant (new registrations must log in) (2 ms)
+    ✓ authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (2 ms)
+    ✓ authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (2 ms)
+    ✓ a database outage keeps the applicant keep-alive (status cannot be read, the token is not refused) (2 ms)
+  SECU-03 — MFA completion and the shared mint site refuse a disabled account
+    ✓ an MFA challenge issued before the disable cannot be completed into a session (3 ms)
+    ✓ an MFA challenge for an ACTIVE account still completes (3 ms)
+    ✓ a 2FA account whose legacy status reads lowercase "active" can complete MFA (4 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a disabled or deleted account (2 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a staff account that is not ACTIVE (2 ms)
+  SECU-03 — staff complete MFA only while ACTIVE (the staff login rule)
+    ✓ a staff challenge cannot complete once the account is PENDING_VERIFICATION (2 ms)
+    ✓ an ACTIVE staff challenge still completes into a provider session (2 ms)
+  SECU-03 — an MFA challenge minted before a session revocation cannot complete
+    ✓ a challenge minted before the owner changed the password is refused, before any code is checked (339 ms)
+    ✓ a challenge minted after the password change still completes (342 ms)
+  SECU-03 — a login that races the disable button yields nothing usable
+    ✓ password login: the token minted while disableUser ran is refused by the guards and by /refresh (6 ms)
+    ✓ MFA completion: the token minted while disableUser ran is refused by authenticateHealth (3 ms)
+PASS __tests__/unit/refresh-token-blocklist.test.js
+  [Sprint7] Refresh-Token Blocklist — service layer
+    ✓ blocklistRefreshToken writes under the RT: prefix (3 ms)
+    ✓ isRefreshTokenBlocklisted returns false when not present (1 ms)
+    ✓ isRefreshTokenBlocklisted returns true after blocklist write (1 ms)
+    ✓ isRefreshTokenBlocklisted returns false for empty/null jti (defensive) (1 ms)
+    ✓ isRefreshTokenBlocklisted fails CLOSED when the store is unavailable (1 ms)
+    ✓ access-token blocklist and refresh-token blocklist use SEPARATE namespaces (1 ms)
+  [Sprint7] Refresh-Token Blocklist — /refresh handler gate
+    ✓ rejects a blocklisted refresh token with 401 REFRESH_TOKEN_REVOKED (3 ms)
+    ✓ blocklists the OLD refresh-token JTI after a successful rotation (1 ms)
+    ✓ reuse detection: presenting a revoked RT invalidates the entire user session family (1 ms)
+    ✓ rejects refresh token with empty/missing jti claim (2 ms)
+    ✓ rejects refresh token with whitespace-only jti claim (1 ms)
+    ✓ allows refresh with a non-blocklisted jti (happy path regression guard) (1 ms)
+  [Sprint7] /refresh PII stripping (Issue A regression guard)
+    ✓ strips healthId/providerId from renewed access AND refresh tokens even if incoming RT has them (1 ms)
+    ✓ also strips PII when the incoming RT has only partial PII fields set (1 ms)
+  [Sprint7] invalidateSessionFamily — family-scoped (Issue B regression guard)
+    ✓ blocklists ONLY the given familyId, not all user RTs (1 ms)
+    ✓ writes the family blocklist entry under the family: prefix with a TTL (2 ms)
+    ✓ no-op on falsy familyId (defensive)
+    ✓ isSessionFamilyBlocklisted fails CLOSED when the store is unavailable
+    ✓ invalidateSessionFamily fails CLOSED — re-throws when Redis write fails (Sprint 7 follow-up) (1 ms)
+    ✓ invalidateSessionFamily still no-ops on falsy input even with the fail-closed change (1 ms)
+    ✓ /refresh rejects RT whose sessionFamilyId is family-blocklisted (sibling device protection) (1 ms)
+    ✓ /refresh: reuse-detection on RT with sessionFamilyId calls family-scoped invalidation (2 ms)
+    ✓ /refresh: fails CLOSED with 503 when invalidateSessionFamily throws (Redis write outage) (2 ms)
+    ✓ /refresh: backward-compat — RT without sessionFamilyId falls back to revokeAllUserTokens on reuse (12 ms)
+PASS __tests__/unit/mfa-setup-reenrol.test.js
+  enabled 2FA: /setup needs the current code
+    ✓ a session without a code cannot re-run setup — 401, the enabled factor is untouched (38 ms)
+    ✓ a wrong current code → 401, untouched (same verifier and answer as /disable) (11 ms)
+    ✓ the right current code starts a re-enrol with a new secret and new backup codes, but the old factor stays active until the new one is confirmed (10 ms)
+    ✓ verify-setup with a code from the NEW secret swaps the factor and the backup codes shown at /setup, in one service call that carries the audit event and the owner notice (22 ms)
+    ✓ verify-setup with a wrong code keeps the old factor (25 ms)
+    ✓ verify-setup with no re-enrol in progress changes nothing (8 ms)
+    ✓ the store for the pending secret is down → 503, nothing changed (9 ms)
+    ✓ the store goes down between /setup and /verify-setup → 503 at verify, the old factor stays (round 6: the attempt counter is a store write too) (14 ms)
+    ✓ a /setup that carries a code or a backup code goes through the MFA limiter (the one /disable uses) (13 ms)
+  order 89 ก: one backup code moves the factor to a new device
+    ✓ one unused backup code starts the move and is used up; the same code is refused the second time (13 ms)
+    ✓ a backup code is read with or without its dash (7 ms)
+    ✓ an unknown or non-string backup code is refused, counts in the limiter, and changes nothing (20 ms)
+    ✓ when the store is down the backup code is not used up (11 ms)
+    ✓ the move finishes only with the saved-codes confirmation, which spends no attempt, and the audit event and the notice name the backup-code method and a masked address (21 ms)
+  control: 2FA not enabled — first enrolment
+    ✓ /setup shows the backup codes once; /verify-setup enables only with the saved-codes confirmation, and nothing goes through the limiter (22 ms)
+    ✓ first enrolment never touches the pending store: it completes with the store down (14 ms)
+    ✓ the confirmation must be exactly true (23 ms)
+PASS __tests__/unit/mfa-reenrol-hardening.test.js
+  the reviewer's 40-guess case on /verify-setup
+    ✓ 40 wrong codes from 40 addresses: the pending secret is deleted after the 5th, and nothing is ever swapped (311 ms)
+    ✓ from ONE address the /disable limiter answers 429 after 5 attempts (86 ms)
+  the pending secret belongs to the session that started it
+    ✓ another session of the same user with a VALID code for the pending secret is refused, gets no backup codes (19 ms)
+    ✓ a session without a token id cannot finish a re-enrol (20 ms)
+  a successful re-enrol revokes the other sessions and keeps this one
+    ✓ sessionsRevokedAt is stamped, the refresh tokens are revoked, the caller gets a fresh cookie that survives the stamp (32 ms)
+  the pending secret is deleted when the account's security state changes
+    ✓ DELETE /api/mfa/disable (23 ms)
+    ✓ password change (the function behind both change-password doors) (22 ms)
+    ✓ logout (the session revocation both logout doors run) (30 ms)
+    ✓ revoke all of the account's sessions (14 ms)
+  parallel wrong codes: at most 5 checks against the pending secret in total
+    ✓ k=5 parallel guesses per round, each from its own address (49 ms)
+    ✓ k=20 parallel guesses per round, each from its own address (134 ms)
+PASS __tests__/unit/session-epoch-refresh.test.js
+  [BE-AUTH-03-03] /refresh session-epoch gate
+    ✓ (a) rejects an RT whose iat predates sessionsRevokedAt → 401 REFRESH_TOKEN_REVOKED (3 ms)
+    ✓ (b) allows an RT whose iat is AFTER sessionsRevokedAt (post-change re-login) → mints (1 ms)
+    ✓ (b2) allows an RT when sessionsRevokedAt is NULL (never changed password) → mints (1 ms)
+    ✓ (d) fail-CLOSED: user re-fetch returns null → no mint (401) (1 ms)
+    ✓ (d2) fail-CLOSED: user re-fetch THROWS → no mint (401/503) (1 ms)
+  [BE-AUTH-03-03] password-management stamps sessionsRevokedAt
+    ✓ (c) changePassword sets sessionsRevokedAt on the update (3 ms)
+  round 3 (review I4): /refresh judges the role the database holds
+    ✓ (e) a refresh token naming a staff account is refused 401 REFRESH_NOT_FOR_STAFF, with no epoch set (2 ms)
+    ✓ (f) the renewed tokens carry the role from the database row, not the role the old token claimed (7 ms)
+PASS __tests__/unit/closing-review-fixes.test.js
+  [ClosingReview] NEW-1: twoFactor schema field names
+    ✓ pdpa-retention-job.js writes twoFactorSecret (not mfaSecret) (3 ms)
+    ✓ auth-session-security-handlers.js deleteMe writes twoFactorSecret (not mfaSecret) (1 ms)
+    ✓ prisma-auth-service.js login() reads twoFactorEnabled (with mfaEnabled legacy fallback) (1 ms)
+  [ClosingReview] NEW-2: actorIdentity healthId leak sweep
+    ✓ routes/api/cultivation/harvest-batches.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/auditor-audit-decision-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/auditor-inspection-start-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js masks healthId in actorIdentity field (2 ms)
+    ✓ routes/api/provider/handlers/workflow-revision-expirations-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/workflow-side-effects.js masks healthId in actorIdentity field (1 ms)
+    ✓ repo-wide sweep: no raw healthId write to actorIdentity field remains (2 ms)
+  [ClosingReview] NEW-5: mfa.js routes use canonical twoFactor* columns
+    ✓ POST /setup writes twoFactorSecret + twoFactorEnabled (not mfa*) (1 ms)
+    ✓ POST /verify-setup reads twoFactorSecret and writes twoFactorEnabled/twoFactorBackupCodes as a native array (1 ms)
+    ✓ POST /verify selects canonical twoFactor* trio in the user lookup (1 ms)
+    ✓ DELETE /disable writes twoFactorEnabled: false + nulls canonical columns
+    ✓ No live code references the broken mfaSecret/mfaBackupCodes column names
+  [ClosingReview] NEW-6: admin status override is transactional with audit
+    ✓ wraps application.update + audit write in prisma.$transaction (1 ms)
+    ✓ no longer uses the best-effort try/catch audit pattern (1 ms)
+    ✓ retries the whole transaction on audit P2002 sequence conflicts (1 ms)
+  [ClosingReview] NEW-4: applications.js duplicate logger cleanup
+    ✓ no duplicate logger.error calls in catch blocks (3 ms)
+PASS __tests__/integration/mfa-roundtrip.test.js
+  [Tier 5] MFA HTTP round-trip integration
+    ✓ POST /setup issues a TOTP secret + QR URI and stores secret with enabled:false (20 ms)
+    ✓ POST /verify-setup with invalid TOTP returns 400, leaves twoFactorEnabled:false (8 ms)
+    ✓ POST /verify-setup with valid TOTP and the saved-codes confirmation enables MFA; the codes were shown once at /setup (8 ms)
+    ✓ POST /verify-setup without the saved-codes confirmation is refused and enables nothing (order 89 ก1) (7 ms)
+    ✓ DELETE /disable with valid TOTP nulls twoFactorSecret + twoFactorBackupCodes + sets twoFactorEnabled:false (7 ms)
+    ✓ DELETE /disable with invalid TOTP returns 401 and does NOT touch the MFA state (7 ms)
+PASS __tests__/unit/a-locked-out-officer-can-still-enrol.test.js
+  ประตูลงทะเบียน MFA
+    ✓ รับตั๋วที่ประตูล็อกอินเพิ่งยื่นให้ — ไม่งั้นทางออกไม่มีอยู่จริง (2 ms)
+    ✓ ตั๋วของ MFA challenge ใช้ที่นี่ไม่ได้ — คนละเรื่องกับการลงทะเบียน (54 ms)
+    ✓ ไม่มีตั๋วเลย = ไม่ผ่าน (1 ms)
+    ✓ ตั๋วชี้ไปยังบัญชีที่ไม่มีอยู่ = ไม่ผ่าน (2 ms)
+    ✓ สองประตูของการลงทะเบียนใช้ยามตัวนี้ ไม่ใช่ยามของ session (1 ms)
+    ✓ ยามของ session ยังปฏิเสธตั๋วเฉพาะกิจเหมือนเดิม — ช่องข้าม 2FA ต้องปิดอยู่ (1 ms)
+  รอบ 3 (I3): ยามของตั๋วอ่านเฉพาะตั๋ว และตรวจเหมือนยามของ session
+    ✓ อายุตั๋วเป็นค่าคงที่ตัวเดียว 15 นาที ที่ประตูล็อกอินใช้ (2 ms)
+    ✓ ตั๋วหมดอายุ → 401 MFA_SETUP_TICKET_EXPIRED พร้อมประโยคไทยว่าหมดเวลาและให้เข้าสู่ระบบใหม่ ไม่ใช่ว่ารหัสผิด (3 ms)
+    ✓ ตั๋วที่ออกก่อน epoch ของบัญชี (ปิดใช้งาน ล้าง 2FA เปลี่ยนรหัสผ่าน) → 401 TOKEN_REVOKED (1 ms)
+    ✓ บัญชีที่ใช้งานไม่ได้ลงทะเบียนไม่ได้ แม้ตั๋วยังไม่หมดอายุ (2 ms)
+    ✓ jti ที่ถูก blocklist (ออกจากระบบแล้ว) → 401 TOKEN_REVOKED (1 ms)
+    ✓ ตั๋วใน Authorization ชนะคุกกี้ provider_token ที่ค้างอยู่ของบัญชีอื่น (1 ms)
+PASS __tests__/unit/second-factor-doors.test.js
+  no door clears another account's second factor
+    ✓ POST /api/admin/users/farmer-1/force-reset-mfa reaches no route; 2FA intact (14 ms)
+    ✓ POST /api/admin/users/staff-1/force-reset-mfa reaches no route; 2FA intact (8 ms)
+    ✓ POST /api/provider/directory/staff-1/disable-2fa reaches no route; 2FA intact (0) (7 ms)
+    ✓ POST /api/provider/directory/staff-1/disable-2fa reaches no route; 2FA intact (1) (7 ms)
+    ✓ an admin cannot use the directory door on their own account either (6 ms)
+    ✓ control: the directory router still answers its kept lifecycle action (unlock) (8 ms)
+  control: the owner still turns off their OWN 2FA with a code from their own app
+    ✓ DELETE /api/mfa/disable as staff-1 with a valid TOTP → 200, 2FA off, audit MFA_DISABLED (15 ms)
+    ✓ DELETE /api/mfa/disable as farmer-1 with a valid TOTP → 200, 2FA off, audit MFA_DISABLED (8 ms)
+    ✓ a wrong code is refused and nothing changes (6 ms)
+    ✓ it acts on the caller only: a code from another account's app does not work (7 ms)
+PASS __tests__/unit/the-enrolment-loop-closes-end-to-end.test.js
+  วงลงทะเบียน MFA ต้องปิดครบวง
+    ✓ ตั๋วที่ประตูล็อกอินยื่นให้ เปิด /mfa/setup ได้ และได้ secret + QR + รหัสสำรอง 10 รหัสกลับมา (26 ms)
+    ✓ รหัส 6 หลักที่คิดจาก secret นั้น พร้อมคำยืนยันว่าบันทึกรหัสสำรองแล้ว ผ่าน /mfa/verify-setup ด้วยตั๋วใบเดิม (21 ms)
+    ✓ ไม่มีคำยืนยันว่าบันทึกรหัสสำรองแล้ว → 400 และยังไม่เปิด (คำสั่ง 89 ก1) (13 ms)
+    ✓ รหัสผิดยังถูกปฏิเสธ — ตั๋วเปิดประตูได้ ไม่ได้แปลว่าผ่านโดยไม่ต้องพิสูจน์ (13 ms)
+    ✓ ตั๋วของ MFA challenge เปิดประตูลงทะเบียนไม่ได้ (7 ms)
+PASS __tests__/unit/notification-preferences-service.test.js
+  normalize
+    ✓ returns empty channels for null/undefined input (2 ms)
+    ✓ drops legacy email/sms keys plus any other unknown key (channel concept removed — in-app only) (1 ms)
+    ✓ drops non-boolean channel values
+  getPrefs
+    ✓ returns empty channels for unknown user, and still names the always-on types for the screen (1 ms)
+    ✓ returns normalized notificationSettings (in-app only) (1 ms)
+    ✓ legacy-shaped stored value (email/sms only, no inApp ever written) does not crash — normalizes to empty entry (1 ms)
+  updatePrefs
+    ✓ writes normalized JSON (in-app only — email/sms are dropped on write) (1 ms)
+  isAllowed
+    ✓ default-allow when no settings (1 ms)
+    ✓ default-allow when type missing (1 ms)
+    ✓ default-allow when channel missing for the type (1 ms)
+    ✓ returns false when explicitly opted out (1 ms)
+    ✓ falls back to DB lookup when only userId is given (1 ms)
+    ✓ returns true when channel is unknown (1 ms)
+    ✓ email/sms channels no longer supported — always default-allow, even when the legacy value says opted-out (1 ms)
+PASS __tests__/integration/mfa-verify-guards.test.js
+  MFA /verify guards (PR6 hardening)
+    ✓ happy path: valid TOTP + fresh jti → 200, token issued, jti claimed (61 ms)
+    ✓ M-2 replay: jti already used (setNX false + get truthy) → 401 MFA_CHALLENGE_REUSED, no token (10 ms)
+    ✓ M-2 fail-open: Redis down (setNX false + get null) → 200, proceeds (10 ms)
+    ✓ null-secret guard: TOTP-routed user with no secret → 400 MFA_METHOD_MISMATCH (not 500) (9 ms)
+    ✓ type-guard: non-string code → 400 (not a 500 from .replace/verifyTOTP) (9 ms)
+    ✓ type-guard: non-string mfa_session → 400 (9 ms)
+PASS __tests__/integration/mfa-challenge-binding.test.js
+  AUTH-5 — MFA challenge IP/UA binding
+    ✓ same IP + UA → binding passes (falls through to "code required") (20 ms)
+    ✓ different IP → 401 MFA_CHALLENGE_BINDING_MISMATCH (9 ms)
+    ✓ different User-Agent → 401 MFA_CHALLENGE_BINDING_MISMATCH (8 ms)
+    ✓ legacy token without a bind claim is allowed through (5-min grace) (9 ms)
+    ✓ MFA_CHALLENGE_BIND_ENFORCE=false → mismatch is allowed (monitor mode) (7 ms)
+    computeMfaChallengeBinding
+      ✓ is deterministic and changes when IP or User-Agent changes (2 ms)
+PASS __tests__/unit/staff-2fa-emergency-reset-refuses.test.js
+  order 89 ข: the emergency reset refuses before it clears
+    ✓ goes only for a staff account with 2FA on and no unused backup code, asked by an active admin of its side (2 ms)
+    ✓ refuses when the flag is off (1 ms)
+    ✓ refuses when the flag is unset (1 ms)
+    ✓ refuses when the target does not exist (1 ms)
+    ✓ refuses when the target is deleted
+    ✓ refuses when the target is an applicant (1 ms)
+    ✓ refuses when the requester does not exist (1 ms)
+    ✓ refuses when the requester is not active
+    ✓ refuses when the requester is not an admin (1 ms)
+    ✓ refuses when the requester is the admin of the other side (1 ms)
+    ✓ refuses when the requester is the target itself (review L2)
+    ✓ refuses when the DTAM admin is of another organization (1 ms)
+    ✓ refuses when the target has no 2FA (1 ms)
+    ✓ refuses when the target is on the retired EMAIL method
+    ✓ refuses when the target still has an unused backup code (1 ms)
+    ✓ refuses when the target holds its codes as a JSON string (1 ms)
+    ✓ parseArgs needs all four inputs and nothing else (1 ms)
+PASS __tests__/unit/staff-mint-boundary-forces-second-factor.test.js
+  the central issuer enforces the staff second-factor flag
+    ✓ flag on: a staff account without a usable second factor gets no token, with its own error code (2 ms)
+    ✓ flag on: an enrolled staff account is still sent to the challenge, and an applicant still gets tokens (3 ms)
+    ✓ flag off: a staff account without a second factor keeps today's behaviour (2 ms)
+Test Suites: 15 passed, 15 total
+Tests:       207 passed, 207 total
+Snapshots:   0 total
+Time:        9.829 s
+Ran all test suites matching __tests__/integration/mfa-verify-guards.test.js|__tests__/integration/mfa-challenge-binding.test.js|__tests__/unit/a-locked-out-officer-can-still-enrol.test.js|__tests__/unit/staff-2fa-emergency-reset-refuses.test.js|__tests__/unit/session-epoch-refresh.test.js|__tests__/unit/staff-mint-boundary-forces-second-factor.test.js|__tests__/unit/mfa-setup-reenrol.test.js|__tests__/unit/mfa-reenrol-hardening.test.js|__tests__/unit/the-enrolment-loop-closes-end-to-end.test.js|__tests__/unit/second-factor-doors.test.js|__tests__/integration/mfa-roundtrip.test.js|__tests__/unit/notification-preferences-service.test.js|__tests__/unit/refresh-token-blocklist.test.js|__tests__/unit/disabled-account-cannot-hold-session.test.js|__tests__/unit/closing-review-fixes.test.js.
+jest exit 0

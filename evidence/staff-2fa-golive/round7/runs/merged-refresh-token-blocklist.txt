@@ -1,0 +1,35 @@
+PASS __tests__/unit/refresh-token-blocklist.test.js
+  [Sprint7] Refresh-Token Blocklist — service layer
+    ✓ blocklistRefreshToken writes under the RT: prefix (5 ms)
+    ✓ isRefreshTokenBlocklisted returns false when not present (2 ms)
+    ✓ isRefreshTokenBlocklisted returns true after blocklist write (2 ms)
+    ✓ isRefreshTokenBlocklisted returns false for empty/null jti (defensive) (2 ms)
+    ✓ isRefreshTokenBlocklisted fails CLOSED when the store is unavailable (2 ms)
+    ✓ access-token blocklist and refresh-token blocklist use SEPARATE namespaces (1 ms)
+  [Sprint7] Refresh-Token Blocklist — /refresh handler gate
+    ✓ rejects a blocklisted refresh token with 401 REFRESH_TOKEN_REVOKED (13 ms)
+    ✓ blocklists the OLD refresh-token JTI after a successful rotation (3 ms)
+    ✓ reuse detection: presenting a revoked RT invalidates the entire user session family (3 ms)
+    ✓ rejects refresh token with empty/missing jti claim (2 ms)
+    ✓ rejects refresh token with whitespace-only jti claim (1 ms)
+    ✓ allows refresh with a non-blocklisted jti (happy path regression guard) (2 ms)
+  [Sprint7] /refresh PII stripping (Issue A regression guard)
+    ✓ strips healthId/providerId from renewed access AND refresh tokens even if incoming RT has them (3 ms)
+    ✓ also strips PII when the incoming RT has only partial PII fields set (2 ms)
+  [Sprint7] invalidateSessionFamily — family-scoped (Issue B regression guard)
+    ✓ blocklists ONLY the given familyId, not all user RTs (2 ms)
+    ✓ writes the family blocklist entry under the family: prefix with a TTL (2 ms)
+    ✓ no-op on falsy familyId (defensive) (1 ms)
+    ✓ isSessionFamilyBlocklisted fails CLOSED when the store is unavailable (2 ms)
+    ✓ invalidateSessionFamily fails CLOSED — re-throws when Redis write fails (Sprint 7 follow-up) (1 ms)
+    ✓ invalidateSessionFamily still no-ops on falsy input even with the fail-closed change (2 ms)
+    ✓ /refresh rejects RT whose sessionFamilyId is family-blocklisted (sibling device protection) (2 ms)
+    ✓ /refresh: reuse-detection on RT with sessionFamilyId calls family-scoped invalidation (2 ms)
+    ✓ /refresh: fails CLOSED with 503 when invalidateSessionFamily throws (Redis write outage) (2 ms)
+    ✓ /refresh: backward-compat — RT without sessionFamilyId falls back to revokeAllUserTokens on reuse (2 ms)
+Test Suites: 1 passed, 1 total
+Tests:       24 passed, 24 total
+Snapshots:   0 total
+Time:        0.557 s, estimated 1 s
+Ran all test suites matching __tests__/unit/refresh-token-blocklist.test.js.
+jest exit 0

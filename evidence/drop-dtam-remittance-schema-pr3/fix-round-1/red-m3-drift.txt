@@ -1,0 +1,25 @@
+RED m3 — real Postgres 17 scratch (127.0.0.1:5443, random password not printed) · code 089d2ac5 + new drift cases only · node v24.21.0 · NODE_OPTIONS unset
+cmd: npx jest --config jest.config.cjs __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js -i
+      ✓ ตัวตรวจก่อน deploy: exit 1 พร้อมตัวเลขต่อสถานะ และไม่พิมพ์รหัสผ่านฐาน (154 ms)
+      ✓ migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย (684 ms)
+      ✓ หลังถูกปฏิเสธ: migrate resolve --rolled-back แล้วแก้แถวที่ขวาง → deploy ซ้ำผ่าน (2358 ms)
+      ✕ ตัวตรวจก่อน deploy: exit 1 พร้อมเหตุผลที่มีชื่อ ไม่ใช่ SAFE_TO_DROP (158 ms)
+      ✕ migrate deploy ถูกปฏิเสธด้วยข้อความที่มีชื่อพร้อมจำนวน (ไม่ใช่ constraint error ดิบ) และไม่มีอะไรถูกดรอป (693 ms)
+      ✓ ตัวตรวจก่อน deploy: exit 0 (142 ms)
+      ✓ migrate deploy ผ่าน: ตารางและคอลัมน์หาย, CHECK ใหม่อยู่, แถวเก่ายังอยู่และยอดไม่ถูกแตะ (807 ms)
+      ✓ CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้ (46 ms)
+      ✓ mint + settle ใหม่ทั้งเส้นบนคำขอเดียวกับ order เก่า: ลง 1110-001 / 4110-001 / 2131-001 เท่านั้น (320 ms)
+      ✓ หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้ (980 ms)
+Tests:       2 failed, 8 passed, 10 total
+
+drifted DB (old total CHECK dropped; SETTLED row dtam=0, gross 885, total 5885):
+- preflight answered:
+    - Expected  - 2
+    + Received  + 2
+    -   "status": 1,
+    -   "verdict": "BLOCKED",
+    +   "status": 0,
+    +   "verdict": "SAFE_TO_DROP",
+- migrate deploy answered a raw P3018:
+    Error: P3018·
+    ERROR: check constraint \"checkout_orders_total_arithmetic_check\" of relation \"checkout_orders\" is violated by some row·

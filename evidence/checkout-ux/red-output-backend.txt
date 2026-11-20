@@ -1,0 +1,78 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+FAIL __tests__/unit/quotation-api-renders-the-row.test.js
+  buildQuotationLineItemsFromRow — the stored row, never a recompute
+    ✓ line items come from the stored installments, at the row scopeCount (5 ms)
+    ✓ a row written under the retired VAT base renders THAT row, not the current formula (1 ms)
+    ✓ a 3-scope row splits the stored totals across the three methods, summing back exactly (2 ms)
+    ✓ an accepted row renders its FROZEN snapshot, even if the installments were later touched (1 ms)
+    ✓ each pre-W14 card shows ITS OWN money, and its lines sum to its own total (2 ms)
+    ✓ the VAT column no longer branches on the issuer — no side is exempt (1 ms)
+    ✓ a pre-GAP-5 row falls back to its `amount`, never to a row of zeros (2 ms)
+    ✓ a frozen snapshot of a pre-W14 side renders the frozen `amount`, not the full-phase split (1 ms)
+  GET /api/applications/:id/quotations — the API renders the row
+    ✓ serves only the company row — the ministry card is gone from the response (51 ms)
+    ✓ renders the FROZEN snapshot of an accepted row, not the row installments that followed it (10 ms)
+    ✕ carries the applicationNumber the select already reads — no second source (27 ms)
+  POST /api/applications/:id/quotations/:issuerType/accept — freezes the row
+    ✓ stores the snapshot built from THAT row, with its hash (17 ms)
+    ✓ REFUSES a pre-GAP-5 row with the catalogued SNAPSHOT_REQUIRED copy, and writes nothing (9 ms)
+    ✓ answers the snapshot refusal as a 409, not a 500 (7 ms)
+    ✓ REFUSES a lapsed offer with the catalogued QUOTATION_EXPIRED copy, and writes nothing (9 ms)
+  GET /:issuerType/pdf — the document is the row
+    ✓ prints the W14 row figures for phase 1 (5,885 per scope, not the platform-only 885) (159 ms)
+    ✓ REFUSES phase 1 of a renewal quotation instead of printing a 0.00 numbered document (9 ms)
+  buildQuotationLineItemsFromRow — a revision cannot move the row (N1)
+    ✓ accepted at 3 methods, revised to 1: three lines summing to the row total (1 ms)
+    ✓ accepted at 1 method, revised to 3: one line summing to the row total (1 ms)
+  GET /api/applications/:id/quotations — the scope mismatch is declared (N1)
+    ✓ flags the row priced for three methods under an application now naming one (32 ms)
+    ✓ flags the row priced for one method under an application now naming three (7 ms)
+    ✓ no mismatch when the counts agree: per-method labels, flag false (8 ms)
+  GET /:issuerType/pdf — the document keeps the row line count (N1)
+    ✓ prints the ROW`s three scopes and its phase-1 figure when the application names one method (178 ms)
+    ✓ prints the ROW`s ONE scope and its phase-1 figure when the application names three (173 ms)
+
+  ● GET /api/applications/:id/quotations — the API renders the row › carries the applicationNumber the select already reads — no second source
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "GACP-TH-2569-000123"
+    Received: undefined
+
+      352 |
+      353 |         expect(res.status).toBe(200);
+    > 354 |         expect(res.body.data.applicationNumber).toBe('GACP-TH-2569-000123');
+          |                                                 ^
+      355 |     });
+      356 | });
+      357 |
+
+      at Object.toBe (__tests__/unit/quotation-api-renders-the-row.test.js:354:49)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 23 passed, 24 total
+Snapshots:   0 total
+Time:        1.473 s, estimated 6 s
+Ran all test suites matching __tests__/unit/quotation-api-renders-the-row.test.js.

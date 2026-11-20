@@ -1,0 +1,24 @@
+╔══════════════════════════════════════════════╗
+║     Enforcement Guardrails — CI Check        ║
+╚══════════════════════════════════════════════╝
+
+G-01: No localStorage auth in provider/admin pages (209 files searched)
+G-02: No raw fetch with Bearer + localStorage (1058 files searched)
+G-03: No duplicate role alias maps (3170 files searched)
+G-04: Schema single source (31 .prisma files, all under apps/backend/prisma/schema/)
+G-04b: No --schema pointing at the deleted schema.prisma (6046 files searched)
+   The schema is the folder apps/backend/prisma/schema/. Pass --schema prisma/schema (relative to apps/backend) — apps/backend/prisma/schema.prisma does not exist and G-04 forbids recreating it.
+   → scripts/probes/probe-registry.txt:31:schema-arg-resolves    | ci     | -                 | -        | Part 5a 2026-08-26 — ทุก `--schema` ที่ส่งให้คำสั่ง Prisma ต้องชี้ path ที่มีอยู่จริง · RED พิสูจน์บนไฟล์จริง: คืนค่า .github/workflows/production.yml:279 เป็น `--schema prisma/schema.prisma` (ค่าที่มันถืออยู่หลายเดือนหลัง schema กลายเป็น prismaSchemaFolder เมื่อ 2026-03-12, commit 3120e673) → probe แดงพร้อมชี้ production.yml:279; คืนไฟล์กลับแล้ว PASS 40 argument · --selftest 12/12 ทั้งสองทิศ (4 เคส path พังใน workflow/Dockerfile/package.json/runbook, เคส `..` หลุดออกนอก repo, และเคสเขียวของ pg_dump --schema=public, `bq show --schema`, ร้อยแก้ว, และรูปแบบ relative ของ apps/web-app/Dockerfile) · static ล้วน ไม่ต้องมี DB/network/prisma binary · เสริม scripts/ci/check-enforcement-guardrails.js:148 (G-04b) ที่เป็น denylist ของชื่อไฟล์ตายตัวเดียว และเสียบไว้เฉพาะใน .github/workflows/ci.yml:342 ซึ่งไม่รันอีกแล้วตั้งแต่ปิด hosted Actions 2026-08-14 · แถวนี้ไม่ได้ให้ cover ใดๆ (run=ci, ไม่มี waiver) จึงไม่ต้องมีลายเซ็น operator — agent เป็นคนเติม
+   → scripts/probes/schema-arg-resolves.sh:7:#     prisma migrate deploy --schema prisma/schema.prisma
+   → scripts/probes/schema-arg-resolves.sh:179:              "cd /app/apps/backend && pnpm exec prisma migrate deploy --schema prisma/schema.prisma"
+   → scripts/probes/schema-arg-resolves.sh:199:    printf 'Run:\n\n    pnpm --dir apps/backend exec prisma migrate status --schema prisma/schema.prisma\n' \
+   → scripts/probes/schema-arg-resolves.sh:236:    printf 'run: sh -lc "prisma migrate deploy --schema prisma/schema.prisma"\n' \
+   → scripts/probes/schema-arg-resolves.sh:259:    printf 'run: prisma migrate deploy --schema /app/apps/backend/prisma/schema.prisma\n' \
+
+G-05: No direct req.user._id usage (use req.user.id) (1662 files searched)
+G-06: Prisma schema validates
+G-07: No token in provider login response body (1 file searched)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Results: 7 passed, 1 failed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

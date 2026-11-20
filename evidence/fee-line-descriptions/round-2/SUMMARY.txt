@@ -1,0 +1,25 @@
+fix/fee-line-descriptions — round 2 (operator 2026-10-03 "fix what needs fixing now")
+
+RED (before the fix): red-output-backend.txt (notes 6 failed: coverage missing; guard 1 failed: 129 retired-variant
+  hits), red-output-web.txt (milestoneLabelTh renewal + checkout renewal: 2 failed), red-output-guard-templates.txt
+  (credit/debit-note "ค่าบริการแพลตฟอร์ม (" 2 hits). Pins green from birth: checkout new-filing M2 keeps its name;
+  the two notes-ForDocument select cases.
+
+Fixed:
+ 1. Credit/debit notes: line = catalogue name + coverage under it, renewal-aware (the PDF read already selects
+    originalInvoice.application formData; the round-1 backlog claim about credit-note-service.js:430 was wrong —
+    that is the issue path, not the render). Subtotal row "ค่าบริการแพลตฟอร์ม (ลด/เพิ่มยอด…)" -> "ค่าบริการ (…)".
+ 2. milestoneLabelTh(m, services); checkout reads copy.services: a renewal M2 reads "ค่าบริการต่ออายุใบรับรอง".
+    Row heading "งวดที่ต้องชำระ" -> "รายการที่ต้องชำระ".
+ 3. Status/button/badge/notification copy: catalogue name, the name without "งวดที่ N", or "ชำระงวดที่ N".
+    Pay buttons on the detail page use "ชำระงวดที่ N" (the long form overflowed at 390 px — measured, fixed,
+    re-measured: no overflow, *-390-*.json). Preview summary no longer splits state/platform rows (same totals).
+    Mobile stage labels kept in parity. Guard +28 variants.
+ 4. gitleaks false positive: prop amountKey -> amountField (squashed into the round-1 commit; see below).
+
+Amounts: amounts-before-after-notes.txt — credit renewal, debit renewal, credit phase 2: every figure (Arabic +
+  Thai digits) and amount in words IDENTICAL to base 31dd3196. Round-1 documents untouched this round.
+View: notes-after/*-1.png, detail-{doc,audit}-fee-{390,1280}-{light,dark}.png, checkout-renewal-*.png (opened).
+Tests: backend full suite on scratch postgres:17 :55444 — 11 failed / 967 passed suites, 33 failed tests, all
+  failing on base too (0 new); 54 skipped = the same two pre-existing skips. Container removed.
+  Web 449 suites / 3706 tests pass, 0 skipped; tsc exit 0.

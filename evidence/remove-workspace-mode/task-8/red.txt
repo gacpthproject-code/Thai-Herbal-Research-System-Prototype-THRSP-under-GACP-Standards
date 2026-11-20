@@ -1,0 +1,128 @@
+# Task 8 RED — 2026-10-03T05:45:36Z · branch feat/remove-workspace-mode @ f5b92ad8 (tests only, no implementation)
+# Postgres 17 throwaway on :55436 (ws-pg-55436), prisma migrate deploy, jest -i, witness THROW (NODE_ENV=test)
+# files: __tests__/integration/holder-scope-real-postgres.test.js · __tests__/unit/entities-mine-can-flags.test.js
+
+    ✓ the witness runs in THROW mode for this file (4 ms)
+    ✕ case 6: A /prepare on D with body entityId PA → D.entityId still C, body entityId stripped (97 ms)
+    ✓ case 6b: A /prepare on D acting on PA (no header) → 404, D still held by C and unchanged (52 ms)
+    ✕ case 7: create with entityId C by S → 403 ENTITY_PERMISSION_DENIED, nothing created (73 ms)
+    ✕ case 7: create with entityId C by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED, nothing created (42 ms)
+    ✕ case 7: no entityId → 400 APPLICATION_HOLDER_REQUIRED with the spec copy, nothing created (33 ms)
+    ✕ a draft-document upload with no id and no entityId → 400 APPLICATION_HOLDER_REQUIRED, nothing created (285 ms)
+    ✕ created draft has formData.applicantType = Entity.type; body applicantType ignored (66 ms)
+    ✕ /prepare cannot rewrite applicantType (35 ms)
+    ✕ GET /draft-documents without applicationId → 400; missing draft → 404; no row created (27 ms)
+    ✕ GET /draft-documents for a user with no draft at all → 400, nothing minted (33 ms)
+    ✕ GET /draft without id returns latest open draft with submitterId = me and holder in editIds (70 ms)
+    ✕ ordered save: a holder outside editIds → 404 under the lock, nothing written (10 ms)
+    ✓ case 8b: A REVOKED on C → POST /draft {applicationId: D} → 404, applications count unchanged (34 ms)
+    ✕ OWNER {edit,submit,createFarm} = {true,true,true} (14 ms)
+    ✕ MANAGER = {true,false,false} (8 ms)
+    ✕ VIEWER = {false,false,false} (23 ms)
+    ✕ MANAGER with a SUBMIT_APPLICATION GRANT → submit:true (7 ms)
+    ✕ PENDING (include=pending) → all false (8 ms)
+Test Suites: 2 failed, 2 total
+Tests:       16 failed, 3 passed, 19 total
+
+## failure reasons (expected vs received, one per failing test)
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › case 6: A /prepare on D with body entityId PA → D.entityId still C, body entityId stripped
+Received: "e9a47903-6ac5-4349-a767-dc92ef65fb24"
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › case 7: create with entityId C by S → 403 ENTITY_PERMISSION_DENIED, nothing created
+Expected: 403
+Received: 200
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › case 7: create with entityId C by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED, nothing created
+Expected: 403
+Received: 200
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › case 7: no entityId → 400 APPLICATION_HOLDER_REQUIRED with the spec copy, nothing created
+Expected: 400
+Received: 200
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › a draft-document upload with no id and no entityId → 400 APPLICATION_HOLDER_REQUIRED, nothing created
+Expected: 400
+Received: 200
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › created draft has formData.applicantType = Entity.type; body applicantType ignored
+Expected: "INDIVIDUAL"
+Received: "JURISTIC"
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › /prepare cannot rewrite applicantType
+Expected: "INDIVIDUAL"
+Received: "COMMUNITY_ENTERPRISE"
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › GET /draft-documents without applicationId → 400; missing draft → 404; no row created
+Expected: 400
+Received: 200
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › GET /draft-documents for a user with no draft at all → 400, nothing minted
+Expected: 400
+Received: 200
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › GET /draft without id returns latest open draft with submitterId = me and holder in editIds
+Received: {"applicationNumber": "APP-HS-VD-ace3790f", "areaType": "OUTDOOR", "createdAt": "2026-10-03T05:45:27.296Z", "draftId": "32923d36-b1a8-46d6-ba5d-daf71f8d7bbb", "formData": {"plantId": "cannabis", "workflowState": "DRAFT"}, "id": "32923d36-b1a8-46d6-ba5d-daf71f8d7bbb", "serviceType": "new_application", "status": "DRAFT", "steps": {}, "updatedAt": "2026-10-03T05:45:27.296Z"}
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › ordered save: a holder outside editIds → 404 under the lock, nothing written
+● GET /api/entities/mine — per-row capability flags › OWNER {edit,submit,createFarm} = {true,true,true}
+Expected: {"createFarm": true, "edit": true, "submit": true}
+Received: undefined
+● GET /api/entities/mine — per-row capability flags › MANAGER = {true,false,false}
+Expected: {"createFarm": false, "edit": true, "submit": false}
+Received: undefined
+● GET /api/entities/mine — per-row capability flags › VIEWER = {false,false,false}
+Expected: {"createFarm": false, "edit": false, "submit": false}
+Received: undefined
+● GET /api/entities/mine — per-row capability flags › MANAGER with a SUBMIT_APPLICATION GRANT → submit:true
+Expected: {"createFarm": false, "edit": true, "submit": true}
+Received: undefined
+● GET /api/entities/mine — per-row capability flags › PENDING (include=pending) → all false
+Expected: {"createFarm": false, "edit": false, "submit": false}
+Received: undefined
+
+## green from birth = PIN, not fix:
+- case 6b (no header → 404): the R1 entity dimension already filters D out when the active entity is PA
+- case 8b (revoked → 404): same mechanism; Task 8's editIds check is the rule that survives Task 12
+
+skipped: 0 (real-PG suite ran: describeIfTestDatabase active)
+signing key mtime before/after: 1788623435 1788623435 / 1788623435 1788623435 
+
+## RED round 2 — 2026-10-03T06:27:53Z · after the first implementation, before the discard fix
+# added: 'no file kept' assertion on the upload refusal (a refused draft must not leave the stored bytes)
+    ✕ a draft-document upload with no id and no entityId → 400 APPLICATION_HOLDER_REQUIRED, nothing created, no file kept (272 ms)
+    Expected: 17
+    Received: 18
+Tests:       1 failed, 13 skipped, 14 total
+(13 skipped = the other tests of the file, filtered out by -t; not a skip in the evidence run)
+
+## ROUND 1 RED — 2026-10-03T06:36:00Z · code at 8c14babc + new tests only (review CRITICAL: renewal of a null-holder source writes before it refuses)
+# real PG :55436 · renewal service NOT mocked (real server, POST /api/applications/renewals) · counts = whole tables applications/quotations/invoices
+### witness THROW (test default): every renewal call 500 HEALTH_READ_UNSCOPED at the service's Certificate.findFirst — the door's reads were never scoped (R1 gap), which also hid the orphan in tests
+    ✓ id-less write by B on C never resumes O2's open draft on C: B gets its own new draft (171 ms)
+    ✕ renewal of a source with NO holder → 400 APPLICATION_HOLDER_REQUIRED; no application, quotation or invoice written (77 ms)
+    ✕ renewal of a source with NO holder by a caller with no entity context (no membership) → 400; retries write nothing (58 ms)
+    ✕ renewal by a VIEWER of the source holder → 403 ENTITY_PERMISSION_DENIED; nothing written (47 ms)
+    ✕ renewal of a source with a holder the caller edits → 201, the renewal carries that holder (22 ms)
+Tests:       4 failed, 14 skipped, 1 passed, 19 total
+### witness SHADOW (the deployed default; a one-line uncommitted override in beforeAll, restored before commit): the orphans
+    ✕ renewal of a source with NO holder → 400 APPLICATION_HOLDER_REQUIRED; no application, quotation or invoice written (129 ms)
+    ✕ renewal of a source with NO holder by a caller with no entity context (no membership) → 400; retries write nothing (165 ms)
+    ✕ renewal by a VIEWER of the source holder → 403 ENTITY_PERMISSION_DENIED; nothing written (88 ms)
+    ✓ renewal of a source with a holder the caller edits → 201, the renewal carries that holder (62 ms)
+Tests:       3 failed, 15 skipped, 1 passed, 19 total
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › renewal of a source with NO holder → 400 APPLICATION_HOLDER_REQUIRED; no application, quotation or invoice written
+- Expected  - 2
++ Received  + 2
+-   400,
+-   "APPLICATION_HOLDER_REQUIRED",
++   500,
++   "SOURCE_APP_NOT_FOUND",
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › renewal of a source with NO holder by a caller with no entity context (no membership) → 400; retries write nothing
+- Expected  - 2
++ Received  + 2
+-   "applications": 6,
++   "applications": 8,
+-   "quotations": 1,
++   "quotations": 3,
+● R2 Task 8: the holder is chosen explicitly (real Postgres, real server) › renewal by a VIEWER of the source holder → 403 ENTITY_PERMISSION_DENIED; nothing written
+- Expected  - 2
++ Received  + 2
+-   "applications": 9,
++   "applications": 10,
+-   "quotations": 3,
++   "quotations": 4,
+- null holder, caller with no entity context, 2 attempts: applications +2, quotations +2 (an orphan PENDING_AUDIT_FEE + quotation per retry)
+- VIEWER of the source holder: 201, applications +1, quotations +1
+- null holder, caller with header C: 500 SOURCE_APP_NOT_FOUND (R1 entity dimension hides the null-holder source), nothing written
+- 'never resumes' (co-member O2's draft): green before the fix = PIN (R1 healthId pin + submitterId both exclude it)
+(skipped = other tests in the file filtered by -t)

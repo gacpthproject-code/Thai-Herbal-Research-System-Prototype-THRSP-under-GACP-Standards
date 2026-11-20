@@ -1,0 +1,32 @@
+fix/fee-line-descriptions — round 5 (whole-branch review: CHANGES REQUESTED, no Critical; L3 held)
+RED first: red.txt (backend 7 failed, web 5 failed, flutter compile-fail on the new test; preview route RED by mutation).
+
+1. Renewal named as งวดที่ 2 on the pay pages — FIXED.
+   GET /invoices/my now sends each row's `service` {key,name,coverage} from the catalogue, renewal-aware
+   (invoice-service.withServiceLine; the formData read to answer it is dropped from the row).
+   Payments page section label/description, table + modal labels, invoice card title (+ coverage line),
+   official documents subtitle all read it. "ค่าบริการรับรอง" (CHECKOUT_COMPONENT_LABEL_TH) removed; guarded.
+2. Mobile timeline — FIXED: trackingStepsFor/stepIndexFor/thaiLabelFor(isRenewal); a renewal has one payment
+   step named by the RENEWAL entry, no instalment-1 / review steps. ApplicationEntity.isRenewal from /applications/my.
+   Web stepperStepsFor now does the same (and stepperIndexFor / progressPercentFor for the counters).
+3. One catalogue, true guard — FIXED. Web names come only from lib/pricing/fee-services.ts (SERVICE_NAME /
+   SERVICE_NOUN); ~20 files rewritten. Mobile: lib/domain/fee_service_catalogue.dart, pinned to the backend.
+   fee-service-catalogue-web-mirror.test.js scans web + mobile for any name/noun/coverage outside the 3 allowed
+   files; retired-variants guard now covers apps/mobile-app/lib. Comment at fee-services.ts corrected.
+   Parity tests (payment-vocabulary, mobile-stage-parity) resolve the interpolations.
+4. Preview — FIXED: the route calls previewPhaseAmounts (renewal-amount.js, via services/fee-service);
+   inline branch deleted. New real-PG route test renewal-preview-real-postgres.test.js (engine + invoice cases).
+   Removing the renewal branch turns it RED (red.txt). A renewal is created at PENDING_AUDIT_FEE, which is not a
+   previewable status, so PAY_PHASE_2 cannot be reached on this door; the test asserts it never asks PAY_PHASE_1
+   (CAR_PENDING: unpaid / paid).
+5. Not touched (coordinator): docs/legal/payment-terms-th-v1.1.md.
+6. Renewal fallback — FIXED: invoice → quotation → server renewalPriceEstimate; client-side × stored count removed.
+
+Amounts: amounts-before-after.txt — 4 documents + 3 notes IDENTICAL to base 31dd3196.
+Backend full suite (scratch postgres:17 :55444): 10 failed suites / 32 tests, all also failing on base; 0 new.
+  (A first run flagged 2 of mine — error-code pointer RECEIPT_NOT_ISSUED and the phase-amount writer scan on
+  preview.js; both fixed, re-run clean.) Container removed.
+Web 453 suites / 3730 tests, 0 skipped; tsc 0. Flutter (scratch copy): flutter.txt. Probes: probes.txt.
+Gitleaks 31dd3196..HEAD clean. Signing key mtime unchanged.
+Pre-commit system-integrity-check parsed STAGE_LABEL_TH up to the first `}` and broke on the interpolation;
+  scripts/system-integrity-check.js now reads to the line-leading `};` (86 passed, 0 failed).

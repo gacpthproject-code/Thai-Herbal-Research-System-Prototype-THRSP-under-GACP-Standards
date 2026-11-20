@@ -1,0 +1,106 @@
+R-HOTFIX-PDPA follow-up — remove dead marker-stripping fallback on the self-service
+erasure path (controllers/auth-controller/auth-session-security-handlers.js)
+
+branch: fix/remove-dead-erasure-fallback (from origin/main @ 00445dba)
+date:   2026-08-04
+
+================================================================================
+TARGET SUITE — GREEN (after removing the fallback)
+================================================================================
+$ npx jest __tests__/unit/delete-me-erasure.test.js      # from apps/backend
+
+PASS __tests__/unit/delete-me-erasure.test.js
+  [Sprint6] DELETE /me Right-to-Erasure
+    ✓ returns 401 when no user is authenticated (5 ms)
+    ✓ returns 400 when password confirmation is missing from request body (2 ms)
+    ✓ returns 401 when password confirmation does not match bcrypt hash (2 ms)
+    ✓ successful erasure: nulls all PII, sets password to PDPA_ANONYMIZED, revokes sessions, returns 200 (4 ms)
+    ✓ returns 410 ALREADY_ANONYMIZED when user is already anonymised (2 ms)
+    ✓ never retries without isAnonymized/anonymizedAt — a marker failure surfaces, it is not routed around (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       6 passed, 6 total
+
+Test count in this file: 6 before, 6 after — the fallback-pinning test was REPLACED,
+not deleted (Law 3.7). RED proof for the replacement: red-output-erasure.txt.
+
+================================================================================
+MUTATION VERIFY — put the fallback back, the new test must go red
+================================================================================
+(temporarily re-inserted the try/catch retry block, ran the suite, then restored)
+
+    ✕ never retries without isAnonymized/anonymizedAt — a marker failure surfaces, it is not routed around (9 ms)
+    Expected number of calls: 1
+    Received number of calls: 2
+Tests:       1 failed, 5 passed, 6 total
+
+Restore verified by checksum, NOT by `git status`:
+$ sha256sum -c pre-mutation.sha256
+controllers/auth-controller/auth-session-security-handlers.js: OK
+$ diff <green-backup> controllers/auth-controller/auth-session-security-handlers.js
+(no diff)
+
+================================================================================
+GATE 1 — npx jest (full, from apps/backend)   ** BASELINE NOT REPRODUCIBLE HERE **
+================================================================================
+The dispatch baseline (7142 passed / 1 failed) does NOT reproduce in this
+container. Measured A/B on the SAME container, sequentially, no other job running:
+
+  unmodified tree (changes stashed, == origin/main @ 00445dba):
+    Test Suites: 35 failed, 6 skipped, 495 passed, 530 of 536 total
+    Tests:       36 failed, 68 skipped, 6813 passed, 6917 total
+
+  with this diff applied:
+    Test Suites: 35 failed, 6 skipped, 495 passed, 530 of 536 total
+    Tests:       36 failed, 68 skipped, 6813 passed, 6917 total
+
+  $ diff <sorted FAIL list base> <sorted FAIL list after>
+  (identical — 0 suites changed status, 35 == 35)
+
+DELTA OF THIS DIFF ON THE FULL SUITE = 0.
+
+Root cause of the extra failures — environmental, pre-existing, NOT this diff:
+  apps/backend/jest.config.cjs:29  '^uuid$': '<rootDir>/node_modules/uuid/dist/index.js'
+  apps/backend/package.json:54     "uuid": "^9.0.1"
+  installed:                       uuid 11.1.1
+  uuid v11 ships dist/cjs/ + dist/esm/ — there is no dist/index.js, so the mapper
+  resolves to a missing path and 35 suites abort at load with
+  "Configuration error: Could not locate module uuid mapped as ...".
+  ("Could not locate module uuid" appears 88x in the run log.)
+  node_modules has drifted from the declared range. Not fixed here: out of scope,
+  and it is reproduced identically on an unmodified origin/main tree.
+  Filed in BACKLOG-FOUND.md.
+
+The pre-existing failure named in the dispatch, __tests__/unit/dataset-export-service.test.js
+(Prisma.dmmf), is also present in BOTH runs.
+
+================================================================================
+GATE 2 — bash scripts/probes/ratchet.sh (repo root)
+================================================================================
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4
+RATCHET_EXIT=0
+=> 43/59/169/4, unchanged from the dispatch baseline. No counter moved.
+
+================================================================================
+GATE 3 — npx eslint (from apps/backend)
+================================================================================
+$ npx eslint controllers/auth-controller/auth-session-security-handlers.js \
+             __tests__/unit/delete-me-erasure.test.js
+ESLINT_EXIT=0   (no output, no warnings)
+
+================================================================================
+GATE 4 — node scripts/ci/check-thai-copy-style.js (repo root)
+================================================================================
+[thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+THAI_EXIT=0
+
+================================================================================
+GATE 5 — npm run check:banned-terms (repo root)
+================================================================================
+[banned-terms] Repository scan passed
+BANNED_EXIT=0

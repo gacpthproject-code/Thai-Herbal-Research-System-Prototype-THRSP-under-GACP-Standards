@@ -1,0 +1,221 @@
+RED run — branch chore/remove-dtam-accounting-layer @ 62c255a7 (code unchanged, only the new test added) · node v24.21.0 · NODE_OPTIONS unset
+cmd: npx jest --config jest.config.cjs __tests__/unit/dtam-accounting-layer-removed.test.js
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+  console.warn
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T12:40:20.915Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T12:40:20.921Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T12:40:20.923Z"}
+FAIL __tests__/unit/dtam-accounting-layer-removed.test.js
+  ไม่มีโมดูลส่งออกตัวบันทึกการนำส่งเงินกรมฯ
+    ✕ journal-entry-service ไม่ส่งออก recordRemittanceToDtam / buildRemittanceEntryLines (110 ms)
+    ✕ ไม่มีไฟล์ใน services/routes/jobs ที่ยังเรียกชื่อ recordRemittanceToDtam ในโค้ด (138 ms)
+  ผังบัญชีในโค้ดไม่มีเจ้าหนี้กรมฯ
+    ✕ ACCOUNTS ไม่มี PAYABLE_TO_DTAM / COST_DTAM_FEE และไม่มีรหัส 2151-001 / 5110-001 (2 ms)
+    ✕ chart-of-accounts ไม่มี 2151-001 / 5110-001 — บัญชีมือ (manual journal) จึงลงไม่ได้ด้วย (10 ms)
+  รายการบัญชีตอนชำระเงิน = ค่าบริการก้อนเดียว
+    ✕ buildPaymentEntryLines ไม่ออกบรรทัด 2151-001 / 5110-001 แม้ผู้เรียกยังส่ง stateFee มา (16 ms)
+  settlement (journal-entry-service ตัวจริง) ไม่ลงบรรทัดบนเจ้าหนี้กรมฯ
+    ✓ order ปัจจุบัน (ส่วนกรมฯ = 0): ลง 1110/4110/2131 เท่านั้น และใบกำกับแสดงค่าบริการตามคอลัมน์ค่าบริการ (54 ms)
+    ✕ order รูปแบบเก่า (ส่วนกรมฯ > 0, ข้อมูลทดสอบก่อน 2026-09-11): ไม่มีบรรทัด 2151-001 ถูกเขียน — settle ถูกปฏิเสธทั้งก้อน (5 ms)
+    ✕ checkout-settlement-service ไม่ส่ง stateFee ให้ชั้นบัญชี และไม่บวกส่วนกรมฯ เข้าใบกำกับ (3 ms)
+  ราคาที่คิดไม่มีส่วนของกรมฯ แยก
+    ✕ stripe-checkout-service ไม่คำนวณตัวแปร dtamPayableAmount — เขียน 0 ลงคอลัมน์ตรง ๆ จนกว่า PR3 ดรอป (3 ms)
+  รายงานนำส่งเงินกรมฯ ไม่มีแล้ว
+    ✕ financial-export-service ไม่ส่งออก buildGovRemittanceReport และไม่มี case gov_remittance (12 ms)
+
+  ● ไม่มีโมดูลส่งออกตัวบันทึกการนำส่งเงินกรมฯ › journal-entry-service ไม่ส่งออก recordRemittanceToDtam / buildRemittanceEntryLines
+
+    expect(received).not.toHaveProperty(path)
+
+    Expected path: not "recordRemittanceToDtam"
+
+    Received value: [Function recordRemittanceToDtam]
+
+      37 |     test('journal-entry-service ไม่ส่งออก recordRemittanceToDtam / buildRemittanceEntryLines', () => {
+      38 |         const jes = require('../../services/journal-entry-service');
+    > 39 |         expect(jes).not.toHaveProperty('recordRemittanceToDtam');
+         |                         ^
+      40 |         expect(jes).not.toHaveProperty('buildRemittanceEntryLines');
+      41 |     });
+      42 |
+
+      at Object.toHaveProperty (__tests__/unit/dtam-accounting-layer-removed.test.js:39:25)
+
+  ● ไม่มีโมดูลส่งออกตัวบันทึกการนำส่งเงินกรมฯ › ไม่มีไฟล์ใน services/routes/jobs ที่ยังเรียกชื่อ recordRemittanceToDtam ในโค้ด
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "services/journal-accounts.js",
+    +   "services/journal-entry-service.js",
+    + ]
+
+      58 |             if (fs.existsSync(dir)) { walk(dir); }
+      59 |         });
+    > 60 |         expect(offenders).toEqual([]);
+         |                           ^
+      61 |     });
+      62 | });
+      63 |
+
+      at Object.toEqual (__tests__/unit/dtam-accounting-layer-removed.test.js:60:27)
+
+  ● ผังบัญชีในโค้ดไม่มีเจ้าหนี้กรมฯ › ACCOUNTS ไม่มี PAYABLE_TO_DTAM / COST_DTAM_FEE และไม่มีรหัส 2151-001 / 5110-001
+
+    expect(received).not.toHaveProperty(path)
+
+    Expected path: not "PAYABLE_TO_DTAM"
+
+    Received value: {"code": "2151-001", "name": "เจ้าหนี้ กรมการแพทย์แผนไทยฯ"}
+
+      65 |     test('ACCOUNTS ไม่มี PAYABLE_TO_DTAM / COST_DTAM_FEE และไม่มีรหัส 2151-001 / 5110-001', () => {
+      66 |         const { ACCOUNTS } = require('../../services/journal-accounts');
+    > 67 |         expect(ACCOUNTS).not.toHaveProperty('PAYABLE_TO_DTAM');
+         |                              ^
+      68 |         expect(ACCOUNTS).not.toHaveProperty('COST_DTAM_FEE');
+      69 |         const codes = Object.values(ACCOUNTS).map((a) => a.code);
+      70 |         expect(codes).not.toContain(DTAM_PAYABLE);
+
+      at Object.toHaveProperty (__tests__/unit/dtam-accounting-layer-removed.test.js:67:30)
+
+  ● ผังบัญชีในโค้ดไม่มีเจ้าหนี้กรมฯ › chart-of-accounts ไม่มี 2151-001 / 5110-001 — บัญชีมือ (manual journal) จึงลงไม่ได้ด้วย
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      76 |     test('chart-of-accounts ไม่มี 2151-001 / 5110-001 — บัญชีมือ (manual journal) จึงลงไม่ได้ด้วย', () => {
+      77 |         const coa = require('../../services/chart-of-accounts-service');
+    > 78 |         expect(coa.accountExists(DTAM_PAYABLE)).toBe(false);
+         |                                                 ^
+      79 |         expect(coa.accountExists(DTAM_COST)).toBe(false);
+      80 |         const mentions = coa.getChartOfAccounts()
+      81 |             .filter((row) => JSON.stringify(row).includes(DTAM_PAYABLE))
+
+      at Object.toBe (__tests__/unit/dtam-accounting-layer-removed.test.js:78:49)
+
+  ● รายการบัญชีตอนชำระเงิน = ค่าบริการก้อนเดียว › buildPaymentEntryLines ไม่ออกบรรทัด 2151-001 / 5110-001 แม้ผู้เรียกยังส่ง stateFee มา
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "2151-001"
+    Received array:     ["1110-001", "4110-001", "2131-001", "5110-001", "2151-001"]
+
+       98 |             });
+       99 |             const codes = e.lines.map((l) => l.accountCode);
+    > 100 |             expect(codes).not.toContain(DTAM_PAYABLE);
+          |                               ^
+      101 |             expect(codes).not.toContain(DTAM_COST);
+      102 |         });
+      103 |     });
+
+      at toContain (__tests__/unit/dtam-accounting-layer-removed.test.js:100:31)
+      at Object.isolateModules (__tests__/unit/dtam-accounting-layer-removed.test.js:89:14)
+
+  ● settlement (journal-entry-service ตัวจริง) ไม่ลงบรรทัดบนเจ้าหนี้กรมฯ › order รูปแบบเก่า (ส่วนกรมฯ > 0, ข้อมูลทดสอบก่อน 2026-09-11): ไม่มีบรรทัด 2151-001 ถูกเขียน — settle ถูกปฏิเสธทั้งก้อน
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: Error
+    Received constructor: Object
+
+      220 |         // แพลตฟอร์มไม่มีที่ลงส่วนของกรมฯ แล้ว — ยอดเงินสดไม่เท่ารายได้+VAT จึงไม่สมดุล และ
+      221 |         // transaction ม้วนกลับทั้งก้อน (ไม่มีเอกสาร ไม่มีสถานะ SETTLED)
+    > 222 |         expect(outcome).toBeInstanceOf(Error);
+          |                         ^
+      223 |         expect(outcome.code).toBe('UNBALANCED_ENTRY');
+      224 |     });
+      225 |
+
+      at Object.toBeInstanceOf (__tests__/unit/dtam-accounting-layer-removed.test.js:222:25)
+
+  ● settlement (journal-entry-service ตัวจริง) ไม่ลงบรรทัดบนเจ้าหนี้กรมฯ › checkout-settlement-service ไม่ส่ง stateFee ให้ชั้นบัญชี และไม่บวกส่วนกรมฯ เข้าใบกำกับ
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 5
+
+    - Array []
+    + Array [
+    +   "dtamPayableAmount",
+    +   "stateFee",
+    +   "dtamPayableAmount",
+    + ]
+
+      226 |     test('checkout-settlement-service ไม่ส่ง stateFee ให้ชั้นบัญชี และไม่บวกส่วนกรมฯ เข้าใบกำกับ', () => {
+      227 |         const src = codeOnly('services/checkout/checkout-settlement-service.js');
+    > 228 |         expect(src.match(/stateFee|dtamPayableAmount/g) || []).toEqual([]);
+          |                                                                ^
+      229 |     });
+      230 | });
+      231 |
+
+      at Object.toEqual (__tests__/unit/dtam-accounting-layer-removed.test.js:228:64)
+
+  ● ราคาที่คิดไม่มีส่วนของกรมฯ แยก › stripe-checkout-service ไม่คำนวณตัวแปร dtamPayableAmount — เขียน 0 ลงคอลัมน์ตรง ๆ จนกว่า PR3 ดรอป
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 5
+
+    - Array []
+    + Array [
+    +   "const dtamPayableAmount",
+    +   "dtamPayableAmount: Number(order.dtamPayableAmount)",
+    +   "breakdown.dtamPayableAmount",
+    + ]
+
+      234 |         const src = codeOnly('services/checkout/stripe-checkout-service.js');
+      235 |         const hits = src.match(/const dtamPayableAmount|breakdown\.dtamPayableAmount|dtamPayableAmount:\s*Number\(order\.dtamPayableAmount\)/g);
+    > 236 |         expect(hits || []).toEqual([]);
+          |                            ^
+      237 |     });
+      238 | });
+      239 |
+
+      at Object.toEqual (__tests__/unit/dtam-accounting-layer-removed.test.js:236:28)
+
+  ● รายงานนำส่งเงินกรมฯ ไม่มีแล้ว › financial-export-service ไม่ส่งออก buildGovRemittanceReport และไม่มี case gov_remittance
+
+    expect(received).not.toHaveProperty(path)
+
+    Expected path: not "buildGovRemittanceReport"
+
+    Received value: [Function buildGovRemittanceReport]
+
+      247 |             svc = require('../../services/financial-export-service');
+      248 |         });
+    > 249 |         expect(svc).not.toHaveProperty('buildGovRemittanceReport');
+          |                         ^
+      250 |         expect(codeOnly('services/financial-export-service.js').match(/gov_remittance/g) || []).toEqual([]);
+      251 |     });
+      252 | });
+
+      at Object.toHaveProperty (__tests__/unit/dtam-accounting-layer-removed.test.js:249:25)
+
+Test Suites: 1 failed, 1 total
+Tests:       9 failed, 1 passed, 10 total
+Snapshots:   0 total
+Time:        1.418 s, estimated 3 s
+Ran all test suites matching __tests__/unit/dtam-accounting-layer-removed.test.js.

@@ -1,0 +1,25 @@
+walk U1 against http://127.0.0.1:8191 at 2026-10-14T13:48:03.382Z
+STEP 0 logins (field inspector, certificate approver, DTAM admin, applicant)
+  OK   login statuses: [200,200,200,200]
+STEP 1 field inspector records "ไม่ผ่าน" on the job sheet: POST /api/provider/auditor/applications/:id/audit-decisions (APP-WALK-U1-f10021-1)
+  OK   status / application status: [200,"AUDIT_NOT_PASSED"]
+STEP 2 field inspector records "ไม่ผ่าน" on the field screen: POST /api/audit/onsite/:auditId/decision (APP-WALK-U1-f10021-2)
+  OK   status / application status: [200,"AUDIT_NOT_PASSED"]
+STEP 3 refusals at the result doors (APP-WALK-U1-f10021-3)
+  OK   FAIL with no finding: [400,"FINDINGS_REQUIRED"]
+  OK   the retired word REJECT: [400]
+  OK   generic door, inspector to REJECTED: [422]
+STEP 4 the applicant reads the stage word of both files: GET /api/applications
+  OK   APP-WALK-U1-f10021-1 status / dashboardStage / stage word: ["AUDIT_NOT_PASSED","PENDING_DECISION",null]
+       stage word the applicant reads (STAGE_LABEL_TH.PENDING_DECISION): ตรวจประเมินแปลงแล้ว รอการตัดสินให้การรับรอง
+  OK   APP-WALK-U1-f10021-2 status / dashboardStage / stage word: ["AUDIT_NOT_PASSED","PENDING_DECISION",null]
+       stage word the applicant reads (STAGE_LABEL_TH.PENDING_DECISION): ตรวจประเมินแปลงแล้ว รอการตัดสินให้การรับรอง
+       applicant notice about APP-WALK-U1-f10021-1: ผลการตรวจพื้นที่: ไม่ผ่าน
+  OK   notice names the finding and the approver: [true]
+STEP 5 the certificate approver's queue: GET /api/provider/auditor/final-approval-queue
+  OK   both files wait in the queue as AUDIT_NOT_PASSED: [200,["APP-WALK-U1-f10021-1:AUDIT_NOT_PASSED","APP-WALK-U1-f10021-2:AUDIT_NOT_PASSED"]]
+  OK   decision file opens (read only until U2): [200,false]
+       approver notices: มีคำขอที่ผู้ตรวจพื้นที่ให้ไม่ผ่าน รอคุณตัดสิน | มีคำขอที่ผู้ตรวจพื้นที่ให้ไม่ผ่าน รอคุณตัดสิน
+STEP 6 an admin door cannot revive a refused application (APP-WALK-U1-f10021-4)
+  OK   status-override REJECTED to AUDIT_CONFIRMED: [409,"CERTIFICATION_TRACK_LOCKED"]
+walk finished: every check held

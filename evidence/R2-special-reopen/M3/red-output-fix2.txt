@@ -1,0 +1,209 @@
+===============================================================================
+R2 M3 — fix cycle 2/3, F4 (pin narrowed on the <PREFIX>_SLA_DAYS axis)
+RED-first evidence — Law 3.11.  Date: 2026-08-03
+===============================================================================
+
+--- STEP 1: pattern-probe test added, SLA_LITERAL still the fix-1 pattern ---
+pattern under test (correction-round.test.js:410, unchanged at this point):
+    /\b(?:SLA_DAYS|slaDays|businessDays)\s*=\s*\d/
+
+$ cd apps/backend && npx jest --config jest.config.cjs __tests__/unit/correction-round.test.js
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/correction-round.test.js
+  per-stage round counter (FINAL ข้อ 2: นับเลขครั้งต่อ stage)
+    ✓ roundNo = prior rounds of (application, stage) + 1, counted through the SAME tx (8 ms)
+    ✓ DOC_REVIEW round 3 does NOT bleed into FIELD_AUDIT round 1 (independent counters) (3 ms)
+    ✓ วนไม่จำกัดครั้ง — round 42 is minted without any cap (D-2: เพดาน 3 ครั้ง ถูกยกเลิก) (2 ms)
+    ✓ round record carries decidedAt + dueAt of the decision (2 ms)
+  unique round key — concurrent decisions
+    ✓ P2002 on the round key rejects with a CLEAR error (no swallow, no silent skip) (18 ms)
+    ✓ non-P2002 round-write failure propagates as-is (atomic — tx ทั้งก้อนล้ม) (4 ms)
+  letter round number (M2 template, 5th mandatory element)
+    ✓ buildCorrectionLetter emits "การแก้ไขครั้งที่ N ของขั้นตอน..." + metadata.roundNo (8 ms)
+    ✓ a letter WITHOUT its round number is REFUSED (throw — D-8: no letter, no transition) (5 ms)
+    ✓ mintCorrectionLetter always sends the round number into the letter (2 ms)
+    ✓ the round-line Thai copy is defined ONLY in the letter template SSOT (Law 3.5/3.6) (40 ms)
+  round-stage vocabulary SSOT
+    ✓ exports the frozen DOC_REVIEW/FIELD_AUDIT vocabulary (2 ms)
+    ✓ maps the M2 letter stages: DOC_REVIEW→DOC_REVIEW, FIELD_AUDIT_CAR→FIELD_AUDIT; unknown → throw (3 ms)
+  append-only round ledger (FINAL ข้อ 4)
+    ✓ no backend .js file mutates correctionRound (update/upsert/delete are forbidden) (37 ms)
+    ✓ the ONLY correctionRound writer is decision-letter-service (the M2 mint point) (37 ms)
+    ✓ CorrectionRound is registered tenant-scoped (services/tenant-prisma-extension.js) (2 ms)
+  schema EXPAND — CorrectionRound
+    ✓ correction-round.prisma declares the append ledger with the per-stage unique key (2 ms)
+    ✓ RevisionDeadline stays untouched (EXPAND, not contract — Law 3.10) (2 ms)
+    ✓ exactly one add_correction_rounds migration exists, EXPAND-only, timestamp not colliding (4 ms)
+  SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว
+    ✓ canonical value unchanged: PAYMENT.REVISION_DEADLINE_BUSINESS_DAYS === 5 (4 ms)
+    ✓ workflow-handler-deps reads config — no REVISION_SLA_DAYS = 5 literal (1 ms)
+    ✓ workflow-transitions-handler: CAR_SLA_DAYS is derived, not re-spelled (2 ms)
+    ✓ PATCH /reject surface reads config — no addWorkingDays(now, 5) / revisionSlaDays: 5 (2 ms)
+    ✓ car-deadline-service reads config directly — no `?? 5` shadow source (4 ms)
+    ✕ SLA_LITERAL flags every prefixed spelling and no bare day count (5 ms)
+    ✓ grep-pin: no revision-SLA day literal in services/routes/jobs/scripts/utils outside the waiver family (L4) (32 ms)
+    ✓ the L4 waiver exception is the ONLY thing the pin skips, and it is still there (5 ms)
+    ✓ ops scripts read config — restamp/identify-cohort no longer own an SLA constant (1 ms)
+    ✓ utils/working-days calculateRevisionDeadline defaults FROM config, not from a literal (40 ms)
+
+  ● SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว › SLA_LITERAL flags every prefixed spelling and no bare day count
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 3
+
+    @@ -1,11 +1,11 @@
+      Array [
+    -   "FLAG  const REVISION_SLA_DAYS = 5;",
+    -   "FLAG  const CAR_SLA_DAYS = 5;",
+    +   "ok    const REVISION_SLA_DAYS = 5;",
+    +   "ok    const CAR_SLA_DAYS = 5;",
+        "FLAG  const SLA_DAYS = 5;",
+        "FLAG  function calculateRevisionDeadline(from, businessDays = 5) {}",
+    -   "FLAG  let carSlaDays = 5;",
+    +   "ok    let carSlaDays = 5;",
+        "FLAG  const slaDays = 5;",
+        "FLAG   * @param {number} [businessDays=5] jsdoc default",
+        "ok    const days = 5;",
+        "ok    const WORKING_DAYS = 5;",
+        "ok    const MAX_DAYS = 5;",
+
+      461 |         const actual = SLA_PATTERN_CASES.map(([line]) => row(line, SLA_LITERAL.test(line)));
+      462 |         const expected = SLA_PATTERN_CASES.map(([line, flagged]) => row(line, flagged));
+    > 463 |         expect(actual).toEqual(expected);
+          |                        ^
+      464 |     });
+      465 |
+      466 |     test('grep-pin: no revision-SLA day literal in services/routes/jobs/scripts/utils outside the waiver family (L4)', () => {
+
+      at Object.toEqual (__tests__/unit/correction-round.test.js:463:24)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 27 passed, 28 total
+Snapshots:   0 total
+Time:        1.586 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/correction-round.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+
+--- STEP 2: pattern fixed (correction-round.test.js:410-418) -> GREEN ---
+new pattern:
+    /\b\w*(?:SLA_DAYS|[Ss]laDays|[Bb]usinessDays)\s*=\s*\d/
+
+$ cd apps/backend && npx jest --config jest.config.cjs __tests__/unit/correction-round.test.js
+
+    ✓ no backend .js file mutates correctionRound (update/upsert/delete are forbidden) (37 ms)
+    ✓ the ONLY correctionRound writer is decision-letter-service (the M2 mint point) (36 ms)
+    ✓ CorrectionRound is registered tenant-scoped (services/tenant-prisma-extension.js) (2 ms)
+  schema EXPAND — CorrectionRound
+    ✓ correction-round.prisma declares the append ledger with the per-stage unique key (2 ms)
+    ✓ RevisionDeadline stays untouched (EXPAND, not contract — Law 3.10) (2 ms)
+    ✓ exactly one add_correction_rounds migration exists, EXPAND-only, timestamp not colliding (3 ms)
+  SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว
+    ✓ canonical value unchanged: PAYMENT.REVISION_DEADLINE_BUSINESS_DAYS === 5 (3 ms)
+    ✓ workflow-handler-deps reads config — no REVISION_SLA_DAYS = 5 literal (1 ms)
+    ✓ workflow-transitions-handler: CAR_SLA_DAYS is derived, not re-spelled (2 ms)
+    ✓ PATCH /reject surface reads config — no addWorkingDays(now, 5) / revisionSlaDays: 5 (2 ms)
+    ✓ car-deadline-service reads config directly — no `?? 5` shadow source (1 ms)
+    ✓ SLA_LITERAL flags every prefixed spelling and no bare day count (4 ms)
+    ✓ grep-pin: no revision-SLA day literal in services/routes/jobs/scripts/utils outside the waiver family (L4) (67 ms)
+    ✓ the L4 waiver exception is the ONLY thing the pin skips, and it is still there (6 ms)
+    ✓ ops scripts read config — restamp/identify-cohort no longer own an SLA constant (2 ms)
+    ✓ utils/working-days calculateRevisionDeadline defaults FROM config, not from a literal (40 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       28 passed, 28 total
+Snapshots:   0 total
+Time:        1.542 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/correction-round.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+
+--- STEP 3: end-to-end mutation at the destination (not just the regex) ---
+appended to apps/backend/services/car-deadline-service.js (temporary):
+    // TEMP MUTATION (F4 verification) - remove immediately after the run.
+    const REVISION_SLA_DAYS = 5;
+    void REVISION_SLA_DAYS;
+
+$ cd apps/backend && npx jest --config jest.config.cjs __tests__/unit/correction-round.test.js -t "grep-pin"
+
+    ○ skipped utils/working-days calculateRevisionDeadline defaults FROM config, not from a literal
+
+  ● SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว › grep-pin: no revision-SLA day literal in services/routes/jobs/scripts/utils outside the waiver family (L4)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "services/car-deadline-service.js",
+    + ]
+
+      481 |             }
+      482 |         }
+    > 483 |         expect(offenders).toEqual([]);
+          |                           ^
+      484 |     });
+      485 |
+      486 |     test('the L4 waiver exception is the ONLY thing the pin skips, and it is still there', () => {
+
+      at Object.toEqual (__tests__/unit/correction-round.test.js:483:27)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 27 skipped, 28 total
+Snapshots:   0 total
+Time:        1.189 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/correction-round.test.js/i with tests matching "grep-pin".
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+
+--- STEP 4: same mutation, both patterns, same walk (two-way proof) ---
+scratchpad/f4-scan.js replays walkJsFiles() over services/routes/jobs/scripts/utils
+with the fix-1 pattern (OLD) and the fix-2 pattern (NEW) while the mutation is live.
+OLD misses the injected source; NEW reports it. That gap IS finding F4.
+
+--- OLD pattern hits (3) ---
+services/waiver-reopen-service.js
+jobs/waiver-sla-escalation-job.js
+scripts/ops/waiver-anomaly-report.js
+--- NEW pattern hits (4) ---
+services/car-deadline-service.js  ::  const REVISION_SLA_DAYS = 5;
+services/waiver-reopen-service.js  ::  const SLA_DAYS = 5;
+jobs/waiver-sla-escalation-job.js  ::  const SLA_DAYS = 5;
+scripts/ops/waiver-anomaly-report.js  ::  const SLA_DAYS = 5;
+--- table: OLD / NEW ---
+false  true   const REVISION_SLA_DAYS = 5;
+false  true   const CAR_SLA_DAYS = 5;
+true   true   const SLA_DAYS = 5;
+true   true   function f(businessDays = 5) {}
+
+
+--- STEP 5: mutation reverted, working tree back to the committed file ---
+$ git checkout -- apps/backend/services/car-deadline-service.js
+$ md5sum apps/backend/services/car-deadline-service.js
+55e608d43d07b72838e756330772f226  apps/backend/services/car-deadline-service.js
+(identical to the pre-mutation hash captured before STEP 3)
+$ git status --short
+ M apps/backend/__tests__/unit/correction-round.test.js
+?? evidence/R2-special-reopen/M3/red-output-fix2.txt
+
+No source file under services/ is modified by this fix cycle. F4 is a pin-only defect.

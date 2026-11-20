@@ -1,0 +1,209 @@
+=== RED stage 1 — before schema/migration/job change ===
+cmd: (from apps/backend) npx jest __tests__/unit/pdpa-retention-job.test.js
+date: 2026-08-03T17:48:56Z  head: 4f22e3a2
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/pdpa-retention-job.test.js
+  [Sprint6] PDPA Retention Sweep
+    ✓ anonymises users whose retainUntil is past, leaving future users alone (11 ms)
+    ✓ anonymisation nulls ALL identity + PII fields and sets password to PDPA_ANONYMIZED (6 ms)
+    ✕ never retries without isAnonymized/anonymizedAt — a marker failure is recorded, not routed around (4 ms)
+    ✓ error in a single user update is recorded but does not halt the sweep (4 ms)
+    ✓ exits the loop cleanly when findMany returns empty batch (10 ms)
+  [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold
+    ✓ filters legalHold rows out at the query layer and selects the column (4 ms)
+    ✓ never anonymises a legal-hold user whose retainUntil is in the past (4 ms)
+    ✓ fails closed when the isAnonymized column is missing — no unfiltered fallback re-query (3 ms)
+    ✓ fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody (9 ms)
+  [R-HOTFIX-PDPA] legal hold is permanent, not a deferral
+    ✓ skips a held row whose retainUntil elapsed 36 years ago (4 ms)
+    ✓ the query excludes held rows unconditionally, not by shifting the date window (3 ms)
+    ✓ never writes retainUntil or legalHold — the sweep cannot defer or clear a hold (3 ms)
+  [R-HOTFIX-PDPA] the sweep names only columns that really exist
+    ✕ every column in the WHERE clause is declared on model User (6 ms)
+    ✓ every column in the SELECT clause is declared on model User (2 ms)
+    ✕ every column the anonymization payload writes is declared on model User (3 ms)
+    ✓ passes no null predicate to a column the schema declares NOT NULL (2 ms)
+    ✕ every column the sweep touches is materialised by a migration, not only declared (12 ms)
+
+  ● [Sprint6] PDPA Retention Sweep › never retries without isAnonymized/anonymizedAt — a marker failure is recorded, not routed around
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 2
+
+      134 |
+      135 |         // Exactly one attempt — no second, marker-stripped write.
+    > 136 |         expect(mockUpdate).toHaveBeenCalledTimes(1);
+          |                            ^
+      137 |         // The row is NOT counted as anonymized, because it was not anonymized.
+      138 |         expect(stats.anonymized).toBe(0);
+      139 |         expect(stats.errors).toBe(1);
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/pdpa-retention-job.test.js:136:28)
+
+  ● [R-HOTFIX-PDPA] the sweep names only columns that really exist › every column in the WHERE clause is declared on model User
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "isAnonymized",
+    + ]
+
+      431 |         const declared = userModelFields();
+      432 |         const undeclared = [...collectFilterKeys(whereArg).keys()].filter((c) => !declared.has(c));
+    > 433 |         expect(undeclared).toEqual([]);
+          |                            ^
+      434 |     });
+      435 |
+      436 |     it('every column in the SELECT clause is declared on model User', () => {
+
+      at Object.toEqual (__tests__/unit/pdpa-retention-job.test.js:433:28)
+
+  ● [R-HOTFIX-PDPA] the sweep names only columns that really exist › every column the anonymization payload writes is declared on model User
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "isAnonymized",
+    +   "anonymizedAt",
+    + ]
+
+      443 |         const declared = userModelFields();
+      444 |         const undeclared = Object.keys(dataArg).filter((c) => !declared.has(c));
+    > 445 |         expect(undeclared).toEqual([]);
+          |                            ^
+      446 |     });
+      447 |
+      448 |     it('passes no null predicate to a column the schema declares NOT NULL', () => {
+
+      at Object.toEqual (__tests__/unit/pdpa-retention-job.test.js:445:28)
+
+  ● [R-HOTFIX-PDPA] the sweep names only columns that really exist › every column the sweep touches is materialised by a migration, not only declared
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "isAnonymized",
+    +   "anonymizedAt",
+    + ]
+
+      476 |         ]);
+      477 |         const missing = [...touched].filter((column) => !sql.includes(`"${column}"`));
+    > 478 |         expect(missing).toEqual([]);
+          |                         ^
+      479 |     });
+      480 | });
+      481 |
+
+      at Object.toEqual (__tests__/unit/pdpa-retention-job.test.js:478:25)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 13 passed, 17 total
+Snapshots:   0 total
+Time:        1.502 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/pdpa-retention-job.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+
+=== RED stage 2 — schema fields added, job WHERE not yet fixed ===
+cmd: (from apps/backend) npx jest __tests__/unit/pdpa-retention-job.test.js -t "null predicate"
+date: 2026-08-03T17:49:25Z
+why: with isAnonymized declared NOT NULL, the job's OR: [{false},{null}] branch
+     becomes an invalid Prisma predicate — this is the RED that drives the WHERE fix.
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/pdpa-retention-job.test.js
+  [Sprint6] PDPA Retention Sweep
+    ○ skipped anonymises users whose retainUntil is past, leaving future users alone
+    ○ skipped anonymisation nulls ALL identity + PII fields and sets password to PDPA_ANONYMIZED
+    ○ skipped never retries without isAnonymized/anonymizedAt — a marker failure is recorded, not routed around
+    ○ skipped error in a single user update is recorded but does not halt the sweep
+    ○ skipped exits the loop cleanly when findMany returns empty batch
+  [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold
+    ○ skipped filters legalHold rows out at the query layer and selects the column
+    ○ skipped never anonymises a legal-hold user whose retainUntil is in the past
+    ○ skipped fails closed when the isAnonymized column is missing — no unfiltered fallback re-query
+    ○ skipped fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody
+  [R-HOTFIX-PDPA] legal hold is permanent, not a deferral
+    ○ skipped skips a held row whose retainUntil elapsed 36 years ago
+    ○ skipped the query excludes held rows unconditionally, not by shifting the date window
+    ○ skipped never writes retainUntil or legalHold — the sweep cannot defer or clear a hold
+  [R-HOTFIX-PDPA] the sweep names only columns that really exist
+    ✕ passes no null predicate to a column the schema declares NOT NULL (8 ms)
+    ○ skipped every column in the WHERE clause is declared on model User
+    ○ skipped every column in the SELECT clause is declared on model User
+    ○ skipped every column the anonymization payload writes is declared on model User
+    ○ skipped every column the sweep touches is materialised by a migration, not only declared
+
+  ● [R-HOTFIX-PDPA] the sweep names only columns that really exist › passes no null predicate to a column the schema declares NOT NULL
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "isAnonymized",
+    + ]
+
+      461 |             if (values.some((value) => value === null)) {offenders.push(column);}
+      462 |         }
+    > 463 |         expect(offenders).toEqual([]);
+          |                           ^
+      464 |     });
+      465 |
+      466 |     it('every column the sweep touches is materialised by a migration, not only declared', () => {
+
+      at Object.toEqual (__tests__/unit/pdpa-retention-job.test.js:463:27)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 16 skipped, 17 total
+Snapshots:   0 total
+Time:        1.17 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/pdpa-retention-job.test.js/i with tests matching "null predicate".
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

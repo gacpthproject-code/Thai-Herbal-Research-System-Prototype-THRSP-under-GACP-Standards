@@ -1,0 +1,39 @@
+I3 — RED (summary; raw log not committed). Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d), TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5438 (migrate deploy).
+Sources: clear-text.js + service.js at HEAD cb19c7e2 (git show) + the new tests.
+command (apps/backend): npx jest --config jest.config.cjs __tests__/integration/pdpa-erasure-clears-precheck-text.test.js __tests__/unit/pdpa-retention-job.test.js
+
+FAIL __tests__/unit/pdpa-retention-job.test.js
+    ✓ anonymises users whose retainUntil is past, leaving future users alone (8 ms)
+    ✓ anonymisation nulls ALL identity + PII fields and sets password to PDPA_ANONYMIZED (5 ms)
+    ✓ never retries without isAnonymized/anonymizedAt — a marker failure is recorded, not routed around (2 ms)
+    ✓ error in a single user update is recorded but does not halt the sweep (3 ms)
+    ✓ exits the loop cleanly when findMany returns empty batch (2 ms)
+    ✓ filters legalHold rows out at the query layer and selects the column (2 ms)
+    ✓ never anonymises a legal-hold user whose retainUntil is in the past (2 ms)
+    ✓ fails closed when the isAnonymized column is missing — no unfiltered fallback re-query (21 ms)
+    ✓ fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody (3 ms)
+    ✓ skips a held row whose retainUntil elapsed 36 years ago (2 ms)
+    ✓ the query excludes held rows unconditionally, not by shifting the date window (1 ms)
+    ✓ never writes retainUntil or legalHold — the sweep cannot defer or clear a hold (2 ms)
+    ✓ every column in the WHERE clause is declared on model User (2 ms)
+    ✓ every column in the SELECT clause is declared on model User (1 ms)
+    ✓ every column the anonymization payload writes is declared on model User (1 ms)
+    ✓ passes no null predicate to a column the schema declares NOT NULL (1 ms)
+    ✓ every column the sweep touches is materialised by a migration, not only declared (5 ms)
+    ✓ clears extractedText and every evidenceSnippet of the user's applications before anonymizing the user (2 ms)
+    ✓ a failed clear leaves the user un-anonymized for the next run — never anonymized with the text still there (2 ms)
+    ✕ a pre-check still PENDING is failed (with the failure flag) before the text is cleared (5 ms)
+    ✓ a user under legal hold: no pre-check text is touched (2 ms)
+    - Expected  - 2
+    + Received  + 0
+    > 577 |         expect(order).toEqual(['status:FAILED', 'failure-flag', 'flags', 'prechecks', 'user']);
+FAIL __tests__/integration/pdpa-erasure-clears-precheck-text.test.js
+    ✓ erasure clears the page text and every snippet of the user's pre-checks; status and results stay (196 ms)
+    ✓ negative control: an application under legal hold keeps its text; the user's other application is cleared (83 ms)
+    ✕ I3: a pre-check still PENDING at erasure becomes FAILED with the failure flag, and its late job writes no text (66 ms)
+    ✓ I3 control: the same late job on a PENDING row of a user who was NOT erased does write the text (80 ms)
+    ✓ I3 legal hold: a PENDING pre-check on a held application stays PENDING (a held application keeps its text) (99 ms)
+    Expected: "FAILED"
+    Received: "PENDING"
+    > 210 |         expect(failed.status).toBe('FAILED');
+Tests:       2 failed, 24 passed, 26 total

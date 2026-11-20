@@ -1,0 +1,43 @@
+
+===== [local-gate] banned-terms =====
+[banned-terms] Repository scan passed
+[local-gate] banned-terms: PASS
+
+===== [local-gate] mojibake =====
+[encoding-check] PASS: no mojibake markers or UTF-8 BOM files found
+[local-gate] mojibake: PASS
+
+===== [local-gate] green-mask =====
+[green-mask] PASS — 833 file(s) scanned; no net-new masks (baseline 15, burn-down tracked for UAT-01).
+[local-gate] green-mask: PASS
+
+===== [local-gate] probe-gate =====
+probe-gate: running 8 CI probe(s): gate-attestation holiday-single-source main-attestation-audit no-secret no-skip ratchet status-vocab stripe-sdk-isolated
+probe-gate: NOT run here (signed 'manual'): crawler-clean drain-complete evidence-complete money-equation report-integrity (until 2026-09-15) settle-webhook-only (until 2026-09-15) stripe-keys-ready suite-green tier-check (until 2026-09-15) webhook-idempotent (until 2026-09-15)
+probe-gate: a green result says nothing about the manual set — see probe-registry.txt for each reason.
+
+gate-attestation       FAIL     FAIL: no attestation for HEAD d9da3e2950efa9107b1dc78c426334f9a179f923 — evidence/gate/d9da3e2950efa9107b1dc78c426334f9a179f923.json does not exist (searched 50 commit(s) back). Run scripts/ci/full-gate.sh on the gate machine; see docs/operations/runbooks/full-gate-on-staging.md
+holiday-single-source  PASS     PASS: single calendar source: apps/backend/utils/working-days.js
+main-attestation-audit PASS     0 gated commit(s) on origin/main in the last 30 first-parent commit(s) (cutoff 2026-08-08: 24 skipped as before cutoff, 6 touched no gated path) — all attested
+no-secret              FAIL     FAIL: gitleaks found leaks — evidence/gitleaks.log
+no-skip                FAIL     apps/web-app/e2e/e2e-golden-scenario.spec.ts:162:            test.skip(true, `submit gated (${submitResponse.status()}) — draft incomplete by design; downstream payment/review stages skipped`);
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=168 dup-source=2 (evidence/ratchet-current.txt)
+status-vocab           PASS     PASS: 10 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (3 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+stripe-sdk-isolated    PASS     PASS: stripe SDK only in services/payment/stripe-adapter.js
+→ evidence/probe-results.json
+
+probe-gate notes:
+  · settle-webhook-only: parked out of CI until 2026-09-15 (38 day(s) left) — รัน `npx jest stripe-checkout-engine.test.js` (`scripts/probes/settle-webhook-only.sh:10`) — ต้องมี prisma generate ใน job · ปลดเมื่อ job มี deps ครบ
+  · webhook-idempotent: parked out of CI until 2026-09-15 (38 day(s) left) — รัน jest ชุดเดียวกัน (`scripts/probes/webhook-idempotent.sh:5`) — เงื่อนไขเดียวกับข้างบน
+  · tier-check: parked out of CI until 2026-09-15 (38 day(s) left) — ต้องการ `origin/main` ref เทียบ merge-base — actions/checkout ตื้น (fetch-depth 1) ทำให้คืน BLOCKED เสมอ = ไม่มี signal · ปลดเมื่อตั้ง fetch-depth: 0 · ⚠️ ยังไม่อยู่ใน DEFAULT ของ check-done.sh ด้วย (ช่องโหว่ที่ทะเบียนนี้จับได้)
+  · report-integrity: parked out of CI until 2026-09-15 (38 day(s) left) — L-031: probe เคยเลือกไฟล์ .md ใหม่สุดอัตโนมัติ → PASS ด้วยไฟล์ plan (ของจริงที่โดน: reports/orchestrator/W2-01-plan.md) · **เงื่อนไขปลดทำแล้ว รอ operator เสียบ CI**: รับ path ชัดเจนทาง argv[1] หรือ REPORT_INTEGRITY_TARGET (check-done.sh เรียก probe แบบไม่มี arg จึงต้องมีช่องทาง env), target ที่ระบุแล้วไม่มีไฟล์ = FAIL ไม่ใช่ PENDING, และพิมพ์ mode+target ทุกครั้ง — report-integrity.sh:33-47 · ที่เหลือคือ operator ตัดสินว่า job จะชี้ target ไหนต่อ PR แล้วย้ายแถวนี้เป็น ci
+  · no-skip: FAIL but WAIVED by operator until 2026-09-15 (38 day(s) left) — L-006 — 10 conditional skip ที่ผูกกับ env E2E; เผาหนี้หลัง demo
+
+probe-gate: FAIL
+  ✗ gate-attestation: FAIL and no operator waiver — this is the gate doing its job
+  ✗ no-secret: FAIL and no operator waiver — this is the gate doing its job
+[local-gate] probe-gate: FAIL
+
+[local-gate] unit-suite: SKIPPED (ตั้ง LOCAL_GATE_FULL=1 เพื่อรันเต็ม — ต้อง pnpm install ก่อน)
+
+[local-gate] RESULT: FAIL

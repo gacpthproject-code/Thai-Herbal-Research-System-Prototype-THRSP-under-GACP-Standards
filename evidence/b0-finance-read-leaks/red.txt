@@ -1,0 +1,197 @@
+RED — the B0 tests at 5e3e5b9f5 (tests only, code = main 5828c0b0e), real Postgres + real doors
+หมายเหตุ (รอบ 2): เลขผู้เสียภาษีนิติบุคคลสังเคราะห์ 13 หลักในค่าที่ได้จริงด้านล่างถูกเขียนใหม่เป็นรูปคำสั่ง 10 (0-XXXX-XXXX-X-4560, 6 จุด) เพราะเลขผ่านการตรวจหลักท้าย ตอนรันจริงค่าที่ได้คือเลขเต็ม 13 หลัก ซึ่งคือการรั่วที่เทสต์จับได้
+rerun: git checkout 5e3e5b9f5 && cd apps/backend && npx jest __tests__/integration/finance-read-leaks-real-postgres.test.js __tests__/unit/generated-finance-pdfs-are-never-public.test.js __tests__/unit/finance-read-parity.test.js __tests__/unit/customer-statement-service.test.js __tests__/unit/ar-aging-service.test.js
+
+    ✕ GET /api/invoices/inv-platform/receipt/pdf → finance_officer_platform 200, finance_officer_dtam 403
+      ✕ GET /api/invoices/my has no healthId, no metadata, no staff note and no WHT tax id
+      ✕ GET /api/invoices/:id as finance_officer_dtam → no metadata, payer id masked
+      ✕ GET /api/invoices/:id as system_admin_dtam → no metadata, payer id masked
+      ✕ GET /api/invoices/:id as finance_officer_platform → no metadata, payer id in full (order 57)
+      ✕ GET /api/invoices (staff list) never carries metadata
+      ✕ GET /api/applications/:id/quotations as finance_officer_dtam → payer id masked
+      ✕ GET /api/applications/:id/quotations as system_admin_dtam → payer id masked
+      ✕ finance_officer_dtam gets 403 at every staff finance PDF door and no paper is rendered
+      ✕ system_admin_dtam gets 403 at every staff finance PDF door and no paper is rendered
+      ✕ another organization's company finance officer asking for this receipt gets 404 and no paper
+      ✕ another organization's company finance officer asking for this quotation gets 404 and no paper
+      ✕ GET /api/finance/customer-statement → first digit and last four, never the 13 digits
+      ✕ aggregates a single application correctly + masks applicant PII
+      ✕ correctly buckets invoices by age + applies PDPA masking
+    ✕ gacp-pdfs/ is classified sensitive
+    ✕ no session: GET /uploads/gacp-pdfs/receipts-null.pdf answers 401 and sends no PDF bytes
+    ✕ no session: GET /uploads/gacp-pdfs/receipts%2Dnull.pdf answers 401 and sends no PDF bytes
+    ✕ no session: GET /uploads/gacp%2Dpdfs/receipts-null.pdf answers 401 and sends no PDF bytes
+    ✕ a health session gets 404: the static mount is not a finance door
+    ✕ a finance_officer_platform session gets 404: the static mount is not a finance door
+    ✕ a finance_officer_dtam session gets 404: the static mount is not a finance door
+    ✕ the signed-URL mint refuses a gacp-pdfs path
+    ✕ invoice: the paper comes back and nothing is stored
+    ✕ receipt: the paper comes back and nothing is stored
+    ✕ credit note: the paper comes back and nothing is stored
+    ✕ debit note: the paper comes back and nothing is stored
+    ✕ invoice, even when a caller asks to upload: the paper comes back and nothing is stored
+    ✕ lot label, even when a caller asks to upload: the paper comes back and nothing is stored
+Test Suites: 5 failed, 5 total
+Tests:       29 failed, 226 passed, 255 total
+
+assertion diffs:
+  ● เอกสาร PDF ฝั่งเจ้าหน้าที่: การเงินบริษัทดาวน์โหลดได้ การเงินกรมได้ 403 (ค6 ข้อ ก) › GET /api/invoices/inv-platform/receipt/pdf → finance_officer_platform 200, finance_officer_dtam 403
+    - Expected  - 1
+    + Received  + 1
+    -   "dtam": 403,
+    +   "dtam": 200,
+  ● finance read leaks, B0 (real Postgres) › 1. the payer's invoice list carries the payer's columns only › GET /api/invoices/my has no healthId, no metadata, no staff note and no WHT tax id
+    - Expected  -  1
+    + Received  + 26
+    - Array []
+    + Array [
+    +   "uuid",
+    +   "updatedAt",
+    +   "healthId",
+    +   "billingName",
+    +   "billingAddress",
+    +   "certificateNumber",
+    +   "items",
+    +   "totalAmountText",
+    +   "paymentTransactionId",
+    +   "paymentMethod",
+    +   "receiptStatus",
+    +   "receiptError",
+    +   "receiptAttempts",
+    +   "receiptLastAttemptAt",
+    +   "signatureMetadata",
+    +   "notes",
+    +   "metadata",
+    +   "createdByIp",
+    +   "isDeleted",
+    +   "deletedAt",
+    +   "deleteReason",
+    +   "retainUntil",
+    +   "legalHold",
+    +   "organizationId",
+    + ]
+  ● finance read leaks, B0 (real Postgres) › 3. staff reads: no metadata; the tax id in full for company finance only › GET /api/invoices/:id as finance_officer_dtam → no metadata, payer id masked
+    Expected path: not "metadata"
+    Received value: {"refund": {"note": "staff-refund-note-848c0b51"}, "whtCertificate": {"issuedByTaxId": "0-XXXX-XXXX-X-4560"}}
+  ● finance read leaks, B0 (real Postgres) › 3. staff reads: no metadata; the tax id in full for company finance only › GET /api/invoices/:id as system_admin_dtam → no metadata, payer id masked
+    Expected path: not "metadata"
+    Received value: {"refund": {"note": "staff-refund-note-848c0b51"}, "whtCertificate": {"issuedByTaxId": "0-XXXX-XXXX-X-4560"}}
+  ● finance read leaks, B0 (real Postgres) › 3. staff reads: no metadata; the tax id in full for company finance only › GET /api/invoices/:id as finance_officer_platform → no metadata, payer id in full (order 57)
+    Expected path: not "metadata"
+    Received value: {"refund": {"note": "staff-refund-note-848c0b51"}, "whtCertificate": {"issuedByTaxId": "0-XXXX-XXXX-X-4560"}}
+  ● finance read leaks, B0 (real Postgres) › 3. staff reads: no metadata; the tax id in full for company finance only › GET /api/invoices (staff list) never carries metadata
+    Expected path: not "metadata"
+    Received value: {"refund": {"note": "staff-refund-note-848c0b51"}, "whtCertificate": {"issuedByTaxId": "0-XXXX-XXXX-X-4560"}}
+  ● finance read leaks, B0 (real Postgres) › 3. staff reads: no metadata; the tax id in full for company finance only › GET /api/applications/:id/quotations as finance_officer_dtam → payer id masked
+    Expected: "0-XXXX-XXXX-X-4560"
+    Received: "0-XXXX-XXXX-X-4560"
+  ● finance read leaks, B0 (real Postgres) › 3. staff reads: no metadata; the tax id in full for company finance only › GET /api/applications/:id/quotations as system_admin_dtam → payer id masked
+    Expected: "0-XXXX-XXXX-X-4560"
+    Received: "0-XXXX-XXXX-X-4560"
+  ● finance read leaks, B0 (real Postgres) › 3. staff PDF doors of finance documents: company finance only (ค6 interim ก) › finance_officer_dtam gets 403 at every staff finance PDF door and no paper is rendered
+    - Expected  - 4
+    + Received  + 4
+    -     403,
+    +     200,
+    -     403,
+    +     200,
+    -     403,
+    +     200,
+    -     403,
+    +     200,
+  ● finance read leaks, B0 (real Postgres) › 3. staff PDF doors of finance documents: company finance only (ค6 interim ก) › system_admin_dtam gets 403 at every staff finance PDF door and no paper is rendered
+    - Expected  - 4
+    + Received  + 4
+    -     403,
+    +     200,
+    -     403,
+    +     200,
+    -     403,
+    +     200,
+    -     403,
+    +     200,
+  ● finance read leaks, B0 (real Postgres) › 4. the staff receipt and quotation PDF doors keep to the caller's organization themselves › another organization's company finance officer asking for this receipt gets 404 and no paper
+    Expected: 404
+    Received: 200
+  ● finance read leaks, B0 (real Postgres) › 4. the staff receipt and quotation PDF doors keep to the caller's organization themselves › another organization's company finance officer asking for this quotation gets 404 and no paper
+    Expected: 404
+    Received: 200
+  ● finance read leaks, B0 (real Postgres) › 5. the customer statement masks the national ID in the order-10 shape › GET /api/finance/customer-statement → first digit and last four, never the 13 digits
+    Expected: "9-XXXX-XXXX-X-5156"
+    Received: "9755*******56"
+  ● customer-statement-service › generateCustomerStatement › aggregates a single application correctly + masks applicant PII
+    Expected: "1-XXXX-XXXX-X-0123"
+    Received: "1234*******23"
+  ● ar-aging-service › generateArAgingReport › correctly buckets invoices by age + applies PDPA masking
+    Expected: "1-XXXX-XXXX-X-0123"
+    Received: "1234*******23"
+  ● the /uploads mount never serves a generated finance PDF › gacp-pdfs/ is classified sensitive
+    - Expected  - 2
+    + Received  + 2
+    -   "kind": "generated",
+    -   "sensitive": true,
+    +   "kind": "public",
+    +   "sensitive": false,
+  ● the /uploads mount never serves a generated finance PDF › no session: GET /uploads/gacp-pdfs/receipts-null.pdf answers 401 and sends no PDF bytes
+    Expected: 401
+    Received: 200
+  ● the /uploads mount never serves a generated finance PDF › no session: GET /uploads/gacp-pdfs/receipts%2Dnull.pdf answers 401 and sends no PDF bytes
+    Expected: 401
+    Received: 200
+  ● the /uploads mount never serves a generated finance PDF › no session: GET /uploads/gacp%2Dpdfs/receipts-null.pdf answers 401 and sends no PDF bytes
+    Expected: 401
+    Received: 200
+  ● the /uploads mount never serves a generated finance PDF › a health session gets 404: the static mount is not a finance door
+    Expected: 404
+    Received: 200
+  ● the /uploads mount never serves a generated finance PDF › a finance_officer_platform session gets 404: the static mount is not a finance door
+    Expected: 404
+    Received: 200
+  ● the /uploads mount never serves a generated finance PDF › a finance_officer_dtam session gets 404: the static mount is not a finance door
+    Expected: 404
+    Received: 200
+  ● the /uploads mount never serves a generated finance PDF › the signed-URL mint refuses a gacp-pdfs path
+    Expected: 404
+    Received: 200
+  ● rendering a finance paper writes nothing to storage › invoice: the paper comes back and nothing is stored
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "gacp-pdfs/invoices/INV-CO-B0-M1.pdf",
+    + ]
+  ● rendering a finance paper writes nothing to storage › receipt: the paper comes back and nothing is stored
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "gacp-pdfs/receipts/TAX-PRD-2569-000001.pdf",
+    + ]
+  ● rendering a finance paper writes nothing to storage › credit note: the paper comes back and nothing is stored
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "gacp-pdfs/credit-notes/CN-PRD-2569-000001.pdf",
+    + ]
+  ● rendering a finance paper writes nothing to storage › debit note: the paper comes back and nothing is stored
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "gacp-pdfs/debit-notes/DN-PRD-2569-000001.pdf",
+    + ]
+  ● rendering a finance paper writes nothing to storage › invoice, even when a caller asks to upload: the paper comes back and nothing is stored
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "gacp-pdfs/invoices/INV-CO-B0-M1.pdf",
+    + ]
+  ● rendering a finance paper writes nothing to storage › lot label, even when a caller asks to upload: the paper comes back and nothing is stored
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "gacp-pdfs/labels/LOT-B0-1.pdf",
+    + ]

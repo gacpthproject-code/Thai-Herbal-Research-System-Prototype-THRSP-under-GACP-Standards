@@ -1,0 +1,30 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+  M1 — POST /bundles/:id/submit asks the guard about EVERY linked case
+    √ a linked case with no entityId (nothing to heal) → 400 VALIDATION_ERROR, no transaction opened (73 ms)
+    √ a linked case the caller may not act for → 403 ENTITY_PERMISSION_DENIED + audit FAILURE, nothing written (15 ms)
+    √ every allowed case is asked about by its OWN entityId, then submitted (16 ms)
+    √ heals a pre-Phase-66 linked case from the personal entity instead of refusing it (14 ms)
+  M1 — PUT /revision-deadline/:id/submit
+    √ health user who may not act for the application entity → 403, deadline row untouched (29 ms)
+    √ health user who may act → submits, and the row records in whose name (12 ms)
+    √ provider bypass survives, but ALWAYS writes an actorType PROVIDER row naming the entity (11 ms)
+  M1 — POST /applications/:id/car
+    √ refuses with 403 when the caller may not act for the application entity — nothing written (15 ms)
+    √ refuses with 400 when the row names no entity and nothing can be healed (12 ms)
+    √ allows the owner through, asking about the application row entity (12 ms)
+  M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too
+    √ no entityId and nothing to heal → 400 VALIDATION_ERROR, submitRevision never runs (19 ms)
+    √ caller who may not act for the entity → 403 + audit FAILURE, submitRevision never runs (12 ms)
+    √ allowed → asks about the row entity, submits, and records the accepted act (AC3) (13 ms)
+    √ heals a pre-Phase-66 row from the personal entity before deciding (10 ms)
+  M1 — POST /applications/renewals seeds entityId or refuses
+    √ carried an entityId from the source application → 201 (13 ms)
+    √ source had none → heals from the personal entity → 201 (12 ms)
+    √ nothing to seed and nothing to heal → 400 VALIDATION_ERROR (never a draft that can never be submitted) (22 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        3.06 s, estimated 4 s
+Ran all test suites matching /m1-submit-guard-doors/i.

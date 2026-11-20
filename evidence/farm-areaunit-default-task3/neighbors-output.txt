@@ -1,0 +1,203 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/application-status-writer-cert-hook.test.js
+  application-status-writer-cert-hook (R2-D + WF-2)
+    call signature contract (APPROVED)
+      √ passes applicationId, actorId, and the caller client (no skipInitialAssets — hook owns initial assets per C-1) (172 ms)
+      √ probes findCertificateForApplication BEFORE generateCertificate (44 ms)
+    idempotency
+      √ re-call returns existing cert via findCertificateForApplication probe (41 ms)
+      √ H-1: emits CERT_AUTO_GEN_SKIPPED_EXISTING via onAudit when cert exists (4 ms)
+      √ double-write of the same APPROVED transition is safe (47 ms)
+    rollback on failure (reverts APPROVED → fromStatus)
+      √ cert-gen throw rolls status back to fromStatus and re-throws wrapped (56 ms)
+      √ rollback failure is swallowed (logged), original cert error still re-thrown (38 ms)
+      √ rollback uses prisma.application.update directly (no recursive writeApplicationStatus) (38 ms)
+    opt-out via autoIssueCertificate: false
+      √ hook does not fire when explicitly opted out (37 ms)
+      √ default true means hook fires on APPROVED with no explicit flag (37 ms)
+    cert hook fires on AUDIT_PASSED and APPROVED (not other states)
+      √ AUDIT_PASSED DOES issue a certificate (single-auditor flow — issued on PASS) (51 ms)
+      √ SUBMITTED transition is a no-op for the cert hook (37 ms)
+      √ CAR_PENDING (audit failure path) is a no-op for the cert hook (35 ms)
+    I-003 transaction-handle behaviour
+      √ cert hook uses the same prisma handle the caller supplied (tx-aware) (36 ms)
+      √ rollback onAudit fires through caller-supplied callback (NOT auditLogger.log directly) (36 ms)
+      √ rollback onAudit failure does NOT mask the original cert error (36 ms)
+    D10 APPLICANT_AUDIT_PASSED fanout dispatch
+      √ fires on AUDIT_PASSED carrying the minted certificateNumber (36 ms)
+      √ still fires on AUDIT_PASSED even when autoIssueCertificate=false (fanout is decoupled from cert-gen) (35 ms)
+      √ fanout failure does NOT throw to caller and does NOT roll back the status write (51 ms)
+      √ skips silently when prisma stub lacks user.findFirst (e.g. legacy test mocks) (35 ms)
+      √ skips silently when healthId is missing on the updated row (36 ms)
+      √ does NOT fire on non-AUDIT_PASSED transitions (SUBMITTED, CERTIFIED, APPROVED) (40 ms)
+
+PASS __tests__/unit/application-status-writer.test.js
+  application-status-writer (PR-WF-1)
+    √ throws when prisma is missing (30 ms)
+    √ throws when applicationId is missing (3 ms)
+    √ throws when toStatus is missing (2 ms)
+    √ calls prisma.application.update with correct shape (3 ms)
+    √ merges additionalData into the update (3 ms)
+    √ fires onAudit callback with full entry (2 ms)
+    √ onAudit not provided is OK (no-op audit) (3 ms)
+    √ onAudit failure does NOT throw (best-effort) (2 ms)
+    √ assertTransition strict mode throws on illegal transition (3 ms)
+    √ assertTransition false (default) is permissive — never throws on transition (2 ms)
+    work-activity emission (ADR-016)
+      √ spawns activities matching the new stage (109 ms)
+      √ cancels open activities when status reaches a terminal state (26 ms)
+      √ hook failure does NOT block status write (best-effort) (26 ms)
+      √ skips silently when prisma stub has no workActivity (legacy callers) (2 ms)
+    certificate auto-generation hook (R2-D)
+      √ APPROVED with no existing cert calls generateCertificate (2 ms)
+      √ APPROVED with existing cert is idempotent — skips generateCertificate (2 ms)
+      √ cert-gen failure rolls back status to fromStatus and re-throws wrapped (3 ms)
+      √ autoIssueCertificate=false opts out — hook does not fire on APPROVED (2 ms)
+      √ hook is no-op for non-AUDIT_PASSED transitions (default true is irrelevant) (2 ms)
+      √ rollback emits onAudit entry tagged with APPROVED_ROLLBACK_CERT_FAILURE (I-003) (3 ms)
+    CERT_AUTO_GEN_ROLLBACK audit emission (R3-D, I-003)
+      √ (a) cert-gen throws — status reverts AND CERT_AUTO_GEN_ROLLBACK audit row written via logWithin (2 ms)
+      √ (b) audit emit failure does NOT prevent re-throw of cert-auto-gen wrapped error (2 ms)
+      √ (c) metadata.errorMessage + errorCode mirror the certError (default UNKNOWN when absent) (4 ms)
+    WF-F7 — optimistic concurrency (version)
+      √ always increments version, even without expectedVersion (last-write-wins preserved) (2 ms)
+      √ scopes the update to expectedVersion when provided (2 ms)
+      √ throws CONCURRENCY_CONFLICT when a racing writer already advanced the row (P2025) (2 ms)
+      √ a P2025 WITHOUT expectedVersion is not masked as a conflict (re-thrown as-is) (2 ms)
+      √ ignores a non-integer expectedVersion (no version predicate) (2 ms)
+  application-status-writer — H1 formData.workflowState sync
+    √ syncs formData.workflowState to the canonical state for the new status (merge, no clobber) (2 ms)
+    √ does NOT overwrite an explicit caller-supplied formData (167 ms)
+    √ falls back to a status-only write when prisma.application.findUnique is unavailable (3 ms)
+
+[32minfo[39m: [Certificate] Generating for App: app-701 {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.222Z"}
+[32minfo[39m: [Certificate] Generating for App: app-701 {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.292Z"}
+[32minfo[39m: [Certificate] Generating for App: app-701 {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.345Z"}
+[33mwarn[39m: [Certificate] Application GACP-2026-0701 states no cultivation method. Leaving the farm's own value alone rather than recording OUTDOOR. {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.346Z"}
+[32minfo[39m: [Certificate] Farm created for cert: farm-701 {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.347Z"}
+[33mwarn[39m: [signature-service] key namespace 'rsa:gacp-certificate' not provisioned (expected C:\Users\charo\Documents\GitHub\GACP-Certification-Application\apps\backend\keys\namespaces\rsa-gacp-certificate\private.pem) — falling back to the default key. Per-issuer separation is INERT until the namespaced key is installed. {"service":"signature-service","timestamp":"2026-08-20T01:13:52.359Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-20T01:13:52.361Z"}
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[31merror[39m: Local signing error: error:1C800064:Provider routines::bad decrypt {"code":"ERR_OSSL_BAD_DECRYPT","library":"Provider routines","opensslErrorStack":["error:11800074:PKCS12 routines::pkcs12 cipherfinal error","error:1C800064:Provider routines::bad decrypt","error:11800074:PKCS12 routines::pkcs12 cipherfinal error","error:1C800064:Provider routines::bad decrypt"],"reason":"bad decrypt","service":"signature-service","stack":"Error: error:1C800064:Provider routines::bad decrypt\n    at Sign.sign (node:internal/crypto/sig:147:29)\n    at SignatureService.sign [as signWithLocalKey] (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\services\\crypto\\signature-service.js:309:30)\n    at CertificateService.generateCertificate (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\services\\certificate-service.js:439:25)\n    at writeApplicationStatus (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\services\\application-status-writer.js:978:37)\n    at Object.<anonymous> (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\unit\\application-status-writer-cert-hook-evidence-gate.test.js:198:24)","timestamp":"2026-08-20T01:13:52.367Z"}
+[31merror[39m: [Certificate] PKI signing failed for GACP-TH-2569-14FB1D (issuing with hash-only integrity): Failed to sign with local key: error:1C800064:Provider routines::bad decrypt {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.369Z"}
+[32minfo[39m: [Certificate] Created: GACP-TH-2569-14FB1D {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.370Z"}
+[32minfo[39m: [Certificate] Auto-Created Cycle: cycle-1 {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.371Z"}
+[32minfo[39m: [Certificate] Auto-Created Batch: LOT-2569-FARM-001 with QR {"service":"gacp-backend","timestamp":"2026-08-20T01:13:52.372Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-20T01:13:52.396Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-20T01:13:52.397Z"}
+PASS __tests__/unit/application-status-writer-cert-hook-evidence-gate.test.js
+  AUDIT_PASSED auto-issue hook -> REAL generateCertificate -> REAL onsite-evidence-gate (choke point)
+    √ cert-gen refuses (NO_ONSITE_AUDIT) -> writer rolls the status back to fromStatus and re-throws -> caller tx aborts, nothing persists at AUDIT_PASSED (146 ms)
+    √ cert-gen refuses (EVIDENCE_CAPTURE_UNAVAILABLE — audit row exists but photo/checklist models are not provisioned) -> same refuse-and-revert contract (41 ms)
+    √ control: sufficient evidence -> the real chain mints a certificate and does NOT roll back (77 ms)
+
+PASS __tests__/unit/area-utils.test.js
+  the platform has one area unit
+    √ is square metres (2 ms)
+    √ is labelled ตร.ม. wherever it is shown (1 ms)
+  storedAreaToSqm
+    √ cannot be reopened from a caller (1 ms)
+    the current unit
+      √ passes square metres through untouched (1 ms)
+      √ accepts the unit however it was cased or padded on the way in (1 ms)
+    rows written before the switch
+      √ still reads rai as 1,600 square metres (1 ms)
+      √ still reads ngan and square wa (1 ms)
+      √ recognises the Thai and alternate spellings that reached the database (1 ms)
+      √ reads the wizard's capitalised spellings (1 ms)
+    it refuses to guess
+      √ throws on a missing unit rather than assuming square metres (29 ms)
+      √ throws on a unit it does not recognise, naming it (2 ms)
+      √ says what to do about it (1 ms)
+    numbers that are not areas
+      √ treats absent as zero (1 ms)
+      √ refuses a negative area (1 ms)
+      √ refuses NaN and infinity rather than propagating them (1 ms)
+      √ reads a numeric string, because Prisma Decimal arrives as one (1 ms)
+    arithmetic that has to be exact
+      √ 1 rai is 1600 m² (1 ms)
+      √ 2 rai is 3200 m² (1 ms)
+      √ 10 rai is 16000 m²
+      √ 100 rai is 160000 m²
+      √ 0.25 rai is 400 m² (1 ms)
+      √ 0.0625 rai is 100 m² (1 ms)
+      √ 1 ngan is 400 m² (1 ms)
+      √ 4 ngan is 1600 m² (1 ms)
+      √ 400 sqwa is 1600 m² (1 ms)
+      √ 1 sqwa is 4 m²
+      √ keeps a rai-to-sqm-to-rai round trip exact for whole rai (8 ms)
+      √ holds the relationships between the legacy units (1 ms)
+  isLegacyAreaUnit
+    √ is how the migration finds rows still to convert (1 ms)
+    √ is false for the unit everything is being moved to
+    √ is false for something unrecognised — that is a different problem
+
+PASS __tests__/unit/application-status-writer-audit-tx-semantics.test.js
+  application-status-writer — tx semantics on a stateful fake Postgres (PR-A0-1b)
+    √ [harness] a failed INSERT aborts the tx and COMMIT silently rolls it back (27 ms)
+    √ [harness] ROLLBACK TO SAVEPOINT clears the abort and keeps pre-savepoint work (3 ms)
+    √ [F1] audit INSERT failure inside a CALLER tx must not cost the business write (3 ms)
+    √ [F1] the caller can keep working in its tx after a failed emission (mint-cert style hop) (3 ms)
+    √ [F1] a caller tx that is NOT poisoned still gets its row, committed with the status write (2 ms)
+    √ [F1] the caller tx is never left holding an orphan savepoint on success (2 ms)
+    √ [F5] bare client + failing emission: the internal tx is unwound and the UPDATE re-applied EXACTLY once (3 ms)
+    √ [F5] bare client happy path: UPDATE and audit row land in the SAME commit, version +1 (2 ms)
+    √ [F3] cert-hook failure in DEFAULT mode emits the compensating reversal row (2 ms)
+    √ [F3] cert-hook failure inside a CALLER tx: reversal row emitted, caller tx still committable (3 ms)
+    √ [F-B] bare client: the cert revert and its compensating row commit in ONE internal tx (3 ms)
+    √ [cycle2-3] the CERT_AUTO_GEN_ROLLBACK marker must not poison the caller tx either (2 ms)
+    √ [F3] cert-hook failure with onAudit:false stays silent (tri-state preserved) (2 ms)
+    √ [F3] cert-hook failure with an onAudit callback emits via the callback only (no double row) (3 ms)
+
+PASS __tests__/unit/application-status-writer-audit-default.test.js
+  application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1)
+    √ (a) onAudit omitted + bare client → opens an internal tx and emits ONE canonical row bound to that tx (4 ms)
+    √ (a) envelope: canonical event + transition fields + actorRole in metadata (3 ms)
+    √ (a) onAudit omitted + caller-supplied tx handle → emits into the CALLER tx, no nested tx (4 ms)
+    √ (a) client without an auditLog namespace → no internal tx, exactly one UPDATE (legacy stub shape preserved) (2 ms)
+    √ (b) onAudit function → callback fires once, writer emits nothing itself, no internal tx (2 ms)
+    √ (b) onAudit function that throws is still swallowed (fail-open unchanged) (2 ms)
+    √ (c) onAudit false → deliberate silence: no callback, no default row, no internal tx (2 ms)
+    √ fail-open: a failing default emission inside the internal tx still lands the status write (3 ms)
+    √ fail-open: a failing default emission inside a CALLER tx is UNWOUND to a savepoint (not merely swallowed) (3 ms)
+    √ fail-open: a SUCCESSFUL default emission in a CALLER tx releases its savepoint (no orphan) (3 ms)
+    √ a real UPDATE failure inside the internal tx is re-thrown, not swallowed as an audit hiccup (2 ms)
+
+PASS __tests__/unit/farm-entityid-stamp.test.js
+  Wave A chunk 2 — createFarm stamps Farm.entityId
+    √ stamps entityId from the active-entity ALS context (2 ms)
+    √ prefers an explicit options.entityId (route-threaded req.activeEntity) over ALS (1 ms)
+    √ is null-safe without any entity context (scripts/seeds) — entityId: null, no throw (2 ms)
+  Wave A chunk 2 — executeWizardSubmission tx.farm.create stamps Farm.entityId
+    √ stamps entityId from the active-entity ALS context inside the tx (2 ms)
+    √ is null-safe without an entity context — entityId: null (1 ms)
+    √ S3: tx.application.create stamps entityId from the same ALS context (1 ms)
+    √ S3: tx.application.create is null-safe without an entity context (14 ms)
+  Wave A fix M3 — cert auto-issue farm.create stamps Farm.entityId
+    √ farm.create carries entityId from the application row (2 ms)
+    √ legacy application without entityId → stamps null (never throws) (1 ms)
+    √ farm-REUSE update branch does NOT touch entityId (no clobber) (2 ms)
+
+PASS __tests__/unit/area-migration-targets-real-tables.test.js
+  the area-to-sqm migration
+    it addresses tables that exist
+      √ targets at least one table, so the extraction itself is not vacuous (2 ms)
+      √ names only tables the schema actually maps (192 ms)
+      √ converts the three tables that carry an areaUnit (5 ms)
+    it does not address Prisma model names
+      √ never writes to "Farm" (3 ms)
+      √ never writes to "Plot" (4 ms)
+      √ never writes to "PlantingCycle" (3 ms)
+      √ never writes to "HarvestBatch" (2 ms)
+      √ does not mention harvest_batches, which has no area columns (2 ms)
+    the column defaults move with the data
+      √ sets the farms default to sqm (2 ms)
+      √ sets the plots default to sqm (2 ms)
+      √ sets the planting_cycles default to sqm (2 ms)
+    it cannot silently do nothing again
+      √ does not guard its statements behind to_regclass (2 ms)
+
+Test Suites: 8 passed, 8 total
+Tests:       134 passed, 134 total
+Snapshots:   0 total
+Time:        7.004 s

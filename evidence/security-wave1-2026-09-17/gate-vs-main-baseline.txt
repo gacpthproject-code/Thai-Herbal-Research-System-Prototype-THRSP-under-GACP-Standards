@@ -1,0 +1,60 @@
+# full gate: fix/security-wave1 @ ac873d86 vs the baseline for main b4d7bc06
+# baseline = gate of c4670b31 (chore/retire-forgot-password, merged to main as b4d7bc06), attested in evidence/gate/c4670b31….json on main
+# both runs: throwaway postgres:15-alpine on 127.0.0.1:5433 via GATE_PG_ADMIN_URL, scripts/ci/full-gate.sh, this box
+
+## check status (baseline -> wave 1)
+workspace-clean       pass  ->  pass
+install               pass  ->  pass
+prisma-generate       pass  ->  pass
+migrate-deploy        pass  ->  pass
+suite-green           fail  ->  fail
+integration-pg        fail  ->  fail
+secret-scan-deep      pass  ->  pass
+probe-ci              fail  ->  fail
+probe-prisma-deps     pass  ->  pass
+deploy-drift          pass  ->  pass
+integration-no-skip   fail  ->  fail
+money-equation-real   not-run  ->  not-run
+drain-complete-real   not-run  ->  not-run
+stripe-keys-ready     not-run  ->  not-run
+flow-proof-full       not-run  ->  not-run
+
+## suite-green
+baseline: Test Suites: 11 failed, 2 skipped, 854 passed, 865 of 867 total | Tests:       33 failed, 54 skipped, 10684 passed, 10771 total
+wave 1  : Test Suites: 11 failed, 2 skipped, 865 passed, 876 of 878 total | Tests:       33 failed, 54 skipped, 11045 passed, 11132 total
+failing suites (timings stripped) — identical sets:
+  FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+  FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+  FAIL __tests__/integration/m1-submit-enforcement.test.js
+  FAIL __tests__/integration/m2a-submit-enforcement.test.js
+  FAIL __tests__/integration/officer-review-round-trip.test.js
+  FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+  FAIL __tests__/integration/onsite-evidence-unfreeze.test.js
+  FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+  FAIL __tests__/integration/staff-scope-contract.test.js
+  FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+  FAIL __tests__/unit/renewal-fast-path.test.js
+
+## integration-pg
+baseline: Test Suites: 9 failed, 1 skipped, 68 passed, 77 of 78 total | Tests:       31 failed, 13 skipped, 455 passed, 499 total
+wave 1  : Test Suites: 9 failed, 1 skipped, 68 passed, 77 of 78 total | Tests:       31 failed, 13 skipped, 455 passed, 499 total
+failing suites — identical sets:
+  FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+  FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+  FAIL __tests__/integration/m1-submit-enforcement.test.js
+  FAIL __tests__/integration/m2a-submit-enforcement.test.js
+  FAIL __tests__/integration/officer-review-round-trip.test.js
+  FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+  FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+  FAIL __tests__/integration/staff-scope-contract.test.js
+  FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+
+## probe-ci (wave 1)
+dependency-audit       FAIL     FAIL: 2 unaccepted high/critical advisory(ies): high extract-zip GHSA-7pqw-9j4
+gate-attestation       FAIL     FAIL: the newest attestation covers db7a17bce6202ba6145f77ff0dd623b624cec42e, 
+main-attestation-audit FAIL     18 of 21 gated commit(s) on origin/main in the last 30 first-parent commit(s) 
+nginx-config-drift     FAIL     FAIL: host nginx differs from git in 2 of 3 vhost(s): gacp-platform.conf: 51 d
+report-integrity       PENDING  PENDING: การเปลี่ยนแปลงนี้ไม่ได้
+- gate-attestation / main-attestation-audit: fail on main too (an attestation cannot exist for the HEAD it is computed on; main history lacks attestations)
+- dependency-audit: new probe; extract-zip x2 await the operator's signature in scripts/probes/dependency-audit-accepted.txt
+- nginx-config-drift: new probe; turns green when the operator installs deploy/nginx on the host

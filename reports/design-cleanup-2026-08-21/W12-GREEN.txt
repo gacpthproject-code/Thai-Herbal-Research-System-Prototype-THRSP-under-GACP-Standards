@@ -1,0 +1,56 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/renewal-fee-ssot.test.js
+  W12-1 — renewal fee value
+    √ A. the canonical fee table publishes the renewal fee (23 ms)
+    √ B. GET /api/pricing/fees quotes 30,000 (65 ms)
+    √ B2. GET /api/pricing (root alias) quotes the same 30,000 (12 ms)
+    √ C. the frontend constant says 30,000 (2 ms)
+  W12-2 — the two ends cannot drift
+    √ D. frontend mirror === backend canonical, whatever the number is (2 ms)
+    √ D2. the frontend DERIVES its payable total, it does not hardcode one (2 ms)
+    √ E. the API serves the canonical value, not a re-spelled literal (11 ms)
+    √ F. only business-rules.js may DEFINE a renewal fee amount (97 ms)
+  W12-3 — what the applicant actually pays for a renewal
+    √ G. the payable total is the base grossed up by the canonical rates (11 ms)
+    √ H. that gross-up is the engine's own — it reproduces the phase totals (12 ms)
+    √ I. a renewal is ONE charge — the API says so rather than making a screen infer it (10 ms)
+  W12-4 — no other fee moved
+    √ J. every other published fee is byte-identical to before (11 ms)
+    √ K. the canonical engine rates are untouched (1 ms)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-08-22T14:15:20.936Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-08-22T14:15:20.940Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-08-22T14:15:20.941Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","entryState":"PENDING_AUDIT_FEE","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T14:15:21.134Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","entryState":"PENDING_AUDIT_FEE","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T14:15:21.138Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","entryState":"PENDING_AUDIT_FEE","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T14:15:21.140Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","entryState":"PENDING_AUDIT_FEE","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T14:15:21.143Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","entryState":"PENDING_AUDIT_FEE","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T14:15:21.145Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","entryState":"PENDING_AUDIT_FEE","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T14:15:21.149Z"}
+[31merror[39m: [renewal-service] fast-path audit row failed to write {"error":"audit sink down","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T14:15:21.150Z"}
+PASS __tests__/unit/renewal-fast-path.test.js
+  W12-2A — a renewal enters at the site-visit payment gate, not at DRAFT
+    √ the created application is PENDING_AUDIT_FEE, not DRAFT (5 ms)
+    √ the entry state is one settled payment away from the scheduling queue (3 ms)
+    √ the entry state skips the document fee and the document review (2 ms)
+  W12-2B — the jump is recorded, never silent
+    √ provenance is written onto the application itself (2 ms)
+    √ an audit-trail row records the skip, the certificate and the entry state (3 ms)
+    √ the application is still created when the audit sink is down (3 ms)
+  W12-2C — the fast path is reachable only for a genuine, live renewal
+    √ an expired certificate is refused, not fast-pathed (3 ms)
+    √ a revoked (non-ACTIVE) certificate is refused (1 ms)
+    √ someone who does not own the certificate is refused (2 ms)
+    √ a missing certificate is refused (1 ms)
+  W12-2D — a NON-renewal application still cannot skip document review
+    √ DRAFT still leads only to SUBMITTED, and document review is still on the ordinary road (2 ms)
+    √ no edge into the renewal entry state was added for ordinary applications (1 ms)
+  W12-2E — a renewal cannot reach CERTIFIED without an onsite audit
+    √ every path from the renewal entry state to CERTIFIED runs through AUDIT_PASSED (2 ms)
+    √ the issuance evidence gate is still wired into certificate minting (2 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       27 passed, 27 total
+Snapshots:   0 total
+Time:        3.075 s
+Ran all test suites matching /__tests__\\unit\\renewal-fee-ssot.test.js|__tests__\\unit\\renewal-fast-path.test.js/i.

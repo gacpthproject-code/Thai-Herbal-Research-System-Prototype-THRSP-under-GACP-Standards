@@ -1,0 +1,309 @@
+A0-AUDIT-EMISSION / PR-A0-2 — test output summary (numbers copied from the raw files
+in this directory; nothing here is retyped from memory)
+
+════════════════════════════════════════════════════════════════════════════════
+1. RED — `red-raw-jest.txt`
+   Command (from apps/backend), run against the UNMODIFIED callers at 8e7804d5:
+     npx jest __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js \
+              __tests__/unit/a0-pr2-admin-override-canonical-row.test.js
+   Result: Test Suites: 2 failed, 2 total · Tests: 8 failed, 4 passed, 12 total
+════════════════════════════════════════════════════════════════════════════════
+
+   ✕ hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission
+   ✕ hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission
+   ✕ exactly ONE transaction is opened for the pair (not one per hop)
+   ✓ WF-F5 regression pin: the illegal DRAFT→PENDING_DOC_FEE edge is still never written
+   ✓ the resubmit hop and its append-only snapshot share one tx, default emission
+   ✕ every linked case is written through the caller tx with default emission
+   ✕ the bundle status flip is in the SAME transaction as the case writes
+   ✓ R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened
+   ✕ the writer is told the caller owns the emission (onAudit === false)
+   ✕ the canonical APPLICATION_STATUS_TRANSITION row is emitted through the SSOT hook, bound to the SAME tx
+   ✓ the pre-existing ADMIN override row is NOT removed (the two rows are different records)
+   ✕ a failing canonical emission ROLLS THE HOP BACK (fail-closed, not swallowed)
+
+   Representative failure text (verbatim from red-raw-jest.txt):
+     ● … › the writer is told the caller owns the emission (onAudit === false)
+       expect(received).toBe(expected) // Object.is equality
+       Expected: false
+       Received: undefined
+     ● … › the canonical APPLICATION_STATUS_TRANSITION row is emitted through the SSOT hook…
+       expect(jest.fn()).toHaveBeenCalledTimes(expected)
+       Expected number of calls: 1
+       Received number of calls: 0
+     ● … › a failing canonical emission ROLLS THE HOP BACK (fail-closed, not swallowed)
+       Expected: 500
+       Received: 200
+     ● … › the bundle status flip is in the SAME transaction as the case writes
+       expect(jest.fn()).toHaveBeenCalledTimes(expected)
+       Expected number of calls: 1
+       Received number of calls: 0
+
+   GREEN AT BIRTH — declared PINS, not fixes (Law 3.11 / 3.7). These 4 never failed:
+     * `WF-F5 regression pin: the illegal DRAFT→PENDING_DOC_FEE edge is still never written`
+     * `the resubmit hop and its append-only snapshot share one tx, default emission` (#10)
+     * `R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened`
+     * `the pre-existing ADMIN override row is NOT removed (the two rows are different records)`
+   The whole of `a0-pr2-hop-emission-contract.test.js` (21 tests) is likewise a PIN —
+   it was written after the fix and every row held on first run.
+
+════════════════════════════════════════════════════════════════════════════════
+2. SECOND RED — `red-raw-jest-admin-harness.txt` (a harness gap the fix exposed)
+════════════════════════════════════════════════════════════════════════════════
+   `__tests__/integration/admin-applications.test.js` mocked `middleware/audit-logger`
+   without `statusTransitionAuditHook`, and asserted `logWithin` was called exactly
+   ONCE per override. Both statements became false when #7 started emitting its
+   canonical row. Reproduced by stashing only that file's fix and re-running:
+
+     $ git stash push apps/backend/__tests__/integration/admin-applications.test.js
+     $ npx jest __tests__/integration/admin-applications.test.js
+     ✕ updates status and writes audit event for admin override          Expected: 200  Received: 500
+     ✕ retries the whole transaction on P2002 audit-chain conflict …     Expected: 200  Received: 500
+     ✕ returns 500 when transaction retries are exhausted                Expected calls: 3  Received: 1
+     Tests: 3 failed, 3 passed, 6 total
+
+   Fixed by (a) completing the mock so it mirrors the real factory
+   (audit-logger.js:834-850) and routes the hook through the SAME `logWithin`
+   jest.fn, and (b) updating the counts to the new truth: 2 rows per committed
+   override, 3 `logWithin` calls across the 2-attempt retry case. The ADMIN-row
+   assertions were kept verbatim and a canonical-row assertion block was ADDED —
+   this is an assertion INCREASE, not a reduction.
+
+════════════════════════════════════════════════════════════════════════════════
+3. GREEN — `green-raw-jest.txt` (new suites + every suite the diff touches)
+════════════════════════════════════════════════════════════════════════════════
+   Test Suites: 1 skipped, 10 passed, 10 of 11 total
+   Tests:       6 skipped, 98 passed, 104 total
+
+   The 1 skipped suite / 6 skipped tests are `a0-pr2-per-hop-invariant.test.js`
+   self-skipping without DATABASE_URL. See §5.
+
+════════════════════════════════════════════════════════════════════════════════
+4. FULL SUITE vs CLEAN-TREE BASELINE — `full-suite-raw.txt` / `baseline-clean-tree-raw.txt`
+════════════════════════════════════════════════════════════════════════════════
+   Same sandbox, same node_modules, same command (`npx jest` from apps/backend).
+
+   BASELINE (clean tree at 8e7804d5, before any edit):
+     Test Suites: 1 failed, 12 skipped, 542 passed, 543 of 555 total
+     Tests:       1 failed, 96 skipped, 7302 passed, 7399 total
+     FAIL __tests__/unit/dataset-export-service.test.js
+
+   WITH THE PR-A0-2 DIFF:
+     Test Suites: 1 failed, 13 skipped, 545 passed, 546 of 559 total
+     Tests:       1 failed, 102 skipped, 7335 passed, 7438 total
+     FAIL __tests__/unit/dataset-export-service.test.js
+
+   DELTA
+     failing suites   1 → 1   (the SAME suite, the SAME single test:
+                              "STATIC GUARD: every allowlisted field exists on its
+                              Prisma model (DMMF)" — the known sandbox-only
+                              pre-existing failure, L-005 / gacp-debug SKILL.md:20)
+     suites total   555 → 559 (+4 = 3 new unit files + 1 new integration file)
+     skipped suites  12 → 13  (+1 = the new integration file, no DATABASE_URL)
+     tests total   7399 → 7438 (+39 = 12 + 21 new passing unit tests + 6 skipped)
+     tests passed  7302 → 7335 (+33)
+     tests skipped   96 → 102  (+6)
+
+   ZERO REGRESSION: no suite and no test that passed on the clean tree fails with
+   the diff.
+
+════════════════════════════════════════════════════════════════════════════════
+5. NOT RUN HERE — stated plainly (Law 3.8; the F-A lesson from PR-A0-1b)
+════════════════════════════════════════════════════════════════════════════════
+   `__tests__/integration/a0-pr2-per-hop-invariant.test.js` — 6 cases, NEVER
+   EXECUTED, not red and not green, on this or any other environment. It self-skips
+   without `DATABASE_URL`, and this sandbox additionally has no generated Prisma
+   client (gacp-debug SKILL.md:21). What HAS been verified about it here is only
+   that it loads and self-skips cleanly:
+
+     $ npx jest __tests__/integration/a0-pr2-per-hop-invariant.test.js
+     Test Suites: 1 skipped, 0 of 1 total
+     Tests:       6 skipped, 6 total
+
+   Whether those cases go red against the pre-PR-A0-2 callers is a PREDICTION from
+   reading the code. Only a runner with Postgres settles it (R-R2-1: skipped = did
+   not pass the gate). Clause (2) of INVARIANT A0 — "the row dies with the write" —
+   therefore has NO evidence in this pack for any PR-A0-2 hop.
+
+
+════════════════════════════════════════════════════════════════════════════════
+AUDIT ROUND 1 — fixes F1…F6, their RED, and the re-run numbers
+════════════════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────────────
+F1 (CRITICAL) — RED: `red-raw-jest-f1-work-activity.txt`
+   npx jest __tests__/unit/a0-pr2-work-activity-fence.test.js
+   run against the writer BEFORE the fence was generalised.
+   Result: Test Suites: 1 failed, 1 total · Tests: 4 failed, 3 passed, 7 total
+──────────────────────────────────────────────────────────────────────────────
+
+  ✓ [harness] the fake reproduces the abort: a failed statement kills the tx and COMMIT discards silently
+  ✕ the caller tx survives a failing work-activity emission and the status write COMMITS
+  ✕ the failing work-activity emission is unwound to a SAVEPOINT (not merely swallowed)
+  ✕ a caller tx whose work-activity emission SUCCEEDS keeps the activity and leaves no orphan savepoint
+  ✕ BOTH submit hops survive: hop 2 still commits after hop 1 tripped the work-activity failure
+  ✓ [pin] bare client + failing work-activity: no savepoint is attempted, the write still lands
+  ✓ [pin] bare client, happy path: the activity is created, still no savepoint
+
+  The failure that IS the bug, verbatim:
+
+    ● … › the caller tx survives a failing work-activity emission and the status write COMMITS
+      expect(received).toBe(expected) // Object.is equality
+      Expected: "SUBMITTED"
+      Received: "DRAFT"
+
+  i.e. the route's status write was destroyed by a cosmetic work-activity
+  failure, while `writeApplicationStatus` returned normally — the 200-with-
+  nothing-committed the finding describes.
+
+    ● … › a caller tx whose work-activity emission SUCCEEDS keeps the activity …
+      Received array: ["BEGIN", "tx:UPDATE application", "tx:SAVEPOINT a0_audit_emit",
+        "tx:SELECT pg_advisory_xact_lock(1, 2)", "tx:INSERT auditLog",
+        "tx:RELEASE SAVEPOINT a0_audit_emit", "tx:SELECT stageActivityConfig", …]
+      — the audit emission was fenced; the work-activity block was not.
+
+  GREEN AT BIRTH in that run (declared PINS, not fixes): the `[harness]` case and
+  the two `[pin] bare client …` cases. They exist to prove the fake models the
+  abort, and to hold the standalone path byte-for-byte unchanged.
+
+  After the fix: 7 passed, 7 total (see `green-raw-jest-r2.txt`).
+
+──────────────────────────────────────────────────────────────────────────────
+F5 (MEDIUM) — RED: `red-raw-jest-f5-failure-path.txt`
+   The 4 new failure-path cases run against the routes at 188bd438^ (the
+   pre-wrapper code), restored with `git checkout 188bd438^ -- <2 route files>`
+   and put back with `git checkout HEAD -- …` immediately after.
+   Result: Tests: 8 failed, 4 passed, 12 total
+──────────────────────────────────────────────────────────────────────────────
+
+  ✕ hop 2 rejecting aborts the whole request — no success response
+        Expected number of calls: 1   Received number of calls: 0   (no tx was ever opened)
+  ✕ hop 2 rejecting propagates OUT of the caller transaction (so Prisma rolls it back)
+        - Array [ "rolled-back" ]      + Array []
+  ✕ a rejected case aborts the whole bundle submit — no success response (F5)
+        - Array [ "rolled-back" ]      + Array []
+  ✓ hop 1 rejecting never attempts hop 2          ← GREEN AT BIRTH = PIN, not a fix
+
+  (The other 5 ✕ in that run are the round-0 RED cases, red again for the same
+  reason — the wrapper is what they assert.)
+
+──────────────────────────────────────────────────────────────────────────────
+F2 / F3 / F4 / F6 — what was done and what evidence exists
+──────────────────────────────────────────────────────────────────────────────
+
+F2 (HIGH) — `__tests__/integration/a0-pr2-per-hop-invariant.test.js` REWRITTEN:
+  table-driven, six hops (#7, #8/#9, #12, #13, #14, #15), each fired through its
+  REAL express router over supertest; clause (2) injected uniformly by a
+  pass-through `writeApplicationStatus` proxy that delegates to the real
+  implementation and then throws on a chosen call, so the failure lands inside
+  the transaction the ROUTE opened.
+  **NO RED EVIDENCE EXISTS FOR IT AND NONE CAN BE PRODUCED HERE.** The suite
+  self-skips without `DATABASE_URL` and the sandbox has no generated Prisma
+  client, so reverting the wrapper produces "18 skipped" both times, not a RED.
+  Verified here only that it loads and skips:
+     Test Suites: 1 skipped, 0 of 1 total
+     Tests:       18 skipped, 18 total
+  The structural defect F2 named (route never invoked ⇒ could not go red on any
+  environment) is fixed; that the cases now DO go red on a Postgres runner is a
+  reading of the code, not a result. Law 3.8: stated, not papered over.
+
+F3 (MEDIUM) — the admin-override case is renamed to
+  `a failing canonical emission is NOT swallowed — it propagates and the route 500s`
+  and its comment now points the rollback claim at the integration file. No unit
+  test in this PR claims INVARIANT A0 clause (2) any more.
+
+F4 (MEDIUM) — the two false "land or vanish together" comments are replaced with
+  an explicit ATOMIC / BEST-EFFORT split (`applications.js`,
+  `application-bundles.js`). The underlying contradiction — clause (1) says
+  "Δ = +1 พอดี" while the chosen failure policy is fail-open, so "committed hop,
+  Δ = 0" is reachable BY DESIGN — is NOT resolved silently: it is filed as
+  **AMBIGUOUS A6 in `evidence/A0-AUDIT-EMISSION/design-decision.md`** with three
+  options, for senior-swe/operator.
+
+F6 (LOW-MED) — design-decision.md §3 now carries a descope table: the six hops
+  #18, #19, #20, #21, #22, #24 are recorded as NOT shipped, one reason each,
+  instead of being left as a standing promise.
+
+──────────────────────────────────────────────────────────────────────────────
+GREEN after the round-1 fixes — `green-raw-jest-r2.txt`
+  (the 5 PR-A0-2 suites + all 5 writer suites + the 3 amended suites)
+     Test Suites: 1 skipped, 12 passed, 12 of 13 total
+     Tests:       18 skipped, 154 passed, 172 total
+──────────────────────────────────────────────────────────────────────────────
+
+──────────────────────────────────────────────────────────────────────────────
+FULL SUITE after the round-1 fixes — `full-suite-raw-r2.txt`
+──────────────────────────────────────────────────────────────────────────────
+     Test Suites: 1 failed, 13 skipped, 546 passed, 547 of 560 total
+     Tests:       1 failed, 114 skipped, 7346 passed, 7461 total
+     FAIL __tests__/unit/dataset-export-service.test.js
+
+  vs the CLEAN-TREE baseline (`baseline-clean-tree-raw.txt`, unchanged):
+     Test Suites: 1 failed, 12 skipped, 542 passed, 543 of 555 total
+     Tests:       1 failed,  96 skipped, 7302 passed, 7399 total
+     FAIL __tests__/unit/dataset-export-service.test.js
+
+  DELTA
+     failing suites  1 → 1   (same suite, same single test — L-005, sandbox-only)
+     suites total  555 → 560 (+5 new files, one of which self-skips)
+     tests total  7399 → 7461 (+62 = 16 + 21 + 7 new passing + 18 skipped)
+     tests passed 7302 → 7346 (+44 = 16 + 21 + 7)
+     tests skipped  96 → 114  (+18, all in the self-skipping integration file)
+
+  ZERO REGRESSION, and the number matches the coordinator's stated baseline
+  (1 failed = dataset-export DMMF, red on the clean tree too).
+
+
+════════════════════════════════════════════════════════════════════════════════
+AUDIT ROUND 2 — R1 (HIGH, pre-existing): nested swallow inside the fenced region
+════════════════════════════════════════════════════════════════════════════════
+
+──────────────────────────────────────────────────────────────────────────────
+RED — `red-raw-jest-r1-nested-swallow.txt`
+   npx jest __tests__/unit/a0-pr2-work-activity-fence.test.js
+   run BEFORE the release-catch was changed.
+   Result: Test Suites: 1 failed, 1 total · Tests: 1 failed, 7 passed, 8 total
+──────────────────────────────────────────────────────────────────────────────
+
+  ✕ [pin] R1 — a swallow NESTED inside the region poisons the tx anyway; RELEASE fails and says so
+
+    expect(received).toContain(expected) // indexOf
+    Expected substring: "[fence-release-failed]"
+    Received string:    "[application-status-writer] releasing the work-activity savepoint failed
+                         (work-activity for stage, non-fatal): current transaction is aborted,
+                         commands ignored until end of transaction block"
+
+  READ THE RED CAREFULLY — it is doing two jobs:
+
+  1. The three assertions ABOVE the marker one ALREADY PASSED on the unfixed
+     code. That is the finding itself, reproduced: with a swallow nested inside
+     the region, the fence opens (`tx:SAVEPOINT a0_work_activity`), never
+     unwinds (no `tx:ROLLBACK TO SAVEPOINT a0_work_activity` in the statement
+     stream), its RELEASE is rejected (`tx:RELEASE SAVEPOINT a0_work_activity ->
+     25P02`), the committed status stays `DRAFT`, and the stream ends with
+     `COMMIT -> silently ROLLBACK (tx was aborted)` — while
+     `writeApplicationStatus` returned normally and the route would answer 200.
+  2. The ONE failing assertion is the only thing this commit changes: the loss
+     used to be logged as "non-fatal", i.e. indistinguishable from a cosmetic
+     hiccup in any log search.
+
+  The nested swallow is modelled on `assignment-ledger-service.js:83-87`
+  (`logger.error('[assignment-ledger] recordAssignment failed (swallowed)');
+  return null`), which `work-activity-service.createForStage` calls from inside
+  the fenced region.
+
+  After the fix: 8 passed, 8 total.
+
+  THIS IS A PIN, NOT A FIX. The hop is still lost; only the reporting changed.
+  The repair is to lift the swallow out of the region, which touches
+  `assignment-ledger-service.js` — outside PR-A0-2's scope, filed in
+  BACKLOG-FOUND.md. When that lands, two expectations in this case flip
+  (`db.committed.status` → 'SUBMITTED', the stream contains plain `COMMIT`) and
+  the RED for it is already written.
+
+──────────────────────────────────────────────────────────────────────────────
+GREEN after the R1 fix — `green-raw-jest-r3.txt`
+  (all 5 writer suites + the 5 PR-A0-2 suites)
+     Test Suites: 1 skipped, 9 passed, 9 of 10 total
+     Tests:       18 skipped, 131 passed, 149 total
+──────────────────────────────────────────────────────────────────────────────

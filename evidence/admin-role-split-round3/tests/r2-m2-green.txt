@@ -1,0 +1,91 @@
+# tree e7a3b0a7d (R2-M2 fix committed) · GREEN
+# command: ~/work/state/rolesplit-r3/bjest.sh __tests__/integration/last-admin-race-real-postgres.test.js
+# 4 runs (one before the commit on the same code, three at this sha), 12 tests x 10 trials each = 480 trials, 0 broken:
+#   pre-commit run: Tests:       12 passed, 12 total
+#   run 1: Tests:       12 passed, 12 total
+#   run 2: Tests:       12 passed, 12 total
+#   run 3: Tests:       12 passed, 12 total
+# full output of run 1:
+PASS __tests__/integration/last-admin-race-real-postgres.test.js (9.794 s)
+  two admins removing each other at once leave one admin (real Postgres)
+    ✓ DTAM admins, PATCH /api/admin/users/:id/disable: one passes, one is refused, one admin stays (946 ms)
+    ✓ DTAM admins, PATCH /api/admin/users/:id/change-role: one passes, one is refused, one admin stays (712 ms)
+    ✓ DTAM admins, PATCH /api/admin/users/:id/role with a status: one passes, one is refused, one admin stays (807 ms)
+    ✓ DTAM admins, PATCH /api/admin/users/:id/role with a role: one passes, one is refused, one admin stays (745 ms)
+    ✓ DTAM admins, PATCH /api/provider/directory/:id: one passes, one is refused, one admin stays (661 ms)
+    ✓ DTAM admins, PUT /api/provider/directory/:id: one passes, one is refused, one admin stays (618 ms)
+    ✓ DTAM admins, DELETE /api/provider/directory/:id: one passes, one is refused, one admin stays (493 ms)
+    ✓ DTAM admins, /api/admin/users disable against a directory delete: one passes, one is refused, one admin stays (568 ms)
+    ✓ platform admins, DELETE /api/provider/directory/:id: one passes, one is refused, one admin stays (718 ms)
+    ✓ platform admins, PATCH /api/provider/directory/:id: one passes, one is refused, one admin stays (762 ms)
+    ✓ platform admins, PUT /api/provider/directory/:id: one passes, one is refused, one admin stays (634 ms)
+    ✓ platform admins, a directory disable against a directory delete: one passes, one is refused, one admin stays (720 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       12 passed, 12 total
+Snapshots:   0 total
+Time:        9.886 s, estimated 12 s
+Ran all test suites matching __tests__/integration/last-admin-race-real-postgres.test.js.
+
+# unit suite: ~/work/state/rolesplit-r3/bjest.sh __tests__/admin-user-service.test.js
+PASS __tests__/admin-user-service.test.js
+  admin-user-service / pure helpers
+    ✓ validateReason rejects empty / whitespace (16 ms)
+    ✓ validateReason enforces minimum length (4 ms)
+    ✓ validateStatusInput uppercases and validates allowed list (5 ms)
+    ✓ isSelfTarget compares actor and target (3 ms)
+    ✓ planRoleChangeSideEffects: provider role needs providerId (5 ms)
+    ✓ planRoleChangeSideEffects: provider role with healthId conflict → 409 (5 ms)
+    ✓ planRoleChangeSideEffects: valid provider role sets accountType / authType (4 ms)
+    ✓ planRoleChangeSideEffects: HEALTH role flips accountType when previously PROVIDER (3 ms)
+    ✓ buildRoleChangeMetadata snapshots before/after (4 ms)
+  admin-user-service / disableUser
+    ✓ rejects self-disable (4 ms)
+    ✓ rejects short reason (36 ms)
+    ✓ 404 when target user is missing (4 ms)
+    ✓ happy path returns metadata and updates user (5 ms)
+  P0-A — permission changes take effect (session-epoch stamp)
+    ✓ disableUser stamps sessionsRevokedAt so live tokens are evicted (5 ms)
+    ✓ changeUserRole stamps sessionsRevokedAt so the old-role JWT is evicted (5 ms)
+    ✓ enableUser does NOT stamp (re-enable must not evict a fresh login) (3 ms)
+  P0-D — last-admin guard (a tenant must never lock itself out)
+    ✓ changeUserRole demoting the LAST active admin → ROLE_ADMIN_CANNOT_BE_LAST (5 ms)
+    ✓ changeUserRole demoting an admin with ANOTHER active admin → proceeds (4 ms)
+    ✓ disableUser on the LAST active admin → ROLE_ADMIN_CANNOT_BE_LAST (4 ms)
+    ✓ non-admin target skips the count entirely (4 ms)
+  R2-M2 — the count and the write run in one transaction under the last-admin lock
+    ✓ a write that removes an admin counts and writes inside the lock of its organization (5 ms)
+    ✓ the decision reads the row under the lock: an account made admin since the lookup is counted (4 ms)
+    ✓ an admin demoted or deleted since the lookup is not counted, and the write goes through (4 ms)
+    ✓ a re-enable keeps the standing, so it takes no lock (4 ms)
+    ✓ an admin who stays an admin keeps the standing, so it takes no lock (4 ms)
+    ✓ a name change keeps the standing, so it takes no lock (10 ms)
+    ✓ an applicant has no admin on its side: no lock and no count (3 ms)
+  I3 — the last active platform admin is never removed
+    ✓ no other active platform admin in any organization → ROLE_ADMIN_CANNOT_BE_LAST (4 ms)
+    ✓ another active platform admin anywhere → allowed (4 ms)
+    ✓ an inactive platform admin is not an active admin being removed (3 ms)
+  admin-user-service / enableUser
+    ✓ 409 when already ACTIVE (3 ms)
+    ✓ happy path flips INACTIVE → ACTIVE (4 ms)
+    ✓ threads organizationId into the guard lookup (tenant scope) (4 ms)
+  admin-user-service / changeUserRole
+    ✓ rejects invalid role (5 ms)
+    ✓ rejects short reason (10 char minimum) (4 ms)
+    ✓ rejects self role-change (4 ms)
+    ✓ rejects assigning PLATFORM_ADMIN (privilege escalation) (3 ms)
+    ✓ happy path returns before/after snapshot (3 ms)
+  admin-user-service / no force-MFA-reset
+    ✓ the service exports no way to clear another account's 2FA (3 ms)
+  admin-user-service / each admin changes only its own side
+    ✓ disableUser on a company account by the DTAM admin is refused before any write (10 ms)
+    ✓ enableUser on a company account by the DTAM admin is refused before any write (4 ms)
+    ✓ changeUserRole on a company account by the DTAM admin is refused before any write (3 ms)
+    ✓ changeUserRole giving the company finance role to DTAM staff is refused before any write (3 ms)
+    ✓ a call that names no actor role is refused, not waved through (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       44 passed, 44 total
+Snapshots:   0 total
+Time:        0.796 s, estimated 1 s
+Ran all test suites matching __tests__/admin-user-service.test.js.

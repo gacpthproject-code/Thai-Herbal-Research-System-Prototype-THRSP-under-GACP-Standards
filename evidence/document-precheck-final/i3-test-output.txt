@@ -1,0 +1,40 @@
+I3 — GREEN (summary; raw log not committed). Same env as RED.
+command (apps/backend): npx jest --config jest.config.cjs <26 suites: pdpa integration x5 incl. identity-links + m1, pdpa/erasure/retention/legal-hold/official-letter unit suites, unit/document-precheck, precheck flow/api integration, delete-bytes>
+
+FAIL __tests__/integration/m1-erasure-holder-survives.test.js (8.36 s)
+PASS __tests__/integration/document-precheck-api.test.js
+PASS __tests__/integration/document-precheck-flow.test.js
+PASS __tests__/integration/identity-links.test.js
+PASS __tests__/integration/pdpa-erasure-clears-precheck-text.test.js
+PASS __tests__/integration/pdpa-retention-clears-precheck-text.test.js
+PASS __tests__/integration/pdpa-retention-legal-hold.test.js
+PASS __tests__/unit/closing-review-fixes.test.js
+PASS __tests__/unit/document-precheck/accuracy-metrics.test.js
+PASS __tests__/unit/document-precheck/extract.test.js
+PASS __tests__/unit/document-precheck/normalize.test.js
+PASS __tests__/unit/document-precheck/routes.test.js
+PASS __tests__/unit/document-precheck/rules.test.js
+PASS __tests__/unit/document-precheck/service.test.js
+PASS __tests__/unit/document-precheck/tesseract-terminate-race.test.js
+PASS __tests__/unit/document-precheck/thresholds-parameter.test.js
+PASS __tests__/unit/draft-document-delete-removes-bytes.test.js
+PASS __tests__/unit/legal-hold-guard.test.js
+PASS __tests__/unit/notification-fanout-service.test.js
+PASS __tests__/unit/official-letter.test.js
+PASS __tests__/unit/pdpa-erasure-respects-certificate-retention.test.js
+PASS __tests__/unit/pdpa-erasure-service.test.js
+PASS __tests__/unit/pdpa-retention-job.test.js
+PASS __tests__/unit/pdpa-service.test.js
+PASS __tests__/unit/public-urls-are-configured-not-guessed.test.js
+PASS __tests__/unit/scheduler-dtam-remittance-registration.test.js
+Tests:       3 failed, 415 passed, 418 total
+Test Suites: 1 failed, 25 passed, 26 total
+
+    ✓ I3: a pre-check still PENDING at erasure becomes FAILED with the failure flag, and its late job writes no text (121 ms)
+    ✓ I3 control: the same late job on a PENDING row of a user who was NOT erased does write the text (58 ms)
+    ✓ I3 legal hold: a PENDING pre-check on a held application stays PENDING (a held application keeps its text) (67 ms)
+    ✓ a pre-check still PENDING is failed (with the failure flag) before the text is cleared (2 ms)
+
+The 3 failures are all in m1-erasure-holder-survives.test.js — fixture prisma.certificate.create() 'Argument `application` is missing.' (test file line 158).
+Same suite with clear-text.js/service.js/queue-service.js/applications.js swapped back to 38e896c6 (before this fix round):
+    Tests:       3 failed, 3 total  (same 3 tests, same 'Argument `application` is missing.') → pre-existing, BACKLOG-FOUND.md

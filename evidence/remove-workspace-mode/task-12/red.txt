@@ -1,0 +1,43 @@
+# R2 Task 12 — RED (code at cc87292a, new tests only) — 2026-10-03
+Real Postgres 17 on :55439 (docker ws-pg-55439, migrate deploy), jest -i, witness THROW (NODE_ENV=test).
+Signing key mtime before/after: 1788623435 1788623435 (unchanged).
+
+## holder-scope-real-postgres.test.js — 14 failed / 55 passed (69), 0 skipped
+Task 12: reads follow membership with no workspace header
+  FAIL case 1: B (MANAGER of C), no header, lists X and D and not Y
+       /api/invoices/my for B → [] (invoiceX missing)
+  FAIL case 1: B, no header, opens X, invoiceX, receiptX, certX → 200 each
+       /api/applications/X → 404, /api/certificates/certX → 404 (invoice pdf 200, receipt 200)
+  FAIL case 2: S lists none and gets 404 on X, invoice, receipt, cert
+       /api/invoices/invoiceX/pdf → 403, /api/invoices/my/invoiceX/receipt/pdf → 403 (R2: 404)
+  FAIL case 5: S with x-active-entity-id: C → 403 ACTIVE_ENTITY_MISMATCH (R2: 200, nothing listed)
+  FAIL case 9: F provider listing with header C → 403 (without header 200)
+Task 12 (carried 6): revision, deadline, CAR and revision-resubmit doors follow the submit guard
+  FAIL V (VIEWER, not the filer) on revision / deadline / car / resubmit → 404 each (R2: 403 ENTITY_PERMISSION_DENIED)
+  FAIL O2 (OWNER, SUBMIT_APPLICATION, not the filer) on revision / deadline / car / resubmit → 404 each (R2: 200)
+Q3 checkout (carried 7)
+  FAIL checkout by O2 (OWNER of C, not the filer) → 404 (R1 filer pin in stripe-checkout-service); expected 200 + one order
+PIN (green from birth): case 8 "A REVOKED on C → X gone from A's list and 404 by id" — with no header the R1
+  middleware already bound A's personal workspace PA, so X was hidden before the change too.
+
+## health-door-walk-real-postgres.test.js (headers removed for A, B, V) — 4 failed
+  FAIL counts equal list lengths for B: dashboard farm counter 0, /farms/my 1 (carried 5)
+  FAIL A gets 2xx on X's quotations and C's member permissions (A has no header → personal workspace)
+  FAIL every walked door answers 2xx to A/B/V (same cause)
+  FAIL neutrality vs expected file (rows move once the header is gone; re-recorded in GREEN, each explained)
+
+## ROUND 2 — writes the filer pin used to guard (found by the R1→R2 matrix after the pins were removed)
+Code: the working tree with every R1 pin removed, before the two gates and the CAR discard. Same DB, jest -i, THROW.
+r1-cert-doc-finance matrix (re-record before the gates), co-member rows that became writes:
+  V|none POST /:id/quotations/PLATFORM/accept|aC  404 -> 200   (a VIEWER accepted C's price)
+  M|none POST /:id/quotations/PLATFORM/accept|mC  404 -> 200   (a MANAGER without SUBMIT_APPLICATION)
+  V|none POST /report-submissions|aC              404 -> 201   (a VIEWER filed a report row for C)
+holder-scope-real-postgres -t "accepting a quotation and filing a report": 3 failed / 4 passed
+  FAIL quotation accept by V (VIEWER) → expected 403, received 200
+  FAIL quotation accept by B (MANAGER without SUBMIT_APPLICATION) → expected 403 (V had already accepted)
+  FAIL a report on C's certificate by V (VIEWER) → expected 403, received 201
+  PIN  S accept 404, O2 (OWNER, not filer) accept 200, S report 404, B (MANAGER) report 201
+holder-scope-real-postgres -t "refused CAR upload": 1 failed
+  FAIL files under public/uploads/car: expected 109, received 111 (V 403 and S 404 each left the stored PDF)
+       (this one is pre-existing on main for every CAR refusal; the 404 path exists at cc87292a too)
+Key mtime 1788623435 before/after every run.

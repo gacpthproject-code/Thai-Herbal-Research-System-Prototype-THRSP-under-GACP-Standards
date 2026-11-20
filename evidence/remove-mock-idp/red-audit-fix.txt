@@ -1,0 +1,70 @@
+=== RED — captured at HEAD b11e7f49 BEFORE the audit fix (the state the auditor reproduced) ===
+command: export PATH="/c/Program Files/nodejs:$PATH" && cd apps/backend && npx jest __tests__/unit/identity-provider-naming-collision.test.js __tests__/unit/oauth-clientid-hardcode-guard.test.js
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/oauth-clientid-hardcode-guard.test.js
+  OAuth client_id must come from env, never hardcoded (Law 3.3 + 3.5)
+    √ no backend source assigns a UUID/long-hex/base64 client_id literal (97 ms)
+    √ the ThaID sandbox shared client_id prefix (019c324c) never appears in source (80 ms)
+  sanity floor — the scanner and classifier are not silently broken
+    × the assignment scanner still matches real code (guard is not vacuous) (82 ms)
+    √ classifier flags credential-shaped ids and passes the readable mock value (2 ms)
+    √ end-to-end: a synthetic hardcoded client_id is detected (2 ms)
+  QA #806 — the closed evasions stay closed
+    √ a BACKTICK-quoted client_id is extracted and flagged, not just single quotes (1 ms)
+    √ a double-quoted client_id is extracted too (all three quote styles) (1 ms)
+    √ a long contiguous hex id is credential-shaped, a readable value is not (1 ms)
+    √ the scan walks the WHOLE backend tree, not a directory allow-list (26 ms)
+    √ the scan still excludes node_modules and test files (25 ms)
+
+  ● sanity floor — the scanner and classifier are not silently broken › the assignment scanner still matches real code (guard is not vacuous)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m 180 |[39m         [90m// matching and the green guard above would be meaningless.[39m
+     [90m 181 |[39m         expect(literals[33m.[39mlength)[33m.[39mtoBeGreaterThanOrEqual([35m1[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 182 |[39m         expect(literals[33m.[39msome((h) [33m=>[39m h[33m.[39mvalue [33m===[39m [32m'gacp-mock-idp-client'[39m))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                                                                          [31m[1m^[22m[39m
+     [90m 183 |[39m     })[33m;[39m
+     [90m 184 |[39m
+     [90m 185 |[39m     test([32m'classifier flags credential-shaped ids and passes the readable mock value'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/oauth-clientid-hardcode-guard.test.js:182:74)
+
+FAIL __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    × sanity: scanner เห็นครบทุกไดเรกทอรีที่อ้างว่าสแกน และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (25 ms)
+    √ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (10 ms)
+    √ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › sanity: scanner เห็นครบทุกไดเรกทอรีที่อ้างว่าสแกน และมองเห็นทั้งสองชื่อในทะเบียนโค้ด
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "hasCamel": true,
+    -   "hasSnake": true,
+    +   "hasSnake": false,
+      }
+
+    [0m [90m 404 |[39m         [36mconst[39m hasSnake [33m=[39m [33mFILES[39m[33m.[39msome((f) [33m=>[39m f[33m.[39mlines[33m.[39msome((l) [33m=>[39m [33mPROVIDER_ID_SNAKE_READ[39m[33m.[39mtest(l)))[33m;[39m
+     [90m 405 |[39m         [90m// camel = คอลัมน์เราที่มีจริงในโค้ด · snake = ค่าจาก IdP ที่ปรากฏใน adapter[39m
+    [31m[1m>[22m[39m[90m 406 |[39m         expect({ hasCamel[33m,[39m hasSnake })[33m.[39mtoEqual({ hasCamel[33m:[39m [36mtrue[39m[33m,[39m hasSnake[33m:[39m [36mtrue[39m })[33m;[39m
+     [90m     |[39m                                        [31m[1m^[22m[39m
+     [90m 407 |[39m     })[33m;[39m
+     [90m 408 |[39m
+     [90m 409 |[39m     it([32m'ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toEqual (__tests__/unit/identity-provider-naming-collision.test.js:406:40)
+
+Test Suites: 2 failed, 2 total
+Tests:       2 failed, 11 passed, 13 total
+Snapshots:   0 total
+Time:        2.893 s, estimated 7 s
+Ran all test suites matching /__tests__\\unit\\identity-provider-naming-collision.test.js|__tests__\\unit\\oauth-clientid-hardcode-guard.test.js/i.

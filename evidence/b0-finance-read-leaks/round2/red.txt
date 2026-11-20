@@ -1,0 +1,250 @@
+B0 round 2 RED: each new test fails on the code before its fix (trimmed to test lines, verdict lines and the decisive diffs)
+
+== M1 probe --selftest at c59ce3595 (RED commit: new cases J-O, probe body unchanged) ==
+--- selftest A → exit 0 (expected 0)
+PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive
+--- selftest B → exit 1 (expected 1)
+FAIL: a writer into the gacp-pdfs bucket is back: services/pdf/renderer.js:1 
+--- selftest C → exit 1 (expected 1)
+FAIL: a writer into the gacp-pdfs bucket is back: services/storage-service.js:2 
+--- selftest D → exit 1 (expected 1)
+FAIL: a writer into the gacp-pdfs bucket is back: services/pdf/renderer.js:1 
+--- selftest E → exit 0 (expected 0)
+PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive
+--- selftest F → exit 1 (expected 1)
+FAIL: classified public: gacp-pdfs/receipts-TAX-PRD-2569-000001.pdf gacp-pdfs/receipts-null.pdf gacp-pdfs/invoices-INV-CO-1A2B3C4D-M1.pdf gacp-pdfs/quotations-QT-2569-000001.pdf gacp-pdfs/credit-notes-CN-PRD-2569-000001.pdf gacp-pdfs/debit-notes-DN-PRD-2569-000001.pdf gacp-pdfs/labels-LOT-1.pdf gacp-pdfs/receipts/TAX-PRD-2569-000001.pdf
+--- selftest G → exit 1 (expected 1)
+FAIL: middleware/uploads-classification.js is missing — nothing decides that gacp-pdfs/ is sensitive
+--- selftest H → exit 1 (expected 1)
+FAIL: 1 file(s) still under <uploads>/gacp-pdfs — run apps/backend/scripts/ops/move-generated-pdfs-out-of-public.js --apply
+--- selftest I → exit 0 (expected 0)
+PASS: no writer, gacp-pdfs/ classified sensitive, and <uploads>/gacp-pdfs holds no file
+--- selftest J → exit 0 (expected 2)
+PASS: no writer, gacp-pdfs/ classified sensitive, and <uploads>/gacp-pdfs holds no file
+*** J FAILED: exit 0 != 2
+*** J FAILED: output does not mention 'BLOCKED'
+--- selftest K → exit 0 (expected 2)
+PASS: no writer, gacp-pdfs/ classified sensitive, and <uploads>/gacp-pdfs holds no file
+*** K FAILED: exit 0 != 2
+*** K FAILED: output does not mention 'BLOCKED'
+--- selftest L → exit 0 (expected 2)
+PASS: no writer, gacp-pdfs/ classified sensitive, and <uploads>/gacp-pdfs holds no file
+*** L FAILED: exit 0 != 2
+*** L FAILED: output does not mention 'BLOCKED'
+--- selftest M → exit 0 (expected 1)
+PASS: no writer, gacp-pdfs/ classified sensitive, and <uploads>/gacp-pdfs holds no file
+*** M FAILED: exit 0 != 1
+*** M FAILED: output does not mention '1 file'
+--- selftest N → exit 0 (expected 1)
+PASS: no writer, gacp-pdfs/ classified sensitive, and <uploads>/gacp-pdfs holds no file
+*** N FAILED: exit 0 != 1
+*** N FAILED: output does not mention 'lab-results: 1'
+*** N FAILED: output does not count gacp-uploads
+--- selftest O → exit 0 (expected 2)
+PASS: no writer, gacp-pdfs/ classified sensitive, and <uploads>/gacp-pdfs holds no file
+*** O FAILED: exit 0 != 2
+*** O FAILED: output does not mention 'BLOCKED'
+selftest: 15 cases, 13 failure(s)
+
+== L1 move script unit test at 708e0e880 (RED commit) ==
+    ✓ refuses to run without exactly one of --dry-run / --apply (78 ms)
+    ✓ --dry-run prints counts by kind, never a file name, and moves nothing (42 ms)
+    ✓ --apply moves every paper byte-for-byte out of the public folder and leaves the rest (44 ms)
+    ✓ a second --apply finds nothing left; a copy already in the vault is not moved twice (84 ms)
+    ✓ a different file already at the destination is a conflict: both are kept and the run says so (46 ms)
+    ✓ refuses a destination inside the public uploads folder (41 ms)
+    ✓ refuses a destination the public uploads folder itself (51 ms)
+    ✓ --apply without --to is refused (38 ms)
+    ✓ no gacp-pdfs folder: nothing to move (38 ms)
+    ✕ a --to that is a symlink to the uploads folder is refused and no paper is lost (42 ms)
+    ✕ a --to under a symlink that lands inside the uploads folder is refused (48 ms)
+    ✕ an --uploads-dir given through a symlink still refuses a --to inside the real folder (59 ms)
+    ✕ a public gacp-pdfs that is a symlink into the vault is not emptied: a file is never unlinked onto itself (43 ms)
+    ✕ a mistyped --uploads-dir is refused, not reported as nothing to move (38 ms)
+  ● move-generated-pdfs-out-of-public › a --to that is a symlink to the uploads folder is refused and no paper is lost
+  ● move-generated-pdfs-out-of-public › a --to under a symlink that lands inside the uploads folder is refused
+  ● move-generated-pdfs-out-of-public › an --uploads-dir given through a symlink still refuses a --to inside the real folder
+  ● move-generated-pdfs-out-of-public › a public gacp-pdfs that is a symlink into the vault is not emptied: a file is never unlinked onto itself
+  ● move-generated-pdfs-out-of-public › a mistyped --uploads-dir is refused, not reported as nothing to move
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 9 passed, 14 total
+
+== M2 real server (integration) at 08f608152 (RED commit) ==
+    ✕ absolute form: a receipt under gacp-pdfs is refused with 400 and no bytes (34 ms)
+    ✕ absolute form: a receipt in a gacp-pdfs subfolder is refused with 400 and no bytes (12 ms)
+    ✕ absolute form: an ID-card image at the root is refused with 400 and no bytes (11 ms)
+    ✕ absolute form: an applicant draft document is refused with 400 and no bytes (23 ms)
+    ✕ absolute form: a public lab report is refused with 400 and no bytes (14 ms)
+    ✓ origin form without a session: a receipt under gacp-pdfs answers 401 and no bytes, as before (11 ms)
+    ✓ origin form without a session: an ID-card image at the root answers 401 and no bytes, as before (8 ms)
+    ✓ origin form without a session: an applicant draft document answers 401 and no bytes, as before (8 ms)
+    ✓ origin form: the public lab report still opens for the consumer trace page (11 ms)
+  ● the /uploads gate reads every request target the way the static handler serves it (real server) › absolute form: a receipt under gacp-pdfs is refused with 400 and no bytes
+    -   400,
+    -   false,
+    +   200,
+    +   true,
+  ● the /uploads gate reads every request target the way the static handler serves it (real server) › absolute form: a receipt in a gacp-pdfs subfolder is refused with 400 and no bytes
+    -   400,
+    -   false,
+    +   200,
+    +   true,
+  ● the /uploads gate reads every request target the way the static handler serves it (real server) › absolute form: an ID-card image at the root is refused with 400 and no bytes
+    -   400,
+    -   false,
+    +   200,
+    +   true,
+  ● the /uploads gate reads every request target the way the static handler serves it (real server) › absolute form: an applicant draft document is refused with 400 and no bytes
+    -   400,
+    -   false,
+    +   200,
+    +   true,
+  ● the /uploads gate reads every request target the way the static handler serves it (real server) › absolute form: a public lab report is refused with 400 and no bytes
+    -   400,
+    -   false,
+    +   200,
+    +   true,
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 4 passed, 9 total
+
+== M2 unit raw-socket case at 08f608152 (RED commit) ==
+    ✓ gacp-pdfs/ is classified sensitive (4 ms)
+    ✓ no session: GET /uploads/gacp-pdfs/receipts-null.pdf answers 401 and sends no PDF bytes (51 ms)
+    ✓ no session: GET /uploads/gacp-pdfs/receipts%2Dnull.pdf answers 401 and sends no PDF bytes (13 ms)
+    ✓ no session: GET /uploads/gacp%2Dpdfs/receipts-null.pdf answers 401 and sends no PDF bytes (9 ms)
+    ✓ a health session gets 404: the static mount is not a finance door (9 ms)
+    ✓ a finance_officer_platform session gets 404: the static mount is not a finance door (37 ms)
+    ✓ a finance_officer_dtam session gets 404: the static mount is not a finance door (7 ms)
+    ✓ the signed-URL mint refuses a gacp-pdfs path (18 ms)
+    ✓ a lab report stays public for the consumer trace page (14 ms)
+    ✕ an absolute-form request target answers 400 and sends no PDF bytes (16 ms)
+    ✓ invoice: the paper comes back and nothing is stored (19 ms)
+    ✓ receipt: the paper comes back and nothing is stored (4 ms)
+    ✓ credit note: the paper comes back and nothing is stored (3 ms)
+    ✓ debit note: the paper comes back and nothing is stored (3 ms)
+    ✓ invoice, even when a caller asks to upload: the paper comes back and nothing is stored (2 ms)
+    ✓ lot label, even when a caller asks to upload: the paper comes back and nothing is stored (750 ms)
+  ● the /uploads mount never serves a generated finance PDF › an absolute-form request target answers 400 and sends no PDF bytes
+    -   "HTTP/1.1 400",
+    -   false,
+    +   "HTTP/1.1 200",
+    +   true,
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 15 passed, 16 total
+
+== I6 + L2 real Postgres at 01b390f09 (RED commit) ==
+      ✓ GET /api/invoices/my has no healthId, no metadata, no staff note and no WHT tax id (25 ms)
+      ✓ GET /api/invoices/:id as finance_officer_dtam → no metadata, payer id masked (16 ms)
+      ✓ GET /api/invoices/:id as system_admin_dtam → no metadata, payer id masked (13 ms)
+      ✓ GET /api/invoices/:id as finance_officer_platform → no metadata, payer id in full (order 57) (15 ms)
+      ✓ system_admin_platform reads neither the staff invoice doors nor the quotation list (order 47) (24 ms)
+      ✓ GET /api/invoices (staff list) never carries metadata (17 ms)
+      ✓ GET /api/applications/:id/quotations as finance_officer_dtam → payer id masked (17 ms)
+      ✓ GET /api/applications/:id/quotations as system_admin_dtam → payer id masked (40 ms)
+      ✓ GET /api/applications/:id/quotations as finance_officer_platform → payer id in full (13 ms)
+      ✓ finance_officer_dtam gets 403 at every staff finance PDF door and no paper is rendered (26 ms)
+      ✓ system_admin_dtam gets 403 at every staff finance PDF door and no paper is rendered (25 ms)
+      ✓ system_admin_platform gets 403 at every staff finance PDF door and no paper is rendered (53 ms)
+      ✓ finance_officer_platform downloads every one of them (164 ms)
+      ✓ the applicant still downloads the quotation of its own application (44 ms)
+      ✓ another organization's company finance officer asking for this receipt gets 404 and no paper (35 ms)
+      ✓ another organization's company finance officer asking for this quotation gets 404 and no paper (61 ms)
+      ✕ TENANT_READ_ORG_SCOPE=false: another organization's company finance officer gets the not-found answer, and no paper (146 ms)
+      ✕ TENANT_READ_ORG_SCOPE=true: another organization's company finance officer gets the not-found answer, and no paper (139 ms)
+      ✓ the role refusal stays 403: DTAM finance of another organization asking for the PDFs (17 ms)
+      ✓ the company finance officer of the organization still opens all four (48 ms)
+      ✕ GET /api/finance/credit-notes?originalInvoiceId= as the applicant (26 ms)
+      ✕ GET /api/applications/:id/quotations as the applicant (72 ms)
+      ✕ POST /api/applications/:id/quotations/PLATFORM/accept answers the applicant with the same columns (72 ms)
+      ✓ staff readers keep the whole row on both lists (57 ms)
+      ✓ GET /api/finance/customer-statement → first digit and last four, never the 13 digits (32 ms)
+  ● finance read leaks, B0 (real Postgres) › 4b. the credit-note and debit-note doors answer another organization's id as one that does not exist (I6) › TENANT_READ_ORG_SCOPE=false: another organization's company finance officer gets the not-found answer, and no paper
+    -     404,
+    +     403,
+    -       "error": "CREDIT_NOTE_NOT_FOUND",
+    -       "message": "Credit note not found",
+    +       "error": "FORBIDDEN_TENANT",
+    +       "message": "Cross-tenant access denied — credit notes are scoped to the invoice owner",
+    -     404,
+    +     403,
+    -       "error": "DEBIT_NOTE_NOT_FOUND",
+    -       "message": "Debit note not found",
+    +       "error": "FORBIDDEN_TENANT",
+    +       "message": "Cross-tenant access denied",
+    -     404,
+    +     403,
+  ● finance read leaks, B0 (real Postgres) › 4b. the credit-note and debit-note doors answer another organization's id as one that does not exist (I6) › TENANT_READ_ORG_SCOPE=true: another organization's company finance officer gets the not-found answer, and no paper
+    -     404,
+    +     403,
+    -       "error": "CREDIT_NOTE_NOT_FOUND",
+    -       "message": "Credit note not found",
+    +       "error": "FORBIDDEN_TENANT",
+    +       "message": "Cross-tenant access denied — credit notes are scoped to the invoice owner",
+    -     404,
+    +     403,
+    -       "error": "DEBIT_NOTE_NOT_FOUND",
+    -       "message": "Debit note not found",
+    +       "error": "FORBIDDEN_TENANT",
+    +       "message": "Cross-tenant access denied",
+    -     404,
+    +     403,
+  ● finance read leaks, B0 (real Postgres) › 6. the payer's credit-note list and quotation doors carry named columns only (L2) › GET /api/finance/credit-notes?originalInvoiceId= as the applicant
+    - Array []
+    + Array [
+    +   "updatedAt",
+    +   "refundTransferRecordedAt",
+    +   "organizationId",
+    +   "isDeleted",
+    + ]
+  ● finance read leaks, B0 (real Postgres) › 6. the payer's credit-note list and quotation doors carry named columns only (L2) › GET /api/applications/:id/quotations as the applicant
+    - Array []
+    + Array [
+    +   "updatedAt",
+    +   "rejectedAt",
+    +   "acceptedSnapshotHash",
+    +   "acceptedBy",
+    +   "notes",
+    +   "applicantNotes",
+    +   "isDeleted",
+    +   "deletedAt",
+    +   "deleteReason",
+    +   "organizationId",
+    + ]
+  ● finance read leaks, B0 (real Postgres) › 6. the payer's credit-note list and quotation doors carry named columns only (L2) › POST /api/applications/:id/quotations/PLATFORM/accept answers the applicant with the same columns
+    - Array []
+    + Array [
+    +   "updatedAt",
+    +   "rejectedAt",
+    +   "acceptedSnapshotHash",
+    +   "acceptedBy",
+    +   "notes",
+    +   "applicantNotes",
+    +   "isDeleted",
+    +   "deletedAt",
+    +   "deleteReason",
+    +   "organizationId",
+    + ]
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 20 passed, 25 total
+
+== L1 follow-up from the Jev review at 2ee5cdcbb (RED commit: folders under --to that lead back into uploads) ==
+    ✓ refuses to run without exactly one of --dry-run / --apply (83 ms)
+    ✓ --dry-run prints counts by kind, never a file name, and moves nothing (44 ms)
+    ✓ --apply moves every paper byte-for-byte out of the public folder and leaves the rest (51 ms)
+    ✓ a second --apply finds nothing left; a copy already in the vault is not moved twice (87 ms)
+    ✓ a different file already at the destination is a conflict: both are kept and the run says so (43 ms)
+    ✓ refuses a destination inside the public uploads folder (46 ms)
+    ✓ refuses a destination the public uploads folder itself (42 ms)
+    ✓ --apply without --to is refused (38 ms)
+    ✓ no gacp-pdfs folder: nothing to move (40 ms)
+    ✓ a --to that is a symlink to the uploads folder is refused and no paper is lost (41 ms)
+    ✓ a --to under a symlink that lands inside the uploads folder is refused (45 ms)
+    ✓ an --uploads-dir given through a symlink still refuses a --to inside the real folder (45 ms)
+    ✓ a public gacp-pdfs that is a symlink into the vault is not emptied: a file is never unlinked onto itself (62 ms)
+    ✕ a vault whose gacp-pdfs is a symlink back into a public folder is refused and nothing lands there (44 ms)
+    ✕ a folder in the vault that is a symlink back into uploads keeps the papers under it where they are (55 ms)
+    ✓ a mistyped --uploads-dir is refused, not reported as nothing to move (43 ms)
+  ● move-generated-pdfs-out-of-public › a vault whose gacp-pdfs is a symlink back into a public folder is refused and nothing lands there
+  ● move-generated-pdfs-out-of-public › a folder in the vault that is a symlink back into uploads keeps the papers under it where they are
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 14 passed, 16 total

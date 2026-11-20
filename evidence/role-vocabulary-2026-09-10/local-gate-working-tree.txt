@@ -1,0 +1,54 @@
+
+===== [local-gate] banned-terms =====
+[banned-terms] Repository scan passed
+[local-gate] banned-terms: PASS
+
+===== [local-gate] mojibake =====
+[encoding-check] PASS: no mojibake markers or UTF-8 BOM files found
+[local-gate] mojibake: PASS
+
+===== [local-gate] green-mask =====
+[green-mask] PASS — 1291 file(s) scanned; no net-new masks (baseline 15, burn-down tracked for UAT-01).
+[local-gate] green-mask: PASS
+
+===== [local-gate] probe-gate =====
+probe-gate: running 13 CI probe(s): deploy-drift dockerignore-secrets fee-single-source gate-attestation holiday-single-source main-attestation-audit no-secret no-skip ratchet schema-arg-resolves status-vocab stripe-sdk-isolated themed-surface-tokens
+probe-gate: NOT run here (signed 'manual'): crawler-clean drain-complete evidence-complete money-equation quotation-closure report-integrity (until 2026-09-15) settle-webhook-only (until 2026-09-15) stripe-keys-ready suite-green tier-check (until 2026-09-15) webhook-idempotent (until 2026-09-15)
+probe-gate: a green result says nothing about the manual set — see probe-registry.txt for each reason.
+
+deploy-drift           FAIL       prod-frontend: could not reach https://gacpth.com/api/webapp-version (network or HTTP error). Not a verdict about the deployment — but not a pass either
+dockerignore-secrets   PASS     PASS: 441 sensitive file(s) in the tree, all excluded from the build context by .dockerignore
+fee-single-source      PASS     PASS: one fee table: apps/backend/config/business-rules.js
+gate-attestation       FAIL     FAIL: no attestation for HEAD ff3d8cedbd62deb42967e5fd8b398bf58dc4b79d — evidence/gate/ff3d8cedbd62deb42967e5fd8b398bf58dc4b79d.json does not exist (searched 50 commit(s) back). Run scripts/ci/full-gate.sh on the gate machine; see docs/operations/runbooks/full-gate-on-staging.md
+holiday-single-source  PASS     PASS: single calendar source: apps/backend/utils/working-days.js
+main-attestation-audit FAIL     20 of 20 gated commit(s) on origin/main in the last 30 first-parent commit(s) (cutoff 2026-08-08: 0 skipped as before cutoff, 10 touched no gated path) have NO full-gate attestation. This probe cannot and does not block a merge — it makes an unattested merge impossible to hide.
+no-secret              FAIL     FAIL: gitleaks found leaks — evidence/gitleaks.log
+no-skip                FAIL     apps/web-app/e2e/farmer-services-carpet.spec.ts:100:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=25 todo=55 env-direct=114 dup-source=0 (evidence/ratchet-current.txt)
+schema-arg-resolves    FAIL       - scripts/deploy/remote-install.sh:155  'is' (not path-shaped — reads as prose, not a value)
+status-vocab           PASS     PASS: 11 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (3 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+stripe-sdk-isolated    PASS     PASS: stripe SDK only in services/payment/stripe-adapter.js
+themed-surface-tokens  PASS     PASS: every Tailwind-consumed surface token carries a distinct value in :root and .dark, and no stylesheet under src/styles/ nails a background with !important
+→ evidence/probe-results.json
+
+probe-gate notes:
+  · no-skip: FAIL but WAIVED by operator until 2026-09-15 (5 day(s) left) — L-006 — re-measured 2026-08-22: 13 conditional `test.skip(` (not 10 — full re-count, no allowlist filtering since the allowlist file is empty), all in apps/web-app/{e2e,playwright}/: e2e-golden-scenario.spec.ts:90,117,123,162,168,180,190 (ApplicantToken/farmId/applicationId dependency chain — see L-020), farmer-services-carpet.spec.ts:58,77,100,141 (`HAS_CREDS` = E2E_TEST_IDENTIFIER/E2E_TEST_PASSWORD), account-split-journey.spec.ts:138, farmer-full-journey.spec.ts:425 · root cause confirmed: those two env vars are wired ONLY in `.github/workflows/e2e-staging-nightly.yml:85-86` (nightly, real staging creds) — no PR-triggered job sets them, so `HAS_CREDS` is permanently false outside the nightly run · burn-down needs one of: (a) a self-hosted job that seeds a throwaway local user (Postgres+backend booted, no staging secrets) and sets E2E_TEST_IDENTIFIER/PASSWORD to it, removing the staging-secret dependency — then the 4 farmer-services-carpet skips can go; (b) resolve L-020's cascading `test.skip(true, ...)` masks in e2e-golden-scenario.spec.ts before its 7 skips can be un-conditioned — that spec's design (collapse-to-skip-on-non-2xx) needs an operator/design call, not a mechanical fix; (c) declare both files nightly-only per L-021's proposed manifest and narrow no-skip's scope to exclude declared-nightly specs. None of (a)-(c) is a small wiring line — leaving the waiver
+
+⚠️  probe-gate warnings:
+  ! settle-webhook-only: temporary 'manual' parking expires in 5 day(s) (2026-09-15) — after that this gate goes red
+  ! webhook-idempotent: temporary 'manual' parking expires in 5 day(s) (2026-09-15) — after that this gate goes red
+  ! tier-check: temporary 'manual' parking expires in 5 day(s) (2026-09-15) — after that this gate goes red
+  ! report-integrity: temporary 'manual' parking expires in 5 day(s) (2026-09-15) — after that this gate goes red
+  ! no-skip: waiver expires in 5 day(s) — after that this gate goes red
+
+probe-gate: FAIL
+  ✗ deploy-drift: FAIL and no operator waiver — this is the gate doing its job
+  ✗ gate-attestation: FAIL and no operator waiver — this is the gate doing its job
+  ✗ main-attestation-audit: FAIL and no operator waiver — this is the gate doing its job
+  ✗ no-secret: FAIL and no operator waiver — this is the gate doing its job
+  ✗ schema-arg-resolves: FAIL and no operator waiver — this is the gate doing its job
+[local-gate] probe-gate: FAIL
+
+[local-gate] unit-suite: SKIPPED (ตั้ง LOCAL_GATE_FULL=1 เพื่อรันเต็ม — ต้อง pnpm install ก่อน)
+
+[local-gate] RESULT: FAIL

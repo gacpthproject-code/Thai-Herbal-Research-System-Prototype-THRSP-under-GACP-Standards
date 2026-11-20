@@ -1,0 +1,214 @@
+RED run — tree = 8368dfd4 + the two new test files only (services/tenant-context.js unchanged)
+node v24.21.0 · NODE_OPTIONS=<unset> · SIGNING_KEY_DIR=<mktemp -d> · TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5441 (password redacted)
+$ npx jest --config jest.config.cjs __tests__/unit/without-tenant-scope-lazy.test.js __tests__/integration/without-tenant-scope-lazy.int.test.js
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T12:27:28.775Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T12:27:28.779Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T12:27:28.782Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"CheckoutOrder","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-09-29T12:27:29.175Z"}
+[32minfo[39m: [reconcile] settlement reconcile complete {"deadLettered":0,"errors":0,"reDrivenOrders":0,"retriedEvents":0,"service":"settlement-reconcile","timestamp":"2026-09-29T12:27:29.183Z"}
+FAIL __tests__/integration/without-tenant-scope-lazy.int.test.js
+  withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres)
+    S6 — last-admin guard, caller bound to org A, target in org B
+      ✕ service: assertNotLastActiveAdmin refuses to remove org B's only admin (41 ms)
+      ✕ real door: PATCH disabling org B's only admin answers 409 and the row stays ACTIVE (76 ms)
+      ✕ control: org C has two admins, so disabling one of them succeeds (11 ms)
+    S7 — a REVOKE stored under org B, caller bound to org A
+      ✓ the fixture really is a default MANAGER permission (1 ms)
+      ✕ effective permissions honour the REVOKE (9 ms)
+      ✕ revoking the member removes its grant rows (no resurrect on re-invite) (14 ms)
+    money path — settlement-reconcile runs with no tenant (behaviour unchanged)
+      ✓ stale PENDING_PAYMENT orders from every org reach the gateway question (40 ms)
+
+  ● withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres) › S6 — last-admin guard, caller bound to org A, target in org B › service: assertNotLastActiveAdmin refuses to remove org B's only admin
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: undefined
+
+      163 |
+      164 |         test('service: assertNotLastActiveAdmin refuses to remove org B\'s only admin', async () => {
+    > 165 |             await expect(runWithTenantContext({ organizationId: orgA.id }, async () => (
+          |                   ^
+      166 |                 adminUserService.assertNotLastActiveAdmin({ existing: lastAdminB, organizationId: orgB.id })
+      167 |             ))).rejects.toMatchObject({ code: 'ROLE_ADMIN_CANNOT_BE_LAST', status: 409 });
+      168 |         });
+
+      at expect (../../node_modules/.pnpm/expect@30.2.0/node_modules/expect/build/index.js:2116:15)
+      at Object.expect (__tests__/integration/without-tenant-scope-lazy.int.test.js:165:19)
+
+  ● withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres) › S6 — last-admin guard, caller bound to org A, target in org B › real door: PATCH disabling org B's only admin answers 409 and the row stays ACTIVE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 404
+
+      171 |             const res = await asPlatformAdmin(request(app()).patch(`/api/system/providers/${lastAdminB.id}`))
+      172 |                 .send({ isActive: false });
+    > 173 |             expect(res.status).toBe(409);
+          |                                ^
+      174 |             expect(res.body.code).toBe('ROLE_ADMIN_CANNOT_BE_LAST');
+      175 |             const row = await raw.user.findUnique({ where: { id: lastAdminB.id }, select: { status: true } });
+      176 |             expect(row.status).toBe('ACTIVE');
+
+      at Object.toBe (__tests__/integration/without-tenant-scope-lazy.int.test.js:173:32)
+
+  ● withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres) › S6 — last-admin guard, caller bound to org A, target in org B › control: org C has two admins, so disabling one of them succeeds
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      180 |             const res = await asPlatformAdmin(request(app()).patch(`/api/system/providers/${adminC1.id}`))
+      181 |                 .send({ isActive: false });
+    > 182 |             expect(res.status).toBe(200);
+          |                                ^
+      183 |             const row = await raw.user.findUnique({ where: { id: adminC1.id }, select: { status: true } });
+      184 |             expect(row.status).toBe('INACTIVE');
+      185 |             // org A's own admin is untouched by any of this
+
+      at Object.toBe (__tests__/integration/without-tenant-scope-lazy.int.test.js:182:32)
+
+  ● withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres) › S7 — a REVOKE stored under org B, caller bound to org A › effective permissions honour the REVOKE
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 6
+    + Received  + 1
+
+    - Array [
+    -   Object {
+    -     "effect": "REVOKE",
+    -     "permission": "PRINT_QR",
+    -   },
+    - ]
+    + Array []
+
+      223 |                 getEffectiveEntityPermissions({ membershipId: membership.id })
+      224 |             ));
+    > 225 |             expect(result.grants).toEqual([{ permission: revoked, effect: 'REVOKE' }]);
+          |                                   ^
+      226 |             expect(result.effective).not.toContain(revoked);
+      227 |         });
+      228 |
+
+      at Object.toEqual (__tests__/integration/without-tenant-scope-lazy.int.test.js:225:35)
+
+  ● withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres) › S7 — a REVOKE stored under org B, caller bound to org A › revoking the member removes its grant rows (no resurrect on re-invite)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      232 |             ));
+      233 |             const left = await raw.entityMemberPermissionGrant.count({ where: { membershipId: membership.id } });
+    > 234 |             expect(left).toBe(0);
+          |                          ^
+      235 |             const m = await raw.entityMembership.findUnique({ where: { id: membership.id }, select: { status: true } });
+      236 |             expect(m.status).toBe('REVOKED');
+      237 |         });
+
+      at Object.toBe (__tests__/integration/without-tenant-scope-lazy.int.test.js:234:26)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/without-tenant-scope-lazy.test.js
+  withoutTenantScope — lazy thenable returned by the callback
+    ✕ the lazy work runs with no tenant bound, even when the caller holds org A (3 ms)
+    ✓ the lazy work is started exactly once (1 ms)
+    ✓ a rejection from the lazy work reaches the caller unchanged (2 ms)
+    ✓ a non-thenable return value comes back synchronously and unchanged (1 ms)
+    ✓ a synchronous throw still propagates synchronously (3 ms)
+    ✓ an async callback still runs every await with no tenant bound (17 ms)
+  withoutTenantScope — a real PrismaPromise (no database needed)
+    ✕ prisma.user.count returned un-awaited runs its extension hooks with no tenant (3 ms)
+    ✓ control: the same call made directly under org A sees org A (1 ms)
+
+  ● withoutTenantScope — lazy thenable returned by the callback › the lazy work runs with no tenant bound, even when the caller holds org A
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 4
+
+      Object {
+    -   "bypass": true,
+    -   "ctx": null,
+    +   "bypass": false,
+    +   "ctx": Object {
+    +     "organizationId": "org-A",
+    +   },
+      }
+
+      57 |         });
+      58 |         expect(result).toBe(7);
+    > 59 |         expect(observed).toEqual({ ctx: null, bypass: true });
+         |                          ^
+      60 |     });
+      61 |
+      62 |     test('the lazy work is started exactly once', async () => {
+
+      at Object.toEqual (__tests__/unit/without-tenant-scope-lazy.test.js:59:26)
+
+  ● withoutTenantScope — a real PrismaPromise (no database needed) › prisma.user.count returned un-awaited runs its extension hooks with no tenant
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 4
+
+      Array [
+        Object {
+    -     "bypass": true,
+    -     "ctx": null,
+    +     "bypass": false,
+    +     "ctx": Object {
+    +       "organizationId": "org-A",
+    +     },
+        },
+      ]
+
+      129 |         ));
+      130 |         expect(n).toBe(42);
+    > 131 |         expect(hookSaw).toEqual([{ ctx: null, bypass: true }]);
+          |                         ^
+      132 |     });
+      133 |
+      134 |     test('control: the same call made directly under org A sees org A', async () => {
+
+      at Object.toEqual (__tests__/unit/without-tenant-scope-lazy.test.js:131:25)
+
+Test Suites: 2 failed, 2 total
+Tests:       7 failed, 8 passed, 15 total
+Snapshots:   0 total
+Time:        1.478 s, estimated 3 s
+Ran all test suites matching __tests__/unit/without-tenant-scope-lazy.test.js|__tests__/integration/without-tenant-scope-lazy.int.test.js.

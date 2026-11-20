@@ -1,0 +1,135 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/entity-member-permissions-routes.test.js
+  GET /entities/:id/members/:userId/permissions
+    √ OWNER sees role/legacy/grants/effective + the farm-operation catalog (68 ms)
+    √ requester with role ADMIN → 403 (OWNER only, stricter than Wave-2) (12 ms)
+    √ requester not a member of the entity → 404 (no probing) (11 ms)
+    √ target not an ACTIVE member → 404 (11 ms)
+  PUT /entities/:id/members/:userId/permissions
+    √ valid GRANT → upsert keyed by (membershipId, permission), grantedBy = requester UUID, org mirrored; returns fresh payload (37 ms)
+    √ REVOKE audits ENTITY_PERMISSION_REVOKED (11 ms)
+    √ workspace-management code (INVITE_MEMBER) → 400 INVALID_PERMISSION (not grantable v1) (13 ms)
+    √ garbage permission → 400; bad effect → 400 (20 ms)
+    √ self-guard: owner editing their OWN grants → 403 SELF_PERMISSION_CHANGE_FORBIDDEN (11 ms)
+    √ ADMIN requester → 403 (OWNER only) (10 ms)
+    √ target not ACTIVE → 404, nothing written (11 ms)
+  DELETE /entities/:id/members/:userId/permissions/:permission (inherit)
+    √ deletes the grant row, audits ENTITY_PERMISSION_RESET, returns fresh payload (10 ms)
+    √ idempotent: P2025 (row already absent) still 200 — inherit IS the target state (20 ms)
+    √ self-guard applies to DELETE too (11 ms)
+    √ invalid permission in the path → 400 (10 ms)
+
+PASS __tests__/unit/farm-permission-gates.test.js
+  POST /farms — FARM_CREATE gated ONLY in a real workspace context
+    √ no active-entity context → no gate, 201 (legacy solo farmer path) (38 ms)
+    √ personal:true context → no gate, 201 (owner under own personal entity ALWAYS passes) (12 ms)
+    √ workspace context (personal:false) → FARM_CREATE asserted against that entity (10 ms)
+    √ workspace context, denied → 403 ENTITY_PERMISSION_DENIED (15 ms)
+  PATCH /farms/:id — service denial maps to 403 (not 500)
+    √ farm-service throws ENTITY_PERMISSION_DENIED → 403 with the permission named (10 ms)
+    √ normal update still 200 (11 ms)
+  plots — CYCLE_CREATE on create + delete (plots are cycle-prep)
+    √ POST /farms/:farmId/plots asserts CYCLE_CREATE after the reachability probe (21 ms)
+    √ POST plot denied → 403 ENTITY_PERMISSION_DENIED, plot NOT created (21 ms)
+    √ DELETE /plots/:id asserts CYCLE_CREATE with the loaded farm row (11 ms)
+    √ DELETE plot denied → 403, plot NOT deleted (10 ms)
+
+PASS __tests__/unit/entity-my-permissions-route.test.js
+  GET /entities/:id/my-permissions
+    √ ACTIVE member → 200 with role + effective (role baseline) + personal:false on a workspace (57 ms)
+    √ grants are applied — a REVOKE drops the permission from effective (12 ms)
+    √ GRANT widens a VIEWER (empty baseline) to exactly the granted code (13 ms)
+    √ requester with NO membership on the entity → 404 (anti-probing) (15 ms)
+    √ PENDING / REVOKED membership → 404 (getEntityForMember filters ACTIVE) (11 ms)
+    √ OWNER on their own personal INDIVIDUAL entity → personal:true (10 ms)
+    √ non-OWNER member of someone else's INDIVIDUAL entity → personal:false (real workspace) (11 ms)
+
+PASS __tests__/unit/require-effective-permission.test.js
+  requireEffectivePermission
+    √ role WITH the permission, no grants → 200 (142 ms)
+    √ role WITHOUT the permission, no grants → 403 (28 ms)
+    √ role WITHOUT the permission + a GRANT for it → 200 (17 ms)
+    √ role WITH the permission + a REVOKE for it → 403 (11 ms)
+    √ no req.user → 401 (unauthenticated) (10 ms)
+    √ one request hitting TWO gates → findMany called ONCE (req cache) (11 ms)
+
+PASS __tests__/unit/active-entity-middleware.test.js
+  Wave C PR C-2 — activeEntityMiddleware
+    √ passes through when req.user is missing (anonymous / public) (2 ms)
+    √ binds the requested entity when header matches an ACTIVE membership (1 ms)
+    √ S1: header naming the user's OWN personal INDIVIDUAL entity → personal:true (2 ms)
+    √ S1: non-OWNER membership on an INDIVIDUAL entity stays a workspace (personal:false) (1 ms)
+    √ returns 403 when header is set but no active membership matches (2 ms)
+    √ returns 403 when membership exists but status is REVOKED / PENDING (1 ms)
+    √ resolves the personal entity via the stable OWNER membership link (no hash lookup) when header is absent (2 ms)
+    √ falls back to the legacy national-ID hash lookup when no OWNER membership link exists (flag OFF) (2 ms)
+    √ passes through with no scope when header absent and neither link nor personal entity exists (2 ms)
+    √ does not 500 on a Prisma failure (best-effort) (1 ms)
+
+PASS __tests__/unit/entity-capabilities.test.js
+  Wave C PR-4 — CAPABILITIES table
+    √ exposes the canonical permission codes (1 ms)
+    √ OWNER has every capability by default (2 ms)
+    √ VIEWER has zero capabilities by default
+    √ MANAGER can print QR but not edit farms nor submit applications (Wave B owner decision)
+    √ ADMIN can invite + revoke + submit, but not transfer ownership
+    √ defaultPermissionsFor returns a copy (not the frozen original) (1 ms)
+    √ defaultPermissionsFor unknown role returns empty array
+  Wave C PR-4 — assertCapability
+    √ returns true when role default permits (29 ms)
+    √ throws CAPABILITY_DENIED when role default denies (2 ms)
+    √ grants when permissions[] explicitly grants beyond the role default (9 ms)
+    √ still grants when role default permits, even with empty permissions[]
+    √ throws when role is missing (2 ms)
+  Wave C PR-4 — findInviteeByIdentifier
+    √ resolves by healthId (primary channel) (1 ms)
+    √ returns null when no user matches (1 ms)
+    √ resolves uniquely by email (1 ms)
+    √ returns ambiguous when 2+ users share an email (1 ms)
+    √ throws on unknown channel (1 ms)
+    √ returns null on empty value (1 ms)
+
+PASS __tests__/unit/entity-grant-lifecycle-reset.test.js
+  S6.1 — revokeMember clears the membership grants (no resurrect-on-reinvite)
+    √ deletes the grant rows and audits ENTITY_PERMISSION_RESET with the before snapshot (8 ms)
+    √ no grants → no deleteMany, no RESET event (clean no-op) (4 ms)
+    √ already-REVOKED membership stays a full no-op (idempotent) (3 ms)
+  S6.2 — addMember upsert-UPDATE branch clears grants on re-invite / role change
+    √ re-invite of a REVOKED row: old grants do NOT resurrect (cleared + RESET audited) (5 ms)
+    √ role change on an ACTIVE row clears the stale role-relative grants (3 ms)
+    √ same-role ACTIVE idempotent re-call does NOT touch the grants (no silent wipe) (2 ms)
+    √ fresh row (no existing membership) never clears anything (2 ms)
+  S6.3 — transferOwnership clears BOTH memberships' grants (promoted-OWNER REVOKE deadlock)
+    √ clears demoted + promoted grants and audits a RESET per member (2 ms)
+
+PASS __tests__/unit/entity-service.test.js
+  entity-service.ensureJuristicEntity
+    √ creates the entity + OWNER membership when none exists (10 ms)
+    √ reuses an existing entity (idempotent) and does not call create (6 ms)
+    √ rejects with APPLICANT_VALIDATION_FAILED when validation fails (3 ms)
+    √ rejects when user.id is missing (105 ms)
+    √ rejects when organizationId is missing (ADR-014) (4 ms)
+  entity-service.ensureCommunityEntity
+    √ creates the entity + OWNER membership for an 11-digit DOAE number (5 ms)
+    √ rejects on a 10-digit (wrong length) registration number (3 ms)
+  entity-service.ensureEntityFromApplicantData (dispatcher)
+    √ returns null for INDIVIDUAL (personal entity already exists from registration) (3 ms)
+    √ returns null for missing applicantType (2 ms)
+    √ dispatches to JURISTIC helper (2 ms)
+    √ dispatches to COMMUNITY_ENTERPRISE helper for the legacy "COMMUNITY" alias (1 ms)
+
+PASS __tests__/unit/entity-permission-creator-farm-revoke.test.js
+  assertFarmActionPermission — authorship must not override REVOKE on workspace farms (F3)
+    √ (1) MANAGER-creator + REVOKE HARVEST_RECORD on their own workspace farm → DENIED (2 ms)
+    √ (2) MANAGER-creator + role-default ACTIVITY_IRRIGATION (no grants) → ALLOWED via effective set (1 ms)
+    √ (3) entity OWNER acting on a WORKER-created farm → ALLOWED (OWNER default = all farm ops) (2 ms)
+    √ (4) fired/REVOKED creator → DENIED everything (M1 fired-worker protection preserved) (1 ms)
+    √ (5) solo farm (entityId=null) owner → ALLOWED via LEGACY_OWNER, no membership read (unchanged) (1 ms)
+    √ (6) MANAGER-creator + EDIT_FARM (not in MANAGER default, no grant) → DENIED (behavior-change pin) (1 ms)
+    √ (7) MANAGER-creator + GRANT EDIT_FARM → ALLOWED (explicit grant restores the op) (1 ms)
+
+Test Suites: 9 passed, 9 total
+Tests:       92 passed, 92 total
+Snapshots:   0 total
+Time:        7.598 s
+Ran all test suites matching /__tests__\\unit\\entity-member-permissions-routes.test.js|__tests__\\unit\\entity-my-permissions-route.test.js|__tests__\\unit\\entity-service.test.js|__tests__\\unit\\entity-capabilities.test.js|__tests__\\unit\\entity-grant-lifecycle-reset.test.js|__tests__\\unit\\entity-permission-creator-farm-revoke.test.js|__tests__\\unit\\farm-permission-gates.test.js|__tests__\\unit\\require-effective-permission.test.js|__tests__\\unit\\active-entity-middleware.test.js/i.

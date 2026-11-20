@@ -1,0 +1,168 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/auth-idp-routes.test.js
+  POST /api/auth/idp/:provider/authorize-url
+    √ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (64 ms)
+    √ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (13 ms)
+    √ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (14 ms)
+    √ thaid enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (24 ms)
+    √ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (21 ms)
+    × tombstone: 'mock' ไม่อยู่ใน registry แล้ว → 503 ทั้งสอง endpoint (operator 2026-08-14) (18 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    √ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (49 ms)
+    √ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (22 ms)
+    √ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (73 ms)
+    √ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (21 ms)
+    √ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (36 ms)
+    √ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (22 ms)
+  POST /api/auth/idp/thaid/callback — เส้น session จริง (แปลงพาหนะจาก mock — coverage เดิมครบ)
+    √ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR + audit reason CODE_MISSING จากการ์ดของ route (22 ms)
+    √ code ไม่ใช่สตริง (number) → 400 VALIDATION_ERROR ก่อนถึง adapter (ไม่ยิง IdP) (21 ms)
+    √ happy → 200: mint ผ่าน issueTokensForAuthenticatedUser + provider_token httpOnly cookie (33 ms)
+    √ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (22 ms)
+    √ ทะเบียนปฏิเสธ fail-closed (auto-provision ปิด) → catalog status + ไม่มี create/upsert/mint + audit FAILURE (34 ms)
+    √ บัญชีที่ผูกเลข 13 หลักเป็นเจ้าหน้าที่ → 403 ไม่ auto-link ไม่ create/upsert/mint + audit FAILURE (21 ms)
+    √ บัญชี status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (28 ms)
+    √ ผู้ใช้กดปฏิเสธที่ IdP → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (20 ms)
+    √ code ถูก IdP ปฏิเสธ → 401 AUTH_IDP_CODE_INVALID (ใช้ไม่ได้ = ปฏิเสธก่อน mint) (19 ms)
+    √ id_token ไม่มี subject → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (19 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    √ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (28 ms)
+    √ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (24 ms)
+  POST /api/auth/idp/thaid/callback — state anti-CSRF ยังบังคับกับ provider ThaID
+    √ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session (18 ms)
+    √ ไม่มี state ใน body → 400 AUTH_STATE_INVALID (single-use/anti-CSRF ครอบ thaid ด้วย) (18 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    √ thaid happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(subject) ไม่มีค่าดิบใน metadata (19 ms)
+    √ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (54 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    √ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (6 ms)
+    √ routes/api/index.js mount /auth/idp (2 ms)
+    √ server.js ครอบ /auth/idp ด้วย idp-rate-limit factory ที่รับ authLimiter จริง (2 ms)
+
+  ● POST /api/auth/idp/:provider/authorize-url › tombstone: 'mock' ไม่อยู่ใน registry แล้ว → 503 ทั้งสอง endpoint (operator 2026-08-14)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 503
+    Received: 200
+
+    [0m [90m 243 |[39m         [36mconst[39m app [33m=[39m buildApp()[33m;[39m
+     [90m 244 |[39m         [36mconst[39m a [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/auth/idp/mock/authorize-url'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 245 |[39m         expect(a[33m.[39mstatus)[33m.[39mtoBe([35m503[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 246 |[39m         expect(a[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'AUTH_PROVIDER_DISABLED'[39m)[33m;[39m
+     [90m 247 |[39m         [36mconst[39m b [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/auth/idp/mock/callback'[39m)[33m.[39msend({})[33m;[39m
+     [90m 248 |[39m         expect(b[33m.[39mstatus)[33m.[39mtoBe([35m503[39m)[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:245:26)
+
+FAIL __tests__/unit/auth-idp-providers-endpoint.test.js
+  GET /api/auth/idp/providers
+    × answers 200 with every provider key and its effective state (52 ms)
+    √ pins a POSITIVE state — local resolves enabled, so a handler that answers coming_soon for everything cannot pass (86 ms)
+    √ DISCRIMINATES: staging_only on real production reports enabled:false while the state string alone would read as usable (83 ms)
+    √ resolves enabled for the frontend — staging_only is not a state a browser can interpret (100 ms)
+    √ reflects the fail-closed resolver, not the raw defaults — thaid without env is coming_soon (89 ms)
+    √ never leaks anything beyond key, state and the resolved enabled flag (95 ms)
+    √ is never cached — a delivered credential must flip the badge without a deploy (95 ms)
+    √ requires no authentication — the login page has no session yet (83 ms)
+
+  ● GET /api/auth/idp/providers › answers 200 with every provider key and its effective state
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+        "healthid",
+        "local",
+    +   "mock",
+        "providerid",
+        "thaid",
+      ]
+
+    [0m [90m 35 |[39m         expect(r[33m.[39mbody[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 36 |[39m         [36mconst[39m keys [33m=[39m r[33m.[39mbody[33m.[39mdata[33m.[39mproviders[33m.[39mmap((p) [33m=>[39m p[33m.[39mkey)[33m.[39msort()[33m;[39m
+    [31m[1m>[22m[39m[90m 37 |[39m         expect(keys)[33m.[39mtoEqual([[32m'healthid'[39m[33m,[39m [32m'local'[39m[33m,[39m [32m'providerid'[39m[33m,[39m [32m'thaid'[39m])[33m;[39m
+     [90m    |[39m                      [31m[1m^[22m[39m
+     [90m 38 |[39m         [36mfor[39m ([36mconst[39m p [36mof[39m r[33m.[39mbody[33m.[39mdata[33m.[39mproviders) {
+     [90m 39 |[39m             expect([[32m'enabled'[39m[33m,[39m [32m'staging_only'[39m[33m,[39m [32m'coming_soon'[39m])[33m.[39mtoContain(p[33m.[39mstate)[33m;[39m
+     [90m 40 |[39m             expect([36mtypeof[39m p[33m.[39menabled)[33m.[39mtoBe([32m'boolean'[39m)[33m;[39m[0m
+
+      at Object.toEqual (__tests__/unit/auth-idp-providers-endpoint.test.js:37:22)
+
+FAIL __tests__/unit/auth-providers-config.test.js
+  AUTH_PROVIDERS registry (mandate §D2)
+    × registry มีครบ 4 provider ตาม vocab: local | healthid | providerid | thaid (3 ms)
+    √ default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED) (2 ms)
+    √ isProviderEnabled defaults ตรงกับ states (1 ms)
+    √ unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN (12 ms)
+  fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment)
+    √ AUTH_PROVIDERID_STATE=enabled แต่ไม่มี config ใดเลย → ไม่ enabled + AUTH_PROVIDER_NOT_CONFIGURED (2 ms)
+    √ ขาดตัวเดียว (SECRET_KEY) ก็ fail-closed เหมือนกัน (2 ms)
+    √ ขาด PID_CLIENT_ID (client ของระบบ Provider ID — audit F1) ก็ fail-closed เหมือนกัน (1 ms)
+    √ config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field (2 ms)
+    √ ค่า state นอก vocab (เช่น "yolo") → fail-closed ไม่ enabled (2 ms)
+    √ staging_only: enabled เฉพาะ non-production (2 ms)
+    √ provider จริงที่ยัง coming_soon (healthid/providerid) → assertProviderReady โยน AUTH_PROVIDER_DISABLED (2 ms)
+    √ thaid: default enabled แต่ยังไม่มี cred → fail-closed เป็น NOT_CONFIGURED (ไม่ใช่ DISABLED) (1 ms)
+  local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended)
+    √ local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6) (2 ms)
+    √ AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5) (1 ms)
+  staging slot (GACP_DEPLOY_SLOT)
+    √ staging_only resolves ENABLED on the staging slot under NODE_ENV=production — the || isStagingSlot() branch had zero coverage (deep review) (3 ms)
+    √ assertProviderReady("thaid") ผ่านบน staging slot — flow ต้องเดิน authorize-url ได้จริง (2 ms)
+    √ assertProviderReady("thaid") ยังโยน DISABLED บน production จริง (ไม่มี marker) (3 ms)
+    √ an unexpected slot value changes nothing — only the exact string counts (2 ms)
+  getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin)
+    × ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ (2 ms)
+
+  ● AUTH_PROVIDERS registry (mandate §D2) › registry มีครบ 4 provider ตาม vocab: local | healthid | providerid | thaid
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+        "local",
+        "healthid",
+        "providerid",
+        "thaid",
+    +   "mock",
+      ]
+
+    [0m [90m 87 |[39m describe([32m'AUTH_PROVIDERS registry (mandate §D2)'[39m[33m,[39m () [33m=>[39m {
+     [90m 88 |[39m     test([32m'registry มีครบ 4 provider ตาม vocab: local | healthid | providerid | thaid'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 89 |[39m         expect([33mPROVIDER_KEYS[39m)[33m.[39mtoEqual([[32m'local'[39m[33m,[39m [32m'healthid'[39m[33m,[39m [32m'providerid'[39m[33m,[39m [32m'thaid'[39m])[33m;[39m
+     [90m    |[39m                               [31m[1m^[22m[39m
+     [90m 90 |[39m         [36mconst[39m listed [33m=[39m (getAuthProviders() [33m||[39m [])[33m.[39mmap((p) [33m=>[39m p [33m&&[39m p[33m.[39mkey)[33m;[39m
+     [90m 91 |[39m         expect(listed)[33m.[39mtoEqual([[32m'local'[39m[33m,[39m [32m'healthid'[39m[33m,[39m [32m'providerid'[39m[33m,[39m [32m'thaid'[39m])[33m;[39m
+     [90m 92 |[39m         [90m// tombstone: ไม่มีทะเบียนจำลองอีกแล้ว (operator 2026-08-14)[39m[0m
+
+      at Object.toEqual (__tests__/unit/auth-providers-config.test.js:89:31)
+
+  ● getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin) › ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 4
+    Received length: 5
+    Received array:  [{"key": "local", "state": "enabled"}, {"key": "healthid", "state": "coming_soon"}, {"key": "providerid", "state": "enabled"}, {"key": "thaid", "state": "coming_soon"}, {"key": "mock", "state": "enabled"}]
+
+    [0m [90m 264 |[39m         process[33m.[39menv[33m.[39m[33mAUTH_PROVIDERID_STATE[39m [33m=[39m [32m'enabled'[39m[33m;[39m
+     [90m 265 |[39m         [36mconst[39m out [33m=[39m getAuthProviders() [33m||[39m [][33m;[39m
+    [31m[1m>[22m[39m[90m 266 |[39m         expect(out)[33m.[39mtoHaveLength([35m4[39m)[33m;[39m [90m// กัน pin หลอก: ต้องมีข้อมูลจริงก่อนค่อยตรวจว่าไม่รั่ว[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 267 |[39m         [36mconst[39m serialized [33m=[39m [33mJSON[39m[33m.[39mstringify(out)[33m;[39m
+     [90m 268 |[39m         [90m// grep-pin ชื่อ field ต้องห้าม[39m
+     [90m 269 |[39m         expect(serialized)[33m.[39mnot[33m.[39mtoMatch([35m/secret/i[39m)[33m;[39m[0m
+
+      at Object.toHaveLength (__tests__/unit/auth-providers-config.test.js:266:21)
+
+Test Suites: 3 failed, 3 total
+Tests:       4 failed, 54 passed, 58 total
+Snapshots:   0 total
+Time:        5.037 s
+Ran all test suites matching /__tests__\\unit\\auth-idp-routes.test.js|__tests__\\unit\\auth-providers-config.test.js|__tests__\\unit\\auth-idp-providers-endpoint.test.js/i.

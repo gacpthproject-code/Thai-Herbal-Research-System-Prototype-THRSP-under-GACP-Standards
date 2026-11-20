@@ -1,0 +1,81 @@
+Task 3 — catalog.js / rules/*.js / evaluate.js — RED evidence (summary, no raw jest log per Global Constraints)
+
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/rules.test.js
+Date: 2026-09-27 · Node v24.21.0 (nvm use 24)
+
+Setup: catalog.js, evaluate.js and rules/ were moved out of
+services/document-precheck/ to a scratch dir immediately before this run (the
+files existed on disk from writing them while researching the interfaces, so
+they were physically removed to capture a genuine RED against the test file),
+then restored unmodified straight after this run.
+
+Result: Test Suites: 1 failed, 1 total / Tests: 0 total
+Failure: "Cannot find module '../../../services/document-precheck/evaluate' from
+'__tests__/unit/document-precheck/rules.test.js'" — module did not exist at run
+time, exactly the expected RED per task-3-brief.md Step 2 ("Run the tests.
+Expected: FAIL.").
+
+apps/backend/keys/private.pem: not present in this worktree (only quarantine
+subdirs + README.md under apps/backend/keys/) — N/A, nothing to compare mtimes on.
+
+=== Fix round 1 (task-3-review.md, 6d4ac44e..040943ce) ===
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/rules.test.js
+Date: 2026-09-27 · Node v24.21.0
+This is a genuine BEHAVIORAL red against the head-tree (040943ce) code — no
+files were moved this time; rules.test.js was extended with the review's exact
+probe pairs (C1/I1/I2/I3/I4/I5/M1) plus 2 changed expectations (I5), then run
+unmodified against catalog.js/rules/*.js as committed.
+
+Result: Test Suites: 1 failed, 1 total / Tests: 16 failed, 24 passed, 40 total
+Every failure traces to a named review item, one per line:
+  C1 (Critical): "a trailing tone mark is TONE_ONLY" got MATCH, want MISMATCH ·
+    "a high-similarity OCR variant that is CLOSE" got MISMATCH, want MATCH ·
+    "a name that is a prefix..." got MATCH, want not-MATCH · "a short company
+    name...ทุนจดทะเบียน" got MATCH, want not-MATCH (4 failures; the mid-word
+    tone-mark case happened to already pass under the old substring search —
+    kept as a regression pin, not a new red)
+  I1: "a deed held by the company...any-of" got MISMATCH, want MATCH · the new
+    CATALOG referenceCombine assertion also failed (field did not exist yet)
+  I2: "no 13-digit id anywhere...on file" got MISMATCH, want NOT_FOUND
+  I3: "registered 2560, issued 1 ก.ย. 2569" got EXPIRED, want PASS (earliest-
+    date policy picked the 2560 registration date) · "several dates...none
+    labeled" got EXPIRED, want DATE_NOT_FOUND (same root cause)
+  I4: all 3 fuzzy-tolerance cases (OCR space, one wrong char, Thai-digit +
+    space) got NOT_FOUND, want MATCH
+  I5: land_lease DOC_TYPE flag existed (NOT_FOUND) instead of being absent ·
+    previous_cert CROSS_MATCH flag existed (NOT_FOUND) instead of being absent
+  M1: VALIDITY reasonTH contained the Gregorian ISO date "2026-01-01" instead
+    of a Buddhist-era Thai date containing "2569"
+24 tests untouched by the fixes stayed green throughout (readability, plain
+MATCH/MISMATCH/NOT_FOUND paths, the raw-id guard, signature, etc.) — proof the
+fixes are scoped to the reviewed items, not a rewrite.
+
+apps/backend/keys/private.pem: not present in this worktree (unchanged).
+
+=== Fix round 2 (task-3-rereview-1.md, 040943ce..7feec97e) ===
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/rules.test.js
+Date: 2026-09-27 · Node v24.21.0
+Genuine BEHAVIORAL red against the head-tree (7feec97e) code — rules.test.js
+was extended with the re-review's exact probe pairs (N1/N2/N3), run unmodified
+against catalog.js/rules/*.js as committed at 7feec97e.
+
+Result: Test Suites: 1 failed, 1 total / Tests: 7 failed, 41 passed, 48 total
+Every failure traces to a named re-review item:
+  N1 (2): "น.ส. สมศรี" in LAND_DEED got MATCH, want NOT_FOUND · "น.ส.มาลี" got
+    MATCH, want NOT_FOUND (deleting one char from the 5-char phrase "น.ส.3"
+    gives the title "น.ส." — the ±1 edit tolerance from fix round 1 was
+    unsafe on a short phrase)
+  N2 (2): the OCR-garbled-digit probe ("l กันยายน 2S69") got EXPIRED, want
+    DATE_NOT_FOUND (fell back to the 2560 registration date) · the
+    unrelated-later-date probe ("...... ลงวันที่ 5 มกราคม 2560") got EXPIRED,
+    want DATE_NOT_FOUND (the 40-char window bound the wrong date)
+  N3 (3): "ชื่อนายสมชาย ใจดี" got MISMATCH · "ชื่อนายสมชายใจดีเกิดวันที่" got
+    MISMATCH · "นาย สม ชาย ใจ ดี" got MISMATCH — all want not-MISMATCH
+    (OCR-glued/over-split name text scored DIFFERENT at every candidate
+    window, which the old binary MATCH/MISMATCH mapping read as a confident
+    "ไม่ตรง")
+41 tests untouched by these fixes stayed green (all of fix round 1's C1/I1-I5/
+M1 pins, readability, plain paths, the raw-id guard, signature) — proof the
+fixes are scoped to N1/N2/N3, not a rewrite.
+
+apps/backend/keys/private.pem: not present in this worktree (unchanged).

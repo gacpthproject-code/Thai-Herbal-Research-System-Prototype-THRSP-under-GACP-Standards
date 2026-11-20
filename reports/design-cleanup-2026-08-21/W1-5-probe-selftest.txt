@@ -1,0 +1,42 @@
+--- selftest A → exit 0 (expected 0)
+PASS: 5 sensitive file(s) in the tree, all excluded from the build context by .dockerignore
+
+--- selftest B → exit 1 (expected 1)
+FAIL: 4 of 5 sensitive file(s) would be shipped in the Docker build context
+      (apps/backend/Dockerfile:28 COPYs all of apps/backend, and :96 carries it into the final image)
+  - apps/backend/.env
+  - apps/backend/keys/private.pem
+  - apps/backend/keys/public.pem
+  - apps/backend/public/uploads/farmer-doc.pdf
+      Fix: add matching rules to .dockerignore. Remember patterns do NOT
+      recurse like .gitignore — use '**/' for any depth below the root.
+
+--- selftest C → exit 1 (expected 1)
+FAIL: 1 of 5 sensitive file(s) would be shipped in the Docker build context
+      (apps/backend/Dockerfile:28 COPYs all of apps/backend, and :96 carries it into the final image)
+  - apps/backend/.env
+      Fix: add matching rules to .dockerignore. Remember patterns do NOT
+      recurse like .gitignore — use '**/' for any depth below the root.
+
+--- selftest D → exit 1 (expected 1)
+FAIL: 1 of 5 sensitive file(s) would be shipped in the Docker build context
+      (apps/backend/Dockerfile:28 COPYs all of apps/backend, and :96 carries it into the final image)
+  - apps/backend/public/uploads/farmer-doc.pdf
+      Fix: add matching rules to .dockerignore. Remember patterns do NOT
+      recurse like .gitignore — use '**/' for any depth below the root.
+
+--- selftest E → exit 1 (expected 1)
+FAIL: 1 of 5 sensitive file(s) would be shipped in the Docker build context
+      (apps/backend/Dockerfile:28 COPYs all of apps/backend, and :96 carries it into the final image)
+  - apps/backend/keys/private.pem
+      Fix: add matching rules to .dockerignore. Remember patterns do NOT
+      recurse like .gitignore — use '**/' for any depth below the root.
+
+--- selftest F → exit 2 (expected 2)
+BLOCKED: cannot read /tmp/tmp.FmhYOQdf2G/F/.dockerignore — with no ignore file the ENTIRE context ships to the daemon and into any COPY; refusing to call that a PASS
+
+--- selftest G → exit 2 (expected 2)
+BLOCKED: found no key/env/upload files under /tmp/tmp.FmhYOQdf2G/G — the scan proved nothing, so this is BLOCKED not PASS (check the find filters)
+
+==================================================
+dockerignore-secrets --selftest: 7/7 cases PASS

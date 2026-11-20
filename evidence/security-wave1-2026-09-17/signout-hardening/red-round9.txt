@@ -1,0 +1,553 @@
+# RED round 9 — production code at 0fb6616d (test marker values switched to the id form; new cases: bare value refused, percent-encoded value, crypto failure)
+  console.warn
+    [GACP] [AuthService] Inactive-account sign-out failed: Error: getRandomValues blocked
+        at Crypto.<anonymous> (/home/ubuntu/work/gacp-signout/apps/web-app/src/lib/api/__tests__/sign-out-leaves-once.test.ts:114:19)
+        at /home/ubuntu/work/gacp-wave1-deps/node_modules/.pnpm/jest-mock@30.2.0/node_modules/jest-mock/build/index.js:305:39
+        at Crypto.<anonymous> (/home/ubuntu/work/gacp-wave1-deps/node_modules/.pnpm/jest-mock@30.2.0/node_modules/jest-mock/build/index.js:312:13)
+        at Crypto.mockConstructor (/home/ubuntu/work/gacp-wave1-deps/node_modules/.pnpm/jest-mock@30.2.0/node_modules/jest-mock/build/index.js:102:19)
+        at newSignOutId (/home/ubuntu/work/gacp-signout/apps/web-app/src/lib/api/account-inactive.ts:134:12)
+        at markAccountInactiveSignOut (/home/ubuntu/work/gacp-signout/apps/web-app/src/lib/api/account-inactive.ts:170:16)
+        at AuthServiceClass.leaveForLogin (/home/ubuntu/work/gacp-signout/apps/web-app/src/lib/services/auth-service.ts:465:39)
+        at processTicksAndRejections (node:internal/process/task_queues:95:5)
+        at AuthServiceClass.signOutInactiveAccount (/home/ubuntu/work/gacp-signout/apps/web-app/src/lib/services/auth-service.ts:504:9)
+        at Object.<anonymous> (/home/ubuntu/work/gacp-signout/apps/web-app/src/lib/api/__tests__/sign-out-leaves-once.test.ts:117:13)
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at src/lib/services/auth-service.ts:489:24
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:117:13)
+
+  console.error
+    [AuthService] Failed to decode JWT
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at decodeJwtToken (src/lib/services/auth-service-jwt.ts:16:17)
+      at getJwtExpiry (src/lib/services/auth-service-jwt.ts:22:21)
+      at getMsUntilJwtExpiry (src/lib/services/auth-service-jwt.ts:34:20)
+      at AuthServiceClass.getTimeUntilExpiry (src/lib/services/auth-service.ts:292:35)
+      at AuthServiceClass.scheduleTokenRefresh (src/lib/services/auth-service.ts:566:38)
+      at AuthServiceClass.saveSession (src/lib/services/auth-service.ts:346:14)
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:221:9)
+
+FAIL src/lib/api/__tests__/sign-out-leaves-once.test.ts
+  marker บน https
+    ✓ ตั้งเป็น __Host-signed_out_reason ไม่ใช่ชื่อธรรมดา (12 ms)
+    ✓ หน้าล็อกอินรับเฉพาะชื่อ __Host- และลบทิ้งหลังอ่าน (2 ms)
+    ✓ ชื่อธรรมดาที่ใครตั้งไว้ ไม่ทำให้หน้าล็อกอินขึ้นข้อความว่าบัญชีถูกระงับ (1 ms)
+  ค่าของ marker (รีวิวรอบแปด)
+    ✕ ค่า account_inactive ที่ไม่มี id ไม่นับ — ไม่มีหน้าเวอร์ชันไหนตั้งค่านี้ (main ไม่เคยมี marker) (4 ms)
+    ✕ ค่าที่ถูก percent-encode อ่านเหมือนที่ middleware อ่าน (middleware decode ค่า cookie) (2 ms)
+    ✕ crypto.getRandomValues ใช้ไม่ได้ — ยังตั้ง marker และยังพาออกไปหน้าที่บอกเหตุผล (49 ms)
+  พาออกครั้งเดียว
+    ✓ หลังเริ่มพาออกเพราะถูกระงับ 401 ที่ตามมาไม่พาไป ?expired=true (8 ms)
+    ✓ 401 ที่มาก่อน แล้วตามด้วย ACCOUNT_INACTIVE ระหว่างรอ — ปลายทางคือหน้าที่บอกเหตุผล ครั้งเดียว (8 ms)
+    ✓ 401 พร้อมกันหลายคำขอ ยิง clear-cookie ครั้งเดียวและนำทางครั้งเดียว (7 ms)
+  เหตุผลของ session ไม่อ่อนลง และหน้าต่างกันซ้ำไม่ค้าง (รีวิวรอบสามและสี่)
+    ✓ ผู้ใช้กดอยู่ต่อ (หน้าไม่ถูกปิด) — 401 ที่มาภายหลังพาออกได้อีกครั้ง (8 ms)
+    ✓ ล็อกอินใหม่ในหน้าเดิม — session ใหม่เริ่มสะอาด ไม่รับสถานะของ session ก่อน (13 ms)
+    ✓ ระหว่างที่กำลังออกอยู่ 401 ที่ตามมายังล้าง session ฝั่งเครื่อง แม้ไม่นำทางซ้ำ (8 ms)
+    ✓ กล่องถาม "ออกจากหน้านี้?" ค้างนานกว่าหน้าต่าง — 401 ที่ตามมาไม่พาไปหน้าหมดเวลา (7 ms)
+    ✓ อยู่ต่อหลังถูกพาออกเพราะบัญชีถูกระงับ — 401 ภายหลังพาไปหน้าที่บอกเหตุผลเดิม ไม่ใช่ "หมดเวลา" (7 ms)
+    ✓ หน้าหมดเวลากำลังนำทางอยู่ แล้ว ACCOUNT_INACTIVE มาถึง — เปลี่ยนปลายทางเป็นหน้าที่บอกเหตุผล พร้อม marker (7 ms)
+    ✓ เครือข่ายช้า หน้าต่างหมดก่อนหน้าเปลี่ยน — การนำทางซ้ำไปที่เดิมเท่านั้น ไม่อ่อนลงเป็น "หมดเวลา" (7 ms)
+    ✓ นาฬิกาเครื่องถูกตั้งย้อน — ไม่ทำให้หน้าต่างยืดออก (ใช้นาฬิกา monotonic) (10 ms)
+  ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่)
+    ✓ อีกคนล็อกอินจากแท็บอื่นหลังบัญชีเดิมถูกระงับ — session ของเขาหมดเวลาก็ไปหน้าหมดเวลา ไม่ใช่หน้า "ถูกระงับ" (8 ms)
+    ✓ แท็บที่ตั้ง marker เองไปจบที่หน้าล็อกอินที่ไม่มี reason — ลบ marker ทิ้ง ไม่ให้ค้าง (1 ms)
+    ✓ สองแท็บ: หน้าล็อกอินธรรมดาของอีกแท็บไม่ลบ marker ก่อนแท็บที่ตั้งมันจะไปถึงหน้าที่บอกเหตุผล (2 ms)
+    ✓ flag "แท็บนี้ตั้ง" ที่เก่ากว่าอายุ marker ไม่ลบ marker ใหม่ของผู้ใช้อีกคน (รีวิวรอบหก กรณี Z) (1 ms)
+    ✓ flag ของแท็บนี้ที่ยังใหม่ ก็ไม่ลบ marker ที่อีกแท็บตั้งให้ผู้ใช้อีกคน (กรณี Z ในเบราว์เซอร์จริง: ห่างกัน 3.5 วินาที) (1 ms)
+    ✓ เครือข่ายช้ามาก + 401 ถี่ — การนำทางซ้ำเว้นห่างขึ้นทุกครั้ง หน้ามีโอกาสได้เปลี่ยนจริง (8 ms)
+
+  ● ค่าของ marker (รีวิวรอบแปด) › ค่า account_inactive ที่ไม่มี id ไม่นับ — ไม่มีหน้าเวอร์ชันไหนตั้งค่านี้ (main ไม่เคยมี marker)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+       98 |         document.cookie = '__Host-signed_out_reason=account_inactive; path=/; max-age=120; samesite=lax; secure';
+       99 |
+    > 100 |         expect(consumeAccountInactiveSignOut(params('reason=account_inactive'))).toBe(false);
+          |                                                                                  ^
+      101 |     });
+      102 |
+      103 |     it('ค่าที่ถูก percent-encode อ่านเหมือนที่ middleware อ่าน (middleware decode ค่า cookie)', () => {
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:100:82)
+
+  ● ค่าของ marker (รีวิวรอบแปด) › ค่าที่ถูก percent-encode อ่านเหมือนที่ middleware อ่าน (middleware decode ค่า cookie)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      104 |         document.cookie = '__Host-signed_out_reason=account_inactive%2E0123456789abcdef; path=/; max-age=120; samesite=lax; secure';
+      105 |
+    > 106 |         expect(consumeAccountInactiveSignOut(params('reason=account_inactive'))).toBe(true);
+          |                                                                                  ^
+      107 |         expect(cookieNames()).not.toContain('__Host-signed_out_reason');
+      108 |     });
+      109 |
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:106:82)
+
+  ● ค่าของ marker (รีวิวรอบแปด) › crypto.getRandomValues ใช้ไม่ได้ — ยังตั้ง marker และยังพาออกไปหน้าที่บอกเหตุผล
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   "/auth/provider/login?reason=account_inactive",
+    - ]
+    + Array []
+
+      121 |         }
+      122 |
+    > 123 |         expect(mockHardNavigate.mock.calls.map(([url]) => url)).toEqual([
+          |                                                                 ^
+      124 |             '/auth/provider/login?reason=account_inactive',
+      125 |         ]);
+      126 |         expect(consumeAccountInactiveSignOut(params('reason=account_inactive'))).toBe(true);
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:123:65)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at src/lib/api/__tests__/account-inactive-login-redirect.test.ts:99:9
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at src/lib/api/__tests__/account-inactive-login-redirect.test.ts:99:9
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at src/lib/api/__tests__/account-inactive-login-redirect.test.ts:99:9
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at src/lib/api/__tests__/account-inactive-login-redirect.test.ts:99:9
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:421:33)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:113:9)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:123:9)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+          at async Promise.all (index 0)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:194:25)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+          at async Promise.all (index 1)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:194:25)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+          at async Promise.all (index 2)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:194:25)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:212:21)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:231:9)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:243:9)
+
+  console.warn
+    [GACP] [ApiClient] Account is inactive - ending session
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.endInactiveAccountSession (src/lib/api/api-client.ts:269:16)
+      at ApiClient.request (src/lib/api/api-client.ts:486:33)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:256:9)
+
+  console.error
+    [GACP] [AuthService] Refresh rejected by auth server: {
+      success: false,
+      code: 'ACCOUNT_INACTIVE',
+      messageTh: 'บัญชีของคุณถูกระงับการใช้งาน'
+    }
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at Object.error (src/lib/logger.ts:32:17)
+      at AuthServiceClass.refreshToken (src/lib/services/auth-service.ts:653:24)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:269:25)
+
+  console.warn
+    [GACP] [ApiClient] 401 Received - Session expired
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.request (src/lib/api/api-client.ts:442:24)
+      at src/lib/api/__tests__/account-inactive-login-redirect.test.ts:293:21
+
+  console.warn
+    [GACP] [ApiClient] 401 Received - Session expired
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.request (src/lib/api/api-client.ts:442:24)
+      at src/lib/api/__tests__/account-inactive-login-redirect.test.ts:293:21
+
+  console.warn
+    [GACP] [ApiClient] 401 Received - Session expired
+
+      26 |     /** Warnings — always shown */
+      27 |     warn: (...args: unknown[]) => {
+    > 28 |         console.warn('[GACP]', ...args);
+         |                 ^
+      29 |     },
+      30 |     /** Errors — always shown */
+      31 |     error: (...args: unknown[]) => {
+
+      at Object.warn (src/lib/logger.ts:28:17)
+      at ApiClient.request (src/lib/api/api-client.ts:442:24)
+      at src/lib/api/__tests__/account-inactive-login-redirect.test.ts:293:21
+
+  console.error
+    [GACP] [AuthService] Refresh rejected by auth server: {
+      success: false,
+      code: 'ACCOUNT_INACTIVE',
+      error: 'Account is inactive',
+      message: 'Account is inactive',
+      messageTh: 'บัญชีของคุณถูกระงับการใช้งาน'
+    }
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at Object.error (src/lib/logger.ts:32:17)
+      at AuthServiceClass.refreshToken (src/lib/services/auth-service.ts:653:24)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:339:25)
+
+  console.error
+    [GACP] [AuthService] Refresh rejected by auth server: { success: false, code: 'REFRESH_TOKEN_REVOKED' }
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at Object.error (src/lib/logger.ts:32:17)
+      at AuthServiceClass.refreshToken (src/lib/services/auth-service.ts:653:24)
+      at Object.<anonymous> (src/lib/api/__tests__/account-inactive-login-redirect.test.ts:351:9)
+
+PASS src/lib/api/__tests__/account-inactive-login-redirect.test.ts
+  ACCOUNT_INACTIVE พาไปหน้าล็อกอินของพอร์ทัลที่ถูก
+    ✓ จาก /health/home → /auth/health/login?reason=account_inactive (30 ms)
+    ✓ จาก /health/applications/new/step/3 → /auth/health/login?reason=account_inactive (7 ms)
+    ✓ จาก /provider/applications → /auth/provider/login?reason=account_inactive (6 ms)
+    ✓ จาก /admin/users → /auth/provider/login?reason=account_inactive (6 ms)
+    ✓ 401 ACCOUNT_INACTIVE ไปพร้อมเหตุผลเดียวกัน ไม่ใช่ ?expired=true (7 ms)
+    ✓ อยู่หน้าล็อกอินแล้ว ไม่พาไปซ้ำ และไม่ตั้ง marker (6 ms)
+    ✓ ประตูล็อกอินตอบ ACCOUNT_INACTIVE: อยู่หน้าเดิม ให้ฟอร์มแสดงข้อความ (5 ms)
+    ✓ 403 อื่นไม่พาไปไหน (5 ms)
+  ออกจากหน้าหลัง cookie ฝั่งเซิร์ฟเวอร์ถูกลบ (clearSession ตัวจริง)
+    ✓ หลายคำขอตอบ ACCOUNT_INACTIVE พร้อมกัน → ออกจากระบบครั้งเดียว: clear-cookie หนึ่งครั้ง เปลี่ยนหน้าหนึ่งครั้ง (12 ms)
+    ✓ เจ้าหน้าที่: ยังไม่ออกจากหน้าจนกว่า clear-cookie จะตอบ แล้วจึงไปหน้าล็อกอินพร้อมเหตุผล (11 ms)
+    ✓ ตั้ง marker ก่อนออกจากหน้า — middleware ใช้มันลบ cookie ที่ค้างและปล่อยให้ถึงหน้าที่บอกเหตุผล (9 ms)
+    ✓ clear-cookie ล้มเหลว → ยังออกไปหน้าล็อกอินพร้อม marker (middleware ลบ cookie แทน) (9 ms)
+    ✓ clear-cookie ไม่ตอบเลย → รอไม่เกิน 3 วินาทีแล้วออกไปพร้อม marker (12 ms)
+    ✓ refresh ที่ถูกปฏิเสธเพราะบัญชีถูกระงับ ก็รอ clear-cookie ก่อนออกจากหน้า (14 ms)
+    ✓ 401 หมดเวลา จาก /provider/dashboard: รอ clear-cookie แล้วไป /auth/provider/login?expired=true โดยไม่ตั้ง marker (11 ms)
+    ✓ 401 หมดเวลา จาก /admin/users: รอ clear-cookie แล้วไป /auth/provider/login?expired=true โดยไม่ตั้ง marker (14 ms)
+    ✓ 401 หมดเวลา จาก /health/home: รอ clear-cookie แล้วไป /auth/health/login?expired=true โดยไม่ตั้ง marker (11 ms)
+  refresh ที่ถูกปฏิเสธเพราะบัญชีถูกระงับ ก็พาไปพร้อมเหตุผลเดียวกัน
+    ✓ POST /auth/health/refresh ตอบ 403 ACCOUNT_INACTIVE → ล้าง session แล้วไปหน้าล็อกอินพร้อมเหตุผล (6 ms)
+    ✓ refresh ที่ถูกปฏิเสธด้วยเหตุอื่น ยังเป็นแบบเดิม: ล้าง session ไม่พาไปไหน ไม่ตั้ง marker (5 ms)
+
+FAIL src/__tests__/inactive-sign-out-marker-hardening.test.ts
+  บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น
+    ✓ marker ชื่อธรรมดา (ที่ subdomain พี่น้องตั้งให้ได้) ไม่พาเจ้าหน้าที่ออกจากระบบ (7 ms)
+    ✓ marker ชื่อ __Host- (ตั้งได้จากหน้าของเราเองเท่านั้น) ยังทำงานตามเดิม (3 ms)
+    ✓ marker ที่มี id ของการพาออกครั้งนั้น (หน้าเวอร์ชันใหม่ตั้งแบบนี้) ทำงานเหมือนกัน (1 ms)
+    ✕ ค่า account_inactive ที่ไม่มี id ไม่ถูกนับ (5 ms)
+    ✓ ค่าอื่นที่แค่ขึ้นต้นเหมือน marker ไม่ถูกนับ (1 ms)
+    ✓ URL ที่เป็น https อยู่แล้ว (ไม่มี header) ก็ถือเป็น https เช่นกัน (1 ms)
+  บน http (เครื่องนักพัฒนา) ชื่อธรรมดายังใช้ได้ — browser ไม่ยอมตั้ง cookie Secure บน http
+    ✓ ปล่อยผ่านและลบ session cookie (1 ms)
+  ทางลัดเปิดเฉพาะหน้าล็อกอินสองหน้าที่มีจริง
+    ✓ /auth/provider/login/x ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason
+    ✓ /auth/health/login/anything ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (1 ms)
+    ✓ /auth/provider/login/ ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (1 ms)
+
+  ● บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น › ค่า account_inactive ที่ไม่มี id ไม่ถูกนับ
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "auth_token",
+    +   "provider_token",
+    +   "refresh_token",
+    +   "csrf_token",
+    + ]
+
+      81 |         ]));
+      82 |
+    > 83 |         expect(clearedSessionCookies(res)).toEqual([]);
+         |                                            ^
+      84 |         expect(isPassThrough(res)).toBe(false);
+      85 |     });
+      86 |
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:83:44)
+
+PASS src/app/auth/_components/__tests__/suspended-account-is-told-so.test.tsx
+  ฟอร์มล็อกอินแสดง messageTh ของหลังบ้านเมื่อบัญชีถูกระงับ
+    ✓ หน้าเจ้าหน้าที่ (56 ms)
+    ✓ หน้าประชาชน (44 ms)
+  หน้าล็อกอินบอกเหตุผลเมื่อถูกพาออกเพราะบัญชีถูกระงับ
+    ✓ หน้าเจ้าหน้าที่: ?reason=account_inactive พร้อม marker แสดงข้อความก่อนผู้ใช้กดอะไร (13 ms)
+    ✓ หน้าประชาชน: ?reason=account_inactive พร้อม marker แสดงข้อความก่อนผู้ใช้กดอะไร (16 ms)
+    ✓ หน้าเจ้าหน้าที่: แสดงแล้วลบ marker — โหลดหน้าซ้ำไม่บอกซ้ำ (21 ms)
+    ✓ หน้าประชาชน: แสดงแล้วลบ marker — โหลดหน้าซ้ำไม่บอกซ้ำ (37 ms)
+    ✓ หน้าเจ้าหน้าที่: ลิงก์จากที่อื่น (มีแค่ ?reason=account_inactive ไม่มี marker) ไม่บอกว่าบัญชีถูกระงับ (10 ms)
+    ✓ หน้าประชาชน: ลิงก์จากที่อื่น (มีแค่ ?reason=account_inactive ไม่มี marker) ไม่บอกว่าบัญชีถูกระงับ (14 ms)
+    ✓ หน้าเจ้าหน้าที่: marker ของแท็บอื่นแต่ URL ไม่มีเหตุผล ไม่แสดง และไม่ลบ marker (8 ms)
+    ✓ หน้าประชาชน: marker ของแท็บอื่นแต่ URL ไม่มีเหตุผล ไม่แสดง และไม่ลบ marker (15 ms)
+    ✓ หน้าเจ้าหน้าที่: marker ที่แท็บนี้ตั้งเอง แต่ URL ไม่มีเหตุผล ไม่แสดง และลบ marker (12 ms)
+    ✓ หน้าประชาชน: marker ที่แท็บนี้ตั้งเอง แต่ URL ไม่มีเหตุผล ไม่แสดง และลบ marker (13 ms)
+    ✓ marker ค่าอื่นไม่นับ (7 ms)
+    ✓ ค่าอื่นใน reason ไม่ถูกนำมาแสดง (หน้าไม่สะท้อนข้อความจาก URL) (6 ms)
+
+PASS src/__tests__/inactive-account-sign-out-landing.test.ts
+  หน้าล็อกอินเจ้าหน้าที่ หลังเว็บพาออกเพราะบัญชีถูกระงับ
+    ✓ ปล่อยผ่านไปหน้าล็อกอิน แม้ provider_token ยังค้างอยู่ — ไม่เด้งกลับแดชบอร์ด (3 ms)
+    ✓ ลบ auth_token ด้วย path=/ (ตัวที่ clear-cookie อาจลบไม่ทันก่อนเปลี่ยนหน้า) (1 ms)
+    ✓ ลบ provider_token ด้วย path=/ (ตัวที่ clear-cookie อาจลบไม่ทันก่อนเปลี่ยนหน้า) (1 ms)
+    ✓ ลบ refresh_token ด้วย path=/ (ตัวที่ clear-cookie อาจลบไม่ทันก่อนเปลี่ยนหน้า) (1 ms)
+    ✓ ลบ csrf_token ด้วย path=/ (ตัวที่ clear-cookie อาจลบไม่ทันก่อนเปลี่ยนหน้า)
+    ✓ ไม่ลบ marker — หน้าล็อกอินต้องใช้มันตัดสินว่าจะแสดงข้อความ แล้วลบเอง (1 ms)
+    ✓ ยังใส่ security headers ตามปกติ
+    ✓ URL เก่า /provider/login ถูกพาไปหน้าใหม่โดยเหตุผลยังอยู่
+  หน้าล็อกอินประชาชน หลังเว็บพาออกเพราะบัญชีถูกระงับ
+    ✓ ปล่อยผ่าน และลบ auth_token ที่ค้าง
+  ตัวควบคุม: ไม่มีใครถูกพาออกจากระบบด้วยลิงก์
+    ✓ ลิงก์จากที่อื่น (มีแค่ ?reason=account_inactive ไม่มี marker) → เจ้าหน้าที่ที่ล็อกอินอยู่ไปแดชบอร์ดตามเดิม ไม่ลบ cookie (1 ms)
+    ✓ ลิงก์จากที่อื่นเข้าหน้าล็อกอินประชาชน → ไม่ลบ auth_token (1 ms)
+    ✓ marker ค้าง แต่ URL ไม่มีเหตุผล → ทำงานแบบเดิม (1 ms)
+    ✓ marker ที่ค่าไม่ใช่ account_inactive ไม่นับ (1 ms)
+    ✓ หน้าภายในที่มี marker + reason ไม่ถูกแตะ — marker มีผลเฉพาะหน้าล็อกอิน (1 ms)
+
+Test Suites: 2 failed, 3 passed, 5 total
+Tests:       4 failed, 76 passed, 80 total
+Snapshots:   0 total
+Time:        2.374 s
+Ran all test suites matching src/lib/api/__tests__/sign-out-leaves-once.test.ts|src/__tests__/inactive-sign-out-marker-hardening.test.ts|src/__tests__/inactive-account-sign-out-landing.test.ts|src/lib/api/__tests__/account-inactive-login-redirect.test.ts|src/app/auth/_components/__tests__/suspended-account-is-told-so.test.tsx.
+EXIT=1

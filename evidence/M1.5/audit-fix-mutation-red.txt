@@ -1,0 +1,42 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/entity-claim-guard.test.js
+  M1.5 H1 — an existing org workspace cannot be claimed by its registration number
+    √ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row with membershipStatus:null (7 ms)
+    √ the refusal audit row carries a HASH, never the raw registration number (3 ms)
+    √ PENDING invitee → 409 with the "accept your invitation" message (2 ms)
+    √ ACTIVE non-OWNER → 409 telling them to switch workspace, and NO silent upgrade to OWNER (2 ms)
+    × an OWNER row that is NOT ACTIVE (REVOKED ex-owner / PENDING invite) → 409, NO write (M1.5 audit MEDIUM-1 pin) (3 ms)
+    √ the real OWNER retrying → idempotent success, NO write (1 ms)
+    √ a brand-new registration number → create entity + OWNER membership (unchanged) (2 ms)
+  M1.5 H1 — the same guard on ensureCommunityEntity
+    √ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row (2 ms)
+    √ PENDING invitee → 409 with the "accept your invitation" message (1 ms)
+    √ the real OWNER retrying → idempotent success, NO write (2 ms)
+    √ a brand-new DOAE number → create entity + OWNER membership (unchanged) (1 ms)
+  M1.5 H1 — POST /api/entities surfaces the refusal as 409, not 500
+    √ someone else already registered the tax ID → HTTP 409 + code, no membership write (60 ms)
+    √ a free registration number still creates the workspace (200) (13 ms)
+
+  ● M1.5 H1 — an existing org workspace cannot be claimed by its registration number › an OWNER row that is NOT ACTIVE (REVOKED ex-owner / PENDING invite) → 409, NO write (M1.5 audit MEDIUM-1 pin)
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "ent-1", "type": "JURISTIC"}, "fresh": false, "membership": {"role": "OWNER", "status": "REVOKED"}}
+
+    [0m [90m 187 |[39m             client[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue({ role[33m:[39m [32m'OWNER'[39m[33m,[39m status })[33m;[39m
+     [90m 188 |[39m
+    [31m[1m>[22m[39m[90m 189 |[39m             [36mawait[39m expect(ensureJuristicEntity({ user[33m:[39m stranger[33m,[39m applicantData[33m:[39m [33mVALID_JURISTIC[39m[33m,[39m tx[33m:[39m client }))
+     [90m     |[39m                   [31m[1m^[22m[39m
+     [90m 190 |[39m                 [33m.[39mrejects[33m.[39mtoMatchObject({ status[33m:[39m [35m409[39m[33m,[39m code[33m:[39m [32m'ENTITY_ALREADY_REGISTERED'[39m })[33m;[39m
+     [90m 191 |[39m             expect(client[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 192 |[39m             expect(client[33m.[39mentityMembership[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-claim-guard.test.js:189:19)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 12 passed, 13 total
+Snapshots:   0 total
+Time:        2.808 s
+Ran all test suites matching /entity-claim-guard/i.

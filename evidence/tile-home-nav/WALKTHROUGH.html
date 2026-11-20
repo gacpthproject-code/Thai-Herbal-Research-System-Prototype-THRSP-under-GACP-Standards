@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>Task 7 — tile-home-nav closing walkthrough</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", "Noto Sans Thai", sans-serif; max-width: 1000px; margin: 0 auto; padding: 24px 20px 80px; background: #f7f8f6; color: #1a1f1a; }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .meta { color: #556; font-size: 13px; margin-bottom: 28px; }
+  section { background: #fff; border: 1px solid #e2e6e1; border-radius: 12px; padding: 18px 20px; margin-bottom: 20px; }
+  section h2 { font-size: 15px; margin: 0 0 6px; color: #0b5e34; }
+  section p.claim { font-size: 13px; color: #333; margin: 0 0 12px; }
+  .shots { display: flex; gap: 14px; flex-wrap: wrap; align-items: flex-start; }
+  figure { margin: 0; max-width: 460px; }
+  figure.mobile img { max-height: 560px; width: auto; }
+  img { max-width: 100%; border: 1px solid #dcdfda; border-radius: 8px; display: block; }
+  figcaption { font-size: 12px; color: #667; margin-top: 4px; }
+  .badge { display: inline-block; font-size: 11px; background: #eaf3ec; color: #0b5e34; border-radius: 999px; padding: 2px 8px; margin-left: 6px; }
+  .note { font-size: 12px; color: #7a5b00; background: #fff8e1; border: 1px solid #f0dfa0; border-radius: 8px; padding: 8px 12px; margin-top: 20px; }
+</style>
+</head>
+<body>
+  <h1>Task 7 — Tile-home-nav closing walk</h1>
+  <div class="meta">Live walk against the running dev stack (Next.js :3000 + backend :8000, Supabase DB) — 2026-08-21. Every role: home → into one menu → back home. Farmer at 390×844 (primary) and 1920×1080. See INDEX.md for the full artifact-to-claim table.</div>
+
+  <section>
+    <h2>1. Farmer — desktop 1920 <span class="badge">walk1, มีใบรับรอง</span></h2>
+    <p class="claim">Tile home → เข้าเมนู "ตรวจสอบสถานะ" → กลับหน้าหลักผ่าน BackHomeCrumb → avatar dropdown มีแค่ โปรไฟล์ / ออกจากระบบ (RULING 1: logout ไม่อยู่ใน bottom nav อีกต่อไป)</p>
+    <div class="shots">
+      <figure><img src="screenshots/01-farmer-home-desktop-1920.png"><figcaption>01 — หน้าหลัก (6 tile + เมนูเพิ่มเติม)</figcaption></figure>
+      <figure><img src="screenshots/02-farmer-status-page-desktop.png"><figcaption>02 — /health/status</figcaption></figure>
+      <figure><img src="screenshots/03-farmer-back-home-via-crumb.png"><figcaption>03 — กลับหน้าหลักผ่าน crumb</figcaption></figure>
+      <figure><img src="screenshots/04-farmer-avatar-menu-desktop.png"><figcaption>04 — avatar menu: โปรไฟล์ + ออกจากระบบ เท่านั้น</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Farmer — mobile 390×844 <span class="badge">walk1, primary viewport</span></h2>
+    <p class="claim">หน้าหลักมือถือ → bottom nav มีตรง 5 รายการ ไม่มีปุ่ม "ออก" ตัวที่ 6 (RULING 1) → เข้า "ใบรับรอง" ผ่าน bottom nav → กลับหน้าหลักผ่าน bottom nav</p>
+    <div class="shots">
+      <figure class="mobile"><img src="screenshots/05-farmer-home-mobile-390.png"><figcaption>05 — หน้าหลัก มือถือ</figcaption></figure>
+      <figure class="mobile"><img src="screenshots/06-farmer-bottom-nav-5-items-no-logout.png"><figcaption>06 — bottom nav ระยะใกล้: 5 รายการพอดี ไม่มี "ออก"</figcaption></figure>
+      <figure class="mobile"><img src="screenshots/07-farmer-certificates-mobile.png"><figcaption>07 — /health/certificates จาก bottom nav</figcaption></figure>
+      <figure class="mobile"><img src="screenshots/08-farmer-back-home-via-bottom-nav.png"><figcaption>08 — กลับหน้าหลักผ่าน bottom nav</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>3. Farmer — no active cert <span class="badge">farmerA, มือถือ</span></h2>
+    <p class="claim">เกษตรกรที่ยังไม่มีใบรับรองใช้งานอยู่ก็เห็นหน้าหลักได้ปกติ (สถานะ lock ของ "การปลูก" ถูกทดสอบแยกใน bottom-nav.test.tsx เพราะขึ้นกับ timing ของการโหลด cert)</p>
+    <div class="shots">
+      <figure class="mobile"><img src="screenshots/09-farmer-home-no-cert-locked-mobile.png"><figcaption>09 — หน้าหลัก farmerA มือถือ</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>4. Auditor <span class="badge">งานตรวจแปลง</span></h2>
+    <p class="claim">เมนูเหลือแค่ tile จริง 1 อัน (สอง tile เดิมชี้ path ที่ไม่มีจริงถูกตัดออกในสเต็ป 1/2) → กดเข้าแล้วเจอหน้าจริง ไม่ใช่ 404</p>
+    <div class="shots">
+      <figure><img src="screenshots/10-auditor-home-single-real-tile.png"><figcaption>10 — หน้าหลักผู้ตรวจ: tile เดียว</figcaption></figure>
+      <figure><img src="screenshots/11-auditor-audits-page-not-404.png"><figcaption>11 — /provider/audits (หน้าจริง)</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>5. Document reviewer <span class="badge">ตรวจเอกสาร</span></h2>
+    <p class="claim">Tile ชี้ path จริง /provider/reviewer (เดิมชี้ /provider/review ที่ไม่มีจริง)</p>
+    <div class="shots">
+      <figure><img src="screenshots/12-reviewer-home.png"><figcaption>12 — หน้าหลักผู้ตรวจเอกสาร</figcaption></figure>
+      <figure><img src="screenshots/13-reviewer-page-not-404.png"><figcaption>13 — /provider/reviewer (หน้าจริง)</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>6. Scheduler <span class="badge">จัดคิวแบ่งงาน</span></h2>
+    <div class="shots">
+      <figure><img src="screenshots/14-scheduler-home.png"><figcaption>14 — หน้าหลักผู้จัดคิว</figcaption></figure>
+      <figure><img src="screenshots/15-scheduler-queue-page.png"><figcaption>15 — /provider/scheduler/queue</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>7. Account <span class="badge">ธุรกรรมการเงิน</span></h2>
+    <p class="claim">Tile ชี้ /provider/accounting จริง (เดิมชี้ /provider/transactions ที่ไม่มีจริง) → sub-nav tab ไม่มี "สลิป & ใบเสร็จ" อีกต่อไป (RULING 3 / N12) — หน้าเดิมยังเข้าถึงได้ตรง URL</p>
+    <div class="shots">
+      <figure><img src="screenshots/16-account-home.png"><figcaption>16 — หน้าหลักฝ่ายบัญชี</figcaption></figure>
+      <figure><img src="screenshots/17-account-accounting-page-no-slip-tab.png"><figcaption>17 — /provider/accounting: ไม่มี tab ตรวจสลิป</figcaption></figure>
+    </div>
+  </section>
+
+  <section>
+    <h2>8. Admin <span class="badge">RULING 2</span></h2>
+    <p class="claim">เข้า /provider/dashboard (จุดเข้าเดิม) แล้ว redirect อัตโนมัติไป /provider/home (providerLandingPath ใหม่) → tile "รายงาน" ชี้ /admin/dashboard จริง (เดิมชี้ /admin/reports ที่ไม่มีจริง)</p>
+    <div class="shots">
+      <figure><img src="screenshots/18-admin-dashboard-redirects-to-home.png"><figcaption>18 — /provider/dashboard → redirect → /provider/home</figcaption></figure>
+      <figure><img src="screenshots/19-admin-reports-tile-lands-on-real-dashboard.png"><figcaption>19 — /admin/dashboard (หน้าจริง)</figcaption></figure>
+    </div>
+  </section>
+
+  <div class="note">ไม่ครอบคลุม: platform_admin (ไม่มี credential ในชุด UAT seed ที่ใช้เดินรอบนี้) — landing/nav ของ role นี้ไม่ถูกแตะในงานนี้ และถูกคุมด้วย unit test (nav-config.test.ts, landing-route-coherence.test.ts) แทน</div>
+</body>
+</html>

@@ -1,0 +1,134 @@
+B0 round 2: the security reviewer's probes (/tmp/secrev-b0/probes/) rerun on this branch, plus two of mine.
+Run 2026-10-09 in worktree wt-finleaks. File names in the outputs are synthetic test names.
+
+== 1. npfp-negative-controls.sh on a git-archive copy of 44fdb9445 (probe and tree of this round) ==
+== selftest (author's own) ==
+selftest: 15 cases, 0 failure(s)
+== real tree ==
+T0 real branch tree, no disk check                         exit=0 expected=0 as-expected | PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host disk read: PROBE_UPLOADS_DIR is unset)
+T1 real tree + empty uploads dir                           exit=2 expected=0 UNEXPECTED  | BLOCKED: PROBE_UPLOADS_DIR holds none of an uploads root's folders (application-drafts wizard-drafts slips car audits lab-results gacp-pdfs gacp-uploa
+== mutants that must FAIL ==
+M1 classifier forgets gacp-pdfs/ (public again)            exit=1 expected=1 as-expected | FAIL: classified public: gacp-pdfs/receipts-TAX-PRD-2569-000001.pdf gacp-pdfs/receipts-null.pdf gacp-pdfs/invoices-INV-CO-1A2B3C4D-M1.pdf gacp-pdfs/qu
+M2 bucket entry pdfs:'gacp-pdfs' back                      exit=1 expected=1 as-expected | FAIL: a writer into the gacp-pdfs bucket is back: services/storage-service.js:36 
+M3 receipt renderer writes BUCKETS.pdfs again              exit=1 expected=1 as-expected | FAIL: a writer into the gacp-pdfs bucket is back: services/pdf/invoice-template-service.js:793 
+M4 disk: a paper left under <uploads>/gacp-pdfs (nested)   exit=1 expected=1 as-expected | FAIL: 1 file(s) still under <uploads>/gacp-pdfs (move them: apps/backend/scripts/ops/move-generated-pdfs-out-of-public.js --apply) · 0 finance paper(
+== mutants the spec says must FAIL but the probe does not look at ==
+M5 receipt written to BUCKETS.uploads (public gacp-uploads/) exit=0 expected=1 UNEXPECTED  | PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host disk read: PROBE_UPLOADS_DIR is unset)
+M6 receipt written to BUCKETS.certificates (public)        exit=0 expected=1 UNEXPECTED  | PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host disk read: PROBE_UPLOADS_DIR is unset)
+M7 disk: receipts under other PUBLIC folders               exit=1 expected=1 as-expected | FAIL: 0 file(s) still under <uploads>/gacp-pdfs · 2 finance paper(s) in public folders (lab-results: 1, gacp-uploads: 1): find their writer
+M8 disk: PROBE_UPLOADS_DIR does not exist (typo)           exit=2 expected=2 as-expected | BLOCKED: PROBE_UPLOADS_DIR is not a directory this user can read (mistyped, not mounted, or root-only like a docker volume): run the disk check as roo
+M9 disk: <uploads>/gacp-pdfs is a symlink to a dir of papers exit=1 expected=1 as-expected | FAIL: 1 file(s) still under <uploads>/gacp-pdfs (move them: apps/backend/scripts/ops/move-generated-pdfs-out-of-public.js --apply) · 0 finance paper(
+M10 object ACL grants generated papers to any session      exit=0 expected=1 UNEXPECTED  | PASS: no writer into the gacp-pdfs bucket, and gacp-pdfs/ is classified sensitive (no host disk read: PROBE_UPLOADS_DIR is unset)
+
+== notes (round 2) ==
+T1 is BLOCKED on purpose: an empty directory holds none of an uploads root's folders, so it cannot be
+told from a mistyped or wrong path (brief item M1: "does not look like an uploads root (no known
+sibling folder)" answers BLOCKED). The round-1 expectation of 0 predates that rule.
+M5, M6 and M10 change code the probe's disk mode does not read (a writer into another bucket, the
+object ACL). The unit test __tests__/unit/generated-finance-pdfs-are-never-public.test.js catches each,
+run in the worktree on the same sed mutants, files restored after each run:
+  M5 receipt written to BUCKETS.uploads       -> Tests: 1 failed, 15 passed, 16 total
+  M6 receipt written to BUCKETS.certificates  -> Tests: 1 failed, 15 passed, 16 total
+  M10 object ACL grants generated papers      -> Tests: 4 failed, 12 passed, 16 total
+
+== 2. the disk check on staging's real uploads volume (counts only) ==
+as ubuntu (the reviewer's run, PASS before this round):
+  PROBE_UPLOADS_DIR=/var/lib/docker/volumes/gacp-platform_gacp_staging_uploads/_data bash scripts/probes/no-public-financial-pdfs.sh
+  BLOCKED: PROBE_UPLOADS_DIR is not a directory this user can read (mistyped, not mounted, or root-only like a docker volume): run the disk check as root, see the header   (exit 2)
+as root, the command the probe header documents:
+  sudo env "PATH=$PATH" PROBE_UPLOADS_DIR=/var/lib/docker/volumes/gacp-platform_gacp_staging_uploads/_data bash scripts/probes/no-public-financial-pdfs.sh
+  FAIL: 1 file(s) still under <uploads>/gacp-pdfs (move them: apps/backend/scripts/ops/move-generated-pdfs-out-of-public.js --apply) · 0 finance paper(s) in public folders   (exit 1)
+
+== 3. move-script-probe.sh on the round-2 script at 5ec04432a (case 8 = the reviewer's L1) ==
+(copies-anywhere counts the one file twice: find -L also walks the symlink back into the folder)
+--- 0 no flags
+exit=1 names=0 public=2
+--- 1 --dry-run
+exit=0 names=0 public=2
+    public folder: <uploads>/gacp-pdfs
+      receipts: 2
+      total: 2
+    dry run: would move 2 file(s); nothing changed
+--- 2 --apply without --to
+exit=1 public=2 :: --apply needs --to <dir>, a directory outside the public uploads folder
+--- 3 --apply --to inside uploads
+exit=1 public=2 :: public folder: <uploads>/gacp-pdfs
+  receipts: 2
+  total: 2
+refused: --to resolves inside the public uploads folder
+--- 3b --apply --to = uploads itself
+exit=1 public=2 :: public folder: <uploads>/gacp-pdfs
+  receipts: 2
+  total: 2
+refused: --to resolves inside the public uploads folder
+--- 4 --apply --to outside, cross-device (/dev/shm)
+exit=0 names=0 public=0 vault=2
+    public folder: <uploads>/gacp-pdfs
+      receipts: 2
+      total: 2
+    applied: moved: 2 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+    left in the public folder: 0
+--- 5 rerun (idempotent)
+exit=0 public=0 vault=2 :: applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0 left in the public folder: 0 
+--- 6 same bytes reappear in public
+exit=0 public=0 vault=2 :: applied: moved: 0 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0 left in the public folder: 0 
+--- 7 different bytes at the destination (conflict)
+exit=1 public=1 vault=2 :: applied: moved: 0 · already in place: 0 · conflicts: 1 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0 left in the public folder: 1 
+--- 8 --to is a SYMLINK into the uploads folder (lexical check only)
+exit=1 public-left=1 copies-anywhere=2 ::   total: 1 refused: --to resolves inside the public uploads folder 
+--- 9 --to the parent of uploads (outside, but is it served?)
+exit=0 public=0 moved-to=1
+
+== 4. alias (bind) mount of the uploads folder as --to, in a private user+mount namespace (unshare -rm), mine, at 5ec04432a ==
+script: /tmp/claude-1000/b0-round2/alias-mount-probe.sh <repo> 1b554df0c
+[round1@1b554df0c] applied: moved: 0 · already in place: 1 · conflicts: 0 · errors: 0
+[round1@1b554df0c] exit=0
+[round1@1b554df0c] copies of the paper left on disk: 0
+[round2@working-tree] applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 1 · destination inside the uploads folder: 0 · errors: 0
+[round2@working-tree] refused to unlink: a source is the same file as its destination (a symlink or an alias mount); nothing of it was removed
+[round2@working-tree] exit=1
+[round2@working-tree] copies of the paper left on disk: 1
+
+== 5. uploads-gate-http-probe.js: 31 raw-HTTP cases on the exact server.js /uploads chain (run after 6f2483d8f; uploads-access.js unchanged since) ==
+401	no-pdf	plain gacp-pdfs
+401	no-pdf	nested gacp-pdfs
+401	no-pdf	HEAD gacp-pdfs
+401	no-pdf	%2D in folder
+401	no-pdf	%67 first char
+401	no-pdf	%2F separator
+404	no-pdf	upper folder
+404	no-pdf	mixed folder
+400	no-pdf	mixed mount /Uploads
+400	no-pdf	upper mount /UPLOADS
+400	no-pdf	double slash after mount
+401	no-pdf	double slash inside
+400	no-pdf	%2F right after mount
+400	no-pdf	dot segment
+400	no-pdf	dot-dot raw
+400	no-pdf	dot-dot %2e
+400	no-pdf	dot-dot %2E upper
+404	no-pdf	dot-dot double-encoded
+400	no-pdf	slash-dotdot encoded
+400	no-pdf	backslash raw
+400	no-pdf	backslash %5c
+401	no-pdf	backslash as folder sep
+401	no-pdf	NUL byte
+404	no-pdf	semicolon
+401	no-pdf	forged signature
+400	no-pdf	malformed %
+400	no-pdf	absolute-form target
+400	no-pdf	absolute-form nested
+200	PDF-BYTES	unknown prefix: gacp-certificates
+200	PDF-BYTES	unknown prefix: gacp-uploads
+200	PDF-BYTES	lab report (public by design)
+authorizeUploadsObject gacp-pdfs/receipts-null.pdf classify={"kind":"generated","sensitive":true} staff=false/SERVED_BY_DOCUMENT_DOORS health=false/SERVED_BY_DOCUMENT_DOORS anon=false/NO_SESSION
+authorizeUploadsObject gacp-certificates/TH-GACP-1-2569.pdf classify={"kind":"public","sensitive":false} staff=true/PUBLIC health=true/PUBLIC anon=true/PUBLIC
+(gacp-certificates and gacp-uploads answering 200 is M3, the fail-open classifier, out of this round's scope)
+
+== 6. I2: role-gate mutants against finance-read-parity.test.js, mine ==
+I2 — finance-read-parity.test.js now covers the quotation, credit-note and debit-note staff PDF doors without a database.
+Mutation check (2026-10-09, worktree wt-finleaks, each route file restored with git checkout after its run; the files held no uncommitted change):
+  role gate removed from routes/api/finance/credit-notes.js      -> Tests: 7 failed, 216 passed, 223 total
+  role gate removed from routes/api/finance/debit-notes.js       -> Tests: 7 failed, 216 passed, 223 total
+  role gate removed from routes/api/applications/quotations.js   -> Tests: 6 failed, 217 passed, 223 total
+Unmutated: Tests: 223 passed, 223 total

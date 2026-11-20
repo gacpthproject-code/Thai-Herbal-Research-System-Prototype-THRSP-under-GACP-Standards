@@ -1,0 +1,94 @@
+# final-fix RED (2026-10-03) — summaries only, no raw jest logs
+Toolchain: Node 24.21.0 (NODE_OPTIONS unset) · fresh SIGNING_KEY_DIR per run · scratch postgres:17 ws-pg-55437 (127.0.0.1:55437), migrate deploy at the tree's level
+Signing key mtime (main repo apps/backend/keys/*.pem): 1788623435 before and after every run
+
+## C1 — no entity context narrows Application reads
+Tree: cee9d7c4 (R1 64a2aacf + merge of main e33666b9), test + expected only (no fix).
+Baseline: expected recorded on main e33666b9 (see green.txt for the commands). The 7 keys where 9616ccdf and
+e33666b9 differ are main's own POST /draft change (unresolved explicit id = 404 APPLICATION_NOT_FOUND):
+  M|C, M|none, S|none, V|C, V|none, W|P, W|none  POST /draft|aC : 9616ccdf '200 NEW|wP' -> e33666b9 '404 -'
+r1-application-reads-neutral-real-postgres: 2/2 FAILED (read doors, write doors)
+  1339 keys, 44 differ from e33666b9 on the pre-fix tree
+    A|transient|GET / : expected '200 aC,aCar,aN,aP,aRev' got '200 aC,aCar,aP,aRev'
+    A|transient|GET /:id/activities|aN : expected '200' got '404'
+    A|transient|GET /:id/audit-notes|aN : expected '200' got '404'
+    A|transient|GET /:id/history|aN : expected '200' got '404'
+    A|transient|GET /:id/katorlor1|aN : expected '200' got '404'
+    A|transient|GET /:id/quotations|aN : expected '200' got '404'
+    A|transient|GET /:id/requirements|aN : expected '200' got '404'
+    A|transient|GET /:id/statement|aN : expected '200' got '404'
+    A|transient|GET /:id/status|aN : expected '200' got '404'
+    A|transient|GET /:id|aN : expected '200' got '404'
+    A|transient|GET /my : expected '200 aC,aCar,aN,aP,aRev' got '200 aC,aCar,aP,aRev'
+    A|transient|GET /my/statuses : expected '200 aC,aCar,aN,aP,aRev' got '200 aC,aCar,aP,aRev'
+    A|transient|GET /preview/:id|aN : expected '200' got '404'
+    N|none|GET / : expected '200 nD,nN' got '200 '
+    N|none|GET /:id/activities|nN : expected '200' got '404'
+    N|none|GET /:id/audit-notes|nN : expected '200' got '404'
+    N|none|GET /:id/history|nN : expected '200' got '404'
+    N|none|GET /:id/katorlor1|nN : expected '200' got '404'
+    N|none|GET /:id/quotations|nN : expected '200' got '404'
+    N|none|GET /:id/requirements|nN : expected '200' got '404'
+    N|none|GET /:id/statement|nN : expected '200' got '404'
+    N|none|GET /:id/status|nN : expected '200' got '404'
+    N|none|GET /:id|nN : expected '200' got '404'
+    N|none|GET /dashboard/stats : expected '200 2' got '200 0'
+    N|none|GET /draft : expected '200 nD' got '200 -'
+    N|none|GET /my : expected '200 nD,nN' got '200 '
+    N|none|GET /my/statuses : expected '200 nD,nN' got '200 '
+    N|none|GET /preview/:id|nN : expected '200' got '404'
+    N|none|POST /draft|nD : expected '200 nD' got '404 -'
+    N|transient|GET / : expected '200 nD,nN' got '200 '
+    N|transient|GET /:id/activities|nN : expected '200' got '404'
+    N|transient|GET /:id/audit-notes|nN : expected '200' got '404'
+    N|transient|GET /:id/history|nN : expected '200' got '404'
+    N|transient|GET /:id/katorlor1|nN : expected '200' got '404'
+    N|transient|GET /:id/quotations|nN : expected '200' got '404'
+    N|transient|GET /:id/requirements|nN : expected '200' got '404'
+    N|transient|GET /:id/statement|nN : expected '200' got '404'
+    N|transient|GET /:id/status|nN : expected '200' got '404'
+    N|transient|GET /:id|nN : expected '200' got '404'
+    N|transient|GET /draft : expected '200 nD' got '200 -'
+    N|transient|GET /my : expected '200 nD,nN' got '200 '
+    N|transient|GET /my/statuses : expected '200 nD,nN' got '200 '
+    N|transient|GET /preview/:id|nN : expected '200' got '404'
+    N|transient|POST /draft|nD : expected '200 nD' got '404 -'
+  (N = user with no entity and no membership; transient = the active-entity middleware's catch path, driven for
+   real: the first read of the workspace header throws. With an entity context bound nothing differed.)
+  Note: after the main merge the N POST /draft refusal is 404 APPLICATION_NOT_FOUND (main round 5); before the
+  merge the reviewer saw 400 APPLICANT_ENTITY_MISSING at applications.js:440. Same root cause: the explicit-id
+  lookup (findApplicationByIdForHealth, fragment AND pin) found nothing.
+
+r1-cert-doc-finance-reads-neutral-real-postgres (N, aN, nN, dN added) on cee9d7c4: 1 failed / 2 passed
+  2044 keys, 3 differ from e33666b9:
+    N|none|GET /:id/quotations/PLATFORM/pdf|nN : expected '200' got '404'
+    N|none|GET /:id/quotations|nN : expected '200 row' got '404 -'
+    N|none|GET /:id/requirements|nN : expected '200 docs=1 prechecks=0' got '404 docs=0 prechecks=0'
+r1-billing-doors-neutral-real-postgres (Z, zN added) on cee9d7c4: 702/702 equal e33666b9 — PIN, not a fix
+  (the billing doors were already pin-decided).
+
+## I2 — heal rule FARM_CERTIFICATE_APPLICATION_ENTITY (tree a0afa07e^ = c07180ca + new tests)
+heal-null-holders-rules (unit) + heal-null-holders-real-postgres: 5 failed, 44 passed, 0 skipped
+  ✕ unit: the certificate's entity where the owner is NOT an active member is not chosen; the owner's single personal entity is
+  ✕ unit: the certificate's entity where the owner is not active, and no personal entity → unplaced
+  ✕ unit: ownerActiveEntityIds missing → the certificate rule never chooses (fail closed)
+  ✕ real-PG: final review I2 — leftCertFarm got chosenEntityId=<leftCompany> rule=FARM_CERTIFICATE_APPLICATION_ENTITY
+      (expected leftPersonal / FARM_OWNER_SINGLE_PERSONAL_ENTITY)
+  ✕ real-PG: --apply fills only NULL columns … — 2 extra rows written (leftCertFarm, leftAloneCertFarm placed on the
+      companies their owners had left)
+
+## I1 — positional call guard (tree 8f86a51f^ + new test)
+applicant-draft-lookups-refuse-positional-args.test.js: 9 failed, 2 passed
+  ✕ findApplicationByIdForHealth(id, <string|undefined|null|array|number>) throws a TypeError (5 cases: resolved null instead)
+  ✕ findLatestOpenDraftForHealth(<string|undefined|null>) throws a TypeError (3 cases)
+  ✕ getLatestOpenDraftForApplicant('health-1') throws a TypeError
+
+## Full-gate NEW failure on 1cc1aa0d: m1-holder-backfill (2026-10-03)
+Repro: fresh postgres:17 ws-pg-55437 + migrate deploy, one jest -i invocation (m1 ran last):
+  holder-write-doors-witness · r1-cert-doc-finance-reads-neutral · heal-null-holders · m1-holder-backfill
+  → 1 failed, 14 passed: ✕ m1-holder-backfill "leaves no certificate row with NULL holderDisplayName/…" Expected 0, Received 1
+Per-suite isolation (each run alone, then count certificates): only holder-write-doors-witness left a row (1 of 1,
+  holderDisplayName NULL). Cause: its afterAll deleted the certificate BEFORE the report_submissions row the
+  report door had written for it (FK report_submissions_certificateId_fkey); the wipe swallows the error, so the
+  certificate (and its application) stayed. Also: 3 R1 fixtures created certificates without holderDisplayName /
+  holderType / submittedByUserId (holder-scope-fixture.js already set them).

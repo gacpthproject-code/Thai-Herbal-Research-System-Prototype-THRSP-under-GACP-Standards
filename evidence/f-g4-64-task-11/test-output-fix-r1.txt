@@ -1,0 +1,75 @@
+# T11 FIX ROUND 1 — GREEN / after-state, captured 2026-08-29T01:00:03Z
+
+== 1. playwright --list — all three specs still collect ==
+$ cd apps/web-app && npx playwright test --config=playwright.g4.config.ts --list
+  [chromium] › e2e-g4\a03-pay-phase1.spec.ts:43:7 › G4 A03 — งวด 1: press, pay, settle › A03 mint the M1 checkout from the payments screen, settle via the webhook, verify the money
+  [chromium] › e2e-g4\a05-pay-phase2.spec.ts:42:7 › G4 A03 — งวด 2: press, pay, settle › A03 mint the M1 checkout from the payments screen, settle via the webhook, verify the money
+  [chromium] › e2e-g4\c07-quotation-gate.spec.ts:132:5 › C07 the pay door is shut until the quotation is accepted, then it opens
+Total: 28 tests in 16 files
+
+== 2. tsc --noEmit — 66 errors, the SAME 66; c07 contributes zero ==
+$ cd apps/web-app && npx tsc --noEmit  > tsc-fix-r1.txt ; diff evidence/f-g4-64-task-11/tsc-after.txt tsc-fix-r1.txt
+6c6
+< e2e-g4/a03-pay-phase1.spec.ts(61,43): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+---
+> e2e-g4/a03-pay-phase1.spec.ts(77,43): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+8c8
+< e2e-g4/a05-pay-phase2.spec.ts(56,43): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+---
+> e2e-g4/a05-pay-phase2.spec.ts(71,43): error TS2322: Type 'string | undefined' is not assignable to type 'string'.
+(the only two differing lines are the SAME pre-existing g4Login errors, shifted down by the
+ PRICED_ROW_ORDER doc-comment added above them: a03 61->77, a05 56->71. No new error, none removed.)
+errors before: 66   errors after: 66
+errors naming c07-quotation-gate.spec.ts: 0
+
+== 3. eslint — clean on all three ==
+$ cd apps/web-app && npx eslint e2e-g4/a03-pay-phase1.spec.ts e2e-g4/a05-pay-phase2.spec.ts e2e-g4/c07-quotation-gate.spec.ts
+exit=0
+
+== 4. m5 — the version assertion now REJECTS the superseded document (executed with node) ==
+docs/legal on disk: payment-terms-th-v1.1.md, payment-terms-th-v1.md
+newestPublishedPaymentTerms() -> payment-terms-th-v1.1
+  stamped=payment-terms-th-v1    toBe(newest) -> FAIL (walk goes red, as intended)
+  stamped=payment-terms-th-v1.1  toBe(newest) -> PASS
+
+== 5. the four fixed sites, after ==
+$ grep -n "acceptBtn.first(), .the card still offers" apps/web-app/e2e-g4/c07-quotation-gate.spec.ts
+270:  await expect(acceptBtn.first(), 'the card still offers the acceptance').toBeVisible({ timeout: 60_000 });
+$ grep -n "aria-busy" apps/web-app/e2e-g4/a03-pay-phase1.spec.ts apps/web-app/e2e-g4/c07-quotation-gate.spec.ts
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:102:    // (QuotationReviewSection renders the skeleton with aria-busy="true"), and
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:113:    const quotationCard = page.locator('[data-testid="quotation-review-section"]:not([aria-busy="true"])');
+apps/web-app/e2e-g4/c07-quotation-gate.spec.ts:265:  // (QuotationReviewSection renders the skeleton with aria-busy="true"), and
+$ grep -n "setTimeout" apps/web-app/e2e-g4/c07-quotation-gate.spec.ts  (expect: none)
+126:// No test.setTimeout here on purpose. playwright.g4.config.ts budgets 30 minutes
+$ grep -n "FROM quotations" -A1 on the three specs (expect: PRICED_ROW_ORDER everywhere)
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:139:        `SELECT status, "acceptedAt", "acceptedBy" AS accepted_by FROM quotations
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts-140-          WHERE "applicationId"='${APP}' AND "isDeleted"=false ${PRICED_ROW_ORDER};`));
+--
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:233:        `SELECT status, "phase1InvoicedAt" AS p1, "phase2InvoicedAt" AS p2 FROM quotations
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts-234-          WHERE "applicationId"='${APP}' AND "isDeleted"=false ${PRICED_ROW_ORDER};`));
+--
+apps/web-app/e2e-g4/a05-pay-phase2.spec.ts:160:           FROM quotations WHERE "applicationId"='${APP}' AND "isDeleted"=false ${PRICED_ROW_ORDER};`));
+apps/web-app/e2e-g4/a05-pay-phase2.spec.ts-161-      closed = rows[0] ?? null;
+--
+apps/web-app/e2e-g4/c07-quotation-gate.spec.ts:282:      `SELECT status, "acceptedAt", "acceptedSnapshotHash" AS hash, "quotationNumber" AS qno FROM quotations
+apps/web-app/e2e-g4/c07-quotation-gate.spec.ts-283-        WHERE "applicationId"='${APP}' AND "isDeleted"=false ${PRICED_ROW_ORDER};`));
+$ grep -n "ORDER BY .createdAt. DESC" on the three specs (expect: only the checkout_orders / applications reads)
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:34: * recordPhaseInvoiced stamps. A plain `ORDER BY "createdAt" DESC LIMIT 1` reads
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:194:         FROM checkout_orders WHERE "applicationId"='${APP}' AND milestone='M1' ORDER BY "createdAt" DESC LIMIT 1;`,
+apps/web-app/e2e-g4/a03-pay-phase1.spec.ts:259:       ORDER BY "createdAt" DESC LIMIT 1;`,
+apps/web-app/e2e-g4/a05-pay-phase2.spec.ts:34: * `ORDER BY "createdAt" DESC LIMIT 1` reads a different row as soon as an
+apps/web-app/e2e-g4/a05-pay-phase2.spec.ts:125:         FROM checkout_orders WHERE "applicationId"='${APP}' AND milestone='M2' ORDER BY "createdAt" DESC LIMIT 1;`,
+apps/web-app/e2e-g4/a05-pay-phase2.spec.ts:185:       ORDER BY "createdAt" DESC LIMIT 1;`,
+apps/web-app/e2e-g4/c07-quotation-gate.spec.ts:100: * stamps. A plain `ORDER BY "createdAt" DESC LIMIT 1` reads a different row the
+apps/web-app/e2e-g4/c07-quotation-gate.spec.ts:310:       FROM checkout_orders WHERE "applicationId"='${APP}' ORDER BY "createdAt" DESC LIMIT 1;`))[0];
+$ grep -c "e2e-phase0/s04-pay-phase2" BACKLOG-FOUND.md
+1
+
+== 6. ratchet probe — no counter above baseline ==
+$ bash scripts/probes/ratchet.sh
+hardcode: 33
+todo: 56
+env-direct: 122
+dup-source: 2
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=33 todo=56 env-direct=122 dup-source=2 (/c/Users/charo/Documents/GitHub/GACP-Certification-Application/evidence/ratchet-current.txt)

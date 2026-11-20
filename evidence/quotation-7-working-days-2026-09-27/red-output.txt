@@ -1,0 +1,87 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-09-18T02:00:00.000Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-07-27T02:00:00.000Z"}
+[33mwarn[39m: [quotation-service] prisma.receiptSequence unavailable - falling back to in-memory counter (NOT for production). {"service":"quotation-service","timestamp":"2026-09-17T19:00:00.000Z"}
+FAIL __tests__/unit/quotation-validity-seven-working-days.test.js
+  [quotation-service] validUntil = issueDate + 7 working days (Bangkok)
+    ✕ Friday issue date lands on the 7th working day, skipping the weekend (529 ms)
+    ✕ issue date just before a run of Thai public holidays skips all of them (4 ms)
+    ✕ Bangkok 00:00-07:00 window (previous UTC day) still reads as the Bangkok day (3 ms)
+
+  ● [quotation-service] validUntil = issueDate + 7 working days (Bangkok) › Friday issue date lands on the 7th working day, skipping the weekend
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-09-29T16:59:59.999Z"
+    Received: "2026-10-18T02:00:00.000Z"
+
+      140 |         const { company } = await svc.issueQuotationsForApplication(APP_ID, {});
+      141 |
+    > 142 |         expect(new Date(company.validUntil).toISOString()).toBe('2026-09-29T16:59:59.999Z');
+          |                                                            ^
+      143 |     });
+      144 |
+      145 |     // Case 2 — issued the day before a run of Thai public holidays.
+
+      at Object.toBe (__tests__/unit/quotation-validity-seven-working-days.test.js:142:60)
+
+  ● [quotation-service] validUntil = issueDate + 7 working days (Bangkok) › issue date just before a run of Thai public holidays skips all of them
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-08-10T16:59:59.999Z"
+    Received: "2026-08-26T02:00:00.000Z"
+
+      159 |         const { company } = await svc.issueQuotationsForApplication(APP_ID, {});
+      160 |
+    > 161 |         expect(new Date(company.validUntil).toISOString()).toBe('2026-08-10T16:59:59.999Z');
+          |                                                            ^
+      162 |     });
+      163 |
+      164 |     // Case 3 — issued inside the Bangkok 00:00-07:00 window, which is still the
+
+      at Object.toBe (__tests__/unit/quotation-validity-seven-working-days.test.js:161:60)
+
+  ● [quotation-service] validUntil = issueDate + 7 working days (Bangkok) › Bangkok 00:00-07:00 window (previous UTC day) still reads as the Bangkok day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-09-29T16:59:59.999Z"
+    Received: "2026-10-17T19:00:00.000Z"
+
+      174 |         const { company } = await svc.issueQuotationsForApplication(APP_ID, {});
+      175 |
+    > 176 |         expect(new Date(company.validUntil).toISOString()).toBe('2026-09-29T16:59:59.999Z');
+          |                                                            ^
+      177 |     });
+      178 | });
+      179 |
+
+      at Object.toBe (__tests__/unit/quotation-validity-seven-working-days.test.js:176:60)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 total
+Snapshots:   0 total
+Time:        1.185 s
+Ran all test suites matching __tests__/unit/quotation-validity-seven-working-days.test.js.

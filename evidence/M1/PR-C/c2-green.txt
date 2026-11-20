@@ -1,0 +1,103 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER is blocked with 403 CAPABILITY_DENIED (74 ms)
+    √ MANAGER is blocked with 403 (13 ms)
+    √ ADMIN can submit (13 ms)
+    √ OWNER can submit (11 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (15 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (12 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (12 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (11 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (26 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (12 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (11 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (12 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (11 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (12 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (11 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (11 ms)
+
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+  M1 — POST /bundles/:id/submit asks the guard about EVERY linked case
+    √ a linked case with no entityId (nothing to heal) → 400 VALIDATION_ERROR, no transaction opened (45 ms)
+    √ a linked case the caller may not act for → 403 ENTITY_PERMISSION_DENIED + audit FAILURE, nothing written (23 ms)
+    √ every allowed case is asked about by its OWN entityId, then submitted (11 ms)
+    √ heals a pre-Phase-66 linked case from the personal entity instead of refusing it (12 ms)
+  M1 — PUT /revision-deadline/:id/submit
+    √ health user who may not act for the application entity → 403, deadline row untouched (26 ms)
+    √ health user who may act → submits, and the row records in whose name (15 ms)
+    √ provider bypass survives, but ALWAYS writes an actorType PROVIDER row naming the entity (10 ms)
+  M1 — POST /applications/:id/car
+    √ refuses with 403 when the caller may not act for the application entity — nothing written (27 ms)
+    √ refuses with 400 when the row names no entity and nothing can be healed (24 ms)
+    √ allows the owner through, asking about the application row entity (31 ms)
+  M1 — POST /applications/renewals seeds entityId or refuses
+    √ carried an entityId from the source application → 201 (14 ms)
+    √ source had none → heals from the personal entity → 201 (10 ms)
+    √ nothing to seed and nothing to heal → 400 VALIDATION_ERROR (never a draft that can never be submitted) (11 ms)
+
+[33mwarn[39m: [EmailService] Email service is disabled or not configured. Emails will be logged only. {"service":"gacp-backend","timestamp":"2026-08-15T07:00:49.131Z"}
+PASS __tests__/integration/bundle-terminal-integrity.test.js
+  R1a — application-bundles terminal-integrity (no resurrection)
+    POST /:id/submit — must not resurrect a linked terminal case
+      √ linked REJECTED case is rejected, not pushed to SUBMITTED (415 ms)
+      √ linked EXPIRED case is rejected, not pushed to SUBMITTED (11 ms)
+      √ linked CANCEL_EXPIRED case is rejected, not pushed to SUBMITTED (10 ms)
+      √ linked CERTIFIED case is rejected, not pushed to SUBMITTED (10 ms)
+      √ non-terminal (DRAFT) linked case still submits (regression pin) (10 ms)
+    POST / — must not link a terminal case into a new bundle
+      √ creating a bundle around a REJECTED case is rejected, no DB write (19 ms)
+      √ creating a bundle around a EXPIRED case is rejected, no DB write (9 ms)
+      √ creating a bundle around a CANCEL_EXPIRED case is rejected, no DB write (10 ms)
+      √ creating a bundle around a CERTIFIED case is rejected, no DB write (11 ms)
+    POST /:id/applications — must not add a terminal case
+      √ adding a REJECTED case to a bundle is rejected, no link write (10 ms)
+      √ adding a EXPIRED case to a bundle is rejected, no link write (10 ms)
+      √ adding a CANCEL_EXPIRED case to a bundle is rejected, no link write (10 ms)
+      √ adding a CERTIFIED case to a bundle is rejected, no link write (9 ms)
+
+PASS __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js
+  PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction
+    √ hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission (26 ms)
+    √ hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission (10 ms)
+    √ exactly ONE transaction is opened for the pair (not one per hop) (10 ms)
+    √ WF-F5 regression pin: the illegal DRAFT→PENDING_DOC_FEE edge is still never written (10 ms)
+    √ hop 2 rejecting aborts the whole request — no success response (11 ms)
+    √ hop 2 rejecting propagates OUT of the caller transaction (so Prisma rolls it back) (10 ms)
+    √ hop 1 rejecting never attempts hop 2 (16 ms)
+  PR-A0-2 #10 — correction resubmit already ran in a tx (PIN, not a fix)
+    √ the resubmit hop and its append-only snapshot share one tx, default emission (11 ms)
+  PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction
+    √ every linked case is written through the caller tx with default emission (10 ms)
+    √ the bundle status flip is in the SAME transaction as the case writes (10 ms)
+    √ a rejected case aborts the whole bundle submit — no success response (F5) (11 ms)
+    √ R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened (10 ms)
+
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (35 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (10 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (10 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (16 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (9 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (12 ms)
+
+PASS __tests__/unit/car-late-submission-expiry-attribution.test.js
+  AUDIT-TRAIL — late CAR submission expires as the SYSTEM, not the applicant
+    √ the expiry is still enforced and the late evidence is rejected (27 ms)
+    √ does NOT record the applicant as the actor who cancelled (13 ms)
+    √ attributes the expiry to the system, matching the cron (10 ms)
+    √ the workflow event carries the same system attribution (10 ms)
+    √ also fails the open RevisionDeadline row, as the cron does (18 ms)
+    √ performs both writes in one transaction (9 ms)
+    √ a submission INSIDE the deadline is unaffected (10 ms)
+
+Test Suites: 1 skipped, 6 passed, 6 of 7 total
+Tests:       4 skipped, 67 passed, 71 total
+Snapshots:   0 total
+Time:        7.31 s
+Ran all test suites matching /(applications-submit|a0-pr2-submit|bundle-terminal|car-late|m1-submit)/i.

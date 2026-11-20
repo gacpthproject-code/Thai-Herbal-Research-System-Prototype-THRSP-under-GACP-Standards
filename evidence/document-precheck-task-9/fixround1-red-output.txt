@@ -1,0 +1,72 @@
+# fix round 1 RED — node v24.21.0 · HEAD 7991228f
+$ npx jest --config jest.config.cjs __tests__/unit/document-precheck/accuracy-metrics.test.js
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/document-precheck/accuracy-metrics.test.js
+  computeMetrics — dependent checks exclude truth-UNREADABLE files
+    ✓ READABILITY is scored on every file (4 ms)
+    ✕ DOC_TYPE / CROSS_MATCH / VALIDITY are scored only on the 2 truth-readable files (2 ms)
+    ✕ the overall pool holds READABILITY x3 + the dependent checks on readable files only (1 ms)
+    ✓ a false UNREADABLE on a truth-readable file still counts against the dependent checks (1 ms)
+    ✓ a missing cascade flag on a truth-UNREADABLE file is still a presence error (1 ms)
+
+  ● computeMetrics — dependent checks exclude truth-UNREADABLE files › DOC_TYPE / CROSS_MATCH / VALIDITY are scored only on the 2 truth-readable files
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 2
+    Received: 3
+
+      37 |     test('DOC_TYPE / CROSS_MATCH / VALIDITY are scored only on the 2 truth-readable files', () => {
+      38 |         for (const check of ['DOC_TYPE', 'CROSS_MATCH', 'VALIDITY']) {
+    > 39 |             expect(m.checks[check].n).toBe(2);
+         |                                       ^
+      40 |         }
+      41 |         expect(m.checks.DOC_TYPE.problems).toBe(0);
+      42 |         expect(m.checks.CROSS_MATCH.tp).toBe(1);
+
+      at Object.toBe (__tests__/unit/document-precheck/accuracy-metrics.test.js:39:39)
+
+  ● computeMetrics — dependent checks exclude truth-UNREADABLE files › the overall pool holds READABILITY x3 + the dependent checks on readable files only
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 9
+    Received: 12
+
+      44 |
+      45 |     test('the overall pool holds READABILITY x3 + the dependent checks on readable files only', () => {
+    > 46 |         expect(m.overall.n).toBe(3 + 3 * 2);
+         |                             ^
+      47 |         expect(m.overall.tp).toBe(2);
+      48 |     });
+      49 |
+
+      at Object.toBe (__tests__/unit/document-precheck/accuracy-metrics.test.js:46:29)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 3 passed, 5 total
+Snapshots:   0 total
+Time:        0.776 s
+Ran all test suites matching __tests__/unit/document-precheck/accuracy-metrics.test.js.
+exit=1

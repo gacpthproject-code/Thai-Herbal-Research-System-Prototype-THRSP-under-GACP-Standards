@@ -1,0 +1,80 @@
+Round 2 of fix/uploads-fail-closed (review of ff0caf457). Each test committed on its own before
+its fix; output trimmed to the result and the decisive assertion. Runs on the work host with the
+round-2 scratch Postgres (127.0.0.1:55461/gacp_ur2, env guard refuses any other URL).
+
+=== M1 · RED 49f54e64f · GREEN c14310a57 (carDocuments server-owned)
+RED  __tests__/unit/applications-prepare-server-owned-fields.test.js            1 failed, 11 passed, 12 total
+    ✓ the ACL reads both document arrays out of formData
+    ✓ a body draftDocuments leaves the stored array untouched
+    ✕ a body carDocuments leaves the stored array untouched
+    -     "fileUrl": "/uploads/car/own.jpg",
+    -     "path": "/uploads/car/own.jpg",
+    +     "fileUrl": "/uploads/car/another-holders.jpg",
+    +     "path": "/uploads/car/another-holders.jpg",
+RED  __tests__/integration/uploads-acl-follows-read-model-real-postgres.test.js 1 failed, 8 passed, 9 total
+    ✕ the owner of another company cannot claim this application's CAR file through /prepare
+    -   "mint": "refused",          +   "mint": "read",
+    -   "static": "refused",        +   "static": "read",
+    -   "stored": null,             +   "stored": Array [ Object { "path": "/uploads/car/<13-digit>-<uuid>.jpg" } ]
+    (prepare answered 200 in both runs: equal, so not in the diff)
+GREEN unit 12/12 · 18 unit suites that touch the ownership list or the CAR door 251/251
+GREEN real-PG ACL 9/9 · 5 more real-PG suites touching carDocuments pass; a0-pr2-per-hop-invariant
+      fails 4 names, each one of the 23 baseline names (#7, #8/#9, #13, #14)
+
+=== M1 sweep · RED 565bf9940 · GREEN a34199d71 (updateProfile drops privacySettings)
+RED  __tests__/unit/auth-service-audit-fixes.test.js                            1 failed, 11 passed, 12 total
+    ✕ does not write privacySettings: the avatar upload and the erasure service are its writers
+    +   "privacySettings": Object { "avatar": "/uploads/another-users-id-card.jpg" },
+GREEN 12/12 · 28 unit suites that load prisma-auth-service or updateProfile 393/393 · identity-links (real PG) 6/6
+
+=== L1 · RED 30cba4b1d · GREEN 3ff6e576f (resume after a kill between link and unlink)
+RED  __tests__/unit/move-generated-pdfs-out-of-public.test.js                   1 failed, 26 passed, 27 total
+    ✕ a rerun after a kill between link and unlink finishes the move
+    -   0,
+    -   "applied: moved: 6 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0",
+    +   1,
+    +   "applied: moved: 6 · already in place: 0 · conflicts: 0 · same file as the destination: 1 · destination inside the uploads folder: 0 · errors: 0",
+    ✓ a destination file that is a bind mount of the source is never unlinked   (guard, green before and after)
+GREEN 27/27
+
+=== L2 · RED 8c7e6e82d · GREEN c7fb6160d (public folder serves regular files inside it only)
+RED  __tests__/unit/uploads-public-folder-serves-no-link.test.js                3 failed, 1 passed, 4 total
+    ✓ a lab report still opens without a session
+    ✕ a symlink to a stored certificate copy answers 404 and sends no bytes          [200, true] vs [404, false]
+    ✕ a symlink to a file outside the uploads root answers 404 and sends no bytes    [200, true] vs [404, false]
+    ✕ a file under a symlinked folder answers 404 and sends no bytes                 [200, true] vs [404, false]
+RED  real-PG: ✕ a symlink in lab-results/ to the stored certificate copy opens nothing   [200, true] vs [404, false]
+GREEN unit 5/5 (adds "a symlink is refused even when it points at another lab report") · 14 unit suites
+      that load the /uploads gate 164/164 · real-PG 10/10
+
+=== L3 · RED 6be1eebbf · GREEN 6d82d5d02 (nginx guard)
+RED  __tests__/unit/nginx-never-serves-uploads-from-disk.test.js                4 failed, 16 passed, 20 total
+    ✓ an alias · ✓ a root inside the location · ✓ a location that proxies /uploads to the backend passes
+    ✕ a bare location under a server-level root          Expected length: 1, Received length: 0
+    ✕ an alternation regex                               Expected length: 1, Received length: 0
+    ✕ a static-file regex that captures /uploads/*.pdf   Expected length: 1, Received length: 0
+    ✕ a config in a subfolder is scanned                 Expected ["nginx/conf.d/uploads.conf"], Received []
+    (all 12 real config files pass under both rule sets)
+GREEN 20/20; live mutants N1-N6 in mutants-r2.txt
+
+=== I5 · fbc61148f (test gaps; green on the code, red under mutants)
+    real-PG matrix: a soft-deleted application of the same holder and officers (document, CAR file, photo)
+    unit mint suite: a member of another holder asks for a document that has an owner
+    unit 10/10 · real-PG 10/10 · mutants in mutants-r2.txt
+
+=== Jev HIGH (registration) · RED d360fff16 · GREEN c3f10aaa3
+RED  __tests__/unit/register-mass-assignment.test.js                            2 failed, 3 passed, 5 total
+    ✕ ignores a smuggled privacySettings: only its own writers set it
+    -   undefined,     +   Object { "avatar": "/uploads/another-users-id-card.jpg" },
+    ✕ ignores a smuggled notificationSettings: only its own writers set it
+    -   undefined,     +   Object { "channels": Object { "DEADLINE_REMINDER": Object { "inApp": false } } },
+GREEN 5/5 · 28 unit suites that load prisma-auth-service or updateProfile 395/395
+
+=== Jev MEDIUM (move script, nlink rule) · RED c365b8cba · GREEN 48b606d47
+RED  __tests__/unit/move-generated-pdfs-out-of-public.test.js                   1 failed, 27 passed, 28 total
+    ✕ a public gacp-pdfs linked into the vault is not emptied, even when its papers have a backup hard link
+    -   1,
+    -   "applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 7 · ...",
+    +   0,
+    +   "applied: moved: 0 · already in place: 7 · conflicts: 0 · same file as the destination: 0 · ...",
+GREEN 28/28 (crash resume, linked folder with and without backup links, file bind mount)

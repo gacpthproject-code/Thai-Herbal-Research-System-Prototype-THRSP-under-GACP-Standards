@@ -1,0 +1,93 @@
+# Task 1 Step 2 RED — requirement-rules-case-dims suite against the PRE-CHANGE service
+#
+# PROVENANCE (fix round 1, 2026-09-04): review r0 finding F1 — the round-0 report
+# cited this path but the file was never written. This capture is a RECONSTRUCTION,
+# not the original round-0 terminal buffer: the round-0 service was moved aside,
+# `git show HEAD:apps/backend/services/requirement-rule-service.js` (HEAD = d7186ba8,
+# the plan commit, i.e. the tree before Task 1 touched it) was put in its place, the
+# suite was run, and the round-0 file was restored byte-identical (diff -q clean).
+#
+# Command: cd apps/backend && npx jest __tests__/unit/requirement-rules-case-dims.test.js --runInBand
+# Service under test: HEAD:apps/backend/services/requirement-rule-service.js (280 lines,
+#   no RULE_DIMENSIONS, no createRule, rulesAt where.AND = 4 clauses)
+# Exit code: 1
+# ---------------------------------------------------------------------------
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/requirement-rules-case-dims.test.js (18.226 s)
+  requirement rules — กทล.1 case dimensions
+    × rulesAt filters landTenure/areaType/certScope with NULL-as-wildcard (16 ms)
+    × an unknown dimension value is refused, not silently widened (111 ms)
+    × vocabulary is the closed set the spec names (49 ms)
+
+  ● requirement rules — กทล.1 case dimensions › rulesAt filters landTenure/areaType/certScope with NULL-as-wildcard
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: ArrayContaining [{"OR": [{"landTenure": null}, {"landTenure": "RENTED"}]}, {"OR": [{"areaType": null}, {"areaType": "INDOOR"}]}, {"OR": [{"certScope": null}, {"certScope": "PLANTING"}]}]
+    Received: [{"OR": [{"effectiveTo": null}, {"effectiveTo": {"gt": 2026-09-02T00:00:00.000Z}}]}, {"holderType": null}, {"requestType": null}, {"plantCode": null}]
+
+      11 |     await rulesAt({ at: new Date('2026-09-02'), landTenure: 'RENTED', areaType: 'INDOOR', certScope: 'PLANTING' });
+      12 |     const where = prisma.requirementRule.findMany.mock.calls[0][0].where;
+    > 13 |     expect(where.AND).toEqual(expect.arrayContaining([
+         |                       ^
+      14 |       { OR: [{ landTenure: null }, { landTenure: 'RENTED' }] },
+      15 |       { OR: [{ areaType: null }, { areaType: 'INDOOR' }] },
+      16 |       { OR: [{ certScope: null }, { certScope: 'PLANTING' }] },
+
+      at Object.toEqual (__tests__/unit/requirement-rules-case-dims.test.js:13:23)
+
+  ● requirement rules — กทล.1 case dimensions › an unknown dimension value is refused, not silently widened
+
+    TypeError: createRule is not a function
+
+      19 |
+      20 |   it('an unknown dimension value is refused, not silently widened', async () => {
+    > 21 |     await expect(createRule({ slotId: 'landlord_consent', effectiveFrom: '2026-09-02', createdBy: 'op', landTenure: 'LEASED' }))
+         |                  ^
+      22 |       .rejects.toMatchObject({ code: 'INVALID_RULE_DIMENSION' });
+      23 |   });
+      24 |
+
+      at Object.createRule (__tests__/unit/requirement-rules-case-dims.test.js:21:18)
+
+  ● requirement rules — กทล.1 case dimensions › vocabulary is the closed set the spec names
+
+    TypeError: Cannot read properties of undefined (reading 'landTenure')
+
+      24 |
+      25 |   it('vocabulary is the closed set the spec names', () => {
+    > 26 |     expect(RULE_DIMENSIONS.landTenure).toEqual(['OWNED', 'STATE_PERMITTED', 'RENTED']);
+         |                            ^
+      27 |     expect(RULE_DIMENSIONS.areaType).toEqual(['OUTDOOR', 'INDOOR', 'GREENHOUSE', 'OTHER']);
+      28 |     expect(RULE_DIMENSIONS.certScope).toEqual(['PLANTING', 'PROCESSING']);
+      29 |   });
+
+      at Object.landTenure (__tests__/unit/requirement-rules-case-dims.test.js:26:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 total
+Snapshots:   0 total
+Time:        20.839 s
+Ran all test suites matching /__tests__\\unit\\requirement-rules-case-dims.test.js/i.

@@ -1,0 +1,99 @@
+FAIL __tests__/unit/payment-reminder-job.test.js
+  sweep scope — every unpaid milestone, none without a clock start
+    ✓ a milestone whose clock start is not on record is skipped and logged, never guessed (31 ms)
+  three reminder types — send day is the SHIFTED day, ICT date-equality
+    ✓ run on 2026-08-06 dispatches PRE_DUE for the milestone due Tue 2026-08-11 (17 ms)
+    ✓ run on 2026-08-11 dispatches DUE_DATE for the milestone due Tue 2026-08-11 (28 ms)
+    ✓ run on 2026-08-13 dispatches OVERDUE_NOTICE for the milestone due Tue 2026-08-11 (9 ms)
+    ✓ a day that is no reminder day sends nothing (Fri 2026-08-07) (6 ms)
+    ✓ catch-up: no sweep ran on any reminder day → the earliest goes out now, worded as overdue (6 ms)
+    ✓ a type already on the ledger under another intended day is not sent again (6 ms)
+  durable dedup — insert-first, unique constraint is the last line
+    ✓ same-day re-run: P2002 on the insert → skip silently, no second send (12 ms)
+  a reminder that reached nobody is resent on its own row
+    ✓ an unsent PRE_DUE row exists → no insert, the locked row is dispatched and stamped (9 ms)
+    ✓ another sweep holds the unsent row (SKIP LOCKED returns nothing) → deduped, no send (10 ms)
+  collision — DUE_DATE and OVERDUE_NOTICE on the same working day
+    ✓ due Sat 2026-08-08: both fall on Mon 08-10 → one per sweep, DUE_DATE first, both worded as overdue (27 ms)
+  working-day shift — real calendar, no send on the holiday
+    ✓ intended OVERDUE_NOTICE lands on วันแม่ (Wed 2026-08-12): holiday run sends nothing, next working day does (7 ms)
+  fault isolation — one broken milestone never sinks the sweep
+    ✓ non-P2002 insert failure on application 1 is logged; application 2 still gets its reminder (8 ms)
+    ✓ a reminder that reached nobody leaves sentAt unstamped and is not counted as sent (6 ms)
+  source pins — derived-only stays derived-only
+    ✓ no stored-overdue literal, no invoice mutation call in the job source (2 ms)
+    ✓ no calendar or reminder-window data of its own — schedule service + config own those (1 ms)
+    ✓ real notification-service defines PAYMENT_REMINDER + template (static) (2 ms)
+  scheduler registration — daily 09:00 Asia/Bangkok, additive block
+    ✕ registers the payment-reminder block: 12 blocks total, last 0 9 * * * Asia/Bangkok drives the sweep (10 ms)
+    ✓ sweep failure is swallowed and logged — the cron never throws (3 ms)
+
+  ● scheduler registration — daily 09:00 Asia/Bangkok, additive block › registers the payment-reminder block: 12 blocks total, last 0 9 * * * Asia/Bangkok drives the sweep
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 12
+    Received number of calls: 13
+
+      417 |         // 13 since 2026-10-09: + the hourly ask for the person on site (order 65(2)).
+      418 |         // 12 since 2026-10-13: − the field-visit reminder until the reschedule request of order 65(3) lands with it.
+    > 419 |         expect(mockCronSchedule).toHaveBeenCalledTimes(12);
+          |                                  ^
+      420 |
+      421 |         const morningCalls = mockCronSchedule.mock.calls.filter((call) => {
+      422 |             const opts = call[2];
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/payment-reminder-job.test.js:419:34)
+
+FAIL __tests__/unit/visit-reminder-scheduled.test.js
+  ✕ no block runs the visit reminder while the applicant cannot ask for another date (order 65(3)) (5 ms)
+  ✓ nobody can mute it (74 ms)
+
+  ● no block runs the visit reminder while the applicant cannot ask for another date (order 65(3))
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: called with 0 arguments
+
+      46 |     for (const [, runBlock] of mockCronSchedule.mock.calls) { await runBlock(); }
+      47 |     expect(mockLogger.error).not.toHaveBeenCalled();
+    > 48 |     expect(mockVisitReminders).not.toHaveBeenCalled();
+         |                                    ^
+      49 |     scheduler.stop();
+      50 | });
+      51 |
+
+      at Object.toHaveBeenCalled (__tests__/unit/visit-reminder-scheduled.test.js:48:36)
+
+FAIL __tests__/unit/scheduler-renewal-job.test.js
+  scheduler — renewal-reminder cron registration (R2-C)
+    ✕ registers exactly one renewal-reminder block with 0 9 * * * Asia/Bangkok (3 ms)
+    ✓ callback awaits renewalReminderCron.run() and logs the summary (2 ms)
+    ✓ failure path is swallowed and routed through logger.error (2 ms)
+
+  ● scheduler — renewal-reminder cron registration (R2-C) › registers exactly one renewal-reminder block with 0 9 * * * Asia/Bangkok
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 12
+    Received number of calls: 13
+
+       96 |         // 13 since 2026-10-09: + the hourly ask for the person on site (order 65(2)).
+       97 |         // 12 since 2026-10-13: − the field-visit reminder until the reschedule request of order 65(3) lands with it.
+    >  98 |         expect(mockCronSchedule).toHaveBeenCalledTimes(12);
+          |                                  ^
+       99 |
+      100 |         const renewalCalls = mockCronSchedule.mock.calls.filter((call) => {
+      101 |             const opts = call[2];
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/scheduler-renewal-job.test.js:98:34)
+
+Test Suites: 3 failed, 3 total
+Tests:       3 failed, 21 passed, 24 total
+Snapshots:   0 total
+Time:        1.688 s, estimated 2 s
+Ran all test suites matching __tests__/unit/visit-reminder-scheduled.test.js|__tests__/unit/scheduler-renewal-job.test.js|__tests__/unit/payment-reminder-job.test.js.
+exit=1

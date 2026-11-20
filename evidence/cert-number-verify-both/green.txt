@@ -1,0 +1,49 @@
+GREEN backend:
+Test Suites: 9 passed, 9 total
+Tests:       130 passed, 130 total
+GREEN web (verify):
+Test Suites: 7 passed, 7 total
+Tests:       67 passed, 67 total
+ratchet: PASS hardcode=26 todo=55 env-direct=101 dup-source=0 (same as main)
+probe-gate: FAIL only main-attestation-audit + nginx-config-drift, both also FAIL on main checkout
+pin not fix: web verify-printed-number tests and the not-found/malformed backend cases were green at birth; real-Postgres run of the verify door: PENDING (no DB in session)
+
+=== round 2 — GREEN 2026-10-05 ===
+backend certificate-number-be-format.test.js: 22 passed / 22 (RED เดิม 17 failed / 5 passed)
+backend grep-set (ทุกเทสที่อ้าง certificateNumber|GACP-TH|certificate-service|certificate-verify|public-trace-url|TH-GACP|receipt-*|document-numbering): Test Suites 161 passed, 14 skipped (self-skip ไม่มี test DB) · Tests 2458 passed, 80 skipped
+ - เทสเดิม 11 ไฟล์ที่ mock client ของ issuance เติม stub receiptSequence.upsert; 2 ไฟล์ปรับ regex เลขใหม่
+ - integration/certificate-number-allocation-real-postgres.test.js: SKIPPED (ไม่มี Postgres ใน session นี้) -> concurrency บน Postgres จริง = PENDING
+ratchet: hardcode=26 todo=53 env-direct=101 dup-source=0 (เท่า main; comment XXXX ถูกเขียนใหม่)
+
+=== round 3 — GREEN 2026-10-05 ===
+certificate-lookup-doors-hardening + receipt-sequence-counter-retry + be-format: 36/36 pass
+grep-set (certificates|verify|interoperab|rate-limit|receipt-sequence|certificate-number): 204 suites passed, 6 skipped, 3380 tests passed (รันก่อนแก้ fixture 1 ข้อของเทสใหม่ -> เขียวแล้ว)
+REAL POSTGRES (postgres:17-alpine, migrate deploy, 3 รอบ): certificate-number-allocation-real-postgres 20 parallel -> 1..20 distinct, 1 passed x3
+พบจริงบน PG: Serializable ทำ 20 ขนาน abort P2034 (write conflict) -> เปลี่ยน bare path เป็น ReadCommitted (atomic upsert ล็อกแถวเอง) + retry 3 ครั้ง P2034/P2002
+ลบ door ที่ไม่มี caller: /api/certificates/verify/:n, /v1/certificates/:n/verify, /v1/verification/certificate/:n. เก็บ /v1/verification?certificateNumber= (trust-verifier-portal เรียก) + limiter + response ขั้นต่ำ
+ratchet 26/53/101/0 PASS; keys mtime unchanged
+
+## round 4 (GREEN) links.verify -> /verification?certificateNumber=slug; stale doors repointed (openapi, README, copilot, testsprite, scripts/test)
+PASS __tests__/unit/interop-envelope-links-resolve.test.js
+PASS __tests__/unit/m1-interop-holder-additive.test.js
+PASS __tests__/integration/mfa-verify-guards.test.js
+PASS __tests__/integration/public-verify-signature.test.js
+PASS __tests__/unit/public-verify-revision.test.js
+PASS __tests__/integration/interoperability-revoked-reason-mask.test.js
+PASS __tests__/integration/interoperability-track.test.js
+PASS __tests__/unit/h17-verify-adversarial.test.js
+PASS __tests__/unit/public-verify-holder-display.test.js
+PASS __tests__/unit/public-verify-certificate-fields.test.js
+PASS __tests__/unit/jti-decentralized-verify-sites.test.js
+PASS __tests__/unit/public-verify-reason-code.test.js
+PASS __tests__/unit/interop-resolve.test.js
+PASS __tests__/unit/interoperability-error-sanitization.test.js
+PASS __tests__/unit/certificate-verify-url.test.js
+PASS __tests__/unit/audit-chain-periodic-verify.test.js
+Test Suites: 16 passed, 16 total
+Tests:       179 passed, 179 total
+dup-source: 0
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/home/ubuntu/work/wt-certnum/evidence/ratchet-current.txt)
+
+## round 5 (GREEN) ฉบับแก้ (PrismaClient แยก connection_limit=5 pool_timeout=30 + $disconnect) บน Postgres เดียวกัน (max_connections=20, ถือไว้ 13): รัน 3 ครั้ง ผ่านทุกครั้ง (1 passed x3) assertion 1..20 ไม่เปลี่ยน · integration test อื่นของ branch นี้ (interoperability-revoked-reason-mask) mock prisma ไม่เปิด connection จึงไม่ต้องแก้

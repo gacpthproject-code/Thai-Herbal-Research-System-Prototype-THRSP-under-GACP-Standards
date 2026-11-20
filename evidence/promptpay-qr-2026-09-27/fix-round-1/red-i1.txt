@@ -1,0 +1,21 @@
+# RED — I-1: the new suite against the base code (HEAD 1bc7eade, service unchanged), 2026-09-27. Trimmed from the jest run.
+# The 1 pass from birth ('a first entry still mints under the plain key') is a PIN, not a fix.
+    ✕ PI_A requires_payment_method → reused, no second intent, order still names PI_A (17 ms)
+    ✕ PI_A requires_action → reused, no second intent, order still names PI_A (3 ms)
+    ✕ PI_A processing → reused, no second intent, order still names PI_A (2 ms)
+    ✕ PI_A succeeded (webhook not landed yet) → nothing new is minted, the state is handed back without a client secret (3 ms)
+    ✕ PI_A canceled → the only replacement, under its own idempotency key, and the order moves to it (4 ms)
+    ✕ an intent state this flow never produces (requires_capture) → refused, nothing minted (2 ms)
+    ✕ the gateway cannot say what PI_A is → refused (fail closed), never a blind second intent (2 ms)
+    ✓ a first entry (no intent on the order yet) still mints under the plain key (2 ms)
+Tests:       7 failed, 1 passed, 8 total
+
+## decisive: PI_A had SUCCEEDED and the base code minted a second intent
+    Received number of calls: 1
+
+    1: {"amountSatang": 588500, "currency": "thb", "description": "GACP M1 — APP-2026-000001", "idempotencyKey": "checkout:co-1", "metadata": {"applicationId": "app-1", "checkoutOrderId": "co-1", "milestone": "M1", "organizationId": "org-1"}, "paymentMethodTypes": ["promptpay"], "statementDescriptor": "PREDICTIVE AI - GACP"}
+
+
+## canceled case: base code reused the plain key
+    Expected: "checkout:co-1:after:pi_A"
+    Received: "checkout:co-1"

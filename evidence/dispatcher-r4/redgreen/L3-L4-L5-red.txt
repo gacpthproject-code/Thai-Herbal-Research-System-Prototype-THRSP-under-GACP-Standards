@@ -1,0 +1,160 @@
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T06:47:20.068Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T06:47:20.073Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T06:47:20.075Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:46:47)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:46:47)
+
+warn: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-10-09T06:47:21.044Z"}
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+info: Loaded existing signing keys {"service":"signature-service","timestamp":"2026-10-09T06:47:21.062Z"}
+info: Signature service initialized {"service":"signature-service","timestamp":"2026-10-09T06:47:21.063Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"AuditChecklist","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T06:47:21.432Z"}
+warn: [onsite] decision failed: 
+Invalid `prisma.$queryRaw()` invocation:
+
+
+Raw query failed. Code: `40P01`. Message: `ERROR: deadlock detected
+DETAIL: Process 235 waits for ShareLock on transaction 4869; blocked by process 233.
+Process 233 waits for ShareLock on transaction 4870; blocked by process 235.
+HINT: See server log for query details.` {"service":"gacp-backend","timestamp":"2026-10-09T06:47:23.026Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T06:47:23.148Z"}
+FAIL __tests__/integration/staff-doors-hardening-real-postgres.test.js
+  staff doors hold (real Postgres)
+    a value typed over what the screen showed masked (L1)
+      ○ skipped a partial edit of a juristic registration number the screen showed masked is refused, and nothing changes
+      ○ skipped a stored ID that itself carries an X (a passport number) is sent back unchanged and does not block the save
+    the inspector's result door answers with what it decided, not the stored row (L2)
+      ○ skipped no snapshot, no legacy creator or IP column and no filing leave with the answer
+    the field app writes only while the visit stands and is still the inspector's (L3 L4 L5)
+      ✕ a writer that leaves the visit flag out is still held to the visit: nothing is written once the application left it (L3) (417 ms)
+      ✕ a checklist answer racing a reassignment that commits first is refused, and nothing is written (L4) (289 ms)
+      ✕ a decision racing a reassignment waits for the application row first: no deadlock, a clean refusal, nothing decided (L5) (1283 ms)
+
+  ● staff doors hold (real Postgres) › the field app writes only while the visit stands and is still the inspector's (L3 L4 L5) › a writer that leaves the visit flag out is still held to the visit: nothing is written once the application left it (L3)
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"auditId": "fe23faa2-ea2d-4842-93b4-0a03fac1c63c", "createdAt": 2026-10-09T06:47:21.439Z, "disclosureWithheld": false, "id": "99786eff-02a5-4782-acb1-d6f43d1891e8", "isCritical": true, "itemCode": "1.1", "maxPoints": 5, "notes": null, "recordedAt": 2026-10-09T06:47:21.437Z, "recordedBy": "3d17404a-52ef-4e55-8dc2-fad0bf6f6a33", "response": "PASS", "section": "SITE_SELECTION", "updatedAt": 2026-10-09T06:47:21.439Z, "withheldAt": null, "withheldBy": null, "withholdReason": null}
+
+      136 |             const { row, auditId } = await bookedVisit();
+      137 |             await world.raw.application.update({ where: { id: row.id }, data: { status: 'CAR_PENDING', version: { increment: 1 } } });
+    > 138 |             await expect(onsiteService.submitChecklistItem({ auditId, itemCode: ITEM, response: 'PASS', actorId: fx.inspectorA.id }))
+          |                   ^
+      139 |                 .rejects.toMatchObject({ code: 'APPLICATION_STATE_CHANGED' });
+      140 |             expect(await itemsOf(auditId)).toBe(0);
+      141 |         });
+
+      at expect (../../node_modules/.pnpm/expect@30.2.0/node_modules/expect/build/index.js:2116:15)
+      at Object.expect (__tests__/integration/staff-doors-hardening-real-postgres.test.js:138:19)
+
+  ● staff doors hold (real Postgres) › the field app writes only while the visit stands and is still the inspector's (L3 L4 L5) › a checklist answer racing a reassignment that commits first is refused, and nothing is written (L4)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+    -   403,
+    -   "AUDIT_AUDITOR_MISMATCH",
+    +   200,
+    +   undefined,
+      ]
+
+      146 |             const res = await whileReassigned({ applicationId: row.id, auditId }, () => request(app)
+      147 |                 .post(`/api/audit/onsite/${auditId}/checklist`).send({ items: [{ itemCode: ITEM, response: 'PASS' }] }));
+    > 148 |             expect([res.status, res.body.code]).toEqual([403, 'AUDIT_AUDITOR_MISMATCH']);
+          |                                                 ^
+      149 |             expect(await itemsOf(auditId)).toBe(0);
+      150 |         });
+      151 |
+
+      at Object.toEqual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:148:49)
+
+  ● staff doors hold (real Postgres) › the field app writes only while the visit stands and is still the inspector's (L3 L4 L5) › a decision racing a reassignment waits for the application row first: no deadlock, a clean refusal, nothing decided (L5)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+    -   403,
+    -   "AUDIT_AUDITOR_MISMATCH",
+    +   400,
+    +   "P2010",
+      ]
+
+      155 |             const res = await whileReassigned({ applicationId: row.id, auditId }, () => request(app)
+      156 |                 .post(`/api/audit/onsite/${auditId}/decision`).send({ decision: 'FAIL', summary: 'ไม่มีบันทึกการใช้ปุ๋ย' }));
+    > 157 |             expect([res.status, res.body.code]).toEqual([403, 'AUDIT_AUDITOR_MISMATCH']);
+          |                                                 ^
+      158 |             const audit = await world.raw.auditChecklist.findUnique({ where: { id: auditId }, select: { status: true, auditorId: true } });
+      159 |             expect(audit).toEqual({ status: 'IN_PROGRESS', auditorId: fx.inspectorA2.id });
+      160 |             expect((await world.rowOf(row.id)).status).toBe('AUDIT_CONFIRMED');
+
+      at Object.toEqual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:157:49)
+
+FAIL __tests__/unit/onsite-visit-gate-opt-out-is-the-seed-only.test.js
+  ✕ only the demo seed opts out of the visit gate (57 ms)
+
+  ● only the demo seed opts out of the visit gate
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   "prisma/seed-gacp.js",
+    - ]
+    + Array []
+
+      27 |         .filter((file) => OPT_OUT.test(fs.readFileSync(file, 'utf8')))
+      28 |         .map((file) => path.relative(BACKEND, file).split(path.sep).join('/'));
+    > 29 |     expect(optingOut).toEqual(['prisma/seed-gacp.js']);
+         |                       ^
+      30 | });
+      31 |
+
+      at Object.toEqual (__tests__/unit/onsite-visit-gate-opt-out-is-the-seed-only.test.js:29:23)
+
+Test Suites: 2 failed, 2 total
+Tests:       4 failed, 3 skipped, 7 total
+Snapshots:   0 total
+Time:        4.614 s, estimated 34 s
+Ran all test suites matching __tests__/integration/staff-doors-hardening-real-postgres.test.js|__tests__/unit/onsite-visit-gate-opt-out-is-the-seed-only.test.js with tests matching "L3|L4|L5|only the demo seed".

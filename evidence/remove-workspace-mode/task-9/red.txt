@@ -1,0 +1,67 @@
+# R2 Task 9 — RED (2026-10-03, HEAD 15455b27 + tests only, no implementation)
+# Real Postgres: throwaway postgres:17 on :55436 (ws-pg-55436), prisma migrate deploy, jest -i.
+# Signing key mtime before/after every run: 1788623435 (unchanged).
+
+## Run 1 — 7 files (real-PG holder-scope + 6 unit)
+Test Suites: 5 failed, 2 passed, 7 total
+Tests:       25 failed, 104 passed, 129 total   (0 skipped)
+
+### holder-scope-real-postgres.test.js (run 2, after granting S the PDPA consents — run 1 showed
+### the stranger's submit answered 403 CONSENT_REQUIRED, a fixture gap, not the rule)
+Tests: 11 failed, 26 passed, 37 total (0 skipped)
+  FAIL case 3: V submits D → expected [403, ENTITY_PERMISSION_DENIED], received [404, undefined]  (filer pin hides D)
+  FAIL audit: submit refusal row → expected >= 1 row, received 0 (V never reached the guard)
+  FAIL case 3: V edits D → expected [403, ENTITY_PERMISSION_DENIED], received [404, APPLICATION_NOT_FOUND]
+  FAIL B (MANAGER) edits D → expected 200, received 404
+  FAIL B (MANAGER) submits D → expected [403, ENTITY_PERMISSION_DENIED], received [404, undefined]
+  FAIL C8: B unlinks A's D from B's bundle → expected [403, ENTITY_PERMISSION_DENIED], received [404, undefined]
+  FAIL case 4: B (MANAGER, not creator) deletes D → expected [403, ...], received [200, undefined] (deleted:false)
+  FAIL case 4: V deletes D → expected [403, ...], received [200, undefined]
+  FAIL case 4: O2 (OWNER, not creator) deletes D2 → expected deleted true, received false
+  FAIL Q3 checkout by V → expected [403, ENTITY_PERMISSION_DENIED], received [404, APPLICATION_NOT_FOUND]
+  FAIL Q3 checkout by B → expected [403, ENTITY_PERMISSION_DENIED], received [404, APPLICATION_NOT_FOUND]
+  PIN (green from birth, kept as regression pins, not fixes):
+    case 3: V sees X in /my · A deletes D → 200 · C8: B unlinks/deletes own bundle → 200
+    stranger S: edit 404 / submit 404 / delete not deleted · checkout S → 404 · checkout A → 200 (one order, one gateway call)
+
+### applications-submit-capability-gate.test.js (no activeEntity injected anywhere)
+  FAIL engine denial → audit FAILURE: Expected path: not "activeEntityId", Received value: null
+  FAIL successful submit → audit SUCCESS: Expected path: not "activeEntityId", Received value: null
+### application-submit-guard.test.js
+  FAIL the denial row carries no activeEntityId: Received value: "e1"
+### canonicalid-rekey-stage0.test.js
+  FAIL buildHealthWhereClause is gone: Received: [Function buildHealthWhereClause]
+### application-health-reads-carry-holder-marker.test.js
+  FAIL buildHealthWhereClause and its alias are gone: Received: [Function buildHealthWhereClause]
+  FAIL getHealthApplications / alias / company workspace / getDraft / getById: where.entityId expected {in:[...]}, received undefined (OR/AND pin form)
+  FAIL findApplicationByIdForHealth without a filer: expected 1 findFirst, received 0
+  FAIL deleteDraft where: expected fragment, received pin form
+  FAIL deleteDraft MANAGER not creator: Received promise resolved instead of rejected
+### application-identity-destructure-safe / r1-application-holder-or-pin: builder cases removed (no RED, deletion).
+### application-entity-scope-where.test.js: deleted (matrix lives in holder-access.test.js).
+
+## ROUND 1 RED — review I1 (list vs statuses) + I2 (legacy payment doors), on 002c4bc2 + tests only
+# Real Postgres: postgres:17 on :55437 (ws-pg-55437; :55436 held by a stale docker-proxy after the first container was removed).
+# Key mtime 1788623435 before/after.
+holder-scope-real-postgres + r1-application-reads-neutral: Tests 6 failed, 40 passed, 46 total (0 skipped)
+  FAIL Review Focus 4: /my, /my/statuses and / list the same ids, /dashboard/stats counts them — 9 mismatches:
+    A|none, A|P: /my aP,wP vs /my/statuses aP · A|C: /my aC,aCar,aRev,mC vs statuses aC,aCar,aRev
+    W|P: /my aP,wP vs statuses wP · V|C: /my aC,aCar,aRev,mC vs statuses (none) · M|C: /my aC,aCar,aRev,mC vs statuses mC
+    N|none, N|transient: /my (none) vs statuses nD,nN · A|transient: /my aC,aCar,aP,aRev,mC,wP vs statuses aC,aCar,aN,aP,aRev
+    (A|C, V|C, M|C, W|P already differed before Task 9: the pre-R1 workspace relax widened /my but never /my/statuses)
+  FAIL POST /payments/create by V → expected [403, ENTITY_PERMISSION_DENIED], received [404, "Application not found"]
+  FAIL POST /payments/create by B → same (404)
+  FAIL POST /payments/phase1/:id by V → same (404)
+  FAIL POST /payments/phase1/:id by B → same (404)
+  FAIL (test fixed, not code) legacy doors by A in THROW mode → 400: createPhase1Payment reads Application without a holder
+    fragment → HEALTH_READ_UNSCOPED (log: "[Payments] Create Payment Error: HEALTH_READ_UNSCOPED … Application.findUnique").
+    The OWNER case now runs in SHADOW mode (deployed default): PASS on 002c4bc2 = PIN (current success kept).
+  PIN: legacy doors by stranger S → 404, nothing written.
+
+## ROUND 1b RED — unscoped reads behind the gated payment doors, on 68b21b6d + test only (:55437, key 1788623435)
+holder-scope-real-postgres: Tests 1 failed, 42 passed, 43 total (0 skipped)
+  FAIL legacy doors by A (OWNER) keep their success, witness THROW → expected [200, true], received [400, false]
+       witness: 4× "HEALTH_READ_UNSCOPED: health read Application.findUnique" (payment-service.js syncPhaseStatusesFromInvoices)
+  After scoping the two named reads only (intermediate run): 43 passed, but the log still showed
+       2× "health read Quotation.findMany" caught by "[QUOTE_PRICE_LOCK] frozen-quote read failed — falling back to recompute":
+       the price lock was silently skipped in THROW mode. The test now also asserts no HEALTH_READ_UNSCOPED log line.

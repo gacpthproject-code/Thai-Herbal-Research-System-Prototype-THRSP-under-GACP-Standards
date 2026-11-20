@@ -1,0 +1,35 @@
+# GREEN รอบ 3 (UUID shield) — 2026-10-05
+Design: UUID -> sentinel (U+F0000 + index in U+F0010..19 + U+F0001) -> MAIN's masking unchanged -> restore.
+Round 1/2 claims (rule 1 "13-15 digit runs masked everywhere", "hex ids masked BY DESIGN", 14/15-digit runs) are WITHDRAWN;
+behaviour outside UUIDs is now main's, byte for byte.
+
+## differential vs main (fixture apps/backend/__tests__/fixtures/pii-mask-main-oracle)
+backend maskThaiIdsInText: 30000 fuzz == restore(main(swap)) -> 0 diffs ; no-UUID inputs == main -> 0 diffs
+sentry  scrubString:       30000 fuzz == restore(main(swap)) -> 0 diffs ; no-UUID inputs == main -> 0 diffs
+mobile  redactForLog:      10000 fuzz == shielded main \d{13}           -> 0 diffs
+both leaks (landline + digit-leading UUID; separated ID/phone touching digit-leading UUID edge): fixed, UUID kept
+
+## 50,000 fixed-seed corruption (seed 0x9e3779b9)
+uuid:  backend 0 · scrub 0
+hex32: backend 365 · scrub 659   (main: 365 · 659 — identical)
+hex64: backend 853 · scrub 1498  (main: 853 · 1498 — identical)
+
+## backend jest (22 suites: pii-mask, mask-thai, sentry, audit-logger, interop, entity-member, auto-trace)
+Test Suites: 22 passed, 22 total · Tests: 338 passed, 338 total
+callers of the maskers (14 files incl. waiver-reopen, survey-service, interoperability-revoked-reason-mask): all pass
+(Sentry package tests live in backend sentry-* suites; included above)
+
+## mobile (scratch git-archive copy, flutter test test/unit/log_redactor_test.dart): +16 All tests passed
+
+## probes
+ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0
+probe-gate FAIL: gate-attestation, main-attestation-audit, nginx-config-drift (attestation/host state, not this diff)
+keys/*.pem: none present in this worktree (nothing to compare); SIGNING_KEY_DIR was a scratch dir
+
+ข้อจำกัดที่ทราบ (reviewer รอบ 3, 2026-10-05):
+- เลข 12 หลักที่ติดกับ UUID ซึ่งขึ้นต้นด้วยตัวเลข (เช่น 110000000000 + 1f83a8bd-...) main ปิดหน้าต่าง 13 หลักที่กินตัวแรกของ UUID (และทำ UUID เสีย)
+  สาขานี้ปล่อย 12 หลักไว้และ UUID ไม่เสีย · 12 หลักไม่ใช่รูปเลขบัตรหรือโทรศัพท์ ไม่มีเลขบัตร/โทรศัพท์หลุด
+  แต่ "ไม่ปิดน้อยกว่า main" จึงไม่จริงแบบเคร่งครัดในกรณีนี้
+- oracle "differential vs main" คือ main ที่ผ่าน shield เดียวกัน จึงพิสูจน์ความสอดคล้องกับ main นอก UUID เท่านั้น
+  reviewer รัน main จริงเทียบแยก (JS ~81,600 กรณี, Dart 2,135 กรณี): ไม่มีเลขบัตรหลุด นอกจากกรณีข้างบน
+- oracle ฝั่ง Dart เขียนซ้ำ \d{13} ของ main ไม่ใช่โค้ด main เอง (ตรงกันวันนี้ ยืนยันด้วย main.dart จริง)

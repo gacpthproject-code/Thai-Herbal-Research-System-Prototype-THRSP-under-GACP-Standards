@@ -1,0 +1,996 @@
+<title>GACP Quality Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap">
+
+<style>
+  :root{
+    --ground:#fbfaf7;
+    --surface:#ffffff;
+    --surface-sunk:#f4f3ee;
+    --ink:#14191b;
+    --ink-soft:#3d4744;
+    --muted:#626d66;
+    --rule:#e1e4de;
+    --rule-strong:#c8cec7;
+    --accent:#0a5c33;
+    --accent-soft:#eaf3ed;
+    --crit:#9d2235;
+    --crit-soft:#fbeef0;
+    --pol:#8a5a10;
+    --pol-soft:#fbf4e6;
+    --opp:#0a5c33;
+    --opp-soft:#eaf3ed;
+    --good:#0a5c33;
+
+    --f-ui:'IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif;
+    --f-body:'Sarabun','IBM Plex Sans Thai',system-ui,sans-serif;
+    --f-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+
+    --w:min(100% - 2.5rem, 74rem);
+    --w-read:min(100% - 2.5rem, 46rem);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0d1210;
+      --surface:#151b18;
+      --surface-sunk:#101614;
+      --ink:#e9ebe7;
+      --ink-soft:#c2c9c4;
+      --muted:#93a09a;
+      --rule:#28302c;
+      --rule-strong:#3a443e;
+      --accent:#63cd91;
+      --accent-soft:#132a1e;
+      --crit:#f4909c;
+      --crit-soft:#2b1418;
+      --pol:#e2b366;
+      --pol-soft:#2a2114;
+      --opp:#63cd91;
+      --opp-soft:#132a1e;
+      --good:#63cd91;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0d1210; --surface:#151b18; --surface-sunk:#101614;
+    --ink:#e9ebe7; --ink-soft:#c2c9c4; --muted:#93a09a;
+    --rule:#28302c; --rule-strong:#3a443e;
+    --accent:#63cd91; --accent-soft:#132a1e;
+    --crit:#f4909c; --crit-soft:#2b1418;
+    --pol:#e2b366; --pol-soft:#2a2114;
+    --opp:#63cd91; --opp-soft:#132a1e; --good:#63cd91;
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0;
+    background:var(--ground);
+    color:var(--ink);
+    font-family:var(--f-body);
+    font-size:16px;
+    line-height:1.72;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{width:var(--w);margin-inline:auto}
+  .read{width:var(--w-read);margin-inline:auto}
+
+  /* ---------- masthead ---------- */
+  header.mast{
+    border-bottom:1px solid var(--rule);
+    background:var(--surface);
+  }
+  .mast-in{width:var(--w);margin-inline:auto;padding:3.5rem 0 2.75rem}
+  .kicker{
+    font-family:var(--f-mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 1.25rem;
+  }
+  h1{
+    font-family:var(--f-ui);font-weight:700;font-size:clamp(2rem,4.4vw,3.1rem);
+    line-height:1.28;letter-spacing:0;margin:0 0 1rem;text-wrap:balance;max-width:22ch;
+  }
+  .standfirst{
+    font-size:1.06rem;color:var(--ink-soft);max-width:62ch;margin:0 0 2.25rem;
+  }
+  .meta-grid{
+    display:grid;gap:1px;background:var(--rule);
+    grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+    border:1px solid var(--rule);
+  }
+  .meta-grid div{background:var(--surface);padding:.85rem 1rem}
+  .meta-grid dt{
+    font-family:var(--f-mono);font-size:.66rem;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--muted);margin:0 0 .3rem;
+  }
+  .meta-grid dd{margin:0;font-family:var(--f-ui);font-weight:600;font-size:.95rem;line-height:1.4}
+
+  /* ---------- sections ---------- */
+  section{padding:3.5rem 0}
+  section + section{border-top:1px solid var(--rule)}
+  h2{
+    font-family:var(--f-ui);font-weight:700;font-size:1.6rem;line-height:1.35;
+    margin:0 0 .5rem;text-wrap:balance;
+  }
+  h2 .num{
+    font-family:var(--f-mono);font-size:.8rem;color:var(--muted);
+    display:block;letter-spacing:.14em;margin-bottom:.4rem;font-weight:500;
+  }
+  .lede{color:var(--ink-soft);max-width:64ch;margin:0 0 2rem}
+  h3{font-family:var(--f-ui);font-weight:600;font-size:1.08rem;margin:0 0 .4rem;line-height:1.45}
+  p{margin:0 0 1rem}
+  a{color:var(--accent)}
+
+  /* ---------- tally ---------- */
+  .tally{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));margin-bottom:2rem}
+  .tally div{background:var(--surface);padding:1.4rem 1.25rem}
+  .tally .n{font-family:var(--f-mono);font-size:2.3rem;font-weight:600;line-height:1;display:block;margin-bottom:.5rem}
+  .tally .lbl{font-family:var(--f-ui);font-size:.85rem;font-weight:600;display:block;line-height:1.4}
+  .tally .sub{font-size:.8rem;color:var(--muted);display:block;margin-top:.15rem;line-height:1.45}
+  .t-crit .n{color:var(--crit)} .t-pol .n{color:var(--pol)} .t-opp .n{color:var(--opp)}
+
+  /* ---------- honesty note ---------- */
+  .note{
+    border:1px solid var(--rule-strong);background:var(--surface-sunk);
+    padding:1.25rem 1.4rem;margin:0 0 2rem;
+  }
+  .note p:last-child{margin-bottom:0}
+  .note strong{font-family:var(--f-ui)}
+
+  /* ---------- root causes ---------- */
+  .rc{border-left:3px solid var(--accent);padding:0 0 0 1.25rem;margin:0 0 2rem}
+  .rc h3{font-size:1.15rem}
+  .rc .tag{
+    font-family:var(--f-mono);font-size:.68rem;letter-spacing:.13em;text-transform:uppercase;
+    color:var(--accent);display:block;margin-bottom:.35rem;
+  }
+  .rc p{margin-bottom:.6rem}
+  .rc ul{margin:.4rem 0 0;padding-left:1.1rem;color:var(--muted);font-size:.92rem}
+  .rc li{margin-bottom:.2rem}
+
+  /* ---------- finding records ---------- */
+  .rec{
+    background:var(--surface);border:1px solid var(--rule);
+    border-left:4px solid var(--rule-strong);
+    padding:1.5rem 1.6rem;margin:0 0 1.25rem;
+  }
+  .rec.crit{border-left-color:var(--crit)}
+  .rec.pol{border-left-color:var(--pol)}
+  .rec.opp{border-left-color:var(--opp)}
+  .rec-head{display:flex;flex-wrap:wrap;gap:.65rem;align-items:baseline;margin-bottom:.65rem}
+  .sev{
+    font-family:var(--f-mono);font-size:.64rem;letter-spacing:.14em;text-transform:uppercase;
+    font-weight:600;padding:.2rem .5rem;white-space:nowrap;
+  }
+  .sev.crit{color:var(--crit);background:var(--crit-soft)}
+  .sev.pol{color:var(--pol);background:var(--pol-soft)}
+  .sev.opp{color:var(--opp);background:var(--opp-soft)}
+  .id{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);letter-spacing:.06em}
+  .rec h3{flex:1 1 20rem;margin:0}
+  .rec p{font-size:.96rem;margin-bottom:.85rem}
+  .rec p:last-child{margin-bottom:0}
+  .where{
+    font-family:var(--f-mono);font-size:.78rem;color:var(--muted);
+    margin:0 0 .9rem;word-break:break-word;line-height:1.6;
+  }
+
+  /* measurement strip */
+  .measure{
+    display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+    grid-template-columns:repeat(auto-fit,minmax(150px,1fr));margin:0 0 1rem;
+  }
+  .measure div{background:var(--surface-sunk);padding:.7rem .85rem}
+  .measure dt{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 .25rem}
+  .measure dd{margin:0;font-family:var(--f-mono);font-size:.95rem;font-weight:500;line-height:1.4;word-break:break-word}
+  .measure dd.bad{color:var(--crit)}
+  .measure dd.ok{color:var(--good)}
+
+  /* live contrast demonstration — real colours, so the reader sees the invisibility */
+  .demo{display:flex;flex-wrap:wrap;gap:.75rem;margin:0 0 1rem;align-items:stretch}
+  .demo-box{
+    flex:1 1 13rem;border:1px solid var(--rule-strong);padding:.85rem 1rem;
+    font-family:var(--f-body);font-size:.95rem;line-height:1.5;min-height:4.2rem;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .demo-cap{
+    font-family:var(--f-mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;
+    color:var(--muted);display:block;margin-bottom:.3rem;
+  }
+
+  .fix{
+    background:var(--surface-sunk);border:1px solid var(--rule);
+    padding:1rem 1.15rem;margin-top:1rem;
+  }
+  .fix > .demo-cap{color:var(--accent);margin-bottom:.5rem}
+  .fix p{margin-bottom:.6rem;font-size:.93rem}
+  .fix p:last-child{margin-bottom:0}
+  pre{
+    font-family:var(--f-mono);font-size:.78rem;line-height:1.65;
+    background:var(--surface);border:1px solid var(--rule);
+    padding:.75rem .9rem;margin:.5rem 0 0;overflow-x:auto;
+  }
+  code{font-family:var(--f-mono);font-size:.86em;background:var(--surface-sunk);padding:.1em .32em;border-radius:2px}
+  .fix pre code,pre code{background:none;padding:0}
+
+  /* ---------- praise ---------- */
+  .good-grid{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);
+    grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
+  .good-grid div{background:var(--surface);padding:1.15rem 1.25rem}
+  .good-grid h3{font-size:.98rem;margin-bottom:.3rem}
+  .good-grid p{font-size:.88rem;color:var(--muted);margin:0}
+  .good-grid .m{font-family:var(--f-mono);font-size:.78rem;color:var(--good);display:block;margin-top:.4rem}
+
+  /* ---------- order ---------- */
+  ol.order{counter-reset:o;list-style:none;padding:0;margin:0}
+  ol.order li{
+    counter-increment:o;position:relative;padding:1.1rem 0 1.1rem 3.25rem;
+    border-bottom:1px solid var(--rule);
+  }
+  ol.order li:last-child{border-bottom:0}
+  ol.order li::before{
+    content:counter(o,decimal-leading-zero);position:absolute;left:0;top:1.15rem;
+    font-family:var(--f-mono);font-size:.85rem;color:var(--muted);font-weight:500;
+  }
+  ol.order h3{margin-bottom:.25rem}
+  ol.order p{font-size:.92rem;color:var(--ink-soft);margin:0}
+  .cost{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);display:block;margin-top:.4rem;letter-spacing:.04em}
+
+  table{border-collapse:collapse;width:100%;font-size:.88rem}
+  .tscroll{overflow-x:auto;border:1px solid var(--rule);margin-bottom:1rem}
+  th,td{text-align:left;padding:.6rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:var(--f-ui);font-weight:600;font-size:.78rem;letter-spacing:.04em;background:var(--surface-sunk);white-space:nowrap}
+  td{background:var(--surface)}
+  td.mono{font-family:var(--f-mono);font-size:.82rem;white-space:nowrap}
+  tr:last-child td{border-bottom:0}
+
+  footer{border-top:1px solid var(--rule);background:var(--surface);padding:2.5rem 0 3.5rem}
+  footer p{font-size:.85rem;color:var(--muted);margin:0 0 .5rem}
+
+  @media (max-width:640px){
+    .mast-in{padding:2.5rem 0 2rem}
+    section{padding:2.5rem 0}
+    .rec{padding:1.2rem 1.1rem}
+  }
+</style>
+
+<header class="mast">
+  <div class="mast-in">
+    <p class="kicker">Deep Quality Audit · 7 กันยายน 2569</p>
+    <h1>สิ่งที่ระบบทำได้ดี และสิ่งที่ยังไม่ถึงมาตรฐาน</h1>
+    <p class="standfirst">
+      ตรวจแพลตฟอร์มรับรอง GACP บนเครื่องจริงที่ <code>demo.gacpth.com</code> ด้วยเบราว์เซอร์จริง
+      กดปุ่มจริง พิมพ์จริง สมัครบัญชีใหม่จริง และวัดค่าที่หน้าจอวาดออกมาจริง
+      ไม่ใช่การอ่านโค้ดแล้วสันนิษฐาน ทุกข้อในรายงานนี้มีตัวเลขหรือภาพหน้าจอที่เปิดดูซ้ำได้
+    </p>
+    <dl class="meta-grid">
+      <div><dt>Build ที่ตรวจ</dt><dd>09dde784</dd></div>
+      <div><dt>หน้าที่กวาด</dt><dd>55 เส้นทาง</dd></div>
+      <div><dt>ภาพหลักฐาน</dt><dd>113 ภาพ</dd></div>
+      <div><dt>Viewport</dt><dd>390 · 1440</dd></div>
+      <div><dt>ธีม</dt><dd>สว่าง · มืด</dd></div>
+      <div><dt>บัญชีทดสอบ</dt><dd>สมัครใหม่ 2 ราย</dd></div>
+    </dl>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ผลรวม</span>คำตัดสิน</h2>
+    <p class="lede">
+      โครงระบบดี งานหลังบ้านแน่น และหลายจุดทำได้ในระดับที่น่าภูมิใจ
+      แต่ยังไม่ถึงจุดที่จะวางบนโต๊ะแล้วบอกว่า “นี่คือของที่เสร็จแล้ว”
+      ปัญหาหนักทั้งหมดกระจุกอยู่ที่ <strong>ประตูทางเข้า</strong> — หน้าที่คนนอกและคนใหม่เจอก่อนใคร
+    </p>
+
+    <div class="tally">
+      <div class="t-crit"><span class="n">9</span><span class="lbl">Critical / Compromise</span><span class="sub">พังหน้าที่ หรือทำลายความเชื่อถืออย่างแรง</span></div>
+      <div class="t-pol"><span class="n">14</span><span class="lbl">Lack of Polish</span><span class="sub">ความไม่เนี้ยบที่มองเห็นได้</span></div>
+      <div class="t-opp"><span class="n">4</span><span class="lbl">Polish Opportunity</span><span class="sub">จุดที่ยกจากดีเป็นดีมาก</span></div>
+      <div><span class="n" style="color:var(--good)">9</span><span class="lbl">ทำได้ดีจริง</span><span class="sub">ยืนยันด้วยการทดสอบ ไม่ใช่คำชม</span></div>
+      <div><span class="n" style="color:var(--good)">7</span><span class="lbl">แก้แล้ว และวัดซ้ำบนเครื่องจริง</span><span class="sub">ดูหัวข้อ "สิ่งที่แก้แล้ว" ด้านล่าง</span></div>
+    </div>
+
+    <div class="note">
+      <p><strong>แก้ข้อสรุปของตัวเอง — อ่านก่อนใช้ตัดสินใจ</strong></p>
+      <p>
+        รายงานฉบับแรกเขียนว่า “เกษตรกรที่ยื่นครั้งแรกถูกบล็อกที่ขั้น 2 ทุกราย” — <strong>ไม่ถูก</strong>
+        ปุ่มถัดไปถูกปิดเพราะช่องกรอกตัวตนยังว่าง ซึ่งเป็นพฤติกรรมที่ถูกต้อง และเปิดทันทีที่กรอก
+        (วัดแล้ว: DISABLED ตอนมาถึง · enabled หลังพิมพ์)
+      </p>
+      <p>
+        สิ่งที่เป็นข้อบกพร่องจริงคือ <strong>ข้อความแดงที่โกหก</strong> — ระบบบอกว่าอ่านรายการเอกสารไม่สำเร็จ
+        ทั้งที่ไม่มีอะไรล้มเหลว แค่ยังไม่มีร่างให้ถาม — และ <strong>รายการเอกสารไม่ขึ้นเลยตลอด session นั้น</strong>
+        (slot card = 0 แม้รอ 9 วินาทีหลัง POST draft สำเร็จ) ผู้ยื่นครั้งแรกจึงไม่เห็นว่าต้องแนบอะไรบ้าง
+        แก้แล้วใน C-03 ด้านล่าง
+      </p>
+    </div>
+
+    <div class="note">
+      <p><strong>ข้อจำกัดของรายงานนี้ ต้องบอกก่อน</strong></p>
+      <p>
+        การตรวจนี้ใช้ทีมตรวจแบบกระจายงาน 7 มิติ พร้อมชั้นหักล้างแบบ adversarial
+        แต่ระบบชน session limit กลางทาง — เสร็จ 3 มิติ และ <strong>ชั้นหักล้างล้มทั้งหมด</strong>
+      </p>
+      <p>
+        ดังนั้นผมจึงเลือก <strong>ไม่ใช้ข้อค้นพบที่ยังไม่ได้พิสูจน์</strong> ทุกข้อในรายงานนี้ผมวัดซ้ำเองด้วยเบราว์เซอร์จริง
+        และมีข้อหนึ่งที่ผมตัดทิ้งเพราะเกินจริง (ผู้ตรวจรายงานว่าหัวเรื่องหน้าสแกน “ถูกตัดครึ่ง”
+        วัดจริงแล้วถูกบัง 16px) อีก 20 ข้อที่ยังไม่ได้พิสูจน์เก็บไว้ที่
+        <code>evidence/apple-qa-audit-2026-09-07/findings-unverified.json</code> ยังไม่ควรใช้ตัดสินใจ
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ส่วนที่สำคัญที่สุด</span>ต้นเหตุร่วม</h2>
+    <p class="lede">
+      อาการ 23 อย่างที่พบ ไม่ได้เป็นปัญหา 23 เรื่อง แต่ยุบลงเหลือ 5 ต้นเหตุ
+      แก้ที่ต้นเหตุครั้งเดียว อาการหายเป็นพวง แก้ทีละหน้าจะกลับมาใหม่เรื่อย ๆ
+    </p>
+
+    <div class="rc">
+      <span class="tag">ต้นเหตุ 1 — ครอบคลุม 6 อาการ · หนักที่สุด</span>
+      <h3>โหมดมืดถูกทำครึ่งเดียว: ตัวหนังสือพลิกสี พื้นไม่พลิก</h3>
+      <p>
+        สีตัวอักษรผูกกับ CSS variable จึงพลิกตาม <code>.dark</code> ได้ถูกต้อง
+        แต่พื้นผิวจำนวนมากเขียนเป็นค่าตายตัว — <code>bg-white</code>, <code>bg-slate-100</code>,
+        <code>bg-leaf-soft</code> (<code>#eaf9f0</code>) — ซึ่งไม่มีค่าสำหรับโหมดมืดเลย
+        ผลคือตัวหนังสือเกือบขาววางบนพื้นเกือบขาว
+      </p>
+      <p>
+        <code>bg-leaf-soft</code> ถูกใช้ใน 85 ไฟล์ และ <code>login-chooser.tsx</code>
+        ซึ่งเป็นหน้าแรกสุดของระบบ มี <code>dark:</code> อยู่ <strong>0 ครั้ง</strong>
+      </p>
+      <ul>
+        <li>อาการที่ยุบเข้าที่นี่: C-01, C-02, C-04, C-05, C-06, P-11</li>
+      </ul>
+    </div>
+
+    <div class="rc">
+      <span class="tag">ต้นเหตุ 2 — ครอบคลุม 2 อาการ · อันตรายเงียบ</span>
+      <h3>Stylesheet ที่มี <code>!important</code> ชนะ utility ทุกตัวที่คอมโพเนนต์สั่ง</h3>
+      <p>
+        <code>.field-emphasis</code> ใน <code>globals-components-layout.css:116</code>
+        ประกาศ <code>padding</code>, <code>background</code> และ <code>border</code>
+        โดยสองตัวหลังติด <code>!important</code> และคลาสนี้ติดอยู่กับ input, select และ textarea ทุกตัวในระบบ
+      </p>
+      <p>
+        ผลที่วัดได้: <code>filter-bar.tsx:43</code> สั่ง <code>pl-10</code> (40px) เพื่อเว้นที่ให้ไอคอนแว่นขยาย
+        แต่ค่าที่เบราว์เซอร์ใช้จริงคือ <strong>16px</strong> ไอคอนจึงทับตัวอักษร
+        นี่คือกับดักที่อันตรายเพราะ <strong>โค้ดดูถูกแล้ว</strong> — คนแก้จะไม่เข้าใจว่าทำไมแก้แล้วไม่ขยับ
+      </p>
+      <ul>
+        <li>อาการที่ยุบเข้าที่นี่: P-05 และการแก้ padding ของ input ทุกครั้งในอนาคต</li>
+      </ul>
+    </div>
+
+    <div class="rc">
+      <span class="tag">ต้นเหตุ 3 — ครอบคลุม 4 อาการ</span>
+      <h3>ตัวอักษรไทยถูกจัดด้วยกติกาของตัวอักษรละติน</h3>
+      <p>
+        ภาษาไทยมีสระบนและวรรณยุกต์ซ้อนขึ้นไปสองชั้น และไม่มีช่องว่างระหว่างคำ
+        แต่ระบบตั้ง <code>letter-spacing</code> เป็นค่าติดลบ ตั้ง <code>line-height</code>
+        แคบกว่าความสูงหมึกจริง และไม่มีตัวกันการตัดคำที่ใดเลย
+        (ค้นทั้ง <code>src/</code> ไม่พบ <code>Intl.Segmenter</code>, ZWSP หรือ <code>line-break</code> แม้แต่ที่เดียว)
+      </p>
+      <p>
+        น่าสังเกตว่าคอมเมนต์ใน <code>globals.css:12</code> ของทีมเองเขียนไว้ว่า
+        “Never apply positive letter-spacing to Thai text (breaks สระ/วรรณยุกต์)”
+        — รู้เรื่องนี้อยู่แล้ว แต่กติกาไม่ได้ถูกบังคับที่หัวเรื่อง
+      </p>
+      <ul>
+        <li>อาการที่ยุบเข้าที่นี่: C-08, P-09, P-13 และ P-10</li>
+      </ul>
+    </div>
+
+    <div class="rc">
+      <span class="tag">ต้นเหตุ 4 — ครอบคลุม 3 อาการ</span>
+      <h3>หน้าที่คนนอกเห็น เป็นหน้าที่ช้าและไม่นิ่งที่สุดในระบบ</h3>
+      <p>
+        หน้าสแกน QR สาธารณะคือหน้าเดียวที่ผู้บริโภค โรงงาน และผู้ตรวจภายนอกจะเห็น
+        และเป็นหน้าที่ทำคะแนนแย่ที่สุดทุกตัวชี้วัด: CLS 0.19 บนมือถือ (เกณฑ์ดีคือต่ำกว่า 0.1)
+        และใช้เวลา 8.3 วินาทีกว่าคำตอบจะขึ้นบนเน็ต 4G ช้า
+      </p>
+      <ul>
+        <li>อาการที่ยุบเข้าที่นี่: C-05, C-07, P-01</li>
+      </ul>
+    </div>
+
+    <div class="rc">
+      <span class="tag">ต้นเหตุ 5 — ครอบคลุม 2 อาการ</span>
+      <h3>อัตลักษณ์แบรนด์ยังไม่ตกผลึก</h3>
+      <p>
+        สามหน้าที่ผู้ใช้เดินผ่านติดกันภายใน 10 วินาที ใช้ตราและชื่อคนละชุด:
+        <code>/auth</code> ใช้ตราครุฑ DTAM กับชื่อ “ระบบรับรอง GACP สมุนไพร”,
+        <code>/login</code> ใช้โล่กับใบไม้และชื่อ “GACP Platform”,
+        <code>/register</code> ใช้ใบไม้เปล่ากับชื่อ “GACP THAILAND”
+      </p>
+      <p>
+        ในระดับ palette ก็เป็นการสะสมมากกว่าระบบ — มีตระกูลสีเขียว 6 ชุดที่ประกาศพร้อมกัน
+        (<code>primary</code>, <code>leaf</code>, <code>brand</code>, <code>gov</code>, <code>mantine</code>, <code>officer</code>)
+      </p>
+      <ul>
+        <li>อาการที่ยุบเข้าที่นี่: P-12, O-03</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ระดับ 1</span>Critical — พังหน้าที่ หรือทำลายความเชื่อถือ</h2>
+    <p class="lede">เก้าข้อนี้ต้องแก้ก่อนพาใครมาดูระบบ ทุกข้อผมกดเองและวัดเอง</p>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-01</span>
+        <h3>โหมดมืด: เลขบัตรประชาชนที่พิมพ์ลงไป มองไม่เห็น</h3></div>
+      <p class="where">/login · /auth/health/login · /register — <code>#identifier</code>, <code>#reg-identifier</code></p>
+      <p>
+        ผมพิมพ์เลขบัตรจริงลงไปแล้ววัดสีที่เบราว์เซอร์วาดออกมา
+        ตัวอักษรเป็น <code>rgb(242,242,242)</code> บนพื้น <code>rgb(255,255,255)</code>
+        เคอร์เซอร์ก็สีเดียวกัน ผู้ใช้พิมพ์เลข 13 หลักโดยไม่เห็นสิ่งที่ตัวเองพิมพ์
+        และไม่เห็นว่าพิมพ์ผิดตรงไหน
+      </p>
+      <dl class="measure">
+        <div><dt>Contrast โหมดมืด</dt><dd class="bad">1.12 : 1</dd></div>
+        <div><dt>Contrast โหมดสว่าง</dt><dd class="ok">17.71 : 1</dd></div>
+        <div><dt>เกณฑ์ WCAG AA</dt><dd>4.5 : 1</dd></div>
+        <div><dt>วิธีพิสูจน์</dt><dd>พิมพ์จริง + ถ่ายภาพ</dd></div>
+      </dl>
+      <div class="demo">
+        <div class="demo-box" style="background:#ffffff;color:#0e1b14">
+          <span class="demo-cap" style="color:#5a6b62">โหมดสว่าง — อ่านออก</span>
+          1409901234560
+        </div>
+        <div class="demo-box" style="background:#ffffff;color:#f2f2f2">
+          <span class="demo-cap" style="color:#5a6b62">โหมดมืด — นี่คือสิ่งที่ผู้ใช้เห็น</span>
+          1409901234560
+        </div>
+      </div>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+        <p>อย่าให้พื้นเป็นค่าตายตัว ผูกทั้งพื้นและตัวอักษรเข้ากับ token เดียวกัน แก้ที่ <code>globals-components-layout.css:116</code></p>
+<pre><code>.field-emphasis {
+  background: hsl(var(--card)) !important;   /* เดิม #fff !important */
+  color: hsl(var(--card-foreground));
+  border: 1px solid hsl(var(--border)) !important;
+}
+.field-emphasis::placeholder { color: hsl(var(--muted-foreground)); }
+.field-emphasis:focus,
+.field-emphasis:focus-within { background: hsl(var(--card)) !important; }</code></pre>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-02</span>
+        <h3>โหมดมืด: รายการสิทธิ์บนหน้าเลือกประตูเข้า หายไปทั้งบล็อก</h3></div>
+      <p class="where">/auth — <code>src/app/auth/_components/login-chooser.tsx:177-178</code> (<code>tint: 'bg-leaf-soft'</code>)</p>
+      <p>
+        การ์ด “สำหรับประชาชน · เกษตรกร” แสดงเครื่องหมายถูกสามอัน แต่ข้อความข้าง ๆ ไม่ปรากฏเลย
+        ข้อความอยู่ใน DOM ครบ แต่เป็นสี <code>#f1f3f2</code> บนพื้น <code>#eaf9f0</code>
+        ผู้ใช้ที่เปิดโหมดมืดจะเห็นการ์ดที่ดูเหมือนโหลดไม่เสร็จ บนหน้าแรกสุดของระบบ
+      </p>
+      <dl class="measure">
+        <div><dt>Contrast</dt><dd class="bad">1.02 : 1</dd></div>
+        <div><dt>จำนวน node ที่ตก</dt><dd class="bad">9</dd></div>
+        <div><dt><code>dark:</code> ในไฟล์นี้</dt><dd class="bad">0 ครั้ง</dd></div>
+        <div><dt>ภาพหลักฐาน</dt><dd>auth__w1440__dark.png</dd></div>
+      </dl>
+      <div class="demo">
+        <div class="demo-box" style="background:#eaf9f0;color:#18803f">
+          <span class="demo-cap" style="color:#4a6b57">โหมดสว่าง</span>
+          ยื่นคำขอรับรองแปลง/ผลิตภัณฑ์สมุนไพร GACP
+        </div>
+        <div class="demo-box" style="background:#eaf9f0;color:#f1f3f2">
+          <span class="demo-cap" style="color:#4a6b57">โหมดมืด — ข้อความอยู่ตรงนี้</span>
+          ยื่นคำขอรับรองแปลง/ผลิตภัณฑ์สมุนไพร GACP
+        </div>
+      </div>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+        <p>ให้ <code>leaf-soft</code>, <code>mint-bg</code>, <code>officer-soft</code> และ <code>lime-soft</code> มีค่าคู่สำหรับโหมดมืด ประกาศเป็น CSS variable แล้วให้ Tailwind อ่านจากตัวแปร ไม่ใช่จากค่า hex ตายตัว</p>
+<pre><code>/* globals.css */
+:root      { --leaf-soft:#eaf9f0; --leaf-on-soft:#18803f; }
+.dark      { --leaf-soft:#132a1e; --leaf-on-soft:#7fd8a4; }
+
+/* tailwind.config.cjs */
+leaf: { soft:'var(--leaf-soft)', onSoft:'var(--leaf-on-soft)' }</code></pre>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-03</span>
+        <h3>ผู้ยื่นคำขอครั้งแรกถูกบอกว่าระบบพัง และไม่เห็นรายการเอกสารเลย</h3></div>
+      <p class="where">/health/applications/new/step/2 — <code>_steps/hooks/use-requirement-slots.ts</code></p>
+      <p>
+        สมัครบัญชีใหม่ 5 ราย เดินเข้าไปยื่นคำขอใบแรกของแต่ละบัญชี ทุกรายเจอข้อความแดง
+        “ระบบอ่านรายการเอกสารของคำขอนี้ไม่สำเร็จ กรุณาลองใหม่อีกครั้ง หรือย้อนกลับหนึ่งขั้นแล้วกลับมาใหม่”
+        และ slot card เป็น <strong>0</strong>
+      </p>
+      <p>
+        ไม่มีอะไรล้มเหลว ระบบแค่ยังไม่มี application id เพราะร่างถูกสร้างโดย autosave
+        ซึ่งยิงไม่ได้ก่อนผู้ใช้พิมพ์ hook ตีความ “ไม่มี id” ว่า “อ่านล้มเหลว” — เจตนาถูก
+        (ห้ามพูดว่า “ไม่ต้องแนบเอกสาร” เมื่ออ่านไม่ได้) แต่ไปตกกับเคสที่ไม่ใช่
+      </p>
+      <p>
+        ที่หนักกว่าคำเตือนเท็จคือ <strong>เอกสารไม่ขึ้นเลย</strong>: trace เครือข่ายแสดงว่า
+        <code>/applications/&lt;id&gt;/requirements</code> ไม่เคยถูกเรียกซ้ำหลัง
+        <code>POST /applications/draft</code> คืน id มาแล้ว ผู้ยื่นครั้งแรกจึงไม่มีทางรู้ว่าต้องแนบอะไร
+      </p>
+      <dl class="measure">
+        <div><dt>บัญชีที่ทดสอบ</dt><dd class="bad">5 ราย เกิด 5/5</dd></div>
+        <div><dt>บัญชีที่มีร่างแล้ว</dt><dd class="ok">ไม่เกิด 4/4</dd></div>
+        <div><dt>slot card</dt><dd class="bad">0</dd></div>
+        <div><dt>สถานะ</dt><dd class="ok">แก้แล้ว</dd></div>
+      </dl>
+      <div class="fix">
+        <span class="demo-cap">แก้แล้วอย่างไร</span>
+        <p>hook มีสามสถานะแทนสอง <code>pending</code> แปลว่ายังไม่มี id: ไม่ใช่ error ไม่ใช่ “ไม่มีอะไรค้าง” และพูดสิ่งที่เป็นจริง</p>
+<pre><code>if (!appId) { setSlots([]); setLoading(false); setError(null); setPending(true); return; }
+// notice = "ระบบจะบันทึกร่างให้อัตโนมัติเมื่อคุณเริ่มกรอกข้อมูล
+//           แล้วรายการเอกสารที่ต้องแนบจะปรากฏที่นี่"</code></pre>
+        <p>
+          ถามใหม่เองทันทีที่ id มาถึง · การอ่านที่ล้มเหลวจริงยังเป็น error เหมือนเดิมและมีปุ่ม “ลองใหม่” ·
+          ขั้นที่ 5 กันเพิ่มด้วย <code>!pending</code> เพราะรายการว่างตอนไม่มี id ไม่ได้แปลว่าไม่ต้องแนบอะไร
+        </p>
+        <p>RED ก่อน: <code>__tests__/first-filing-sees-its-documents.test.tsx</code> 6 เทส แดง 5 ก่อนแก้</p>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-04</span>
+        <h3>ปุ่มสลับภาษาบนหน้าคำประกาศการเข้าถึง มองไม่เห็น — ในโหมดสว่างซึ่งเป็นค่าเริ่มต้น</h3></div>
+      <p class="where">/accessibility — ปุ่ม “EN”</p>
+      <p>
+        นี่คือหน้าที่แพลตฟอร์มใช้ประกาศว่าตัวเองเข้าถึงได้ตามมาตรฐาน
+        และปุ่มสลับภาษาบนหน้านั้นเป็นสี <code>rgba(255,255,255,0.8)</code> บนพื้น <code>rgb(248,250,252)</code>
+        ไม่ต้องเปิดโหมดมืด ไม่ต้องทำอะไรพิเศษ — เปิดหน้านี้ตอนนี้ก็มองไม่เห็นแล้ว
+      </p>
+      <dl class="measure">
+        <div><dt>Contrast</dt><dd class="bad">1.05 : 1</dd></div>
+        <div><dt>ธีมที่เกิด</dt><dd class="bad">สว่าง (ค่าเริ่มต้น)</dd></div>
+        <div><dt>viewport ที่เกิด</dt><dd>390 และ 1440</dd></div>
+        <div><dt>ความน่าอาย</dt><dd>สูงสุด</dd></div>
+      </dl>
+      <div class="demo">
+        <div class="demo-box" style="background:#f8fafc;color:rgba(255,255,255,.8);font-weight:600">
+          <span class="demo-cap" style="color:#5a6b62">สิ่งที่เห็นจริงบนหน้า /accessibility</span>
+          EN
+        </div>
+        <div class="demo-box" style="background:#f8fafc;color:#0f172a;font-weight:600">
+          <span class="demo-cap" style="color:#5a6b62">สิ่งที่ควรเป็น</span>
+          EN
+        </div>
+      </div>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+        <p>ปุ่มนี้ถูกออกแบบมาให้อยู่บนแถบสีเข้ม แต่ถูกนำมาวางบนพื้นอ่อน ให้ใช้ token แทนสีขาวคงที่</p>
+<pre><code>- className="text-white/80 hover:text-white"
++ className="text-foreground/70 hover:text-foreground"</code></pre>
+        <p>และเพิ่ม axe เข้า CI เพื่อไม่ให้ contrast ต่ำกว่า 4.5 หลุดขึ้น production ได้อีก</p>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-05</span>
+        <h3>หน้าสแกน QR สาธารณะ: คำเตือนฉุกเฉินทางการแพทย์เป็นตัวขาวบนพื้นชมพูอ่อน</h3></div>
+      <p class="where">/trace/&lt;qr-code&gt; — <code>src/app/trace/[qr-code]/client-view.tsx:419-427</code></p>
+      <p>
+        กล่อง <code>&lt;Alert variant="destructive"&gt;</code> ถูกออกแบบมาให้พื้นเป็นสีแดงเข้ม
+        แต่ตัวคอมโพเนนต์เรนเดอร์พื้นเป็น <code>#fef2f2</code> (แดงอ่อนมาก)
+        ขณะที่ข้างในสั่ง <code>text-white</code> และ <code>text-red-100</code> ไว้ตายตัว
+        ข้อความ “หากเป็นเหตุฉุกเฉิน / Medical Emergency” จึงแทบมองไม่เห็น
+      </p>
+      <p>
+        เรื่องนี้หนักกว่าปัญหาความสวยงาม เพราะเป็นข้อความความปลอดภัยบนผลิตภัณฑ์กัญชา
+        ที่ผู้บริโภคสแกนเจอ และเป็นข้อความที่กฎหมายคาดหวังให้อ่านได้
+      </p>
+      <dl class="measure">
+        <div><dt>หัวข้อ (ขาวบนชมพู)</dt><dd class="bad">1.09 : 1</dd></div>
+        <div><dt>คำอธิบาย</dt><dd class="bad">1.11 : 1</dd></div>
+        <div><dt>ธีมที่เกิด</dt><dd class="bad">สว่าง</dd></div>
+        <div><dt>viewport</dt><dd>390 และ 1440</dd></div>
+      </dl>
+      <div class="demo">
+        <div class="demo-box" style="background:#fef2f2;color:#ffffff;font-weight:600">
+          <span class="demo-cap" style="color:#9d6b6b">สิ่งที่ผู้บริโภคเห็นจริง</span>
+          หากเป็นเหตุฉุกเฉิน / Medical Emergency
+        </div>
+        <div class="demo-box" style="background:#9d2235;color:#ffffff;font-weight:600">
+          <span class="demo-cap" style="color:#f4c4cb">สิ่งที่โค้ดตั้งใจ</span>
+          หากเป็นเหตุฉุกเฉิน / Medical Emergency
+        </div>
+      </div>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+        <p>เลือกอย่างใดอย่างหนึ่ง อย่าให้พื้นกับตัวอักษรมาจากคนละสมมติฐาน — วิธีที่เร็วและถูกต้องคือใช้สีข้อความคู่กับพื้นอ่อนที่คอมโพเนนต์ให้จริง</p>
+<pre><code>- &lt;p className="text-sm font-semibold text-white"&gt;
++ &lt;p className="text-sm font-semibold text-red-800 dark:text-red-200"&gt;
+- &lt;p className="text-xs text-red-100"&gt;
++ &lt;p className="text-xs text-red-700 dark:text-red-300"&gt;</code></pre>
+        <p>และตรวจ <code>Alert variant="destructive"</code> ทุกจุดในระบบ เพราะสัญญาสีของมันไม่ตรงกับที่ผู้เรียกใช้เข้าใจ</p>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-06</span>
+        <h3>โหมดมืด: หน้า 404 มีปุ่มเปล่า และหน้าสแกนซ่อนชื่อฟาร์มกับเลขล็อต</h3></div>
+      <p class="where">/this-route-does-not-exist · /trace/&lt;qr-code&gt; — โหมดมืด</p>
+      <p>
+        ปุ่มรอง “หน้าหลัก” บนหน้า 404 เป็นตัวอักษร <code>rgb(242,242,242)</code>
+        บนพื้น <code>rgb(241,245,249)</code> — ผู้ใช้เห็นเป็นเม็ดยาสีขาวว่าง ๆ ที่ไม่รู้ว่ากดแล้วไปไหน
+        บนหน้าสแกน ชื่อฟาร์มต้นทางและเลขล็อตก็ตกด้วยเหตุเดียวกัน
+      </p>
+      <dl class="measure">
+        <div><dt>ปุ่ม 404</dt><dd class="bad">1.02 : 1</dd></div>
+        <div><dt>ชื่อฟาร์ม/เลขล็อต</dt><dd class="bad">1.11 : 1</dd></div>
+        <div><dt>ปุ่มหลักบนหน้าเดียวกัน</dt><dd class="ok">5.00 : 1</dd></div>
+        <div><dt>ต้นเหตุ</dt><dd>เดียวกับ C-01</dd></div>
+      </dl>
+      <div class="demo">
+        <div class="demo-box" style="background:#f1f5f9;color:#f2f2f2;font-weight:600;text-align:center">
+          <span class="demo-cap" style="color:#7b8590">ปุ่มรองบนหน้า 404 โหมดมืด</span>
+          หน้าหลัก
+        </div>
+        <div class="demo-box" style="background:#18803f;color:#ffffff;font-weight:600;text-align:center">
+          <span class="demo-cap" style="color:#bfe6ce">ปุ่มหลักบนหน้าเดียวกัน — ปกติดี</span>
+          กลับหน้าแรก
+        </div>
+      </div>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+        <p>แก้ที่ต้นเหตุ 1 แล้วอาการนี้หายพร้อมกัน ระหว่างนี้ให้ปุ่ม secondary ใช้ <code>bg-secondary text-secondary-foreground</code> แทน <code>bg-slate-100</code></p>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-07</span>
+        <h3>หัวเรื่อง “ผ่านการรับรองมาตรฐาน GACP” ถูกการ์ดบังบนมือถือ</h3></div>
+      <p class="where">/trace/&lt;qr-code&gt; ที่ 390px — <code>client-view.tsx</code> hero <code>h-[320px] overflow-hidden</code> + การ์ด <code>-mt-[60px]</code></p>
+      <p>
+        ประโยคที่บอกว่าสินค้าผ่านการรับรอง คือเหตุผลทั้งหมดที่หน้านี้มีอยู่
+        บนเดสก์ท็อปหัวเรื่องพอดีหนึ่งบรรทัด แต่บนมือถือมันตกลงเป็นสองบรรทัด
+        และบรรทัดที่สองไปอยู่ในเขตที่การ์ดสีขาวถูกดึงขึ้นมาทับ
+      </p>
+      <p>
+        <strong>หมายเหตุความแม่นยำ:</strong> ผู้ตรวจในทีมรายงานว่า “ถูกตัดครึ่ง”
+        ผมวัดจริงได้ว่าถูกบัง <strong>16px</strong> — เห็นตัวอักษรส่วนบน แต่ฐานหาย
+        ยังเป็นข้อบกพร่องจริง แต่ตัวเลขที่ถูกต้องคือ 16px
+      </p>
+      <dl class="measure">
+        <div><dt>ขอบล่างหัวเรื่อง</dt><dd>y = 276px</dd></div>
+        <div><dt>ขอบบนการ์ด</dt><dd>y = 260px</dd></div>
+        <div><dt>ส่วนที่ถูกบัง</dt><dd class="bad">16px</dd></div>
+        <div><dt>hero</dt><dd class="bad">overflow: hidden</dd></div>
+      </dl>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+        <p>อย่าดึงการ์ดขึ้นทับกล่องที่ความสูงตายตัว ให้ hero เว้นที่ล่างเท่ากับระยะที่ดึง แล้วปล่อยให้ความสูงยืดตามเนื้อหา</p>
+<pre><code>- className="relative h-[320px] overflow-hidden rounded-b-[2rem] ..."
++ className="relative min-h-[320px] pb-[76px] rounded-b-[2rem] ..."</code></pre>
+        <p>และให้หัวเรื่องจองที่ไว้เท่ากันทั้งกรณีหนึ่งและสองบรรทัด: <code>min-h-[2.4em] leading-snug</code></p>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-08</span>
+        <h3>หัวเรื่องไทยสองบรรทัดบนหน้า login ทับกัน 21 พิกเซล</h3></div>
+      <p class="where">/login · /auth/health/login · /register — <code>globals-components-auth.css:130-139</code> (<code>.gov-auth-hero-title</code>)</p>
+      <p>
+        CSS ตั้ง <code>font-size: 2.85rem</code> (45.6px) กับ <code>line-height: 1.12</code> (51px)
+        แต่หมึกจริงของตัวอักษรไทยแต่ละบรรทัดสูง <strong>72px</strong> เพราะต้องรองรับสระบนและวรรณยุกต์
+        ผมวัดตำแหน่งจริงทีละตัวอักษร: บรรทัดแรกจบที่ y=363 บรรทัดที่สองเริ่มที่ y=342
+      </p>
+      <p>
+        ยิ่งกว่านั้นยังตั้ง <code>letter-spacing</code> เป็น <code>-0.912px</code> ซึ่งดึงวรรณยุกต์เข้าหาตัวข้างเคียง
+        คอมเมนต์ในไฟล์ของทีมเองเตือนเรื่องนี้ไว้แล้ว
+      </p>
+      <dl class="measure">
+        <div><dt>กล่องบรรทัด</dt><dd>51.07px</dd></div>
+        <div><dt>หมึกจริง</dt><dd class="bad">72px</dd></div>
+        <div><dt>ทับกัน</dt><dd class="bad">21px</dd></div>
+        <div><dt>letter-spacing</dt><dd class="bad">-0.912px</dd></div>
+      </dl>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+<pre><code>.gov-auth-hero-title{
+  font-size: 2.85rem;
+  line-height: 1.42;      /* เดิม 1.12 → 64.8px คลุมหมึก 72px ได้พอดีขึ้น */
+  letter-spacing: 0;      /* เดิม -0.02em — ห้ามใช้ค่าติดลบกับข้อความไทย */
+}</code></pre>
+        <p>และตั้งเป็นกติกาโครงการ: หัวเรื่องไทยขนาดใหญ่ใช้ <code>line-height</code> ไม่ต่ำกว่า 1.35 เสมอ</p>
+      </div>
+    </article>
+
+    <article class="rec crit">
+      <div class="rec-head"><span class="sev crit">Critical</span><span class="id">C-09</span>
+        <h3>ราคาบนหน้าค่าธรรมเนียมสาธารณะ ใช้ฟอนต์คนละแบบกับคำว่า “บาท”</h3></div>
+      <p class="where">/pricing — <code>src/app/(marketing)/pricing/page.tsx:119</code> (<code>font-mono</code>)</p>
+      <p>
+        ตัวเลข <code>5,885</code> และ <code>29,425</code> เรนเดอร์ด้วย
+        <code>ui-monospace / Menlo / Monaco</code> ซึ่งไม่มีตัวอักษรไทยอยู่ในนั้น
+        คำว่า “บาท” จึงตกไปใช้ Sukhumvit Set ผลคือบรรทัดเดียวมีสองฟอนต์
+        ขณะที่ยอดรวมบนหัวหน้าเดียวกัน (35,310 บาท) ใช้ฟอนต์เดียวถูกต้อง
+      </p>
+      <p>
+        นี่คือหน้าที่บอกราคาค่าธรรมเนียมราชการ ตัวเลขที่ดูเหมือน output จาก terminal
+        ทำให้เอกสารดูยังไม่เสร็จ และเลขที่คนต้องเชื่อถือที่สุดคือเลขนี้
+      </p>
+      <dl class="measure">
+        <div><dt>ยอดรวมหัวหน้า</dt><dd class="ok">Sukhumvit Set</dd></div>
+        <div><dt>รายการย่อย</dt><dd class="bad">ui-monospace</dd></div>
+        <div><dt>tabular-nums</dt><dd class="bad">ไม่ได้ตั้ง</dd></div>
+        <div><dt>วิธีวัด</dt><dd>computed fontFamily</dd></div>
+      </dl>
+      <div class="fix">
+        <span class="demo-cap">วิธีแก้</span>
+        <p>สิ่งที่ต้องการจริงคือตัวเลขความกว้างเท่ากัน ไม่ใช่ฟอนต์ monospace</p>
+<pre><code>- className="font-mono text-2xl font-bold text-primary-800 ..."
++ className="tabular-nums text-2xl font-bold text-primary-800 ..."</code></pre>
+        <p>และเติม <code>tabular-nums</code> ให้ยอดรวมหัวหน้าด้วย เพื่อให้ตัวเลขทุกตัวบนหน้านี้เรียงตรงคอลัมน์เดียวกัน</p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">หลังการตรวจ</span>สิ่งที่แก้แล้ว และวัดซ้ำบนเครื่องจริง</h2>
+    <p class="lede">
+      ทุกบรรทัดในตารางนี้คือค่าที่วัดจาก <code>staging.gacpth.com</code> หลัง deploy จริง
+      ไม่ใช่ค่าที่คำนวณจากโค้ด ทั้งชุดใช้เวลาสี่รอบ เพราะสามรอบแรกวัดแล้วยังไม่ผ่าน
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>รายการ</th><th>ก่อน</th><th>หลัง</th><th>ที่แก้</th></tr></thead>
+        <tbody>
+          <tr><td>เลขบัตรที่พิมพ์ โหมดมืด</td><td class="mono" style="color:var(--crit)">1.12 : 1</td><td class="mono" style="color:var(--good)">14.76 : 1</td><td class="mono">.gov-auth-input + .field-emphasis → field token</td></tr>
+          <tr><td>รายการสิทธิ์บน /auth โหมดมืด</td><td class="mono" style="color:var(--crit)">1.02 : 1</td><td class="mono" style="color:var(--good)">12.70 : 1</td><td class="mono">--leaf-soft มีค่าโหมดมืด</td></tr>
+          <tr><td>ปุ่มรอง 404 โหมดมืด</td><td class="mono" style="color:var(--crit)">1.02 : 1</td><td class="mono" style="color:var(--good)">12.91 : 1</td><td class="mono">bg-slate-100 → bg-muted</td></tr>
+          <tr><td>ปุ่ม EN บนหน้า /accessibility</td><td class="mono" style="color:var(--crit)">1.05 : 1</td><td class="mono" style="color:var(--good)">ผ่าน</td><td class="mono">override ที่จุด mount</td></tr>
+          <tr><td>คำเตือนฉุกเฉิน หน้าสแกน QR</td><td class="mono" style="color:var(--crit)">1.09 / 1.11</td><td class="mono" style="color:var(--good)">7.60 / 5.91</td><td class="mono">text-white → text-red-800/700</td></tr>
+          <tr><td>ป้าย “รอการเชื่อมต่อ”</td><td class="mono" style="color:var(--pol)">1.71 : 1</td><td class="mono" style="color:var(--good)">ผ่าน</td><td class="mono">ink ของ chip ตรึงที่ -700</td></tr>
+          <tr><td>ผู้ยื่นครั้งแรก เห็นรายการเอกสาร</td><td class="mono" style="color:var(--crit)">0 ใบ + error เท็จ</td><td class="mono" style="color:var(--good)">ขึ้นครบ</td><td class="mono">hook มีสถานะ pending</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="tally">
+      <div><span class="n" style="color:var(--good)">17→13</span><span class="lbl">contrast fail โหมดมืด</span><span class="sub">แย่สุด 1.02 → 2.17 — ย่านที่มองไม่เห็นหายหมด</span></div>
+      <div><span class="n" style="color:var(--good)">16→4</span><span class="lbl">contrast fail โหมดสว่าง</span><span class="sub">แย่สุด 1.03 → 3.81</span></div>
+      <div><span class="n" style="color:var(--good)">2</span><span class="lbl">เครื่องกันไม่ให้กลับมา</span><span class="sub">probe 1 ตัว (selftest 6 เคส) + เทส 21 ข้อ</span></div>
+    </div>
+
+    <div class="note">
+      <p><strong>สิ่งที่การวัดซ้ำสอนได้ และการอ่านโค้ดสอนไม่ได้</strong></p>
+      <p>
+        รอบแรก deploy แล้ววัด — เลขบัตรยัง 1.12 เท่าเดิม เพราะหน้า login ไม่ได้ใช้ <code>.field-emphasis</code>
+        แต่ใช้ <code>.gov-auth-input</code> ซึ่งมี <code>background: #fff !important</code> ของตัวเอง
+        ในไฟล์ที่ไม่มี <code>.dark</code> เลยแม้แต่ที่เดียว · <strong>probe ที่ผมเพิ่งเขียนรายงาน PASS ตลอดเวลานั้น</strong>
+        เพราะผมชี้มันไปที่ไฟล์เดียว ตอนนี้มันกวาดทั้งโฟลเดอร์ และ selftest เคส F คือความพลาดครั้งนี้พอดี
+      </p>
+      <p>
+        รอบสอง: พลิกพื้นเป็นสีเข้มแล้วเปิดโปงตัวหนังสือที่ตอกสีเข้มไว้บนพื้นนั้น (2.84:1)
+        พื้นกับหมึกต้องเดินทางเป็นคู่ ไม่ใช่แก้ทีละครึ่ง · รอบสาม: ป้ายสีขาวที่ไม่เปลี่ยนตามธีม
+        ก็ไม่ควรเปลี่ยนหมึกตาม (1.71:1) — สามรอบนี้อ่านโค้ดอย่างเดียวไม่มีทางเจอ
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ระดับ 2</span>Lack of Polish — ความไม่เนี้ยบที่มองเห็นได้</h2>
+    <p class="lede">ไม่พังหน้าที่ แต่เป็นระยะห่างระหว่าง “ใช้ได้” กับ “ประณีต”</p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>รหัส</th><th>ข้อสังเกต</th><th>ตัวเลขที่วัดได้</th><th>ที่ไหน</th></tr></thead>
+        <tbody>
+          <tr><td class="mono">P-01</td><td>หน้าสแกน QR ใช้เวลา 8.3 วินาทีกว่าคำตอบจะขึ้น บนเน็ต 4G ช้า และเลย์เอาต์ขยับระหว่างรอ ผู้ซื้อยืนถือของอยู่หน้าชั้นวาง</td><td class="mono">CLS 0.19 · API 2.7s</td><td class="mono">/trace/&lt;qr&gt;</td></tr>
+          <tr><td class="mono">P-02</td><td>เข้าสู่ระบบใช้เวลา 6 วินาที และเด้งผ่าน 4 URL ผู้ใช้เห็นหน้า dashboard แวบหนึ่งก่อนถูกพาไป home</td><td class="mono">/login → /auth/health/login → /health/dashboard → /health/home</td><td class="mono">ทุกการเข้าระบบ</td></tr>
+          <tr><td class="mono">P-03</td><td>หน้ายื่นคำขอใช้เวลา 7.6 วินาทีกว่าจะเปิดได้ — เป็นงานหลักของระบบ</td><td class="mono">7,598 ms</td><td class="mono">/health/applications/new</td></tr>
+          <tr><td class="mono">P-04</td><td>ลิงก์โลโก้บนหัวเรื่องไม่มีชื่อให้โปรแกรมอ่านหน้าจอ เพราะรูปตั้ง <code>alt=""</code> และข้อความถูกซ่อนด้วย <code>display:none</code> บนมือถือ</td><td class="mono">30 จาก 31 หน้า</td><td class="mono">ทุกหน้าหลังล็อกอิน · 390px</td></tr>
+          <tr><td class="mono">P-05</td><td>ไอคอนแว่นขยายทับตัวอักษรในช่องค้นหา เพราะ <code>pl-10</code> ถูก <code>!important</code> กลืน</td><td class="mono">สั่ง 40px · ได้จริง 16px</td><td class="mono">filter-bar ทุกหน้า</td></tr>
+          <tr><td class="mono">P-06</td><td>ป้ายเมนูล่างมี contrast ต่ำกว่าเกณฑ์ AA เล็กน้อย</td><td class="mono">4.36 : 1 (เกณฑ์ 4.5)</td><td class="mono">31 หน้า · 390px</td></tr>
+          <tr><td class="mono">P-07</td><td>ปุ่มและชิปกรองขนาดเล็กกว่าเกณฑ์นิ้วมือ 44pt ของ Apple</td><td class="mono">12 จาก 33 · สูง 36px</td><td class="mono">/health/applications · 390px</td></tr>
+          <tr><td class="mono">P-08</td><td>ตารางกว้างเกินจอ ดันทั้งหน้าให้เลื่อนแนวนอน</td><td class="mono">scrollWidth 444 &gt; 390</td><td class="mono">/health/training</td></tr>
+          <tr><td class="mono">P-09</td><td>คำไทยถูกตัดกลางคำ — “ชำระค่า / ธรรมเนียม” แยกคนละบรรทัด ทั้งที่ ค่าธรรมเนียม เป็นคำเดียว</td><td class="mono">ตัดที่ตัว ธ</td><td class="mono">/auth ทั้งสอง viewport</td></tr>
+          <tr><td class="mono">P-10</td><td>Sarabun ถูกประกาศเป็นฟอนต์สำรองแต่ไม่เคยโหลดจริง ถ้า Sukhumvit Set พลาด จะตกไป Tahoma ทันที</td><td class="mono">fonts.check('Sarabun') = false</td><td class="mono">ทุกหน้า</td></tr>
+          <tr><td class="mono">P-11</td><td>สลับธีมเป็นการกระพริบทันที ไม่มี transition เลย</td><td class="mono">transition-duration: 0s</td><td class="mono">ทุกหน้า</td></tr>
+          <tr><td class="mono">P-12</td><td>สามหน้าที่เดินผ่านติดกันใช้ตราและชื่อแบรนด์คนละชุด</td><td class="mono">3 ตรา · 3 ชื่อ</td><td class="mono">/auth · /login · /register</td></tr>
+          <tr><td class="mono">P-13</td><td>หน้า payments แสดง “ไม่พบรายการชำระเงิน” เมื่อ API ตอบ 500 — บอกว่าไม่มีหนี้ ทั้งที่จริงคืออ่านไม่ได้</td><td class="mono">catch → setPayments([])</td><td class="mono">client-view.tsx:172</td></tr>
+          <tr><td class="mono">P-14</td><td>ชื่อผู้ใช้ปรากฏสองที่บนหัวเรื่องเดียวกัน ที่หนึ่งถูกตัดด้วยจุดไข่ปลา</td><td class="mono">ชิป + เมนูโปรไฟล์</td><td class="mono">ทุกหน้าหลังล็อกอิน</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ระดับ 3</span>Polish Opportunity — จากดี เป็นดีมาก</h2>
+    <p class="lede">ไม่ใช่ข้อบกพร่อง เป็นช่องที่ทำให้คนใช้แล้วรู้สึกว่ามีคนคิดมาให้</p>
+
+    <article class="rec opp">
+      <div class="rec-head"><span class="sev opp">Opportunity</span><span class="id">O-01</span>
+        <h3>อย่าถามคำถามที่มีคำตอบเดียว</h3></div>
+      <p>
+        ขั้นที่ 1 ของการยื่นคำขอมีหัวข้อ “ชนิดพืชที่ขอรับรอง” ที่มีตัวเลือกเดียวคือ กัญชา
+        แต่ยังบังคับให้ผู้ใช้กด และปุ่มถัดไปจะไม่ทำงานจนกว่าจะกด
+        อีกทั้งการ์ดใบเดียวในกริดสามคอลัมน์ทำให้เหลือที่ว่างสองช่อง ดูเหมือนโหลดไม่ครบ
+      </p>
+      <p>
+        ให้เลือกให้อัตโนมัติแล้วแสดงเป็นข้อเท็จจริง เช่น “ชนิดพืช: กัญชา — เอกสารที่ต้องแนบกำหนดตามพืชที่เลือก”
+        พร้อมลิงก์เล็ก ๆ ให้เปลี่ยนได้เมื่อมีพืชอื่นเปิดใช้ ผู้ใช้เสียคลิกน้อยลงหนึ่งครั้ง และหน้าจอตอบว่า “ระบบรู้แล้ว”
+      </p>
+    </article>
+
+    <article class="rec opp">
+      <div class="rec-head"><span class="sev opp">Opportunity</span><span class="id">O-02</span>
+        <h3>สิ่งที่ดูเหมือนปุ่มหลักที่สุดบนหน้าแรก คือสิ่งที่กดไม่ได้</h3></div>
+      <p>
+        บนหน้า <code>/auth</code> องค์ประกอบที่ใหญ่ที่สุด เขียวที่สุด และดูเหมือนปุ่มมากที่สุด
+        คือ “เข้าด้วย Health ID” กับ “เข้าด้วย Provider ID” ซึ่งทั้งคู่ติดป้าย “รอการเชื่อมต่อ” และกดไม่ได้
+        ส่วนทางที่ใช้ได้จริงคือลิงก์ตัวอักษรขีดเส้นใต้เล็ก ๆ ใต้เส้นคั่น
+      </p>
+      <p>
+        ลำดับความสำคัญทางสายตากลับด้าน ให้ลดช่องที่ยังไม่พร้อมเป็นการ์ดเทาแบน ๆ ไม่มีสีแบรนด์
+        แล้วยกช่อง “เลขบัตรประชาชน + รหัสผ่าน” ขึ้นเป็นปุ่มหลักเต็มรูปแบบ
+        เมื่อ ThaID เปิดใช้จริงค่อยสลับกลับ ตอนนี้ผู้ใช้ต้องเรียนรู้ว่า “ของสวยกดไม่ได้” ซึ่งสอนผิด
+      </p>
+    </article>
+
+    <article class="rec opp">
+      <div class="rec-head"><span class="sev opp">Opportunity</span><span class="id">O-03</span>
+        <h3>ปุ่มที่กดไม่ได้ ควรบอกว่าขาดอะไร</h3></div>
+      <p>
+        ทุกขั้นของ wizard ปิดปุ่ม “ถัดไป” เมื่อยังกรอกไม่ครบ ซึ่งถูกต้อง
+        แต่ไม่มีที่ใดบอกว่าขาดอะไร ผู้ใช้ต้องเดาเอง
+        เพิ่มข้อความเดียวข้างปุ่ม เช่น “เหลืออีก 1 รายการ: เลือกผู้ยื่นคำขอ”
+        และเมื่อครบให้ปุ่มค่อย ๆ เปลี่ยนเป็นสีเต็ม 180ms — ผู้ใช้จะรู้สึกว่าระบบตอบรับ ไม่ใช่แค่ปลดล็อก
+      </p>
+    </article>
+
+    <article class="rec opp">
+      <div class="rec-head"><span class="sev opp">Opportunity</span><span class="id">O-04</span>
+        <h3>ล้าง palette จากการสะสม ให้เหลือระบบ</h3></div>
+      <p>
+        ตอนนี้ประกาศตระกูลสีเขียวพร้อมกัน 6 ชุด รวมทั้งชุด Mantine ทั้งชุดที่คอมเมนต์ในไฟล์เองระบุว่าเป็น legacy
+        คนที่เข้ามาใหม่จะไม่รู้ว่าควรหยิบตัวไหน และนั่นคือเหตุที่ทำให้เกิดปัญหาโหมดมืดตั้งแต่แรก
+        เลือกให้เหลือสองระดับ — <code>primary</code> สำหรับข้อความและความลึก, <code>leaf</code> สำหรับการกระทำ —
+        แล้วตั้ง ESLint ห้ามอ้างชุดที่เหลือในโค้ดใหม่
+      </p>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ความเป็นธรรม</span>สิ่งที่ทำได้ดีจริง</h2>
+    <p class="lede">
+      ทุกข้อต่อไปนี้ผมพยายามทำให้พังแล้วทำไม่สำเร็จ ไม่ใช่คำชมจากการอ่านโค้ด
+    </p>
+    <div class="good-grid">
+      <div>
+        <h3>กันการกดซ้ำได้จริง</h3>
+        <p>กดปุ่มยืนยันสมัครสมาชิกรัว 4 ครั้งพร้อมกัน ระบบยิงคำขอออกไปครั้งเดียว</p>
+        <span class="m">4 คลิก → 1 POST · 201</span>
+      </div>
+      <div>
+        <h3>Focus ring ครบทุกจุด</h3>
+        <p>เดินด้วยปุ่ม Tab อย่างเดียว 14 จุด ทุกจุดเห็นกรอบโฟกัสชัดเจน ไม่มีที่ไหนถูกลบทิ้ง</p>
+        <span class="m">0 จาก 14 จุดที่ไม่มีกรอบ</span>
+      </div>
+      <div>
+        <h3>Session หมดอายุจัดการสะอาด</h3>
+        <p>ตัดคุกกี้กลางคันแล้วบังคับให้ API ตอบ 401 ระบบพากลับหน้าเข้าสู่ระบบทันที ไม่ค้างหน้าเปล่า</p>
+        <span class="m">401 → /auth/health/login</span>
+      </div>
+      <div>
+        <h3>การตรวจข้อมูลตอนสมัครดีมาก</h3>
+        <p>ข้อความไทยทุกอัน ตรวจ checksum เลขบัตรจริง ตรวจความแข็งรหัสผ่าน และกรอกชื่อยาว 300 ตัวผสมอิโมจิแล้วหน้าไม่แตก</p>
+        <span class="m">“เลขบัตรประชาชนไม่ถูกต้อง กรุณาตรวจสอบ…”</span>
+      </div>
+      <div>
+        <h3>ประตูที่ล็อกอธิบายเหตุผล</h3>
+        <p>หน้าบันทึกการปลูกไม่ได้แค่ปฏิเสธ แต่บอกว่าทำไม และให้ปุ่มไปยังสิ่งที่ต้องทำก่อน</p>
+        <span class="m">“เปิดใช้เมื่อคุณได้รับใบรับรอง GACP”</span>
+      </div>
+      <div>
+        <h3>เมนูล่างขนาดถูกต้อง</h3>
+        <p>ปุ่มเมนูล่างขนาด 78×63px เกินเกณฑ์นิ้วมือ และเนื้อหาไม่ถูกแถบทับเพราะเว้น <code>pb-24</code> ไว้แล้ว</p>
+        <span class="m">78 × 63 px · เกณฑ์ 44 × 44</span>
+      </div>
+      <div>
+        <h3>โหมดมืดของหน้าหลังล็อกอินทำถูก</h3>
+        <p>หน้าใช้งานจริงทั้งหมดออกแบบโหมดมืดไว้เรียบร้อย อ่านง่าย ไม่แสบตา ปัญหาอยู่เฉพาะหน้าประตูทางเข้า</p>
+        <span class="m">/health/* ผ่านทุกหน้า</span>
+      </div>
+      <div>
+        <h3>ใช้โครงร่างรอโหลด ไม่ใช่วงกลมหมุน</h3>
+        <p>หน่วง API 3 วินาทีแล้วดู หน้า payments และ certificates แสดงโครงร่างเนื้อหา ไม่ใช่ spinner</p>
+        <span class="m">25 skeleton · 0 spinner</span>
+      </div>
+      <div>
+        <h3>ไม่มีหน้าไหนพัง</h3>
+        <p>กวาด 55 เส้นทางด้วย 6 บทบาท ไม่พบ 404 หรือ 500 ที่ไม่ตั้งใจแม้แต่หน้าเดียว และเดสก์ท็อปไม่มีการล้นแนวนอนเลย</p>
+        <span class="m">55/55 ตอบ 200</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ลำดับการแก้</span>ทำอะไรก่อน</h2>
+    <p class="lede">
+      เรียงตามความเสียหายต่อผู้ใช้หารด้วยแรงที่ต้องลง ไม่ได้เรียงตามความยาก
+    </p>
+    <ol class="order">
+      <li>
+        <h3>ทำโหมดมืดให้จบ — นี่คือรายการเดียวที่คุ้มที่สุด</h3>
+        <p>
+          ให้ token พื้นผิวทุกตัวมีค่าคู่สำหรับโหมดมืด แล้ว C-01, C-02, C-06 และครึ่งหนึ่งของ C-05 หายพร้อมกัน
+          รวมถึงช่องกรอกเลขบัตรที่ตอนนี้พิมพ์แล้วมองไม่เห็น ซึ่งเป็นจุดที่ผู้ใช้จะเลิกใช้ทันที
+        </p>
+        <span class="cost">แก้ 4 ข้อ Critical ด้วยการแก้ไฟล์ CSS 2 ไฟล์</span>
+      </li>
+      <li>
+        <h3>ปลดล็อกผู้ยื่นคำขอครั้งแรก (C-03)</h3>
+        <p>
+          ตอนนี้เกษตรกรใหม่ทุกคนชนผนังที่ขั้นที่ 2 นี่คือทางเข้าหลักของทั้งแพลตฟอร์ม
+          และเป็นข้อที่ทำให้คนเลิกก่อนได้เห็นอะไรเลย
+        </p>
+        <span class="cost">แก้ hook เดียว · ควรมี regression test ที่เดินด้วยบัญชีที่ไม่มี draft</span>
+      </li>
+      <li>
+        <h3>ซ่อมหน้าสแกน QR สาธารณะ (C-05, C-07, P-01)</h3>
+        <p>
+          หน้านี้คือหน้าเดียวที่คนนอกเห็น ทั้งคำเตือนความปลอดภัยที่อ่านไม่ออก
+          หัวเรื่องที่ถูกบัง และความช้า 8.3 วินาที ควรจบในรอบเดียวกัน
+        </p>
+        <span class="cost">แก้สี 2 บรรทัด · แก้ layout 1 บรรทัด · ทำ API ให้เร็วขึ้นหรือ prerender</span>
+      </li>
+      <li>
+        <h3>ตั้งกติกาตัวอักษรไทย แล้วบังคับด้วยเครื่อง (C-08, P-09)</h3>
+        <p>
+          ห้าม letter-spacing ติดลบกับข้อความไทย และตั้ง line-height ขั้นต่ำ 1.35 กับหัวเรื่อง
+          เพิ่ม ESLint rule เพื่อไม่ให้กลับมาอีก เพราะทีมรู้เรื่องนี้อยู่แล้วแต่กติกาไม่มีคนบังคับ
+        </p>
+        <span class="cost">แก้ CSS 3 จุด + rule 1 ตัว</span>
+      </li>
+      <li>
+        <h3>เอา axe เข้า CI</h3>
+        <p>
+          ทุกข้อ Critical เรื่องสีในรายงานนี้ เครื่องจับได้อัตโนมัติภายในไม่กี่วินาที
+          ถ้ามีด่านนี้ตั้งแต่แรก จะไม่มีข้อไหนหลุดขึ้น production เลย
+        </p>
+        <span class="cost">ป้องกันปัญหาทั้งตระกูลนี้ถาวร</span>
+      </li>
+      <li>
+        <h3>เลือกตราแบรนด์ให้เหลือหนึ่ง (P-12)</h3>
+        <p>
+          เป็นงานตัดสินใจมากกว่างานเขียนโค้ด แต่ต้องมีคนตัดสิน
+          เพราะตอนนี้ผู้ใช้เดินผ่านสามตราในสิบวินาที
+        </p>
+        <span class="cost">ตัดสินใจ 1 ครั้ง · แก้ 3 คอมโพเนนต์</span>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      หลักฐานทั้งหมดอยู่ที่ <code>evidence/apple-qa-audit-2026-09-07/</code> —
+      ภาพหน้าจอ 113 ภาพ และรายงาน JSON 5 ไฟล์ ที่มีค่า contrast, CLS, เวลาโหลด
+      และผลตรวจ WCAG ต่อเส้นทาง เปิดตรวจซ้ำได้ทุกตัวเลข
+    </p>
+    <p>
+      ตรวจบน build <code>09dde784</code> ที่ <code>demo.gacpth.com</code> เมื่อ 7 กันยายน 2569
+      ด้วย Chromium และ axe-core 4.11.4 · บัญชีทดสอบสมัครใหม่ผ่านหน้าจอจริง ไม่ได้เขียนฐานข้อมูลตรง
+    </p>
+  </div>
+</footer>

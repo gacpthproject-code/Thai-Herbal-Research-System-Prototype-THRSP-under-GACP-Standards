@@ -1,0 +1,72 @@
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T07:05:23.471Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T07:05:23.476Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T07:05:23.478Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:46:47)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:46:47)
+
+warn: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-10-09T07:05:24.516Z"}
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+info: Loaded existing signing keys {"service":"signature-service","timestamp":"2026-10-09T07:05:24.548Z"}
+info: Signature service initialized {"service":"signature-service","timestamp":"2026-10-09T07:05:24.551Z"}
+warn: Unauthorized role access attempt {"normalizedUserRole":"document_reviewer","path":"/661fe853-de15-46c3-afb9-4d8f99a109db/revision-expirations","requiredRoles":["dispatcher","system_admin_dtam"],"service":"gacp-backend","timestamp":"2026-10-09T07:05:24.724Z","userId":"88dd610f-3e96-4ced-b4e7-6b293c01ff35","userRole":"document_reviewer"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T07:05:25.022Z"}
+PASS __tests__/integration/staff-doors-hardening-real-postgres.test.js
+  staff doors hold (real Postgres)
+    a value typed over what the screen showed masked (L1)
+      ○ skipped a partial edit of a juristic registration number the screen showed masked is refused, and nothing changes
+      ○ skipped a stored ID that itself carries an X (a passport number) is sent back unchanged and does not block the save
+    the inspector's result door answers with what it decided, not the stored row (L2)
+      ○ skipped no snapshot, no legacy creator or IP column and no filing leave with the answer
+    the field app writes only while the visit stands and is still the inspector's (L3 L4 L5)
+      ○ skipped a writer that leaves the visit flag out is still held to the visit: nothing is written once the application left it (L3)
+      ○ skipped a checklist answer racing a reassignment that commits first is refused, and nothing is written (L4)
+      ○ skipped a decision racing a reassignment waits for the application row first: no deadlock, a clean refusal, nothing decided (L5)
+    a reschedule and a reassignment never write over each other (L6 I4 I5)
+      ○ skipped the applicant's reschedule request read before a reassignment keeps the reassignment it did not see (L6)
+      ○ skipped who may ask to move a visit: a member of the holder who may act on it; nobody outside it, and not a viewer
+      ○ skipped approving a reschedule read before a reassignment is refused and the reassignment stays (L6)
+      ○ skipped the reassignment checks the new inspector's day on the visit date read under the lock (L6)
+      ○ skipped a booking that waits on a long write answers a retriable 409, not a 500 (I5)
+      ○ skipped a reassignment that rolls back leaves no audit row behind (I4)
+    expiring an overdue revision by hand stays inside the caller's organization and read scope, on the real clock (L7)
+      ✓ another organization, a role outside dispatcher and DTAM admin, or a file outside the dispatcher's read scope: nothing expires (369 ms)
+      ✓ a caller-supplied clock is not honoured: a deadline still ahead does not expire (32 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       12 skipped, 2 passed, 14 total
+Snapshots:   0 total
+Time:        2.358 s, estimated 3 s
+Ran all test suites matching __tests__/integration/staff-doors-hardening-real-postgres.test.js with tests matching "L7".

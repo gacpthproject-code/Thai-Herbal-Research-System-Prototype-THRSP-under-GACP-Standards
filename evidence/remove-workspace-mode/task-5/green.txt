@@ -1,0 +1,99 @@
+# Task 5 GREEN — billing doors read by holder (summary only, no raw jest log)
+DB: throwaway postgres:17 on 127.0.0.1:5447, prisma migrate deploy; jest -i; Node 24.21.0; NODE_OPTIONS unset.
+
+## The four Task 5 suites
+Test Suites 4 passed, 4 total · Tests 69 passed, 69 total · 0 skipped · HEALTH_READ_UNSCOPED lines in the run: 0
+- applicant-billing-holder-real-postgres: 15/15 with the witness in THROW mode for the whole file; the last test asserts no unscoped Invoice read was counted.
+- applicant-billing-membership-real-postgres: 24/24 unchanged (pre-R1 pins: co-members, stranger 403, legacy filer, soft-deleted 404, W in X+Y, PENDING, REVOKED).
+- r1-billing-doors-neutral-real-postgres: 1/1 — 576 recorded results (8 actors x 3 headers x [2 list calls + 10 invoices x 2 doors + an unknown id x 2 doors]) equal EXPECTED recorded on 9616ccdf.
+  The same file also passed on 7c13dcea before the change (billing doors unchanged since 9616ccdf).
+- applicant-billing-doors (unit): 29/29.
+
+## Related suites (every test file that requires invoice-service / invoice-helpers / invoices route / invoice-payment-handlers, plus the holder witness suites and the two earlier R1 matrices), real PG
+Test Suites: 50 passed, 50 total
+Tests:       1322 passed, 1322 total
+(0 skipped; the run rewrote evidence/payer-block/after/* as the known payer-block-matrix side effect — restored with git checkout, not committed)
+
+## Probes
+- ratchet: PASS hardcode=26 todo=53 env-direct=101 dup-source=0
+- retired-words PASS · no-skip PASS · no-secret PASS (layer1 grep 0 hits, layer2 gitleaks clean)
+- error-codes suites (source-pointers, catalog, quotation-gate, certificate-revision): 49/49 — RECEIPT_NOT_ISSUED pointer re-pointed services/invoice-service.js:627 -> :738
+- eslint on the 6 touched files: exit 0
+- signing key mtime (main checkout keys/*.pem): 1788623435  before and after
+
+## Per test (four suites)
+PASS __tests__/integration/r1-billing-doors-neutral-real-postgres.test.js
+    ✓ GET /invoices/my, the receipt door and the invoice PDF door
+PASS __tests__/integration/applicant-billing-membership-real-postgres.test.js
+      ✓ lists X's invoice in X's workspace
+      ✓ downloads X's receipt
+      ✓ downloads X's invoice PDF
+      ✓ the personal workspace does not list X's invoice
+      ✓ lists X's invoice in X's workspace
+      ✓ downloads X's receipt
+      ✓ downloads X's invoice PDF
+      ✓ the personal workspace does not list X's invoice
+      ✓ 403 on the receipt door
+      ✓ 403 on the invoice PDF door
+      ✓ 403 on the legacy invoice of another filer
+      ✓ its filer lists it in the personal workspace
+      ✓ its filer downloads its receipt
+      ✓ a company co-member does not see it
+      ✓ 404 on both owner doors, and not listed
+      ✓ X's workspace lists only X's invoice
+      ✓ Y's workspace lists only Y's invoice
+      ✓ Y's receipt and invoice PDF are allowed by membership, whichever workspace is active
+      ✓ 403 on the receipt door
+      ✓ 403 on the invoice PDF door
+      ✓ cannot list X: the X workspace is refused, the personal one does not hold X's invoice
+      ✓ 403 on the receipt door
+      ✓ 403 on the invoice PDF door
+      ✓ the personal workspace does not list X's invoice
+PASS __tests__/integration/applicant-billing-holder-real-postgres.test.js
+      ✓ personal workspace by default (no header): only the personal invoice, never the company's
+      ✓ personal workspace named in the header: only the personal invoice
+      ✓ company workspace: only the company's invoice
+      ✓ a non-member forging the company header is refused (403 ACTIVE_ENTITY_MISMATCH), no rows
+      ✓ the non-member in their own workspace sees none of the owner's invoices
+      ✓ the owner downloads the receipt of the paid company invoice: receipt title, receipt number, company buyer block
+      ✓ a stranger cannot download it (403), the template is never reached
+      ✓ an unpaid invoice has no receipt to give (409 RECEIPT_NOT_ISSUED)
+      ✓ an unknown invoice id answers 404
+      ✓ the stored receipt row is not rewritten by a download (no numbering, no regeneration)
+      ✓ co-member B lists the company invoice A filed (R1: with the company header; Task 12 drops it)
+      ✓ a stranger is refused on the invoice PDF and the receipt PDF (R1: 403 as pre-R1; R2/Task 12: 404)
+      ✓ a REVOKED member is refused (R1: 403 as pre-R1; R2/Task 12: 404)
+      ✓ a null-entity invoice stays its filer's (R1, pre-R1 filer pin; R2/Task 12: invisible, spec §3.1)
+      ✓ the witness, in throw mode for this whole file, counted no unscoped Invoice read
+PASS __tests__/unit/applicant-billing-doors.test.js
+    ✓ hands the service the request's holder scope, plus the pre-R1 identity and workspace (R1-legacy-pin)
+    ✓ no active workspace: the pre-R1 workspace is null, never a broad question
+    ✓ company workspace: the pre-R1 entity where (no filer pin) beside the fragment
+    ✓ personal workspace: the personal entity's invoices plus the caller's own entity-less ones
+    ✓ no active workspace: only the caller's own entity-less invoices, and a warning
+    ✓ the status filter is added beside the scope
+    ✓ no active workspace and no caller identity: no query at all
+    ✓ no holder scope (undefined): fail closed, no query
+    ✓ no holder scope (null): fail closed, no query
+    ✓ no holder scope ({"userId": "u"}): fail closed, no query
+    ✓ reads by id through the holder fragment (findFirst, never findUnique) and returns the row
+    ✓ not readable but live: 403 as pre-R1 (R2/Task 12: 404)
+    ✓ missing or soft-deleted: 404
+    ✓ only the filer pin when the caller has no user id; matches nothing with no identity
+    ✓ no holder scope: 404 with no query (fail closed)
+    ✓ the receipt door passes the scope and the pre-R1 identity to the gate and to the renderer
+    ✓ the invoice PDF door: refused (403) never renders
+    ✓ the invoice PDF door renders through the scoped read
+    ✓ a soft-deleted or missing invoice is 404 on both owner doors, and nothing renders
+    ✓ getForDocument with a scope adds the holder where; without one (staff, worker) it keeps { id }
+    ✓ serves the receipt PDF to the owner of a paid invoice that carries a receipt number
+    ✓ accepts the lower-case "paid" status the demo register stores
+    ✓ refuses someone else's invoice with 403 and never renders it
+    ✓ answers 404 for an invoice that does not exist
+    ✓ refuses an invoice that is unpaid with 409 RECEIPT_NOT_ISSUED
+    ✓ refuses an invoice that is paid but no receipt number yet with 409 RECEIPT_NOT_ISSUED
+    ✓ refuses an invoice that is cancelled after a receipt with 409 RECEIPT_NOT_ISSUED
+    ✓ leaves the staff receipt door behind INVOICE_VIEW_ALL (an applicant is still 403 there)
+    ✓ RECEIPT_NOT_ISSUED is a 409 in the register, as both doors answer it
+Test Suites: 4 passed, 4 total
+Tests:       69 passed, 69 total

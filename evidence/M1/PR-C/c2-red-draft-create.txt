@@ -1,0 +1,45 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    ○ skipped VIEWER is blocked with 403 CAPABILITY_DENIED
+    ○ skipped MANAGER is blocked with 403
+    ○ skipped ADMIN can submit
+    ○ skipped OWNER can submit
+    ○ skipped no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR
+    ○ skipped heals a null entityId from the personal entity, then submits in its name
+    ○ skipped asks the engine about the APPLICATION row entity, not the x-active-entity header
+    ○ skipped engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity
+    ○ skipped successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId
+  M1 — POST /draft refuses to create a draft that names no entity
+    × no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (91 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (13 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    ○ skipped writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE)
+    ○ skipped the legacy REGISTERED source state is no longer a submit path (PR 2c)
+    ○ skipped resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    ○ skipped OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write)
+    ○ skipped WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW)
+
+  ● M1 — POST /draft refuses to create a draft that names no entity › no active entity and no personal entity → 400 VALIDATION_ERROR, no row created
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 500
+
+    [0m [90m 356 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m request(app)[33m.[39mpost([32m'/api/applications/draft'[39m)[33m.[39msend({ step[33m:[39m [35m1[39m })[33m;[39m
+     [90m 357 |[39m
+    [31m[1m>[22m[39m[90m 358 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 359 |[39m         expect(r[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'VALIDATION_ERROR'[39m)[33m;[39m
+     [90m 360 |[39m         expect(applicationService[33m.[39mcreateDraftForHealth)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 361 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/applications-submit-capability-gate.test.js:358:26)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 14 skipped, 1 passed, 16 total
+Snapshots:   0 total
+Time:        2.835 s
+Ran all test suites matching /applications-submit-capability-gate/i with tests matching "POST /draft refuses".

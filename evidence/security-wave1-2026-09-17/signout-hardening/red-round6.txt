@@ -1,0 +1,120 @@
+# RED round 6 — production code at ed894a66
+  console.error
+    [AuthService] Failed to decode JWT
+
+      104 |             return;
+      105 |         }
+    > 106 |         originalError.call(console, ...args);
+          |                       ^
+      107 |     };
+      108 | });
+      109 |
+
+      at console.error (jest.setup.tsx:106:23)
+      at decodeJwtToken (src/lib/services/auth-service-jwt.ts:16:17)
+      at getJwtExpiry (src/lib/services/auth-service-jwt.ts:22:21)
+      at getMsUntilJwtExpiry (src/lib/services/auth-service-jwt.ts:34:20)
+      at AuthServiceClass.getTimeUntilExpiry (src/lib/services/auth-service.ts:292:35)
+      at AuthServiceClass.scheduleTokenRefresh (src/lib/services/auth-service.ts:566:38)
+      at AuthServiceClass.saveSession (src/lib/services/auth-service.ts:346:14)
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:187:9)
+
+FAIL src/lib/api/__tests__/sign-out-leaves-once.test.ts
+  marker บน https
+    ✓ ตั้งเป็น __Host-signed_out_reason ไม่ใช่ชื่อธรรมดา (10 ms)
+    ✓ หน้าล็อกอินรับเฉพาะชื่อ __Host- และลบทิ้งหลังอ่าน (3 ms)
+    ✓ ชื่อธรรมดาที่ใครตั้งไว้ ไม่ทำให้หน้าล็อกอินขึ้นข้อความว่าบัญชีถูกระงับ (1 ms)
+  พาออกครั้งเดียว
+    ✓ หลังเริ่มพาออกเพราะถูกระงับ 401 ที่ตามมาไม่พาไป ?expired=true (10 ms)
+    ✓ 401 ที่มาก่อน แล้วตามด้วย ACCOUNT_INACTIVE ระหว่างรอ — ปลายทางคือหน้าที่บอกเหตุผล ครั้งเดียว (8 ms)
+    ✓ 401 พร้อมกันหลายคำขอ ยิง clear-cookie ครั้งเดียวและนำทางครั้งเดียว (8 ms)
+  เหตุผลของ session ไม่อ่อนลง และหน้าต่างกันซ้ำไม่ค้าง (รีวิวรอบสามและสี่)
+    ✓ ผู้ใช้กดอยู่ต่อ (หน้าไม่ถูกปิด) — 401 ที่มาภายหลังพาออกได้อีกครั้ง (22 ms)
+    ✓ ล็อกอินใหม่ในหน้าเดิม — session ใหม่เริ่มสะอาด ไม่รับสถานะของ session ก่อน (58 ms)
+    ✓ ระหว่างที่กำลังออกอยู่ 401 ที่ตามมายังล้าง session ฝั่งเครื่อง แม้ไม่นำทางซ้ำ (9 ms)
+    ✓ กล่องถาม "ออกจากหน้านี้?" ค้างนานกว่าหน้าต่าง — 401 ที่ตามมาไม่พาไปหน้าหมดเวลา (9 ms)
+    ✓ อยู่ต่อหลังถูกพาออกเพราะบัญชีถูกระงับ — 401 ภายหลังพาไปหน้าที่บอกเหตุผลเดิม ไม่ใช่ "หมดเวลา" (14 ms)
+    ✓ หน้าหมดเวลากำลังนำทางอยู่ แล้ว ACCOUNT_INACTIVE มาถึง — เปลี่ยนปลายทางเป็นหน้าที่บอกเหตุผล พร้อม marker (8 ms)
+    ✓ เครือข่ายช้า หน้าต่างหมดก่อนหน้าเปลี่ยน — การนำทางซ้ำไปที่เดิมเท่านั้น ไม่อ่อนลงเป็น "หมดเวลา" (8 ms)
+    ✓ นาฬิกาเครื่องถูกตั้งย้อน — ไม่ทำให้หน้าต่างยืดออก (ใช้นาฬิกา monotonic) (7 ms)
+  ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่)
+    ✓ อีกคนล็อกอินจากแท็บอื่นหลังบัญชีเดิมถูกระงับ — session ของเขาหมดเวลาก็ไปหน้าหมดเวลา ไม่ใช่หน้า "ถูกระงับ" (8 ms)
+    ✓ แท็บที่ตั้ง marker เองไปจบที่หน้าล็อกอินที่ไม่มี reason — ลบ marker ทิ้ง ไม่ให้ค้าง (2 ms)
+    ✕ สองแท็บ: หน้าล็อกอินธรรมดาของอีกแท็บไม่ลบ marker ก่อนแท็บที่ตั้งมันจะไปถึงหน้าที่บอกเหตุผล (3 ms)
+    ✓ เครือข่ายช้ามาก + 401 ถี่ — การนำทางซ้ำเว้นห่างขึ้นทุกครั้ง หน้ามีโอกาสได้เปลี่ยนจริง (10 ms)
+
+  ● ไม่ส่งข้อความเท็จไปถึงคนอื่น และไม่วนนำทางไม่จบ (ข้อไม่บล็อกของรีวิวรอบสี่) › สองแท็บ: หน้าล็อกอินธรรมดาของอีกแท็บไม่ลบ marker ก่อนแท็บที่ตั้งมันจะไปถึงหน้าที่บอกเหตุผล
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "__Host-signed_out_reason"
+    Received array: []
+
+      326 |
+      327 |         expect(consumeAccountInactiveSignOut(params(''))).toBe(false);          // แท็บ 2 เปิดหน้าล็อกอินธรรมดาก่อน
+    > 328 |         expect(cookieNames()).toContain('__Host-signed_out_reason');
+          |                               ^
+      329 |
+      330 |         for (const [key, value] of Object.entries(ownFlag)) sessionStorage.setItem(key, String(value)); // กลับเป็นแท็บ 1
+      331 |         expect(consumeAccountInactiveSignOut(params('reason=account_inactive'))).toBe(true);
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:328:31)
+
+FAIL src/app/auth/_components/__tests__/suspended-account-is-told-so.test.tsx
+  ฟอร์มล็อกอินแสดง messageTh ของหลังบ้านเมื่อบัญชีถูกระงับ
+    ✓ หน้าเจ้าหน้าที่ (72 ms)
+    ✓ หน้าประชาชน (45 ms)
+  หน้าล็อกอินบอกเหตุผลเมื่อถูกพาออกเพราะบัญชีถูกระงับ
+    ✓ หน้าเจ้าหน้าที่: ?reason=account_inactive พร้อม marker แสดงข้อความก่อนผู้ใช้กดอะไร (15 ms)
+    ✓ หน้าประชาชน: ?reason=account_inactive พร้อม marker แสดงข้อความก่อนผู้ใช้กดอะไร (18 ms)
+    ✓ หน้าเจ้าหน้าที่: แสดงแล้วลบ marker — โหลดหน้าซ้ำไม่บอกซ้ำ (22 ms)
+    ✓ หน้าประชาชน: แสดงแล้วลบ marker — โหลดหน้าซ้ำไม่บอกซ้ำ (36 ms)
+    ✓ หน้าเจ้าหน้าที่: ลิงก์จากที่อื่น (มีแค่ ?reason=account_inactive ไม่มี marker) ไม่บอกว่าบัญชีถูกระงับ (9 ms)
+    ✓ หน้าประชาชน: ลิงก์จากที่อื่น (มีแค่ ?reason=account_inactive ไม่มี marker) ไม่บอกว่าบัญชีถูกระงับ (15 ms)
+    ✕ หน้าเจ้าหน้าที่: marker ของแท็บอื่นแต่ URL ไม่มีเหตุผล ไม่แสดง และไม่ลบ marker (8 ms)
+    ✕ หน้าประชาชน: marker ของแท็บอื่นแต่ URL ไม่มีเหตุผล ไม่แสดง และไม่ลบ marker (15 ms)
+    ✓ หน้าเจ้าหน้าที่: marker ที่แท็บนี้ตั้งเอง แต่ URL ไม่มีเหตุผล ไม่แสดง และลบ marker (8 ms)
+    ✓ หน้าประชาชน: marker ที่แท็บนี้ตั้งเอง แต่ URL ไม่มีเหตุผล ไม่แสดง และลบ marker (14 ms)
+    ✓ marker ค่าอื่นไม่นับ (6 ms)
+    ✓ ค่าอื่นใน reason ไม่ถูกนำมาแสดง (หน้าไม่สะท้อนข้อความจาก URL) (6 ms)
+
+  ● หน้าล็อกอินบอกเหตุผลเมื่อถูกพาออกเพราะบัญชีถูกระงับ › หน้าเจ้าหน้าที่: marker ของแท็บอื่นแต่ URL ไม่มีเหตุผล ไม่แสดง และไม่ลบ marker
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "signed_out_reason=account_inactive"
+    Received string:    "csrf_token=c21272c7-39fc-4c9f-9bea-8c3c27474488"
+
+      200 |
+      201 |         expect(container!.textContent).not.toMatch(SUSPENDED);
+    > 202 |         expect(document.cookie).toContain(`${MARKER_NAME}=account_inactive`);
+          |                                 ^
+      203 |     });
+      204 |
+      205 |     // แท็บที่ตั้ง marker เอง แต่การนำทางของมันถูกแทนที่ (ไปหน้าหมดเวลา) — marker นั้นไม่มีใครมารับแล้ว ลบทิ้ง
+
+      at src/app/auth/_components/__tests__/suspended-account-is-told-so.test.tsx:202:33
+
+  ● หน้าล็อกอินบอกเหตุผลเมื่อถูกพาออกเพราะบัญชีถูกระงับ › หน้าประชาชน: marker ของแท็บอื่นแต่ URL ไม่มีเหตุผล ไม่แสดง และไม่ลบ marker
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "signed_out_reason=account_inactive"
+    Received string:    "csrf_token=c21272c7-39fc-4c9f-9bea-8c3c27474488"
+
+      200 |
+      201 |         expect(container!.textContent).not.toMatch(SUSPENDED);
+    > 202 |         expect(document.cookie).toContain(`${MARKER_NAME}=account_inactive`);
+          |                                 ^
+      203 |     });
+      204 |
+      205 |     // แท็บที่ตั้ง marker เอง แต่การนำทางของมันถูกแทนที่ (ไปหน้าหมดเวลา) — marker นั้นไม่มีใครมารับแล้ว ลบทิ้ง
+
+      at src/app/auth/_components/__tests__/suspended-account-is-told-so.test.tsx:202:33
+
+Test Suites: 2 failed, 2 total
+Tests:       3 failed, 29 passed, 32 total
+Snapshots:   0 total
+Time:        1.916 s, estimated 2 s
+Ran all test suites matching src/lib/api/__tests__/sign-out-leaves-once.test.ts|src/app/auth/_components/__tests__/suspended-account-is-told-so.test.tsx.
+EXIT=1

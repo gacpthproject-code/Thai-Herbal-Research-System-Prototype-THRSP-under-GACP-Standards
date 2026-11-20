@@ -1,0 +1,68 @@
+RED (3rd) — tree = 60e94dee (source fix ac289c93 applied) + new fan-out test, jobs/revision-deadline-checker.js UNCHANGED: the source fix alone widens the fan-out to org C
+node v24.21.0 · NODE_OPTIONS=<unset> · SIGNING_KEY_DIR=<mktemp -d> · TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5441 (password redacted)
+$ npx jest --config jest.config.cjs __tests__/integration/without-tenant-scope-lazy.int.test.js -t fan-out
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T12:36:16.517Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T12:36:16.521Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T12:36:16.523Z"}
+[32minfo[39m: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-09-29T12:36:16.871Z"}
+[32minfo[39m: [Revision Deadline Checker] Found 1 active deadlines {"service":"gacp-backend","timestamp":"2026-09-29T12:36:16.975Z"}
+[32minfo[39m: [Revision Deadline Checker] Auto-cancelled: WTS-RD-mumnu7h46e8220 (deadline: 2026-08-30T12:36:16.867Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-09-29T12:36:17.147Z"}
+[32minfo[39m: [Revision Deadline Checker] Completed: 1 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-09-29T12:36:17.195Z"}
+FAIL __tests__/integration/without-tenant-scope-lazy.int.test.js
+  withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres)
+    S6 — last-admin guard, caller bound to org A, target in org B
+      ○ skipped service: assertNotLastActiveAdmin refuses to remove org B's only admin
+      ○ skipped real door: PATCH disabling org B's only admin answers 409 and the row stays ACTIVE
+      ○ skipped control: org C has two admins, so disabling one of them succeeds
+    platform-admin provisioning — caller bound to org A creates a user in org B
+      ○ skipped POST /api/platform-admin/organizations/:orgB/users answers 201 and the row lands in org B
+    S7 — a REVOKE stored under org B, caller bound to org A
+      ○ skipped the fixture really is a default MANAGER permission
+      ○ skipped effective permissions honour the REVOKE
+      ○ skipped revoking the member removes its grant rows (no resurrect on re-invite)
+    revision-deadline fan-out stays in the deadline's org
+      ✕ an expired deadline in org B notifies org B's dispatcher and not org C's (472 ms)
+    money path — settlement-reconcile runs with no tenant (behaviour unchanged)
+      ○ skipped stale PENDING_PAYMENT orders from every org reach the gateway question
+
+  ● withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres) › revision-deadline fan-out stays in the deadline's org › an expired deadline in org B notifies org B's dispatcher and not org C's
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      315 |             });
+      316 |             expect(await got(dispatcherB)).toBe(1);
+    > 317 |             expect(await got(dispatcherC)).toBe(0);
+          |                                            ^
+      318 |         });
+      319 |     });
+      320 |
+
+      at Object.toBe (__tests__/integration/without-tenant-scope-lazy.int.test.js:317:44)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 8 skipped, 9 total
+Snapshots:   0 total
+Time:        1.497 s, estimated 3 s
+Ran all test suites matching __tests__/integration/without-tenant-scope-lazy.int.test.js with tests matching "fan-out".
+
+Control — same test with services/tenant-context.js reverted to main 8368dfd4: passes (today's effective behaviour = fan-out scoped to the deadline's org, via the lazy-promise defect)
+$ npx jest --config jest.config.cjs __tests__/integration/without-tenant-scope-lazy.int.test.js -t fan-out
+      ✓ an expired deadline in org B notifies org B's dispatcher and not org C's (311 ms)
+Tests:       8 skipped, 1 passed, 9 total

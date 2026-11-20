@@ -1,0 +1,72 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+    [0m [90m 61 |[39m       [36mawait[39m client[33m.[39m$disconnect()[33m;[39m
+     [90m 62 |[39m     } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 63 |[39m       console[33m.[39mwarn([32m`[jest-setup] Prisma cleanup: ${e.message}`[39m)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 64 |[39m     }
+     [90m 65 |[39m   })[33m;[39m
+     [90m 66 |[39m }[0m
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/auth-providers-config.test.js
+  AUTH_PROVIDERS registry (mandate §D2)
+    √ registry มีครบ 5 provider ตาม vocab: local | healthid | providerid | thaid | mock (8 ms)
+    √ default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED), mock=enabled (non-prod) (3 ms)
+    √ isProviderEnabled defaults ตรงกับ states (3 ms)
+    √ unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN (2 ms)
+  mock ปิดบน production — บังคับใน logic ไม่ใช่แค่ default (mandate §D5)
+    √ NODE_ENV=production + AUTH_MOCK_STATE=enabled → mock ก็ยังไม่ enabled (1 ms)
+    √ non-production: mock enabled โดย default (ไม่ตั้ง env ใด) (1 ms)
+  fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment)
+    √ AUTH_PROVIDERID_STATE=enabled แต่ไม่มี config ใดเลย → ไม่ enabled + AUTH_PROVIDER_NOT_CONFIGURED (2 ms)
+    √ ขาดตัวเดียว (SECRET_KEY) ก็ fail-closed เหมือนกัน (2 ms)
+    √ ขาด PID_CLIENT_ID (client ของระบบ Provider ID — audit F1) ก็ fail-closed เหมือนกัน (2 ms)
+    √ config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field (2 ms)
+    √ ค่า state นอก vocab (เช่น "yolo") → fail-closed ไม่ enabled (2 ms)
+    √ staging_only: enabled เฉพาะ non-production (2 ms)
+    √ provider จริงที่ยัง coming_soon (healthid/providerid) → assertProviderReady โยน AUTH_PROVIDER_DISABLED (2 ms)
+    √ thaid: default enabled แต่ยังไม่มี cred → fail-closed เป็น NOT_CONFIGURED (ไม่ใช่ DISABLED) (2 ms)
+  local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended)
+    √ local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6) (1 ms)
+    √ AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5) (2 ms)
+  staging slot (GACP_DEPLOY_SLOT)
+    √ mock stays coming_soon under NODE_ENV=production with no slot marker — the real-prod lockout (2 ms)
+    √ mock enables on the staging slot even though staging runs NODE_ENV=production (3 ms)
+    √ assertProviderReady("mock") ผ่านบน staging slot — flow DEMO ต้องเดิน authorize-url ได้จริง (2 ms)
+    √ assertProviderReady("mock") ยังโยน DISABLED บน production จริง (ไม่มี marker) (3 ms)
+    √ an unexpected slot value changes nothing — only the exact string counts (2 ms)
+  getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin)
+    √ ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ (4 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+    [0m [90m 61 |[39m       [36mawait[39m client[33m.[39m$disconnect()[33m;[39m
+     [90m 62 |[39m     } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 63 |[39m       console[33m.[39mwarn([32m`[jest-setup] Prisma cleanup: ${e.message}`[39m)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 64 |[39m     }
+     [90m 65 |[39m   })[33m;[39m
+     [90m 66 |[39m }[0m
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/staging-slot-compose-pin.test.js
+  GACP_DEPLOY_SLOT placement
+    √ the staging overlay sets the marker on backend-staging (2 ms)
+    √ the production compose never mentions the marker at all (42 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       24 passed, 24 total
+Snapshots:   0 total
+Time:        2.366 s, estimated 3 s
+Ran all test suites matching /__tests__\\unit\\auth-providers-config.test.js|__tests__\\unit\\staging-slot-compose-pin.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

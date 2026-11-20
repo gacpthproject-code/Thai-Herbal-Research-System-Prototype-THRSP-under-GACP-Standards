@@ -1,0 +1,62 @@
+# Full backend suite — branch working tree, scratch postgres:17 on 127.0.0.1:55444 (146 migrations applied), fresh SIGNING_KEY_DIR, NODE_OPTIONS=--max-old-space-size=3072, npx jest --ci (maxWorkers 1)
+Test Suites: 11 failed, 2 skipped, 966 passed, 977 of 979 total
+Tests:       33 failed, 54 skipped, 12759 passed, 12846 total
+Time:        671.992 s
+
+## FAIL suites
+FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+FAIL __tests__/integration/m1-submit-enforcement.test.js
+FAIL __tests__/integration/m2a-submit-enforcement.test.js
+FAIL __tests__/integration/officer-review-round-trip.test.js
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+FAIL __tests__/integration/onsite-evidence-unfreeze.test.js
+FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+FAIL __tests__/integration/staff-scope-contract.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+FAIL __tests__/unit/renewal-fast-path.test.js
+
+## failing tests
+  ● A0 PR-1 — writer emits the canonical transition row by default, in the same tx › (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists
+  ● A0 PR-2 — per-hop invariant, real routes on real Postgres › #12 — POST /bundles/:id/submit — every linked case walks DRAFT→SUBMITTED › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  ● A0 PR-2 — per-hop invariant, real routes on real Postgres › #12 — POST /bundles/:id/submit — every linked case walks DRAFT→SUBMITTED › (2) a failure injected after the status write, before COMMIT ⇒ status unchanged AND Δ = 0
+  ● A0 PR-2 — per-hop invariant, real routes on real Postgres › #12 — POST /bundles/:id/submit — every linked case walks DRAFT→SUBMITTED › (3) firing the hop again once its own guard rejects it adds nothing
+  ● A0 PR-2 — per-hop invariant, real routes on real Postgres › #13 — POST /applications/:id/car — late CAR evidence expires the case › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  ● A0 PR-2 — per-hop invariant, real routes on real Postgres › #14 — POST /applications/:id/car — in-time CAR evidence advances to CAR_REVIEWING › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  ● A0 PR-2 — per-hop invariant, real routes on real Postgres › #7 — PATCH /admin/applications/:id/status — admin override › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  ● A0 PR-2 — per-hop invariant, real routes on real Postgres › #8/#9 — POST /submit — initial submit walks DRAFT→SUBMITTED→PENDING_DOC_FEE › (1) the hop commits ⇒ exactly one canonical row per edge it walks
+  ● M1: erasing a member never kills the farm certificate (AC4) › juristic-held cert (past retention): valid + verifiable + holder name unchanged after member erasure
+  ● M1: erasing a member never kills the farm certificate (AC4) › LEGACY_PERSON and INDIVIDUAL certs (past retention): holder name IS wiped to sentinel (person data duty wins)
+  ● M1: erasing a member never kills the farm certificate (AC4) › schema-default (live) cert: retention active, so erasure retains it — applicantName + holder name untouched, row listed in summary.retained
+  ● M1 submit enforcement (real Postgres) › AC2 — an application naming no entity is 400 VALIDATION_ERROR, audited with a null holder
+  ● M1 submit enforcement (real Postgres) › AC2 — a non-member is refused 403 ENTITY_PERMISSION_DENIED and the refusal is on the record
+  ● M1 submit enforcement (real Postgres) › AC2 — a REVOKE row wins over the grant (fail closed), still audited
+  ● M1 submit enforcement (real Postgres) › AC3 — an ACTIVE membership carrying a SUBMIT_APPLICATION GRANT is allowed, and names the entity
+  ● M2a submit enforcement (real Postgres) › AC1 — a JURISTIC filing with no document on file is refused, naming the slot
+  ● M2a submit enforcement (real Postgres) › AC1 — the same law asks nothing of an INDIVIDUAL filing
+  ● M2a submit enforcement (real Postgres) › AC2 — a client flag is not evidence, an ApplicationDocument row is
+  ● M2a submit enforcement (real Postgres) › AC3 — a rule filed after the stamp cannot refuse the resubmit
+  ● M2a submit enforcement (real Postgres) › AC3 — closing a rule stops it firing for filings made afterwards
+  ● onsite PASS through /decision auto-mints a Certificate (e2e closure) › HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)
+  ● onsite PASS through /decision auto-mints a Certificate (e2e closure) › PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application — PASS on audit-A still mints, proving the pin froze the decided row
+  ● Phase B — onsite evidence models unfreeze certificate issuance › onsite-evidence-gate + certificate issuance (the headline unfreeze) › HEADLINE: generateCertificate mints a real Certificate for an application with sufficient recorded evidence
+  ● W12-2B — the jump is recorded, never silent › an audit-trail row records the skip, the certificate and the entry state
+  ● ขอบเขตข้อมูลของพนักงานแต่ละบทบาท (real Postgres) › การเงิน (กรมฯ) — เห็นเฉพาะช่วงชีวิตของงานตัวเอง › เห็นทุกสถานะที่กติกาบอกว่าเป็นของบทบาทนี้ และไม่เห็นสถานะอื่นเลย
+  ● ขอบเขตข้อมูลของพนักงานแต่ละบทบาท (real Postgres) › การเงิน (บริษัท) — เห็นเฉพาะช่วงชีวิตของงานตัวเอง › เห็นทุกสถานะที่กติกาบอกว่าเป็นของบทบาทนี้ และไม่เห็นสถานะอื่นเลย
+  ● ขอบเขตข้อมูลของพนักงานแต่ละบทบาท (real Postgres) › ผู้จัดตาราง — เห็นเฉพาะช่วงชีวิตของงานตัวเอง › เห็นทุกสถานะที่กติกาบอกว่าเป็นของบทบาทนี้ และไม่เห็นสถานะอื่นเลย
+  ● ขอบเขตข้อมูลของพนักงานแต่ละบทบาท (real Postgres) › ผู้ตรวจแปลง — เห็นเฉพาะงานของตัวเอง ไม่ใช่ทั้งสายพาน › มอบหมายให้แล้วเห็นเฉพาะใบนั้น ไม่ใช่ใบอื่นในสถานะเดียวกัน
+  ● โซ่พนักงาน: ผู้จัดตารางมอบหมาย แล้วผู้รับต้องเห็นงานนั้น (real Postgres) › หลังผู้จัดตารางมอบหมายให้ตรวจเอกสาร คนนั้นเห็นคำขอในรายการของตัวเอง
+  ● วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 3. รับใบหนึ่ง และขอเพิ่มอีกใบพร้อมเหตุผลและวันครบกำหนดที่เป็นวันทำการ
+  ● วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 4. เกษตรกรเห็น **เฉพาะ** ใบที่ถูกขอ ไม่ใช่บันทึกภายในของใบที่รับไปแล้ว
+  ● วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 5. ส่งกลับโดยยังไม่แก้อะไร = ถูกปฏิเสธ และบอกชื่อใบที่ยังค้าง
+  ● วงจรตรวจเอกสาร: รับบาง ขอเพิ่มบาง แก้ แล้วรับ (real Postgres) › 6. แนบไฟล์ใหม่แล้วส่งกลับ = ผ่าน และคำขอกลับเข้าคิวตรวจ
+
+## Same 11 suites on the base tree (git archive HEAD 31dd3196, same DB) vs branch
+before: Tests:       33 failed, 52 passed, 85 total
+after:  Tests:       32 failed, 53 passed, 85 total
+failing tests present after but not before:
+(none above = no new failure)
+
+## skipped (jest --json on the 104 files carrying a skip pattern): numPendingTests 54, numPendingTestSuites 2
+__tests__/smoke-all-endpoints.test.js 41 — describe.skip unless SMOKE_ENABLED=true + live server (env-gated, pre-existing)
+__tests__/integration/cross-system-audit-to-cert-flow.test.js 13 — skips because ./helpers/test-db-setup was never committed (pre-existing, see file header)

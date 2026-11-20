@@ -1,0 +1,406 @@
+===================================================================
+G-04 'Schema single source' — RED / GREEN / NEGATIVE-CONTROL evidence
+captured: 2026-08-04 05:47:30Z UTC
+branch:   fix/g04-split-schema-guard
+base:     origin/main = b87e3cde
+===================================================================
+
+NOTE on G-06 (out of scope, pre-existing in this sandbox):
+  'npx prisma validate' cannot run here - the agent proxy returns 403
+  for binaries.prisma.sh, so the schema engine cannot be downloaded.
+  G-06 therefore fails in every run below, on the base commit too.
+  Baseline proof (unmodified script, clean tree): evidence/G04/baseline-before.txt
+
+===================================================================
+STEP 0 - the defect, reproduced mechanically (clean tree, base code)
+===================================================================
+$ git ls-files -- '**schema.prisma' | wc -l        <- the glob the gate uses
+0
+$ git ls-files -- '*.prisma' | wc -l               <- what actually exists
+28
+=> the gate's file list was empty, so check() always saw zero violations.
+
+===================================================================
+STEP 1 - RED (Law 3.11): two stray schemas planted, SHIPPED gate is blind
+===================================================================
+planted (git add -N so git ls-files can see them):
+  apps/backend/prisma/schema.prisma       <- the exact monolith path from
+                                             the 2026-03-12 incident (3120e673)
+  apps/web-app/prisma/models/stray.prisma <- a second schema the glob can
+                                             never match (name does not end
+                                             in 'schema.prisma')
+
+$ git ls-files -- '*.prisma' | grep -v 'apps/backend/prisma/schema/'
+apps/backend/prisma/schema.prisma
+apps/web-app/prisma/models/stray.prisma
+
+$ node scripts/ci/check-enforcement-guardrails.js   # SHIPPED code, before the fix
+╔══════════════════════════════════════════════╗
+║     Enforcement Guardrails — CI Check        ║
+╚══════════════════════════════════════════════╝
+
+G-01: No localStorage auth in provider/admin pages
+G-02: No raw fetch with Bearer + localStorage
+G-03: No duplicate role alias maps
+G-04: Schema single source (no extra schema.prisma)
+G-05: No direct req.user._id usage (use req.user.id)
+G-06: Prisma schema validation failed
+   Command failed: npx prisma validate
+Error: Failed to fetch sha256 checksum at https://binaries.prisma.sh/all_commits/605197351a3c8bdd595af2d2a9bc3025bca48ea2/debian-openssl-3.0.x/schema-engine.sha256 
+G-07: No token in provider login response body
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Results: 6 passed, 1 failed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=1
+
+>>> RED RESULT: 'G-04: Schema single source (no extra schema.prisma)' is printed
+>>> on the PASS line while TWO stray schema files are sitting in the index.
+>>> The gate reports OK on exactly the situation it was written to stop.
+
+===================================================================
+STEP 2 - RED (Law 3.11): the pin test, written before any implementation
+===================================================================
+file: apps/backend/__tests__/unit/schema-single-source-gate-teeth.test.js
+$ npx jest __tests__/unit/schema-single-source-gate-teeth.test.js   # from apps/backend
+FAIL __tests__/unit/schema-single-source-gate-teeth.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../../../scripts/ci/lib/prisma-schema-sources' from '__tests__/unit/schema-single-source-gate-teeth.test.js'
+
+      42 |     findStraySchemaFiles,
+      43 |     evaluateSchemaSources,
+    > 44 | } = require('../../../../scripts/ci/lib/prisma-schema-sources');
+         |     ^
+      45 |
+      46 | describe('G-04 gate — Prisma schema single source', () => {
+      47 |     it('points at the directory that actually holds the schema', () => {
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/schema-single-source-gate-teeth.test.js:44:5)
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        0.813 s
+Ran all test suites matching /__tests__\/unit\/schema-single-source-gate-teeth.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+===================================================================
+STEP 3 - RED, second round: module exists, gate not wired to it yet
+===================================================================
+new file: scripts/ci/lib/prisma-schema-sources.js
+check-enforcement-guardrails.js still untouched at this point, so the
+assertion that the shipped gate uses the module fails against real code.
+$ npx jest __tests__/unit/schema-single-source-gate-teeth.test.js   # from apps/backend
+    > 119 |         expect(src).toMatch(/require\('\.\/lib\/prisma-schema-sources'\)/);
+          |                     ^
+      120 |         expect(src).not.toMatch(/\*\*schema\.prisma/);
+      121 |     });
+      122 |
+
+      at Object.toMatch (__tests__/unit/schema-single-source-gate-teeth.test.js:119:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 17 passed, 18 total
+Snapshots:   0 total
+Time:        1.008 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/schema-single-source-gate-teeth.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+>>> 17 passed / 1 failed. Honest note (Law 3.11): the 17 module-level
+>>> assertions were red only as 'suite failed to run' in STEP 2 - they pin
+>>> new behaviour rather than proving a fix. The two assertions that went
+>>> red against real shipped code are STEP 1 (the gate is blind to two
+>>> planted strays) and the wiring assertion above.
+
+===================================================================
+STEP 4 - GREEN: the pin test after wiring the gate to the module
+===================================================================
+$ npx jest __tests__/unit/schema-single-source-gate-teeth.test.js   # from apps/backend
+PASS __tests__/unit/schema-single-source-gate-teeth.test.js
+  G-04 gate — Prisma schema single source
+    ✓ points at the directory that actually holds the schema (4 ms)
+    ✓ the shipped guardrail script uses this module rather than its own copy (1 ms)
+    ✓ git is the source of the file list, so untracked scratch files cannot fake a pass (13 ms)
+    catches (a second schema source, wherever it hides)
+      ✓ apps/backend/prisma/schema.prisma — the monolith that coexisted with the folder in the 2026-03-12 incident (2 ms)
+      ✓ apps/web-app/prisma/schema.prisma — a front-end copy — the old allowlist let this one through by name (1 ms)
+      ✓ packages/db/prisma/schema.prisma — a package-level second source (1 ms)
+      ✓ apps/web-app/prisma/models/stray.prisma — a stray the old glob could never match: the name does not end in schema.prisma (1 ms)
+      ✓ apps/backend/prisma/schema-v2/billing.prisma — a near-miss directory name (1 ms)
+      ✓ prisma/schema.prisma — a repo-root schema (1 ms)
+    allows (so the gate stays signal, not noise)
+      ✓ apps/backend/prisma/schema/billing.prisma — a domain file that ships today (2 ms)
+      ✓ apps/backend/prisma/schema/_base.prisma — the generator + datasource file (1 ms)
+      ✓ apps/backend/prisma/schema/payment-reconciliation.prisma — a domain file that does not exist yet — the next split must not be blocked (1 ms)
+      ✓ apps/backend/prisma/schema/billing/invoice.prisma — a nested split inside the canonical folder (1 ms)
+    never passes vacuously
+      ✓ treats an empty file list as a failure, not a pass (2 ms)
+      ✓ reports how many files it inspected when it passes (6 ms)
+      ✓ fails when a stray is present, and names it (1 ms)
+    against the real repository
+      ✓ finds the split schema — a non-empty list, all of it canonical (8 ms)
+      ✓ the tree currently has no second schema source (7 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       18 passed, 18 total
+Snapshots:   0 total
+Time:        0.968 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/schema-single-source-gate-teeth.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+===================================================================
+STEP 5 - NEGATIVE CONTROL (proposed Law 3.13): the correct tree, and
+         the closest correct thing that does not exist yet, stay green
+===================================================================
+5a. the tree as it ships - 28 files, all canonical
+$ git ls-files -- '*.prisma' | wc -l
+28
+$ node scripts/ci/check-enforcement-guardrails.js 2>&1 | grep '^G-04'
+G-04: Schema single source (28 .prisma files, all under apps/backend/prisma/schema/)
+
+5b. the next domain split - a NEW schema file that is not in the tree today,
+    same extension, same models, correct location. It must not be flagged,
+    or this gate would block the work it is supposed to protect.
+$ git ls-files -- '*.prisma' | wc -l
+29
+$ node scripts/ci/check-enforcement-guardrails.js 2>&1 | grep '^G-04'
+G-04: Schema single source (29 .prisma files, all under apps/backend/prisma/schema/)
+
+>>> NEGATIVE CONTROL RESULT: still a pass line, and the count moved 28 -> 29,
+>>> which is the proof the gate is reading the tree rather than a fixed list.
+
+===================================================================
+STEP 6a - RED against the fixed gate (first wiring): same two strays as STEP 1
+===================================================================
+$ node scripts/ci/check-enforcement-guardrails.js
+╔══════════════════════════════════════════════╗
+║     Enforcement Guardrails — CI Check        ║
+╚══════════════════════════════════════════════╝
+
+G-01: No localStorage auth in provider/admin pages
+G-02: No raw fetch with Bearer + localStorage
+G-03: No duplicate role alias maps
+G-04: Schema single source (30 .prisma files, all under apps/backend/prisma/schema/)
+   Prisma loads every file in apps/backend/prisma/schema/; a schema outside it is either dead or a competing source of truth. Move the models in, or delete the file.
+   → apps/backend/prisma/schema.prisma
+   → apps/web-app/prisma/models/stray.prisma
+
+G-05: No direct req.user._id usage (use req.user.id)
+G-06: Prisma schema validation failed
+   Command failed: npx prisma validate
+Error: Failed to fetch sha256 checksum at https://binaries.prisma.sh/all_commits/605197351a3c8bdd595af2d2a9bc3025bca48ea2/debian-openssl-3.0.x/libquery_engine.so.no
+G-07: No token in provider login response body
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Results: 5 passed, 2 failed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=1
+
+>>> RED RESULT: G-04 now fails, names both files, and says how many it read.
+>>> STEP 1 ran this exact tree state through the old code and it passed.
+
+===================================================================
+STEP 6b - RED, third round: found during GREEN that the fixed gate
+         mislabels its own failure line
+===================================================================
+The first wiring reused one description string for both outcomes, so a
+FAILING run printed '(30 .prisma files, all under apps/backend/prisma/schema/)'
+on the very line that then listed two files NOT under it. Pinned first:
+$ npx jest __tests__/unit/schema-single-source-gate-teeth.test.js   # from apps/backend
+    says what it actually did
+      ✕ claims "all canonical" only when that is true (2 ms)
+      ✕ counts the strays instead of claiming they are canonical (4 ms)
+      ✕ does not pretend to have checked anything when it found nothing (2 ms)
+    never passes vacuously
+  ● G-04 gate — Prisma schema single source › says what it actually did › claims "all canonical" only when that is true
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2 .prisma files, all under apps/backend/prisma/schema/"
+    Received: undefined
+
+      82 |                 'apps/backend/prisma/schema/billing.prisma',
+      83 |             ]);
+    > 84 |             expect(clean.summary).toBe(`2 .prisma files, all under ${CANONICAL_SCHEMA_DIR}`);
+         |                                   ^
+      85 |         });
+      86 |
+      87 |         it('counts the strays instead of claiming they are canonical', () => {
+
+      at Object.toBe (__tests__/unit/schema-single-source-gate-teeth.test.js:84:35)
+
+  ● G-04 gate — Prisma schema single source › says what it actually did › counts the strays instead of claiming they are canonical
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2 .prisma files checked, 1 outside apps/backend/prisma/schema/"
+    Received: undefined
+
+      90 |                 'apps/backend/prisma/schema.prisma',
+      91 |             ]);
+    > 92 |             expect(dirty.summary).toBe(`2 .prisma files checked, 1 outside ${CANONICAL_SCHEMA_DIR}`);
+         |                                   ^
+      93 |             expect(dirty.summary).not.toMatch(/all under/);
+      94 |         });
+      95 |
+
+      at Object.toBe (__tests__/unit/schema-single-source-gate-teeth.test.js:92:35)
+
+  ● G-04 gate — Prisma schema single source › says what it actually did › does not pretend to have checked anything when it found nothing
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "0 .prisma files found"
+    Received: undefined
+
+       95 |
+       96 |         it('does not pretend to have checked anything when it found nothing', () => {
+    >  97 |             expect(evaluateSchemaSources([]).summary).toBe('0 .prisma files found');
+          |                                                       ^
+       98 |         });
+       99 |     });
+      100 |
+
+      at Object.toBe (__tests__/unit/schema-single-source-gate-teeth.test.js:97:55)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 18 passed, 21 total
+Snapshots:   0 total
+Time:        1.01 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/schema-single-source-gate-teeth.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 18 passed, 21 total
+Snapshots:   0 total
+Time:        1.077 s
+Ran all test suites matching /__tests__\/unit\/schema-single-source-gate-teeth.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+===================================================================
+STEP 7 - GREEN: summary wording pinned, whole pin suite
+===================================================================
+$ npx jest __tests__/unit/schema-single-source-gate-teeth.test.js   # from apps/backend
+PASS __tests__/unit/schema-single-source-gate-teeth.test.js
+  G-04 gate — Prisma schema single source
+    ✓ points at the directory that actually holds the schema (3 ms)
+    ✓ the shipped guardrail script uses this module rather than its own copy (1 ms)
+    ✓ git is the source of the file list, so untracked scratch files cannot fake a pass (11 ms)
+    catches (a second schema source, wherever it hides)
+      ✓ apps/backend/prisma/schema.prisma — the monolith that coexisted with the folder in the 2026-03-12 incident (2 ms)
+      ✓ apps/web-app/prisma/schema.prisma — a front-end copy — the old allowlist let this one through by name (2 ms)
+      ✓ packages/db/prisma/schema.prisma — a package-level second source (1 ms)
+      ✓ apps/web-app/prisma/models/stray.prisma — a stray the old glob could never match: the name does not end in schema.prisma (1 ms)
+      ✓ apps/backend/prisma/schema-v2/billing.prisma — a near-miss directory name (1 ms)
+      ✓ prisma/schema.prisma — a repo-root schema (2 ms)
+    allows (so the gate stays signal, not noise)
+      ✓ apps/backend/prisma/schema/billing.prisma — a domain file that ships today (1 ms)
+      ✓ apps/backend/prisma/schema/_base.prisma — the generator + datasource file (1 ms)
+      ✓ apps/backend/prisma/schema/payment-reconciliation.prisma — a domain file that does not exist yet — the next split must not be blocked (1 ms)
+      ✓ apps/backend/prisma/schema/billing/invoice.prisma — a nested split inside the canonical folder (1 ms)
+    says what it actually did
+      ✓ claims "all canonical" only when that is true (1 ms)
+      ✓ counts the strays instead of claiming they are canonical (5 ms)
+      ✓ does not pretend to have checked anything when it found nothing (1 ms)
+    never passes vacuously
+      ✓ treats an empty file list as a failure, not a pass (1 ms)
+      ✓ reports how many files it inspected when it passes (2 ms)
+      ✓ fails when a stray is present, and names it (1 ms)
+    against the real repository
+      ✓ finds the split schema — a non-empty list, all of it canonical (8 ms)
+      ✓ the tree currently has no second schema source (6 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       21 passed, 21 total
+Snapshots:   0 total
+Time:        0.967 s, estimated 1 s
+Ran all test suites matching /__tests__\/unit\/schema-single-source-gate-teeth.test.js/i.
+
+===================================================================
+STEP 8 - RED against the FINAL gate: the same two strays as STEP 1
+===================================================================
+$ node scripts/ci/check-enforcement-guardrails.js
+╔══════════════════════════════════════════════╗
+║     Enforcement Guardrails — CI Check        ║
+╚══════════════════════════════════════════════╝
+
+G-01: No localStorage auth in provider/admin pages
+G-02: No raw fetch with Bearer + localStorage
+G-03: No duplicate role alias maps
+G-04: Schema single source (30 .prisma files checked, 2 outside apps/backend/prisma/schema/)
+   Prisma loads every file in apps/backend/prisma/schema/; a schema outside it is either dead or a competing source of truth. Move the models in, or delete the file.
+   → apps/backend/prisma/schema.prisma
+   → apps/web-app/prisma/models/stray.prisma
+
+G-05: No direct req.user._id usage (use req.user.id)
+G-06: Prisma schema validation failed
+   Command failed: npx prisma validate
+Error: Failed to fetch sha256 checksum at https://binaries.prisma.sh/all_commits/605197351a3c8bdd595af2d2a9bc3025bca48ea2/debian-openssl-3.0.x/schema-engine.sha256 
+G-07: No token in provider login response body
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Results: 5 passed, 2 failed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=1
+
+>>> RED RESULT: G-04 fails, counts what it read, counts what is misplaced,
+>>> and names both files. STEP 1 ran this exact tree state through the old
+>>> code and it printed a pass line.
+
+===================================================================
+STEP 9 - back to green after removing the two strays
+===================================================================
+$ git status --short
+ M scripts/ci/check-enforcement-guardrails.js
+?? apps/backend/__tests__/unit/schema-single-source-gate-teeth.test.js
+?? evidence/G04/
+?? scripts/ci/lib/
+$ node scripts/ci/check-enforcement-guardrails.js 2>&1 | grep '^G-04'
+G-04: Schema single source (28 .prisma files, all under apps/backend/prisma/schema/)
+
+===================================================================
+STEP 10 - the vacuous case end to end, in a throwaway git repo with
+          no .prisma file at all (the state the old gate saw daily)
+===================================================================
+$ node -e "...evaluateSchemaSources(listTrackedPrismaFiles(emptyRepo))"
+files found: 0
+{
+  "ok": false,
+  "checked": 0,
+  "strays": [],
+  "summary": "0 .prisma files found",
+  "reason": "no .prisma file found under apps/backend/prisma/schema/ — this check verified nothing"
+}
+
+>>> VACUOUS RESULT: ok=false. The old code returned an empty match list here
+>>> and check() read that as zero violations.
+
+===================================================================
+STEP 11 - final state of the gate on this branch (clean tree)
+===================================================================
+$ node scripts/ci/check-enforcement-guardrails.js
+╔══════════════════════════════════════════════╗
+║     Enforcement Guardrails — CI Check        ║
+╚══════════════════════════════════════════════╝
+
+G-01: No localStorage auth in provider/admin pages
+G-02: No raw fetch with Bearer + localStorage
+G-03: No duplicate role alias maps
+G-04: Schema single source (28 .prisma files, all under apps/backend/prisma/schema/)
+G-05: No direct req.user._id usage (use req.user.id)
+G-06: Prisma schema validation failed
+   Command failed: npx prisma validate
+Error: Failed to fetch sha256 checksum at https://binaries.prisma.sh/all_commits/605197351a3c8bdd595af2d2a9bc3025bca48ea2/debian-openssl-3.0.x/libquery_engine.so.no
+G-07: No token in provider login response body
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Results: 6 passed, 1 failed
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+exit=1
+
+>>> G-01..G-05 and G-07 pass. G-06 is the sandbox limitation described at
+>>> the top of this file: 'npx prisma validate' needs to download the schema
+>>> engine and the agent proxy answers 403. It fails identically on the base
+>>> commit with this branch's changes reverted (evidence/G04/baseline-before.txt),
+>>> so it is not a consequence of this change. Not routed around, not silenced.

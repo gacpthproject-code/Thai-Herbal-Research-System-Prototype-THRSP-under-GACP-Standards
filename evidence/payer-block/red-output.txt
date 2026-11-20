@@ -1,0 +1,95 @@
+# RED before the fix — base 5b599b78 + tests only (2026-09-27, Node 24, scratch Postgres 127.0.0.1:5434)
+
+## integration/payer-block-matrix.test.js
+    ✓ invoice — INDIVIDUAL (56 ms)
+    ✓ receipt — INDIVIDUAL (12 ms)
+    ✓ tax-invoice — INDIVIDUAL (10 ms)
+    ✓ invoice — JURISTIC (10 ms)
+    ✓ receipt — JURISTIC (10 ms)
+    ✓ tax-invoice — JURISTIC (11 ms)
+    ✕ invoice — COMMUNITY_ENTERPRISE (12 ms)
+    ✓ receipt — COMMUNITY_ENTERPRISE (8 ms)
+    ✓ tax-invoice — COMMUNITY_ENTERPRISE (10 ms)
+    ✕ credit-note — INDIVIDUAL (1870 ms)
+    ✕ debit-note — INDIVIDUAL (2229 ms)
+    ✕ credit-note — JURISTIC (2227 ms)
+    ✕ debit-note — JURISTIC (2196 ms)
+    ✕ credit-note — COMMUNITY_ENTERPRISE (2173 ms)
+    ✕ debit-note — COMMUNITY_ENTERPRISE (2204 ms)
+    ✕ quotation — INDIVIDUAL (2265 ms)
+    ✕ quotation — JURISTIC (2229 ms)
+    ✕ quotation — COMMUNITY_ENTERPRISE (2282 ms)
+Tests:       10 failed, 8 passed, 18 total
+
+## unit/payer-block-by-type.test.js
+    ✕ PAYER_ENTITY_SELECT carries what the resolver needs and never thaiCitizenId (5 ms)
+    ✕ INDIVIDUAL — labels + printed id by type (2 ms)
+    ✕ JURISTIC — labels + printed id by type (2 ms)
+    ✕ COMMUNITY_ENTERPRISE — labels + printed id by type (2 ms)
+    ✕ INDIVIDUAL entity carrying thaiCitizenId: the ID reaches no field of the result (3 ms)
+    ✕ no-entity fallback never returns a national ID (applicant.nationalId, person.idCard, person.nationalId) (1 ms)
+    ✕ no-entity fallback with no type signal at all is treated as a person — still no ID (1 ms)
+    ✕ no-entity JURISTIC fallback: a national ID under taxId is not a printable tax id (2 ms)
+    ✕ no-entity COMMUNITY fallback reads the keys the wizard writes (communityName, communityRegistrationNo) (1 ms)
+    ✕ contact phone and name come from formData.applicantData (the only place the wizard writes them) (1 ms)
+    ✕ payerBlockForApi — the shape the web renders, and nothing else (1 ms)
+    ✕ INDIVIDUAL (16 ms)
+    ✕ JURISTIC (1 ms)
+    ✕ COMMUNITY_ENTERPRISE (1 ms)
+    ✕ credit-note-service findById selects the original invoice entity through PAYER_APPLICATION_SELECT (2 ms)
+    ✕ debit-note-service findById selects the original invoice entity through PAYER_APPLICATION_SELECT (2 ms)
+    ✕ quotation.html remark line prints the name alone (1 ms)
+    ✕ apps/backend/services/pdf/invoice-template-service.js (1 ms)
+    ✕ apps/backend/services/pdf/templates/credit-note.html (1 ms)
+    ✕ apps/backend/services/pdf/templates/debit-note.html (1 ms)
+    ✓ apps/web-app/src/app/health/applications/new/_steps/steps/invoice-step.tsx (2 ms)
+    ✓ apps/web-app/src/features/permit-form/components/documents/quotation-document.tsx (1 ms)
+    ✕ the web step never reads the national ID or builds the payer from wizard state (1 ms)
+    ✕ the web quotation carries no hardcoded signatory (1 ms)
+    ✕ INDIVIDUAL (331 ms)
+    ✕ JURISTIC (65 ms)
+    ✕ COMMUNITY_ENTERPRISE (8 ms)
+    ✓ a non-owner, non-staff caller still gets nothing (the ruling is not widened) (8 ms)
+Tests:       25 failed, 3 passed, 28 total
+
+## web-app invoice-step-shows-the-server-payer.test.tsx
+    ✕ INDIVIDUAL: the server name and "-", never the national ID from wizard state (133 ms)
+    ✕ COMMUNITY_ENTERPRISE: the registration number under its own label (14 ms)
+    ✕ the signatory is the one the server sent, not a hardcoded person (12 ms)
+    ✕ no payer from the server: the block says so, it does not fall back to wizard state (10 ms)
+Tests:       4 failed, 4 total
+
+Web RED excerpt (INDIVIDUAL, wizard idCard printed as tax id; hardcoded signatory):
+เลขประจำตัวผู้เสียภาษี:1100000000008
+( นายปรีชา หนูทิม )
+
+# Fix round 1 RED (2026-09-27)
+
+## M1/M2 — unit/payer-block-by-type.test.js, 3 new cases before the resolver change
+    ✕ no-entity JURISTIC: a national-ID-shaped person.taxId → id and idPrinted both "-" (3 ms)
+    ✕ `id` always equals `idPrinted` (JURISTIC entity with a checksum-invalid id) (2 ms)
+    ✕ no-entity COMMUNITY fallback also reads communityRegNumber (1 ms)
+Tests:       3 failed, 28 passed, 31 total
+  (JURISTIC no-entity case: Expected "-" Received "1100000000008")
+
+## Gate blocker — matrix on e27c65d3, NODE_OPTIONS unset, plain `npx jest --config jest.config.cjs` (+ --forceExit)
+    ✓ invoice — INDIVIDUAL (35 ms)
+    ✓ receipt — INDIVIDUAL (11 ms)
+    ✓ tax-invoice — INDIVIDUAL (11 ms)
+    ✓ invoice — JURISTIC (13 ms)
+    ✓ receipt — JURISTIC (9 ms)
+    ✓ tax-invoice — JURISTIC (9 ms)
+    ✓ invoice — COMMUNITY_ENTERPRISE (9 ms)
+    ✓ receipt — COMMUNITY_ENTERPRISE (8 ms)
+    ✓ tax-invoice — COMMUNITY_ENTERPRISE (8 ms)
+    ✕ credit-note — INDIVIDUAL (1533 ms)
+    ✕ debit-note — INDIVIDUAL (2123 ms)
+    ✕ credit-note — JURISTIC (2095 ms)
+    ✕ debit-note — JURISTIC (2087 ms)
+    ✕ credit-note — COMMUNITY_ENTERPRISE (2090 ms)
+    ✕ debit-note — COMMUNITY_ENTERPRISE (2091 ms)
+    ✕ quotation — INDIVIDUAL (2325 ms)
+    ✕ quotation — JURISTIC (2171 ms)
+    ✕ quotation — COMMUNITY_ENTERPRISE (2167 ms)
+Tests:       9 failed, 9 passed, 18 total
+  cause: Setting up fake worker failed: "A dynamic import callback was invoked without --experimental-vm-modules" (pdf-parse inside jest)

@@ -1,0 +1,34 @@
+# Task 4 fix round 1 — RED · 2026-10-02 · real Postgres 17 on 127.0.0.1:5447 · Node v24.21.0
+
+## Matrix with the two unseeded shapes (__tests__/integration/r1-cert-doc-finance-reads-neutral-real-postgres.test.js)
+Actors A W V M S + F (filer of fC/dF on C, C membership REVOKED) + G (personal PG matched by thaiCitizenIdHash,
+no membership row; filed gP/dG). Headers none/P/C. EXPECTED recorded on e46ceba0 (separate worktree): 1474 results.
+Run on e7e7db12 (the reviewed commit, separate worktree): 3 failed / 3 tests, 0 skipped — 21 results differ:
+  COUNTER|QT-PRD numbers allocated by the doors: pre-R1 '0' -> e7e7db12 '1'
+  F|none|GET /certificates: pre-R1 '200 cert-fC' -> e7e7db12 '200 '
+  F|none|GET /certificates/:id/download|fC: pre-R1 '200' -> e7e7db12 '404'
+  F|none|GET /certificates/:id|fC: pre-R1 '200 cert-fC' -> e7e7db12 '404 -'
+  F|none|GET /certificates/my: pre-R1 '200 cert-fC' -> e7e7db12 '200 '
+  F|none|GET /quotes/my: pre-R1 '200 quote-fC' -> e7e7db12 '200 '
+  F|none|GET /report-submissions/schedule: pre-R1 '200 cert-fC' -> e7e7db12 '200 '
+  F|none|POST /report-submissions|fC: pre-R1 '201' -> e7e7db12 '404'
+  G|none|GET /:id/quotations/PLATFORM/pdf|gP: pre-R1 '200' -> e7e7db12 '404'
+  G|none|GET /:id/quotations|gP: pre-R1 '200 row' -> e7e7db12 '200 -'
+  G|none|GET /:id/requirements|gP: pre-R1 '200 docs=1 prechecks=0' -> e7e7db12 '200 docs=0 prechecks=0'
+  G|none|GET /certificates: pre-R1 '200 cert-gP' -> e7e7db12 '200 '
+  G|none|GET /certificates/:id/download|gP: pre-R1 '200' -> e7e7db12 '404'
+  G|none|GET /certificates/:id|gP: pre-R1 '200 cert-gP' -> e7e7db12 '404 -'
+  G|none|GET /certificates/my: pre-R1 '200 cert-gP' -> e7e7db12 '200 '
+  G|none|GET /quotes/my: pre-R1 '200 quote-gP' -> e7e7db12 '200 '
+  G|none|GET /report-submissions/schedule: pre-R1 '200 cert-gP' -> e7e7db12 '200 '
+  G|none|POST /:id/prechecks/:pid/acknowledge|gP: pre-R1 '200' -> e7e7db12 '404'
+  G|none|POST /:id/quotations/PLATFORM/accept|gP: pre-R1 '200' -> e7e7db12 '404'
+  G|none|POST /payments/checkout|gP: pre-R1 '200' -> e7e7db12 '409 QUOTATION_NOT_ACCEPTED'
+  G|none|POST /report-submissions|gP: pre-R1 '201' -> e7e7db12 '404'
+(the COUNTER line: the doors burned 1 extra QT-PRD number on e7e7db12 — G's quotation self-heal could not see the live row.)
+
+## application-status-writer, scoped pre-read finding nothing (unit, cert-finance-reads-carry-holder-marker)
+On e7e7db12's writer: "scoped findFirst → null ⇒ the status is written WITHOUT a formData patch" FAILED:
+  update data.formData = {"workflowState":"ASSIGNED_FOR_REVIEW","workflowStateUpdatedAt":…}  (the row's formData would be replaced)
+
+## Throw-mode guard (unit, holder-read-witness-throw-guard) — new behaviour, no guard existed: throw stayed throw in production.

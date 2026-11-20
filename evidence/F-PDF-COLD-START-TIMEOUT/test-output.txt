@@ -1,0 +1,78 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+    [0m [90m 110 |[39m
+     [90m 111 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mHEALTH_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mJWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 112 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 113 |[39m   }
+     [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/certificates/certificates.js:12:20)
+      at Object.require (__tests__/unit/certificate-download-cold-start-retry.test.js:48:28)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m   }
+     [90m 118 |[39m
+     [90m 119 |[39m   [36mconst[39m providerConfig [33m=[39m {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/certificates/certificates.js:12:20)
+      at Object.require (__tests__/unit/certificate-download-cold-start-retry.test.js:48:28)
+
+PASS __tests__/unit/certificate-download-cold-start-retry.test.js
+  F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry budget
+    √ happy path (already-warm browser, resolves immediately) → single call, 200, no retry log (8 ms)
+    √ genuine render/data error (not cold-start) → NO retry, called exactly once, 500 (3 ms)
+    √ (b) cold-start fails FAST (2s, well under the cutoff) → retry runs, succeeds → 200, two calls (6 ms)
+    √ (a) cold-start fails SLOWLY (22s — past the 20s retry cutoff, still under the 25s attempt deadline so the real rejection is what fires) → NO retry, one call, 500 (4 ms)
+    √ (c) attempt hangs indefinitely (never settles) → the route's own attempt deadline fires at 25s, classified cold-start, no dangling request — same cutoff math as (a) → no retry, one call, 500 (3 ms)
+    √ (d) double cold-start failure (fast fail + hanging retry) → total elapsed NEVER exceeds PDF_TOTAL_BUDGET_MS (3 ms)
+
+PASS __tests__/unit/pdf-cold-start-classification.test.js
+  F-PDF-COLD-START-TIMEOUT — isColdStartError (narrowed)
+    √ puppeteer TimeoutError by .name (covers both launch AND setContent/navigation timeouts) → true (retry-worthy) (1 ms)
+    √ our own route-level attempt-deadline synthetic timeout (name=TimeoutError) → true (retry-worthy) (1 ms)
+    √ browser launch failure → true (retry-worthy) (1 ms)
+    √ launch-context "Timed out after Nms" phrasing → true (retry-worthy) (1 ms)
+    √ certificate not found (data error) → false (not retry-worthy) (1 ms)
+    √ template/render TypeError → false (not retry-worthy) (1 ms)
+    √ no error object → false (not retry-worthy) (1 ms)
+    √ undefined → false (not retry-worthy) (1 ms)
+    √ generic unrelated "timeout" message, no TimeoutError name, no browser/launch context → false (not retry-worthy) (1 ms)
+    √ "Timed out after Nms" WITHOUT browser/launch context → false (not retry-worthy) (1 ms)
+    √ the word "timeout" alone is not enough → false (not retry-worthy) (1 ms)
+
+PASS __tests__/unit/pdf-generator-warmup.test.js
+  F-PDF-COLD-START-TIMEOUT — pdf-generator.service
+    √ warmUp() launches the browser and primes the render path (setContent + page.pdf ran) (6 ms)
+    √ warmUp() is fail-soft: puppeteer.launch rejects → warmUp resolves without throwing, one warn logged (3 ms)
+    √ initialize() de-dupes concurrent launches (warm-up racing a real request shares ONE puppeteer.launch call) (3 ms)
+    √ initialize() launches again on the NEXT call after a failed launch (no permanently-stuck lock) (10 ms)
+
+PASS __tests__/unit/pdf-warmup-boot-hook.test.js
+  [F-PDF-COLD-START-TIMEOUT] server.js boot hook — PDF warm-up
+    √ extractBootHookSource returns a non-empty block that calls warmUp() without awaiting it (3 ms)
+    √ boot-init invokes pdf-generator.service.warmUp() exactly once (18 ms)
+    √ warmUp() resolving logs the [boot] completion line (2 ms)
+    √ fail-soft: warmUp() rejects → boot hook does not throw, one [boot] warn logged (2 ms)
+    √ fail-soft: require() itself throws synchronously (module load failure) → outer catch logs, no crash (2 ms)
+
+Test Suites: 4 passed, 4 total
+Tests:       26 passed, 26 total
+Snapshots:   0 total
+Time:        3.838 s, estimated 4 s
+Ran all test suites matching /pdf-generator-warmup|pdf-cold-start-classification|certificate-download-cold-start-retry|pdf-warmup-boot-hook/i.

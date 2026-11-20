@@ -1,0 +1,59 @@
+=== C1 backfill: every pre-existing user has exactly one provider='local' link, subject = users.id ===
+FAIL  C1
+      ERROR:  relation "identity_links" does not exist
+LINE 3:   (SELECT count(*) FROM identity_links WHERE provider = 'loc...
+                                ^
+=== C2 UNIQUE(provider,subject) rejects a duplicate link ===
+      BEGIN
+ERROR:  relation "identity_links" does not exist
+LINE 1: INSERT INTO identity_links (id, "userId", provider, subject)
+FAIL  C2
+      duplicate was NOT rejected by identity_links_provider_subject_key
+=== C3 CHECK identity_links_provider_ck rejects providers outside local|healthid|providerid|thaid ===
+FAIL  C3[provider='bogus']
+      BEGIN
+ERROR:  relation "identity_links" does not exist
+FAIL  C3[provider='mock']
+      BEGIN
+ERROR:  relation "identity_links" does not exist
+FAIL  C3[provider='LOCAL']
+      BEGIN
+ERROR:  relation "identity_links" does not exist
+FAIL  C3[provider='']
+      BEGIN
+ERROR:  relation "identity_links" does not exist
+--- and accepts all four allowed values ---
+      BEGIN
+ERROR:  relation "identity_links" does not exist
+LINE 1: INSERT INTO identity_links (id, "userId", provider, subject)
+FAIL  C3[allowed values]
+      BEGIN
+ERROR:  relation "identity_links" does not exist
+LINE 1: INSERT INTO identity_links (id, "userId", provider, subject)
+=== C4 ON DELETE CASCADE removes the links with the user ===
+      BEGIN
+INSERT 0 1
+ERROR:  relation "identity_links" does not exist
+FAIL  C4
+      BEGIN
+INSERT 0 1
+ERROR:  relation "identity_links" does not exist
+=== C5 one user carries FOUR providers at once, and users_single_identity_ck is untouched ===
+      BEGIN
+INSERT 0 1
+ERROR:  relation "identity_links" does not exist
+FAIL  C5
+      BEGIN
+INSERT 0 1
+ERROR:  relation "identity_links" does not exist
+=== C6 (A4) session resolve through identity_links alone — no CID hash column read ===
+      ERROR:  relation "identity_links" does not exist
+LINE 2:   FROM identity_links il
+               ^
+FAIL  C6
+      ERROR:  relation "identity_links" does not exist
+LINE 2:   FROM identity_links il
+               ^
+
+checks_failed=10
+exit=1

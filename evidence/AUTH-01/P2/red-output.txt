@@ -1,0 +1,1403 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/auth-idp-routes.test.js
+  POST /api/auth/idp/:provider/authorize-url
+    ✕ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (63 ms)
+    ✕ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (22 ms)
+    ✕ mock บน NODE_ENV=production → 503 (mandate §D5 — mock ไม่มีทาง enabled บน prod) (29 ms)
+    ✕ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (16 ms)
+    ✕ mock enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (17 ms)
+    ✕ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (29 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    ✕ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (47 ms)
+    ✕ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (29 ms)
+    ✕ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (18 ms)
+    ✕ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (25 ms)
+    ✕ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (27 ms)
+    ✕ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (27 ms)
+  POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod)
+    ✕ mock บน NODE_ENV=production → 503 ปิดทั้ง endpoint (14 ms)
+    ✕ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR (27 ms)
+    ✕ happy → 200: lookup ทะเบียนด้วย hash_cid, mint ผ่าน issueTokensForAuthenticatedUser, provider_token httpOnly cookie (25 ms)
+    ✕ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (29 ms)
+    ✕ staff-not-in-registry → 403 ข้อความไทยตาม mandate §D4 + ไม่มี user.create/lookup/mint (29 ms)
+    ✕ fixture in-registry แต่ทะเบียนจริงไม่มี row → 403 เดียวกัน (match-only, no auto-provision) (24 ms)
+    ✕ เจ้าหน้าที่ status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (26 ms)
+    ✕ ผู้ใช้กด deny (fixture deny) → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (27 ms)
+    ✕ code หมดอายุ (fixture expired — เลียน 422 ของ IdP) → 401 AUTH_IDP_CODE_EXPIRED (25 ms)
+    ✕ profile ขาด field (fixture ไม่มี hash_cid) → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (27 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    ✕ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (30 ms)
+    ✕ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (23 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    ✕ mock happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(account_id) ไม่มีค่าดิบใน metadata (27 ms)
+    ✕ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (24 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    ✕ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (10 ms)
+    ✕ routes/api/index.js mount /auth/idp (3 ms)
+    ✕ server.js ครอบ /auth/idp ด้วย authLimiter ตัวเดียวกับ login (ทั้งสอง prefix) (3 ms)
+
+  ● POST /api/auth/idp/:provider/authorize-url › provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 503
+    Received: 404
+
+      159 |     it('provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed', async () => {
+      160 |         const res = await request(buildApp()).post('/api/auth/idp/thaid/authorize-url');
+    > 161 |         expect(res.status).toBe(503);
+          |                            ^
+      162 |         expect(res.body.code).toBe('AUTH_PROVIDER_DISABLED');
+      163 |     });
+      164 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:161:28)
+
+  ● POST /api/auth/idp/:provider/authorize-url › provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 503
+    Received: 404
+
+      165 |     it('provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง)', async () => {
+      166 |         const res = await request(buildApp()).post('/api/auth/idp/not-a-provider/authorize-url');
+    > 167 |         expect(res.status).toBe(503);
+          |                            ^
+      168 |         expect(res.body.code).toBe('AUTH_PROVIDER_DISABLED');
+      169 |     });
+      170 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:167:28)
+
+  ● POST /api/auth/idp/:provider/authorize-url › mock บน NODE_ENV=production → 503 (mandate §D5 — mock ไม่มีทาง enabled บน prod)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 503
+    Received: 404
+
+      172 |         process.env.NODE_ENV = 'production';
+      173 |         const res = await request(buildApp()).post('/api/auth/idp/mock/authorize-url');
+    > 174 |         expect(res.status).toBe(503);
+          |                            ^
+      175 |         expect(res.body.code).toBe('AUTH_PROVIDER_DISABLED');
+      176 |     });
+      177 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:174:28)
+
+  ● POST /api/auth/idp/:provider/authorize-url › SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 503
+    Received: 404
+
+      179 |         delete process.env.SESSION_SECRET;
+      180 |         const res = await request(buildApp()).post('/api/auth/idp/mock/authorize-url');
+    > 181 |         expect(res.status).toBe(503);
+          |                            ^
+      182 |         expect(res.body.code).toBe('AUTH_STATE_SECRET_MISSING');
+      183 |     });
+      184 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:181:28)
+
+  ● POST /api/auth/idp/:provider/authorize-url › mock enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      185 |     it('mock enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที', async () => {
+      186 |         const { res, stateCookieFull, state } = await beginFlow(buildApp());
+    > 187 |         expect(res.status).toBe(200);
+          |                            ^
+      188 |         expect(res.body.data.authorizeUrl).toContain('/auth/mock-idp/authorize?');
+      189 |         // mandate §D3: ≥128bit — implementation ใช้ 32 bytes = 64 hex chars
+      190 |         expect(state).toMatch(/^[0-9a-f]{64,}$/);
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:187:28)
+
+  ● POST /api/auth/idp/:provider/authorize-url › state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน
+
+    expect(received).toBeTruthy()
+
+    Received: null
+
+      201 |         const first = await beginFlow(app);
+      202 |         const second = await beginFlow(app);
+    > 203 |         expect(first.state).toBeTruthy();
+          |                             ^
+      204 |         expect(first.state).not.toBe(second.state);
+      205 |     });
+      206 | });
+
+      at Object.toBeTruthy (__tests__/unit/auth-idp-routes.test.js:203:29)
+
+  ● callback state anti-CSRF (mandate §D3; auditor แกน 3) › (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      215 |             .set('Cookie', stateCookie)
+      216 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY });
+    > 217 |         expect(res.status).toBe(400);
+          |                            ^
+      218 |         expect(res.body.code).toBe('AUTH_STATE_INVALID');
+      219 |         expect(findAuditCall('FAILURE', 'STATE_INVALID')).toBeTruthy();
+      220 |         expect(mockIssueTokens).not.toHaveBeenCalled();
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:217:28)
+
+  ● callback state anti-CSRF (mandate §D3; auditor แกน 3) › (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      228 |             .set('Cookie', stateCookie)
+      229 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state: 'f'.repeat(64) });
+    > 230 |         expect(res.status).toBe(400);
+          |                            ^
+      231 |         expect(res.body.code).toBe('AUTH_STATE_INVALID');
+      232 |         expect(mockIssueTokens).not.toHaveBeenCalled();
+      233 |     });
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:230:28)
+
+  ● callback state anti-CSRF (mandate §D3; auditor แกน 3) › (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      241 |         const agent = request.agent(app);
+      242 |         const first = await agent.post('/api/auth/idp/mock/authorize-url');
+    > 243 |         expect(first.status).toBe(200);
+          |                              ^
+      244 |         const query = String(first.body.data.authorizeUrl).split('?')[1];
+      245 |         const state = new URLSearchParams(query).get('state');
+      246 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:243:30)
+
+  ● callback state anti-CSRF (mandate §D3; auditor แกน 3) › ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      265 |             .post('/api/auth/idp/mock/callback')
+      266 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+    > 267 |         expect(res.status).toBe(400);
+          |                            ^
+      268 |         expect(res.body.code).toBe('AUTH_STATE_INVALID');
+      269 |     });
+      270 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:267:28)
+
+  ● callback state anti-CSRF (mandate §D3; auditor แกน 3) › cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      278 |             .set('Cookie', tampered)
+      279 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+    > 280 |         expect(res.status).toBe(400);
+          |                            ^
+      281 |         expect(res.body.code).toBe('AUTH_STATE_INVALID');
+      282 |     });
+      283 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:280:28)
+
+  ● callback state anti-CSRF (mandate §D3; auditor แกน 3) › state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      291 |             .set('Cookie', stateCookie)
+      292 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+    > 293 |         expect(res.status).toBe(400);
+          |                            ^
+      294 |         expect(res.body.code).toBe('AUTH_STATE_INVALID');
+      295 |     });
+      296 | });
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:293:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › mock บน NODE_ENV=production → 503 ปิดทั้ง endpoint
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 503
+    Received: 404
+
+      303 |             .post('/api/auth/idp/mock/callback')
+      304 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state: 'x' });
+    > 305 |         expect(res.status).toBe(503);
+          |                            ^
+      306 |         expect(res.body.code).toBe('AUTH_PROVIDER_DISABLED');
+      307 |     });
+      308 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:305:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      314 |             .set('Cookie', stateCookie)
+      315 |             .send({ state });
+    > 316 |         expect(res.status).toBe(400);
+          |                            ^
+      317 |         expect(res.body.code).toBe('VALIDATION_ERROR');
+      318 |     });
+      319 |
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:316:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › happy → 200: lookup ทะเบียนด้วย hash_cid, mint ผ่าน issueTokensForAuthenticatedUser, provider_token httpOnly cookie
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      329 |             .set('Cookie', stateCookie)
+      330 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+    > 331 |         expect(res.status).toBe(200);
+          |                            ^
+      332 |         // resolver ต้อง match ทะเบียนด้วย hash_cid ของ profile (mock fixture "happy")
+      333 |         expect(mockFindByHash).toHaveBeenCalledWith(mockHashCidOf('happy'));
+      334 |         expect(mockIssueTokens).toHaveBeenCalledTimes(1);
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:331:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      352 |             .set('Cookie', stateCookie)
+      353 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+    > 354 |         expect(res.status).toBe(200);
+          |                            ^
+      355 |         const bodyJson = JSON.stringify(res.body);
+      356 |         expect(bodyJson).not.toContain('signed.mock.session.token');
+      357 |         expect(bodyJson).not.toContain('signed.mock.refresh');
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:354:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › staff-not-in-registry → 403 ข้อความไทยตาม mandate §D4 + ไม่มี user.create/lookup/mint
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 404
+
+      365 |             .set('Cookie', stateCookie)
+      366 |             .send({ code: MOCK_FIXTURE_CODES.STAFF_NOT_IN_REGISTRY, state });
+    > 367 |         expect(res.status).toBe(403);
+          |                            ^
+      368 |         expect(res.body.code).toBe('AUTH_PROVIDERID_NOT_FOUND');
+      369 |         expect(res.body.messageTh).toBe('ไม่พบข้อมูลเจ้าหน้าที่ กรุณาติดต่อผู้ดูแลระบบ');
+      370 |         // auditor check #4: no auto-provision — ห้ามสร้าง user ทุกกรณี
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:367:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › fixture in-registry แต่ทะเบียนจริงไม่มี row → 403 เดียวกัน (match-only, no auto-provision)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 404
+
+      383 |             .set('Cookie', stateCookie)
+      384 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+    > 385 |         expect(res.status).toBe(403);
+          |                            ^
+      386 |         expect(res.body.code).toBe('AUTH_PROVIDERID_NOT_FOUND');
+      387 |         expect(mockPrismaUser.create).not.toHaveBeenCalled();
+      388 |         expect(mockIssueTokens).not.toHaveBeenCalled();
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:385:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › เจ้าหน้าที่ status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 404
+
+      397 |             .set('Cookie', stateCookie)
+      398 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+    > 399 |         expect(res.status).toBe(403);
+          |                            ^
+      400 |         expect(res.body.code).toBe('ACCOUNT_INACTIVE');
+      401 |         expect(mockIssueTokens).not.toHaveBeenCalled();
+      402 |     });
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:399:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › ผู้ใช้กด deny (fixture deny) → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 403
+    Received: 404
+
+      409 |             .set('Cookie', stateCookie)
+      410 |             .send({ code: MOCK_FIXTURE_CODES.DENY, state });
+    > 411 |         expect(res.status).toBe(403);
+          |                            ^
+      412 |         expect(res.body.code).toBe('AUTH_IDP_ACCESS_DENIED');
+      413 |         expect(findAuditCall('FAILURE', 'AUTH_IDP_ACCESS_DENIED')).toBeTruthy();
+      414 |     });
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:411:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › code หมดอายุ (fixture expired — เลียน 422 ของ IdP) → 401 AUTH_IDP_CODE_EXPIRED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 404
+
+      421 |             .set('Cookie', stateCookie)
+      422 |             .send({ code: MOCK_FIXTURE_CODES.EXPIRED, state });
+    > 423 |         expect(res.status).toBe(401);
+          |                            ^
+      424 |         expect(res.body.code).toBe('AUTH_IDP_CODE_EXPIRED');
+      425 |         expect(findAuditCall('FAILURE', 'AUTH_IDP_CODE_EXPIRED')).toBeTruthy();
+      426 |     });
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:423:28)
+
+  ● POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod) › profile ขาด field (fixture ไม่มี hash_cid) → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 502
+    Received: 404
+
+      433 |             .set('Cookie', stateCookie)
+      434 |             .send({ code: MOCK_FIXTURE_CODES.PROFILE_MISSING_FIELD, state });
+    > 435 |         expect(res.status).toBe(502);
+          |                            ^
+      436 |         expect(res.body.code).toBe('AUTH_IDP_PROFILE_INCOMPLETE');
+      437 |         expect(findAuditCall('FAILURE', 'PROFILE_INCOMPLETE')).toBeTruthy();
+      438 |         expect(mockIssueTokens).not.toHaveBeenCalled();
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:435:28)
+
+  ● POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID) › profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 404
+
+      473 |             .set('Cookie', stateCookie)
+      474 |             .send({ code: 'real-authorization-code', state });
+    > 475 |         expect(res.status).toBe(409);
+          |                            ^
+      476 |         expect(res.body.code).toBe('AUTH_LINKING_PENDING');
+      477 |         expect(typeof res.body.messageTh).toBe('string');
+      478 |         expect(res.body.messageTh.length).toBeGreaterThan(0);
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:475:28)
+
+  ● POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID) › IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 502
+    Received: 404
+
+      498 |             .set('Cookie', stateCookie)
+      499 |             .send({ code: 'real-authorization-code', state });
+    > 500 |         expect(res.status).toBe(502);
+          |                            ^
+      501 |         expect(res.body.code).toBe('AUTH_IDP_UNAVAILABLE');
+      502 |         expect(findAuditCall('FAILURE', 'AUTH_IDP_UNAVAILABLE')).toBeTruthy();
+      503 |     });
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:500:28)
+
+  ● audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3) › mock happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(account_id) ไม่มีค่าดิบใน metadata
+
+    expect(received).toBeTruthy()
+
+    Received: undefined
+
+      518 |             .send({ code: MOCK_FIXTURE_CODES.HAPPY, state });
+      519 |         const success = findAuditCall('SUCCESS');
+    > 520 |         expect(success).toBeTruthy();
+          |                         ^
+      521 |         expect(success[0]).toBe('IDP_LOGIN_SUCCESS');
+      522 |         expect(success[1]).toBe(STAFF_ROW.id);
+      523 |         expect(success[6].provider).toBe('mock');
+
+      at Object.toBeTruthy (__tests__/unit/auth-idp-routes.test.js:520:25)
+
+  ● audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3) › ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ
+
+    expect(received).toBeTruthy()
+
+    Received: undefined
+
+      537 |             .send({ code: MOCK_FIXTURE_CODES.STAFF_NOT_IN_REGISTRY, state });
+      538 |         const failure = findAuditCall('FAILURE', 'STAFF_NOT_IN_REGISTRY');
+    > 539 |         expect(failure).toBeTruthy();
+          |                         ^
+      540 |         expect(failure[0]).toBe('IDP_LOGIN_FAILURE');
+      541 |         expect(failure[6].provider).toBe('mock');
+      542 |         expect(failure[6].subjectHash).toBe(sha256('mock-account-staff-not-in-registry'));
+
+      at Object.toBeTruthy (__tests__/unit/auth-idp-routes.test.js:539:25)
+
+  ● wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21) › CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      549 |         const { DEFAULT_BYPASS_PATTERNS } = require('../../middleware/csrf-middleware');
+      550 |         const bypassed = (p) => DEFAULT_BYPASS_PATTERNS.some((rx) => rx.test(p));
+    > 551 |         expect(bypassed('/api/auth/idp/mock/authorize-url')).toBe(true);
+          |                                                              ^
+      552 |         expect(bypassed('/api/v1/auth/idp/mock/authorize-url')).toBe(true);
+      553 |         expect(bypassed('/api/auth/idp/providerid/callback')).toBe(true);
+      554 |         expect(bypassed('/api/v1/auth/idp/providerid/callback')).toBe(true);
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:551:62)
+
+  ● wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21) › routes/api/index.js mount /auth/idp
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /router\.use\('\/auth\/idp'/
+    Received string:  "const express = require('express');
+    const router = express.Router();·
+    // Guards for the operational endpoints defined directly on this router.
+    const { authenticateProvider } = require('../../middleware/auth-middleware');
+    const { requireAdmin } = require('../../middleware/require-admin');·
+    // ─────────────────────────────────────────────────
+    // Import route modules — organized by domain
+    // ─────────────────────────────────────────────────·
+    // Auth
+    const authHealthRouter = require('./auth/auth-health');
+    const authProviderRouter = require('./auth/auth-provider');
+    const publicRouter = require('./auth/public');·
+    // Applications
+    const applicationsRouter = require('./applications/applications');
+    const validationRouter = require('./applications/validation');
+    const criteriaRouter = require('./applications/criteria');·
+    // Finance
+    const invoicesRouter = require('./finance/invoices');
+    const paymentsRouter = require('./finance/payments');
+    const quotesRouter = require('./finance/quotes');
+    const accountingRouter = require('./finance/accounting');·
+    // Audit
+    const auditsRouter = require('./audit/audits');·
+    // Cultivation
+    const plantingCyclesRouter = require('./cultivation/planting-cycles');
+    const cultivationLogsRouter = require('./cultivation/cultivation-logs');
+    const harvestBatchesRouter = require('./cultivation/harvest-batches');
+    const farmsRouter = require('./cultivation/farms');·
+    // Trace
+    const traceRouter = require('./trace/trace');
+    const lotsRouter = require('./trace/lots');·
+    // Certificates
+    const certificatesRouter = require('./certificates/certificates');·
+    // Identity
+    const consentRouter = require('./identity/consent');·
+    // System
+    const notificationsRouter = require('./system/notifications');
+    const ticketsRouter = require('./system/tickets');
+    const configRouter = require('./system/config');
+    const dashboardRouter = require('./system/dashboard');
+    const providerDirectoryRouter = require('./system/provider');
+    const providerOperationsRouter = require('./provider/index');·
+    // Documents
+    const documentsRouter = require('./documents/documents');·
+    const { auditMiddleware } = require('../../middleware/audit-middleware');
+    const { ENTITIES } = require('../../services/audit-trail');·
+    // ─────────────────────────────────────────────────
+    // Mount routes (Canonical Surface)
+    // ─────────────────────────────────────────────────·
+    // System & Identity
+    router.use('/notifications', notificationsRouter);
+    router.use('/tickets', ticketsRouter);
+    router.use('/config', configRouter);
+    router.use('/system-config', require('./system/system-config-routes'));
+    router.use('/dashboard', dashboardRouter);
+    router.use('/system', require('./system/system'));
+    router.use('/cron', require('./system/cron'));
+    router.use('/sync', require('./system/sync'));
+    // E2E routes — NEVER loaded in production to eliminate attack surface.
+    // Primary gate (this conditional require) keeps the module out of the request
+    // graph entirely; the e2e router itself also has a 404 fallback middleware as
+    // defense-in-depth. Together they ensure production cannot reach the
+    // e2e-controller, which performs bulk DB operations and is intended only for
+    // dev/UAT/test harnesses.
+    if (process.env.NODE_ENV !== 'production') {
+        router.use('/e2e', require('./system/e2e'));
+    }
+    router.use('/master-data', require('./system/master-data'));
+    router.use('/analytics', require('./system/analytics'));
+    router.use('/subscription', require('./system/subscription'));
+    router.use('/mfa', require('./identity/mfa'));
+    router.use('/consent', consentRouter);·
+    // Iter 27 (PDPA right-to-forget, 2026-05-16): PDPA ม.32 erasure endpoint
+    // pair. HEALTH self-service request → confirm with email-delivered token;
+    // executeErasure anonymises User PII + Application.formData PII leaves
+    // + Certificate display fields, while PRESERVING tax/accounting records
+    // (Invoice / JournalEntry / PaymentSlip / AuditLog) per ม.87/3 ป.รัษฎากร
+    // 7-year retention. ADMIN-only list view for compliance triage.
+    router.use('/pdpa/erasure', require('./pdpa/erasure'));·
+    // Entities (Wave C — workspace-switcher surface; entity-listing + audit)
+    router.use('/entities', require('./entities/index'));·
+    // Auth
+    router.use('/auth/health', authHealthRouter);
+    router.use('/auth/provider', authProviderRouter);
+    router.use('/public', publicRouter);·
+    // Provider Operations
+    const providerRouter = express.Router();
+    providerRouter.use(auditMiddleware({ entityType: ENTITIES.SYSTEM }));
+    providerRouter.use('/', providerOperationsRouter);
+    providerRouter.use('/directory', providerDirectoryRouter); // Mounted explicitly at /directory to prevent clashes
+    router.use('/provider', providerRouter);·
+    // Platform-Admin (cross-tenant) — ADR-014 multi-tenancy admin surface.
+    // All handlers wrap their Prisma calls in withoutTenantScope().
+    router.use('/platform-admin/organizations', require('./platform-admin/organizations'));·
+    // Applications (consolidated domain — new canonical paths + legacy aliases)
+    const appConsolidated = express.Router();
+    appConsolidated.use('/car', require('./applications/applications-car'));
+    appConsolidated.use('/config', require('./applications/applications-config'));
+    appConsolidated.use('/validate', validationRouter);                    // NEW: /api/applications/validate
+    appConsolidated.use('/calculations', require('./applications/calculations'));  // NEW: /api/applications/calculations
+    appConsolidated.use('/revision-deadline', require('./applications/revision-deadline'));
+    appConsolidated.use('/bundles', require('./applications/application-bundles'));  // NEW: /api/applications/bundles
+    appConsolidated.use('/journey', require('./applications/journey'));  // NEW: /api/applications/journey
+    // Iter 26 (renewal workflow, 2026-05-16): annual re-certification.
+    // HEALTH applicant POSTs originalCertificateId; service validates
+    // ownership + ACTIVE status and creates a DRAFT renewal application
+    // with carry-forward farm/cultivation data. Provider/admin GET
+    // upcoming-expiry feeds the renewal-reminder cron's reverse view.
+    // Mounted BEFORE the catch-all '/:applicationId/...' sub-router so
+    // '/renewals' resolves to its own handler instead of being parsed as
+    // an applicationId.
+    appConsolidated.use('/renewals', require('./applications/renewals'));
+    // Tier 18 / B18-A (2026-05-16) — quotation sub-router under
+    // /api/applications/:applicationId/quotations. The router uses
+    // mergeParams:true so :applicationId from this mount propagates inside.
+    appConsolidated.use('/:applicationId/quotations', require('./applications/quotations'));
+    appConsolidated.use('/', applicationsRouter);                          // Main CRUD
+    router.use('/applications', appConsolidated);·
+    // Legacy application route aliases (backward compat — will be removed in v4)
+    router.use('/validation', validationRouter);
+    router.use('/calculations', require('./applications/calculations'));
+    router.use('/criteria', criteriaRouter);
+    router.use('/cultivation-config', require('./applications/journey'));
+    router.use('/revision-deadline', require('./applications/revision-deadline'));
+    router.use('/application-bundles', require('./applications/application-bundles'));·
+    // Finance
+    router.use('/invoices', invoicesRouter);
+    router.use('/pricing', require('./finance/pricing'));
+    router.use('/payments', paymentsRouter);
+    router.use('/payments/bank-accounts', require('./finance/bank-accounts'));
+    router.use('/payments/slip', require('./finance/payment-slips'));
+    // Wave 2 — Stripe webhook (design v2 §5.5). Reached as /api/v1/webhooks/stripe
+    // through the /api/v1 alias (and /api/webhooks/stripe unversioned). No auth
+    // middleware: authenticity is the stripe-signature HMAC over the raw body.
+    router.use('/webhooks', require('./webhooks/stripe'));
+    // Two-card payment flow (B18-B, 2026-05-16): read-only issuer + bank
+    // channel lookup sourced from `config/invoice-issuers.js`. Frontend
+    // PaymentInvoiceCard calls this per-invoice so each card displays the
+    // right bank + QR for its issuer (DTAM vs PLATFORM).
+    router.use('/finance/issuers', require('./finance/issuers'));
+    router.use('/quotes', quotesRouter);
+    router.use('/accounting', accountingRouter);
+    // B15-B (audit-evidence, 2026-05-16): monthly bank-reconciliation
+    // dump for finance closing + DTAM auditor inspection. ACCOUNT,
+    // AUDITOR, ADMIN only — every call is itself audit-logged per
+    // Thai e-Transactions Act §31.
+    router.use('/finance/reconciliation', require('./finance/reconciliation'));
+    // B19-C (tax/compliance, 2026-05-16): ภ.พ.30 Output-VAT monthly
+    // report + RD e-Filing CSV export + period-closable check.
+    // ACCOUNT_PLATFORM, AUDITOR, ADMIN only — ACCOUNT_DTAM is denied
+    // (VAT is platform-side; DTAM state revenue is VAT-exempt per
+    // ป.รัษฎากร ม.77/1 (10)). Every call is VAT_REPORT_EXPORTED audited.
+    router.use('/finance/tax-reports', require('./finance/tax-reports'));
+    // Iter 26 (Ralph Loop, 2026-05-16): WHT (Withholding Tax 3%) STUB —
+    // records ทบ.50 ทวิ certificates that corporate buyers mail to
+    // platform finance + computes indicative 3% amounts. Per
+    // ป.รัษฎากร ม.50 + ม.69 ทวิ the PAYER (buyer) does the actual
+    // withholding + ภ.ง.ด.53 remittance; the platform (seller) only
+    // RECEIVES the certificate. Auto-deduction at point of sale + the
+    // monthly ภ.ง.ด.53 pipeline are intentionally deferred — see
+    // docs/tax/wht-stub-2026-05-16.md. Roles: ACCOUNT_PLATFORM + ADMIN
+    // for write, AUDITOR additionally allowed for read.
+    router.use('/finance/wht', require('./finance/wht'));
+    // B19-B (financial-reports, 2026-05-16): TFRS for NPAEs core
+    // statements — Trial Balance, P&L, Balance Sheet, General Ledger.
+    // Reads JournalEntry/JournalLine; ACCOUNT_PLATFORM, AUDITOR, ADMIN
+    // only (DTAM books live in กรมบัญชีกลาง systems, not on the platform's
+    // books — 9xxx suspense excluded by the aggregator). Every call is
+    // FINANCE_REPORT_EXPORTED audited per Thai e-Transactions Act §31.
+    router.use('/finance/reports', require('./finance/reports'));
+    // B20-A (credit/debit notes, 2026-05-16): ใบลดหนี้ (ม.86/10) +
+    // ใบเพิ่มหนี้ (ม.86/9) corrections to a previously issued PLATFORM full
+    // tax invoice. ACCOUNT_PLATFORM + ADMIN only for write paths; AUDITOR
+    // allowed for read paths (role + tenant scope enforced inside the
+    // services). Every mutation audit-logs via auditLogger as
+    // CREDIT_NOTE_* / DEBIT_NOTE_* actions per Thai e-Transactions Act §31.
+    router.use('/finance/credit-notes', require('./finance/credit-notes'));
+    router.use('/finance/debit-notes', require('./finance/debit-notes'));
+    // Iter 26 (purchase invoices / Input VAT, 2026-05-16): ใบกำกับภาษีซื้อ
+    // tracking so ภ.พ.30 monthly filing includes the Input VAT side per
+    // ป.รัษฎากร ม.82/3 + ม.82/4 + ม.83/8. ACCOUNT_PLATFORM + ADMIN can
+    // create / approve / reject / mark-paid; AUDITOR sees reads. Each
+    // approval writes the Input VAT journal entry (Dr Input VAT,
+    // Cr Cash / AP) so the trial balance + ภ.พ.30 reconcile. Audit-logged
+    // per Thai e-Transactions Act §31.
+    router.use('/finance/purchase-invoices', require('./finance/purchase-invoices'));
+    // Iter 23 (refund orchestration, 2026-05-16): refund flow that wraps
+    // credit-note (ม.86/10) creation + issue + post into a single transaction,
+    // then notifies the applicant via notification-fanout-service. Scope is
+    // PLATFORM-side only — STATE invoice refunds route through Treasury's
+    // กรมบัญชีกลาง refund process. Initiate/status: ACCOUNT_PLATFORM + ADMIN;
+    // cancel: ADMIN only (separation of duties).
+    router.use('/finance/refunds', require('./finance/refunds'));
+    // B20-C (daily-ops, 2026-05-16): รายงานเงินสดรับประจำวัน. ACCOUNT_DTAM
+    // sees DTAM side only, ACCOUNT_PLATFORM sees PLATFORM only, ADMIN /
+    // AUDITOR see BOTH. PDPA-masked applicant fields. Every call is
+    // DAILY_CASH_REPORT_VIEWED audited per Thai e-Transactions Act §31.
+    router.use('/finance/daily-cash', require('./finance/daily-cash'));
+    // B20-C (manual journal-entry workflow, 2026-05-16): DRAFT → APPROVED
+    // → POSTED for non-slip-driven entries. Separation-of-duties enforced
+    // at the service layer (approver ≠ creator) per TFRS for NPAEs ch.2.
+    router.use('/finance/manual-journal-entries', require('./finance/manual-journal-entries'));
+    // Iter 24 (period close, 2026-05-16): monthly accounting-period close
+    // workflow per TFRS for NPAEs ch.5. Once a (organizationId, year, month)
+    // triple is CLOSED, the journal-entry layer REJECTS new entries whose
+    // entryDate falls inside that period — preventing back-dating fraud.
+    // Close: ACCOUNT_PLATFORM + ADMIN. Reopen: ADMIN-only with separation-
+    // of-duties enforced (reopener MUST differ from original closer). Every
+    // state transition is audit-logged per Thai e-Transactions Act §31.
+    router.use('/finance/period-close', require('./finance/period-close'));
+    // B20-D (customer-reports, 2026-05-16): Customer Statement
+    // (สรุปยอดลูกค้า) + AR Aging (รายงานลูกหนี้ค้างชำระ). Two-money-flow
+    // split — ACCOUNT_DTAM sees DTAM side only, ACCOUNT_PLATFORM sees
+    // PLATFORM side only, ADMIN/AUDITOR see both. Applicant healthId
+    // is always masked at the service boundary per PDPA ม.6
+    // (data minimisation). Every read is CUSTOMER_REPORT_EXPORTED
+    // audited per Thai e-Transactions Act §31 + PDPA ม.39.
+    router.use('/finance', require('./finance/customer-reports'));·
+    // Iter 25 (audit scheduling, 2026-05-16): bridges AUDIT_FEE_PAID →
+    // AUDIT_CONFIRMED in the canonical GACP workflow. SCHEDULER (or ADMIN)
+    // assigns auditor + date; HEALTH applicant can request reschedule.
+    // Conflict detection (no overlap, max 2 audits/day per Bureau of Audit
+    // 2566/2.4) lives in the service layer. Working-day rule per
+    // utils/working-days (ไม่นัดวันเสาร์-อาทิตย์/วันหยุดราชการ).
+    router.use('/audit/scheduling', require('./audit/scheduling'));·
+    // Iter V3 / V3-A (DI-1 fix, 2026-05-17): mobile on-site inspection
+    // flow that the auditor reaches via /provider/audits/[id]/inspect.
+    // Endpoints: GET /context, POST /start, /checklist, /photo,
+    // POST /decision, GET /gps-verify. File-level guard requires
+    // AUDIT_STAFF; per-mutation routes narrow to AUDITORS. Prior to
+    // V3-A this router file existed on disk but was never required —
+    // every page load of the inspect screen 404'd silently on
+    // AuditService.getOnsiteContext(). See iter-V3/00-rfc.md §DI-1.
+    router.use('/audit/onsite', require('./audit/onsite'));·
+    // Audit (consolidated domain — new canonical paths + legacy aliases)
+    const auditConsolidated = express.Router();
+    auditConsolidated.use('/reassign', require('./audit/audits-reassign'));
+    // /audits/farm — REMOVED. The backing module routes/api/audit/farm-audit.js
+    // (and its only consumer, services/farm-audit-checklist-service.js) referenced
+    // phantom Prisma models (`gcpChecklistTemplate`, `farmAuditChecklists`,
+    // `farmAuditPhotos`) that do not exist in any schema file, so every endpoint
+    // 500'd with `prisma.<x> is not a function`. Both were already UNMOUNTED with
+    // zero require-site callers (the live onsite-audit flow at ./audit/onsite uses
+    // guarded prisma access and does not depend on them), so the dead cluster was
+    // deleted outright. Re-introduce a real implementation when farm-audit
+    // checklists become a feature with backing schema.
+    auditConsolidated.use('/post', require('./audit/post-audit'));          // NEW: /api/audits/post
+    auditConsolidated.use('/fraud', require('./audit/fraud-detection'));    // NEW: /api/audits/fraud
+    auditConsolidated.use('/site-analysis', require('./audit/site-analyses')); // NEW: /api/audits/site-analysis
+    auditConsolidated.use('/', auditsRouter);                               // Main CRUD
+    auditConsolidated.use('/', require('./audit/audit'));                    // Legacy audit actions
+    router.use('/audits', auditConsolidated);·
+    // Legacy audit route aliases (backward compat — will be removed in v4)
+    router.use('/audit', require('./audit/audit'));
+    // /farm-audits legacy alias — REMOVED alongside the canonical mount above
+    // (the backing farm-audit module was deleted — see the note on /audits/farm).
+    router.use('/post-audit', require('./audit/post-audit'));
+    router.use('/fraud-detection', require('./audit/fraud-detection'));
+    router.use('/site-analyses', require('./audit/site-analyses'));·
+    // Cultivation
+    router.use('/plants', require('./cultivation/plants'));
+    router.use('/harvest-batches', harvestBatchesRouter);
+    router.use('/planting-cycles', plantingCyclesRouter);
+    router.use('/cultivation-logs', cultivationLogsRouter);
+    router.use('/farms', farmsRouter);
+    router.use('/water-sources', require('./cultivation/water-sources'));
+    router.use('/seed-sources', require('./cultivation/seed-sources'));
+    router.use('/fertilizer-records', require('./cultivation/fertilizer-records'));
+    router.use('/controlled-environments', require('./cultivation/controlled-environments'));
+    router.use('/plots', require('./cultivation/plots'));
+    // `cultivation/plant-units.js` declares its routes with absolute paths
+    // (`/planting-cycles/:cycleId/plant-units`, `/plant-units/qr/:qrCode`,
+    // `/plant-units/:id`, etc.) because the GET endpoints live under two
+    // different URL prefixes. Mounting it at `/` (root) lets every absolute
+    // path inside the file resolve correctly. The previous `/plant-units`
+    // mount produced double-prefixed dead URLs (`/api/plant-units/plant-units/*`,
+    // `/api/plant-units/planting-cycles/*`) that 404'd on every call —
+    // caught by the ERP regression gate (commit fixing this is part of
+    // Wave G).
+    router.use('/', require('./cultivation/plant-units'));·
+    // Trace
+    router.use('/trace', traceRouter);
+    router.use('/lots', lotsRouter);·
+    // Certificates
+    router.use('/certificates', certificatesRouter);
+    router.use('/standards', require('./certificates/standards'));·
+    // Documents
+    router.use('/documents', documentsRouter);
+    router.use('/templates', require('./documents/templates'));
+    router.use('/report-submissions', require('./documents/report-submissions'));
+    router.use('/reports', require('./documents/reports'));
+    router.use('/training-records', require('./documents/training-records'));
+    router.use('/sop-documents', require('./documents/sop-documents'));·
+    // Preview
+    router.use('/preview', require('./preview/preview'));·
+    // Integration
+    router.use('/interoperability', require('./integration/interoperability'));
+    router.use('/consumer-feedback', require('./integration/consumer-feedback'));·
+    // Surveys (สัญญา C05F680149 ต้นแบบที่ 2 — ระบบสำรวจความต้องการ; auth per-route:
+    // template master data = provider ADMIN, respondent submit = authenticateAny)
+    router.use('/surveys', require('./surveys/surveys'));·
+    // Herb Knowledge DB (สัญญา C05F680149 ต้นแบบที่ 5 — ฐานข้อมูลสมุนไพร 6 ฐาน;
+    // global reference data: public reads + ADMIN-only writes per-route)
+    router.use('/herbs', require('./herbs/herbs'));·
+    // Image Assessment (สัญญา C05F680149 ต้นแบบที่ 6 — ตรวจสอบและประเมิน 3 โมดูล:
+    // image inspection + quality scoring + disease detection; AUDIT_STAFF, advisory)
+    router.use('/image-assessment', require('./audit/image-assessment'));·
+    // Datasets (สัญญา C05F680149 ภาคผนวก 4 ข้อ 3 — ชุดข้อมูลดิบ + data dictionary
+    // → Data Lake บพข.; catalog/dictionary = provider read, export = ADMIN)
+    router.use('/datasets', require('./datasets/datasets'));·
+    // Admin console API (Iter-28): users / audit-log / config / plants / planting-cycles /
+    // applications. Auth-gated inside ./admin (authenticateProvider + requireAdmin).
+    //
+    // audit 2026-06-10 follow-up: this router was previously mounted ONLY inside the
+    // ENABLE_PROVIDER_LEGACY_ALIAS block below — but that flag is set in NO environment
+    // (nothing in .env.example / compose / docs references it), so every /admin/* endpoint
+    // 404'd on staging+prod (e.g. /admin/users rendered an \"HTTP 404\" banner + an empty
+    // table) even though the /admin/* FE pages and admin-service-b28 are written to call it.
+    // It is the CURRENT admin console, not a legacy alias, so mount it unconditionally here
+    // (still admin-only). The genuinely-legacy aliases (provider-cms, wizard) stay gated.
+    router.use('/admin', require('./admin'));·
+    // ─────────────────────────────────────────────────
+    // Legacy / Compatibility Routes (Flagged)
+    // ─────────────────────────────────────────────────
+    if (process.env.ENABLE_PROVIDER_LEGACY_ALIAS === 'true') {
+        router.use('/provider-cms', require('./system/provider-cms'));
+        router.use('/wizard', require('./applications/wizard'));
+    }·
+    // ─────────────────────────────────────────────────
+    // Health / Metrics / Version
+    // ─────────────────────────────────────────────────
+    const prismaDatabase = require('../../services/prisma-database');
+    const appMetrics = require('../../shared/metrics');·
+    router.get('/health', async (req, res) => {
+      try {
+          const dbHealth = await prismaDatabase.healthCheck();
+          const overallSuccess = dbHealth && dbHealth.status === 'connected';·
+          res.status(overallSuccess ? 200 : 503).json({
+            success: overallSuccess,
+            version: '3.0.0',
+            database: 'postgresql',
+            dbStatus: dbHealth,
+            message: overallSuccess ? 'GACP API v3.0 is running' : 'System Unhealthy',
+          });
+      } catch (_err) {
+          res.status(503).json({ success: false, message: 'Healthcheck failed' });
+      }
+    });·
+    // Liveness/readiness split (Iter 29). The inline GET /health above stays
+    // authoritative for /api/health (back-compat `{ success }` shape used by smoke
+    // tests + the docker healthcheck). Mounting the health router here additionally
+    // exposes GET /api/health/ready (DB + migrations + secrets gate) WITHOUT shadowing
+    // the inline handler: router.get('/health') matches the exact path first, and
+    // '/health/ready' falls through to this router.
+    router.use('/health', require('./health'));·
+    // Operational telemetry is staff data. nginx proxies all of /api/ to the
+    // backend and the only thing in front of this router is the rate limiter, so
+    // without a guard here anyone on the internet could ask a government platform
+    // for its uptime, per-endpoint request and error counters, response-time
+    // samples, host CPU and memory, socket counts and database timing.
+    //
+    // Most of those recorders are not wired up today, so the payload is currently
+    // thin — which is the reason to close it now rather than after someone wires
+    // them up and quietly turns this into a live operational feed.
+    //
+    // /health above stays anonymous on purpose: the container healthcheck and any
+    // load-balancer probe depend on it.
+    router.get('/metrics', authenticateProvider, requireAdmin, (_req, res) => {
+      res.json({
+        success: true,
+        data: appMetrics.getMetrics(),
+      });
+    });·
+    router.get('/version', (req, res) => {
+      res.json({
+        success: true,
+        version: '3.0.0',
+        minClientVersion: '1.0.0',
+        features: ['notifications', 'tickets', 'config', 'plants', 'harvest-batches', 'validation'],
+      });
+    });·
+    module.exports = router;
+    "
+
+      558 |     it('routes/api/index.js mount /auth/idp', () => {
+      559 |         const src = fs.readFileSync(path.join(__dirname, '../../routes/api/index.js'), 'utf8');
+    > 560 |         expect(src).toMatch(/router\.use\('\/auth\/idp'/);
+          |                     ^
+      561 |     });
+      562 |
+      563 |     it('server.js ครอบ /auth/idp ด้วย authLimiter ตัวเดียวกับ login (ทั้งสอง prefix)', () => {
+
+      at Object.toMatch (__tests__/unit/auth-idp-routes.test.js:560:21)
+
+  ● wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21) › server.js ครอบ /auth/idp ด้วย authLimiter ตัวเดียวกับ login (ทั้งสอง prefix)
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /app\.use\(`\$\{prefix\}\/auth\/idp`,\s*authLimiter\)/
+    Received string:  "/**
+     * GACP Platform - Production Server
+     * Entry point for the backend application
+     * Database: PostgreSQL (Prisma)
+     */·
+    const path = require('path');
+    const crypto = require('crypto');
+    require('dotenv').config({ path: path.join(__dirname, '.env') });·
+    // SECURITY: Validate Environment Variables at Startup
+    // This must run BEFORE any other initialization to catch missing secrets early
+    const { initializeEnvironment } = require('./config/env-validator');
+    try {
+        initializeEnvironment();
+    } catch (error) {
+        console.error('STARTUP FAILED - Environment validation failed');
+        console.error(error.message);
+        process.exit(1);
+    }·
+    // SECURITY (W2-C): Defence-in-depth — refuse production boot if any
+    // production-required secret in SECRETS_CATALOG is missing, holds the
+    // PENDING_FINANCE_CONFIRMATION sentinel, or is shorter than its minLength.
+    // In dev/test this is a silent no-op so local workflows are not disturbed.
+    const { validateProductionSecretsAtBoot } = require('./config/boot-secret-guard');
+    try {
+        validateProductionSecretsAtBoot();
+    } catch (error) {
+        console.error('STARTUP FAILED - Production secret sentinel guard error');
+        console.error(error.message);
+        process.exit(1);
+    }·
+    const logger = require('./shared/logger');
+    const { sendErrorResponse, classifyPrismaError, safeErrorMessage } = require('./shared/api-response');
+    const {
+        attachClientIp,
+        getRequestIp,
+        isTrustedProxyIp,
+        normalizeIp,
+    } = require('./utils/client-ip');·
+    function redactDatabaseUrl(url) {
+        if (!url || typeof url !== 'string') { return url; }
+        try {
+            const parsed = new URL(url);
+            if (parsed.password) {
+                parsed.password = '***';
+            }
+            return parsed.toString();
+        } catch {
+            const re = new RegExp('://([^:/]+):([^@]+)@', 'g');
+            return url.replace(re, '://$1:***@');
+        }
+    }
+    logger.info('SERVER STARTUP - DATABASE_URL:', redactDatabaseUrl(process.env.DATABASE_URL));
+    const express = require('express');
+    const cors = require('cors');
+    const helmet = require('helmet');
+    const compression = require('compression');
+    const morgan = require('morgan');
+    const cookieParser = require('cookie-parser');
+    const prismaDatabase = require('./services/prisma-database'); // PostgreSQL
+    const redisService = require('./services/redis-service');
+    const swaggerUi = require('swagger-ui-express');
+    const swaggerSpec = require('./config/swagger');
+    const { apiVersionMiddleware } = require('./middleware/api-version');·
+    // Import Modules
+    const apiRoutes = require('./routes/api');
+    const plotsRouter = require('./routes/api/cultivation/plots');
+    const publicTraceRouter = require('./routes/public-trace');
+    const promMetrics = require('./shared/prometheus');·
+    const app = express();
+    const port = process.env.PORT || 3000; // NOTE: Database and Redis connection moved to after app.listen() for graceful degradation
+    const isProduction = process.env.NODE_ENV === 'production';·
+    const normalizeOriginValue = (value) => String(value || '').trim().replace(/\\/+$/, '');
+    const parseOriginList = (value) => String(value || '')
+        .split(',')
+        .map((entry) => normalizeOriginValue(entry))
+        .filter(Boolean);·
+    // Trust only proxies allowed by hardened client-ip policy (private ranges / explicit allowlist).
+    app.set('trust proxy', (ip) => isTrustedProxyIp(normalizeIp(ip)));·
+    const rateLimit = require('express-rate-limit');·
+    // Middleware
+    // Capture raw JSON body for webhook signature verification. Without this the
+    // gateway-signed bytes are lost after `express.json()` re-serializes the
+    // payload (key ordering / whitespace differs and HMAC will never match).
+    app.use(express.json({
+        limit: '10mb',
+        verify: (req, _res, buf) => {
+            if (buf && buf.length) { req.rawBody = buf; }
+        },
+    }));
+    app.use(express.urlencoded({ extended: true, limit: '10mb' }));·
+    // Input Sanitization — Defense-in-depth XSS/injection prevention.
+    // Lab webhook callbacks are signed payloads whose body must not be mutated
+    // before HMAC verification, so we exclude them from sanitization.
+    const { sanitizeInput } = require('./middleware/sanitize-input');
+    const SANITIZE_BYPASS = /^\\/api(?:\\/v\\d+)?\\/callbacks(?:\\/|$)/;
+    app.use((req, res, next) => {
+        if (SANITIZE_BYPASS.test(req.path)) { return next(); }
+        return sanitizeInput(req, res, next);
+    });·
+    // Attach request id on every request for traceability and client-side callback debugging.
+    app.use((req, res, next) => {
+        const requestId = req.headers['x-request-id'];
+        req.id = typeof requestId === 'string' && requestId.trim() ? requestId : crypto.randomUUID();
+        res.setHeader('X-Request-ID', req.id);
+        next();
+    });
+    app.use(attachClientIp);·
+    // Service Availability Check (Graceful 503)
+    app.use(require('./middleware/service-availability'));·
+    // Security Hardening
+    app.use(helmet({
+        contentSecurityPolicy: isProduction ? undefined : false,
+        crossOriginEmbedderPolicy: isProduction ? undefined : false,
+    }));·
+    // CORS Configuration
+    const productionDefaultOrigins = [
+        'https://gacpth.com',
+        'https://www.gacpth.com',
+        'https://admin.gacpth.com',
+        'http://localhost:3000',
+        'https://localhost',
+    ];
+    const developmentDefaultOrigins = [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'http://localhost:8080',
+        'https://localhost',
+    ];
+    const envDrivenOrigins = [
+        ...parseOriginList(process.env.CORS_ORIGIN),
+        ...parseOriginList(process.env.CORS_ORIGINS),
+        ...parseOriginList(process.env.FRONTEND_URL),
+        ...parseOriginList(process.env.PUBLIC_WEB_URL),
+        ...parseOriginList(process.env.APP_PUBLIC_URL),
+    ];
+    const allowedOrigins = new Set(
+        (isProduction ? productionDefaultOrigins : developmentDefaultOrigins)
+            .map(normalizeOriginValue)
+            .concat(envDrivenOrigins),
+    );·
+    // Public trace API — open CORS for downstream partners
+    // (e-commerce, pharmacies, exporters can scan QR and verify from any domain)
+    app.use('/api/trace', cors({
+        origin: '*',
+        methods: ['GET', 'OPTIONS'],
+        allowedHeaders: ['Content-Type', 'X-API-Key'],
+        maxAge: 86400,
+    }));·
+    app.use(cors({
+        origin: function (origin, callback) {
+            // Allow requests with no origin (like mobile apps or curl requests)
+            if (!origin) { return callback(null, true); }
+            const normalizedOrigin = normalizeOriginValue(origin);
+            // Allow 127.0.0.1 with any port (for IDE proxy testing)
+            if (normalizedOrigin.startsWith('http://127.0.0.1:')) { return callback(null, true); }
+            if (!allowedOrigins.has(normalizedOrigin)) {
+                return callback(new Error('The CORS policy for this site does not allow access from the specified Origin.'), false);
+            }
+            return callback(null, true);
+        },
+        credentials: true,
+    }));·
+    // Rate Limiting
+    function parsePositiveInt(value, fallback) {
+        const parsed = Number.parseInt(String(value || ''), 10);
+        return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+    }·
+    function shouldSkipAuthRateLimit() {
+        const isTest = String(process.env.NODE_ENV || '').trim().toLowerCase() === 'test';
+        const isCI = String(process.env.CI || '').trim().toLowerCase() === 'true';
+        const isDisabled = String(process.env.DISABLE_AUTH_RATE_LIMIT || '').trim().toLowerCase() === 'true';
+        return isTest || isCI || isDisabled;
+    }·
+    function authRateLimitHandler(message) {
+        return (req, res) => {
+            res.status(429).json({
+                success: false,
+                code: 'RATE_LIMITED',
+                error: message,
+                requestId: req.id || 'unknown',
+            });
+        };
+    }·
+    const globalLimiter = rateLimit({
+        windowMs: parsePositiveInt(process.env.RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000), // 15 minutes
+        max: parsePositiveInt(process.env.RATE_LIMIT_MAX, 1000), // Limit each IP to 1000 requests per windowMs
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: req => getRequestIp(req),
+        message: 'Too many requests from this IP, please try again later.',
+    });·
+    const authLimiter = rateLimit({
+        windowMs: parsePositiveInt(process.env.AUTH_LOGIN_RATE_LIMIT_WINDOW_MS, 15 * 60 * 1000), // 15 minutes (was 1 hour)
+        max: parsePositiveInt(process.env.AUTH_LOGIN_RATE_LIMIT_MAX, 50), // 50 failed attempts per IP per 15 min
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: req => getRequestIp(req),
+        skip: shouldSkipAuthRateLimit,
+        skipSuccessfulRequests: true, // Don't count successful logins
+        handler: authRateLimitHandler('Too many login attempts. Please try again later.'),
+    });·
+    const registerLimiter = rateLimit({
+        windowMs: parsePositiveInt(process.env.AUTH_REGISTER_RATE_LIMIT_WINDOW_MS, 30 * 60 * 1000), // 30 minutes (was 1 hour)
+        max: parsePositiveInt(process.env.AUTH_REGISTER_RATE_LIMIT_MAX, 20),
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: req => getRequestIp(req),
+        skip: shouldSkipAuthRateLimit,
+        handler: authRateLimitHandler('Too many registration attempts. Please try again later.'),
+    });·
+    const checkIdentifierLimiter = rateLimit({
+        windowMs: parsePositiveInt(process.env.AUTH_CHECK_IDENTIFIER_RATE_LIMIT_WINDOW_MS, 10 * 60 * 1000), // 10 minutes
+        max: parsePositiveInt(process.env.AUTH_CHECK_IDENTIFIER_RATE_LIMIT_MAX, 45),
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: req => getRequestIp(req),
+        skip: shouldSkipAuthRateLimit,
+        handler: authRateLimitHandler('Too many identifier checks. Please wait and try again.'),
+    });·
+    // L-6 (audit 2026-06-11): password-reset had NO dedicated limiter — only the
+    // global 1000/15min IP cap — so an attacker who knows a victim's email could
+    // email-bomb them with reset links. ~5 requests/hour/IP is plenty for a real
+    // user who mistyped.
+    const passwordResetLimiter = rateLimit({
+        windowMs: parsePositiveInt(process.env.AUTH_PASSWORD_RESET_RATE_LIMIT_WINDOW_MS, 60 * 60 * 1000), // 1 hour
+        max: parsePositiveInt(process.env.AUTH_PASSWORD_RESET_RATE_LIMIT_MAX, 5),
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: req => getRequestIp(req),
+        skip: shouldSkipAuthRateLimit,
+        handler: authRateLimitHandler('Too many password reset requests. Please wait and try again.'),
+    });·
+    app.use('/api', globalLimiter);
+    // Mount the per-endpoint auth limiters on BOTH the unversioned path and the
+    // /api/v1 alias. The API router is mounted on both `/api` and `/api/v1` (below),
+    // but these limiters previously only matched `/api/auth/...`, so EVERY one was
+    // trivially bypassed by hitting `/api/v1/auth/...` (audit M-2). Express app.use
+    // is prefix-match, so each (prefix, path) pair must be registered explicitly.
+    // Reusing the same limiter instance across both prefixes shares the per-IP
+    // counter — an attacker can't double the budget by alternating prefixes.
+    for (const prefix of ['/api', '/api/v1']) {
+        app.use(`${prefix}/auth/health/login`, authLimiter);
+        app.use(`${prefix}/auth/provider/login`, authLimiter);
+        app.use(`${prefix}/auth/health/register`, registerLimiter);
+        app.use(`${prefix}/auth/health/check-identifier`, checkIdentifierLimiter);
+        app.use(`${prefix}/auth/health/reset-password`, passwordResetLimiter);
+    }·
+    // Payment & Webhook Rate Limiting
+    const { paymentLimiter } = require('./middleware/rate-limiter');
+    const webhookLimiter = rateLimit({
+        windowMs: 1 * 60 * 1000, // 1 minute
+        max: 30, // 30 webhook calls per minute
+        standardHeaders: true,
+        legacyHeaders: false,
+        keyGenerator: req => getRequestIp(req),
+        message: 'Too many webhook requests',
+    });
+    app.use('/api/payments/create', paymentLimiter);
+    app.use('/api/payments/phase1', paymentLimiter);
+    app.use('/api/payments/phase2', paymentLimiter);
+    app.use('/api/payments/slip/upload', paymentLimiter);
+    app.use('/api/callbacks', webhookLimiter);·
+    app.use(compression());
+    app.use(morgan('combined', { stream: logger.stream }));
+    app.use(cookieParser());·
+    // CSRF protection for cookie-based auth (double-submit cookie).
+    // Extracted to apps/backend/middleware/csrf-middleware.js (W2-D) so the
+    // branching logic can be unit-tested in isolation. Defaults preserve the
+    // original closure behaviour 1:1.
+    const csrfDoubleSubmit = require('./middleware/csrf-middleware');
+    app.use(csrfDoubleSubmit());·
+    // Serve uploaded files statically
+    // PDPA Section 27 hardening — see middleware/uploads-security-headers.js for full rationale.
+    // MUST run BEFORE express.static so the headers land on every served file (biometric photos,
+    // GACP audit photos, GPS-tagged field images, CAR documents).
+    const uploadsSecurityHeaders = require('./middleware/uploads-security-headers');
+    // SEC-AUDIT-002: gate PRECISELY the sensitive /uploads paths (ID-card/avatar root
+    // files + payment slips), NOT the whole mount — a blanket gate broke the public
+    // consumer trace page's lab-report links. Subfolders that may host intended-public
+    // assets stay public. See middleware/uploads-access.js + the remediation log; the
+    // broader signed-URL/bucket-separation fix for application-draft docs is deferred.
+    // RD-UPLOADS-IDOR (OWASP A01): gateSlipObjectAccess runs AFTER gateSensitiveUploads
+    // (which authenticates slip requests) and BEFORE express.static — it maps the
+    // requested /uploads/slips/<file> path back to its PaymentSlip row and applies the
+    // SAME owner + DTAM/PLATFORM-side (SoD) + tenancy ACL (canSeeSlip) that the JSON API
+    // enforces, so a leaked uuid slip URL can no longer be read cross-applicant or
+    // cross-side. No-op for every non-slip /uploads path (drafts/root-file/public assets).
+    const { gateSensitiveUploads, gateSlipObjectAccess } = require('./middleware/uploads-access');
+    app.use('/uploads', gateSensitiveUploads, gateSlipObjectAccess, uploadsSecurityHeaders, express.static(path.join(__dirname, 'public/uploads')));
+    app.use('/trace', publicTraceRouter);
+    // API Versioning
+    app.use(apiVersionMiddleware);·
+    // Mount Routes
+    app.use('/api', apiRoutes); // Unified API routes (no /v2 prefix)
+    app.use('/api/v1', apiRoutes); // Versioned alias — /api/v1/health → same as /api/health
+    app.use('/api', plotsRouter); // [NEW] Mount Plot Routes
+    app.use('/api/v1', plotsRouter); // Versioned alias··
+    // W4-D — `/api-docs` Swagger UI mount.
+    //
+    // Dev / test: ON by default (operability for builders).
+    // Production: OFF by default — operability info-leak hardening. Ops can
+    // flip the `OPENAPI_DOCS_ENABLED=true` env flag to opt-in during
+    // integrator-support windows. See `apps/backend/config/secrets.js`
+    // SECRETS_CATALOG entry and `docs/handoffs/iter-W4/W4-D.md`.
+    //
+    // Two routes are mounted as a pair:
+    //   GET /api-docs               → swagger-ui HTML
+    //   GET /api-docs/swagger.json  → raw OpenAPI 3.0 JSON spec
+    // `swagger-ui-express` does not auto-expose the JSON, so we add the JSON
+    // route explicitly so integrators can `curl` the spec without scraping.
+    const enableApiDocs = !isProduction || process.env.OPENAPI_DOCS_ENABLED === 'true';
+    if (enableApiDocs) {
+        app.get('/api-docs/swagger.json', (_req, res) => {
+            res.setHeader('Content-Type', 'application/json');
+            res.send(JSON.stringify(swaggerSpec));
+        });
+        app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+    }·
+    // Health Check - Both /health and /api/health for compatibility
+    app.get(['/health', '/api/health'], async (req, res) => {
+        try {
+            const dbHealth = await prismaDatabase.healthCheck();
+            res.json({
+                status: 'OK',
+                timestamp: new Date(),
+                environment: process.env.NODE_ENV,
+                database: dbHealth,
+                redis: {
+                    connected: redisService.isAvailable(),
+                },
+            });
+        } catch (error) {
+            res.status(503).json({
+                status: 'ERROR',
+                timestamp: new Date(),
+                error: error.message,
+            });
+        }
+    });·
+    // Prometheus metrics — scraped by the monitoring stack over the internal
+    // network (not exposed publicly). Returns the text exposition format
+    // (Content-Type: text/plain; version=0.0.4), distinct from the JSON at
+    // /api/metrics used by the admin dashboard.
+    app.get('/metrics', async (_req, res) => {
+        try {
+            promMetrics.refreshAppMetrics();
+            res.set('Content-Type', promMetrics.register.contentType);
+            res.end(await promMetrics.register.metrics());
+        } catch (error) {
+            res.status(500).end(error.message);
+        }
+    });·
+    // Global Error Handler
+    app.use((err, req, res, _next) => {
+        logger.error(err.stack);·
+        // Map propagated/uncaught Prisma client-caused errors to the right status
+        // (bad input -> 400, missing record -> 404, unique/FK -> 409) instead of
+        // letting them fall through to a blanket 500.
+        const prismaMapped = classifyPrismaError(err);
+        const statusCode = prismaMapped
+            ? prismaMapped.status
+            : (Number.isInteger(err?.statusCode) ? err.statusCode : 500);
+        const code = prismaMapped
+            ? prismaMapped.code
+            : (err.code || (statusCode >= 500 ? 'INTERNAL_SERVER_ERROR' : 'REQUEST_FAILED'));
+        const message = statusCode >= 500
+            ? 'Internal server error'
+            : (prismaMapped ? safeErrorMessage(err) : (err.message || 'Request failed'));·
+        return sendErrorResponse(res, req, {
+            status: statusCode,
+            code,
+            message,
+            messageTh: statusCode >= 500 ? 'Internal server error' : null,
+            details: !isProduction && err.stack ? { stack: err.stack } : null,
+        });
+    });·
+    async function gracefulShutdown(signal) {
+        logger.info(`\\n ${signal} received — shutting down gracefully...`);·····
+        // Stop accepting new connections
+        if (server) {
+            server.close(() => logger.info('HTTP server closed'));
+        }·····
+        // Disconnect database
+        try {
+            await prismaDatabase.disconnect();
+            logger.info('PostgreSQL disconnected');
+        } catch { /* ignore */ }·····
+        // Disconnect Redis
+        try {
+            await redisService.disconnect();
+            logger.info('Redis disconnected');
+        } catch { /* ignore */ }·····
+        logger.info('Goodbye!');·····
+        // Force exit after 10s if connections don't close
+        setTimeout(() => {
+            logger.warn('Force exit after 10s timeout');
+            process.exit(1);
+        }, 10000).unref();
+    }·
+    // Start Server & Graceful Shutdown
+    let server = null;
+    process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));
+    process.on('SIGINT', () => gracefulShutdown('SIGINT'));·
+    if (require.main === module) {
+        server = app.listen(port, '0.0.0.0', () => {
+            logger.info(`GACP Backend running on port ${port}`);
+            logger.info(`Server accepting requests on 0.0.0.0:${port}`);
+            logger.info(`Environment: ${process.env.NODE_ENV}`);·
+            if (process.env.NODE_ENV !== 'test') {
+                setImmediate(async () => {
+                    try {
+                        await prismaDatabase.connect();
+                        logger.info('PostgreSQL connected (Prisma)');·
+                        try {
+                            await redisService.connect();
+                            logger.info('Redis connected');
+                        } catch (redisErr) {
+                            logger.warn(`Redis failed to connect: ${redisErr.message}. Running without caching.`);
+                        }·
+                        // [R6-B] Boot-time canonical-allocator verification.
+                        // The receipt-sequence migration must exist before any receipt-
+                        // numbering call runs, otherwise the upsert-in-transaction will
+                        // throw and (worst case in legacy code paths) silently fall
+                        // back to in-memory sequences. R5-B hardened the runtime path;
+                        // this hook makes a misconfigured prod boot fail loud with
+                        // exit(1) before any cron / receipt request can race in.
+                        try {
+                            const receiptNumberingService = require('./services/receipt-numbering-service');
+                            const allocatorCheck = await receiptNumberingService.assertCanonicalAllocator();
+                            if (!allocatorCheck.ok) {
+                                if (process.env.NODE_ENV === 'production') {
+                                    logger.error(
+                                        `[boot] CRITICAL - receipt-sequence migration missing: ${allocatorCheck.reason}. `
+                                        + 'Run `npx prisma migrate deploy`.',
+                                    );
+                                    process.exit(1);
+                                }
+                                logger.warn(`[boot] receipt-sequence allocator unavailable (non-prod): ${allocatorCheck.reason}`);
+                            } else {
+                                logger.info('[boot] receipt-sequence allocator verified');
+                            }
+                        } catch (assertErr) {
+                            logger.warn(`[boot] assertCanonicalAllocator threw: ${assertErr.message}`);
+                        }·
+                        try {
+                            require('./jobs/scheduler');
+                            logger.info('Cron jobs started');
+                        } catch (schedulerErr) {
+                            logger.warn(`Scheduler failed to start: ${schedulerErr.message}`);
+                        }·
+                        // B-JOB-11 fix (2026-06-04): initialise BullMQ queue workers
+                        // (SLA-breach processor + webhook DLQ). Previously initQueues()
+                        // had ZERO callers, so the daily SLA-breach scan never ran in
+                        // production. Non-fatal + non-test only; initQueues handles
+                        // Redis availability via the queue 'ready'/'error' events.
+                        if (process.env.NODE_ENV !== 'test') {
+                            try {
+                                require('./services/queue-service').initQueues();
+                                logger.info('Queue workers initialised');
+                            } catch (queueErr) {
+                                logger.warn(`Queue workers failed to start: ${queueErr.message}`);
+                            }
+                        }
+                    } catch (dbErr) {
+                        logger.error('PostgreSQL connection failed');
+                        logger.error(dbErr);
+                    }
+                });
+            }
+        });
+    }·
+    module.exports = app;
+    "
+
+      563 |     it('server.js ครอบ /auth/idp ด้วย authLimiter ตัวเดียวกับ login (ทั้งสอง prefix)', () => {
+      564 |         const src = fs.readFileSync(path.join(__dirname, '../../server.js'), 'utf8');
+    > 565 |         expect(src).toMatch(/app\.use\(`\$\{prefix\}\/auth\/idp`,\s*authLimiter\)/);
+          |                     ^
+      566 |     });
+      567 | });
+      568 |
+
+      at Object.toMatch (__tests__/unit/auth-idp-routes.test.js:565:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       29 failed, 29 total
+Snapshots:   0 total
+Time:        2.624 s
+Ran all test suites matching /__tests__\/unit\/auth-idp-routes.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

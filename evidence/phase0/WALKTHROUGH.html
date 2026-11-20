@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Phase 0 walk-2 — ท่อเดินจริงครบเส้น C01→C15 (2026-08-19)</title>
+<style>
+  body { font-family: 'Sarabun', 'Segoe UI', sans-serif; margin: 0; background: #f4f6f4; color: #1a2b1e; }
+  header { background: #1b5e20; color: #fff; padding: 20px 28px; }
+  header h1 { margin: 0 0 6px; font-size: 1.35rem; }
+  header p { margin: 2px 0; opacity: .92; font-size: .92rem; }
+  main { max-width: 1080px; margin: 0 auto; padding: 20px; }
+  section { background: #fff; border-radius: 10px; margin: 18px 0; padding: 16px 20px; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  h2 { font-size: 1.05rem; border-left: 5px solid #2e7d32; padding-left: 10px; margin: 4px 0 4px; }
+  .who { color: #555; font-size: .87rem; margin: 0 0 10px 15px; }
+  figure { margin: 14px 0; }
+  img { max-width: 100%; border: 1px solid #d7ddd7; border-radius: 6px; }
+  figcaption { font-size: .85rem; color: #444; padding: 5px 2px; }
+  .red { border-left-color: #c62828; }
+  .note { background: #fff8e1; border: 1px solid #f0e0a0; border-radius: 6px; padding: 10px 14px; font-size: .88rem; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Phase 0 — ท่อเดินจริงครบเส้น C01→C15 บน Postgres จริง (walk-2, 2026-08-19)</h1>
+  <p>เกษตรกร "เฟสศูนย์ พิสูจน์ท่อ" สมัคร → ยื่นคำขอ → จ่ายจริง 2 งวดผ่าน Stripe → ถูกส่งกลับแก้แล้วยื่นใหม่ → ตรวจภาคสนามพร้อม GPS/รูป/checklist → ใบรับรอง GACP-TH-2569-E0DF5B ออกจริง → เกษตรกรดาวน์โหลด PDF ได้ → ประชาชน verify ได้</p>
+  <p>SHA under test 369a3685 + fix รอบเดิน (7 FINDINGS — ดู FINDINGS.md) · ทุกภาพมาจากการกดจริงบน stack จริง · DB dump + audit row ประกบทุก checkpoint อยู่ในโฟลเดอร์เดียวกับภาพ</p>
+</header>
+<main>
+
+<section><h2>C01-C02 — สมัครสมาชิก → กรอกคำขอ → ยื่น (s01)</h2>
+<p class="who">เกษตรกร (จอ desktop ของ walk นี้ — มาตรฐานมือถือ 390×844 เป็นรอบ QA แยก)</p>
+<figure><img src="s01/C01-01-register-personal.png" loading="lazy"><figcaption>สมัครสมาชิก: กรอกเลขบัตร/ชื่อ — wizard 4 ขั้นของจริง</figcaption></figure>
+<figure><img src="s01/C01-04-dashboard.png" loading="lazy"><figcaption>login สำเร็จเข้า dashboard (รอบ cold-compile เคยค้างหน้า login — F-LOGIN-NAV-COLD-COMPILE)</figcaption></figure>
+<figure><img src="s01/C01-06-plant-complete.png" loading="lazy"><figcaption>เลือกพืช → draft เกิดจริงใน DB (C01 = แถว DRAFT + draftId จาก autosave)</figcaption></figure>
+<figure><img src="s01/C02-20-preview.png" loading="lazy"><figcaption>หน้าพรีวิวก่อนยื่น — ปุ่ม "สร้างรายการชำระงวดที่ 1" enabled = คำขอครบ</figcaption></figure>
+<figure><img src="s01/C02-22-payments-quotations.png" loading="lazy"><figcaption>หลังยื่น: PENDING_DOC_FEE + ใบเสนอราคา 2 ใบ (DTAM+Platform) เกิดจริง</figcaption></figure>
+</section>
+
+<section><h2>C03-C04 — จ่ายงวด 1 (ค่าตรวจเอกสาร 5,535 บาท) บน Stripe rail (settlement)</h2>
+<p class="who">เกษตรกร · PromptPay test-mode · webhook จริงผ่าน stripe listen</p>
+<figure><img src="settlement/C03-02-checkout-created.png" loading="lazy"><figcaption>C03: mint checkout order M1 → PENDING_PAYMENT + PaymentIntent</figcaption></figure>
+<figure><img src="settlement/C04-01-before-authorize.png" loading="lazy"><figcaption>C04: หน้า authorize test payment ของ Stripe (เทียบเท่าสแกน QR จริง)</figcaption></figure>
+<figure><img src="settlement/C04-03-payments-after.png" loading="lazy"><figcaption>settle แล้ว: SETTLED → DOC_FEE_PAID · journal สมดุล + ใบเสร็จแยก 2 นิติบุคคล (dump ประกบ)</figcaption></figure>
+</section>
+
+<section><h2>C05-C06 — แจกงานผู้ตรวจเอกสาร → ส่งกลับแก้ (s02)</h2>
+<p class="who">scheduler → document reviewer → จอเกษตรกรเห็นผล</p>
+<figure><img src="s02/C05-02-assign-modal.png" loading="lazy"><figcaption>C05: modal แจกงาน — dropdown ผู้ตรวจมีรายชื่อ (fix F-REVIEWER-DROPDOWN-EMPTY ทำงาน)</figcaption></figure>
+<figure><img src="s02/C05-05-reviewer-queue.png" loading="lazy"><figcaption>คิวของ reviewer เห็นคำขอที่ถูก assign</figcaption></figure>
+<figure><img src="s02/C06-02-revision-modal.png" loading="lazy"><figcaption>C06: ส่งกลับแก้พร้อมเหตุผล + เส้นตาย 5 วันทำการ</figcaption></figure>
+<figure><img src="s02/C06-04-farmer-applications.png" loading="lazy"><figcaption>จอเกษตรกร: เห็นสถานะถูกส่งกลับ + กำหนดส่ง</figcaption></figure>
+</section>
+
+<section><h2>C07-C08 — เกษตรกรแก้แล้วยื่นกลับ → อนุมัติเอกสาร (s03)</h2>
+<p class="who">เกษตรกร → reviewer คนเดิม</p>
+<figure><img src="s03/C07-02-edit-page.png" loading="lazy"><figcaption>C07: ประตูแก้ไขเปิด (fix F-PREVIEW-REVISION-CLOSED ทำงาน)</figcaption></figure>
+<figure><img src="s03/C07-04-preview-resubmit.png" loading="lazy"><figcaption>ยื่นกลับผ่านหน้าพรีวิว → กลับไปหา reviewer คนเดิม (reviewerId ไม่เปลี่ยน)</figcaption></figure>
+<figure><img src="s03/C08-03-approve-modal.png" loading="lazy"><figcaption>C08: อนุมัติเอกสาร → PENDING_AUDIT_FEE + ใบแจ้งหนี้งวด 2</figcaption></figure>
+<figure><img src="s03/C08-05-farmer-payments-phase2.png" loading="lazy"><figcaption>จอเกษตรกร: งวดที่ 2 (ค่าตรวจประเมิน) ปรากฏ</figcaption></figure>
+</section>
+
+<section><h2 class="red">C09-C10 — จ่ายงวด 2 (27,675 บาท) — จุดที่รอบก่อน Phase 0 FAIL (s04)</h2>
+<p class="who">เกษตรกร · fix F-CHECKOUT-M2-INVOICE-UNIQUE พิสูจน์บน DB จริง</p>
+<figure><img src="s04/C09-04-checkout-m2-created.png" loading="lazy"><figcaption>C09: mint M2 สำเร็จ (รอบก่อน 500 ตรงนี้) — เห็น breakdown ค่าธรรมเนียม</figcaption></figure>
+<figure><img src="s04/C10-02-after-authorize.png" loading="lazy"><figcaption>C10: authorize test payment → webhook settle</figcaption></figure>
+<figure><img src="s04/C10-03-payments-after.png" loading="lazy"><figcaption>AUDIT_FEE_PAID · journal M2 สมดุล 27,675=27,675 · ใบเสร็จแยก RCP-DTAM + TAX-PRD (C10-erp-*)</figcaption></figure>
+</section>
+
+<section><h2>C11 — นัดลงพื้นที่ (s05)</h2>
+<p class="who">scheduler → auditor</p>
+<figure><img src="s05/C11-02-assign-modal.png" loading="lazy"><figcaption>modal นัดตรวจ — dropdown ผู้ตรวจมีรายชื่อ (fix F-AUDITOR-DROPDOWN-EMPTY ของรอบนี้)</figcaption></figure>
+<figure><img src="s05/C11-05-auditor-queue.png" loading="lazy"><figcaption>คิว auditor เห็นนัด → AUDIT_CONFIRMED + auditSchedule ONSITE</figcaption></figure>
+</section>
+
+<section><h2 class="red">C12 — ประตู fail-closed + ตรวจภาคสนามจริง (s05)</h2>
+<p class="who">auditor · cert-integrity gate ของ 2026-08-17 พิสูจน์บน stack จริง</p>
+<figure><img src="s05/C12-02-premature-pass-modal.png" loading="lazy"><figcaption>กด PASS โดยไม่มีหลักฐาน → </figcaption></figure>
+<figure><img src="s05/C12-03-premature-pass-refused.png" loading="lazy"><figcaption>ถูกปฏิเสธ · row ยัง AUDIT_CONFIRMED · 0 ใบรับรอง = fail-closed จริง</figcaption></figure>
+<figure><img src="s05/C12-05-inspect-entry-stage.png" loading="lazy"><figcaption>field app เปิดหน้า "เริ่มตรวจ" (หลัง fix F-ONSITE-STARTEDAT-LIES + F-PERMISSIONS-POLICY-KILLS-FIELD-GPS — ก่อนหน้านี้ GPS ตายทั้ง flow)</figcaption></figure>
+<figure><img src="s05/C12-07-photos-attached.png" loading="lazy"><figcaption>รูปหลักฐาน 5/5 อัปโหลดสำเร็จพร้อมพิกัด (รอบก่อน 500 ทุกใบ)</figcaption></figure>
+<figure><img src="s05/C12-09-checklist-persisted.png" loading="lazy"><figcaption>checklist 24/24 persist ฝั่ง server (พิสูจน์ข้าม session)</figcaption></figure>
+<figure><img src="s05/C12-12-decision-submitted.png" loading="lazy"><figcaption>ส่งผล PASS → AUDIT_PASSED + ใบรับรอง mint (หลัง fix F-TX-DEFAULT-5S — tx 5s เดิม rollback)</figcaption></figure>
+</section>
+
+<section><h2>C13-C14 — อนุมัติขั้นสุดท้าย → CERTIFIED (s06)</h2>
+<p class="who">auditor · C13 จับ audit hole จริง (F-FINAL-APPROVAL-NO-AUDIT — fix แล้ว)</p>
+<figure><img src="s06/C13-02-final-approval-queue.png" loading="lazy"><figcaption>C13: คิวอนุมัติ → กดอนุมัติ → APPROVED (รอบแรก commit โดยไม่มี canonical audit row = FINDING)</figcaption></figure>
+<figure><img src="s06/C14-04-work-activity-detail.png" loading="lazy"><figcaption>C14: กล่องงานเสนอ "ออกใบรับรองแล้ว" — ประตู UI จริงมีอยู่ (F-UI-CERT ของ plan เก่าตกไป)</figcaption></figure>
+<figure><img src="s06/C14-05-work-after-advance.png" loading="lazy"><figcaption>ปิดงาน+เลื่อน → CERTIFIED ผ่านประตู UI จริง + canonical row ครบ</figcaption></figure>
+</section>
+
+<section><h2 class="red">C15 — เกษตรกรถือใบรับรอง + ประชาชน verify (s06)</h2>
+<p class="who">เกษตรกร + ประชาชน (ไม่ต้อง login)</p>
+<figure><img src="s06/C15-01-certificate-list.png" loading="lazy"><figcaption>การ์ดใบรับรองของเกษตรกร — ชื่อ<b>ฟาร์ม</b>เป็นหัวการ์ด (M1: ฟาร์มถือใบ ไม่ใช่ตัวบุคคล)</figcaption></figure>
+<figure><img src="s06/C15-02-certificate-detail.png" loading="lazy"><figcaption>รายละเอียด GACP-TH-2569-E0DF5B + ปุ่มดาวน์โหลด</figcaption></figure>
+<figure><img src="s06/C15-03-certificate-detail-after-download.png" loading="lazy"><figcaption>ดาวน์โหลดจริงจากปุ่ม (ไฟล์ C15-certificate-...-from-ui.pdf 452KB %PDF อยู่ข้างภาพนี้)</figcaption></figure>
+<figure><img src="s06/C15-06-public-verify-result.png" loading="lazy"><figcaption>/verify สาธารณะ: "ผลการตรวจสอบ: ผ่าน" + เลข + วันที่ (หลัง fix F-VERIFY-PORTAL-SHAPE-MISMATCH — ก่อนแก้ขึ้น "ไม่ผ่าน" ทั้งที่ valid)</figcaption></figure>
+</section>
+
+<section class="note">
+<b>เส้นที่ยังไม่เปิด / ของที่บันทึกไว้ไม่ได้แก้:</b> specimen walk-1 (จ่ายครบ 2 งวด ตรวจครบ) ค้างถาวรที่ AUDIT_CONFIRMED เพราะ plot ไม่มี areaUnit และไม่มีประตูซ่อม (F-PLOT-AREAUNIT-DEADEND — ใบงาน operator) · ใบรับรอง mint ที่ AUDIT_PASSED ไม่ใช่ CERTIFIED (ruling D2 — ticket แยก) · PDF ใบแรกหลัง restart ช้ากว่า 30s ผู้ใช้เห็น error ต้องกดซ้ำ (F-PDF-COLD-START-TIMEOUT) · GpsVerificationLog model ยังไม่ provision — check-in สำเร็จแต่ marker ไม่ persist (reload = เริ่มใหม่) · audit metadata เก็บ JSON ซ้อน string (F-AUDIT-META-DOUBLE-ENCODED)
+</section>
+
+</main>
+</body>
+</html>

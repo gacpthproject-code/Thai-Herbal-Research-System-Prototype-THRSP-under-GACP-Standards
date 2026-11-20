@@ -1,0 +1,63 @@
+PASS __tests__/unit/disabled-account-cannot-hold-session.test.js
+  SECU-03 — password login refuses a disabled applicant
+    ✓ an applicant disabled by an admin cannot log back in with the correct password (27 ms)
+    ✓ status SUSPENDED is refused (5 ms)
+    ✓ status LOCKED is refused (6 ms)
+    ✓ status INACTIVE is refused (5 ms)
+    ✓ a soft-deleted account is refused even when its status still reads ACTIVE (4 ms)
+    ✓ a disabled account with 2FA enrolled is refused, not handed an MFA challenge (4 ms)
+    ✓ a wrong password on a disabled account still answers INVALID_CREDENTIALS (no status oracle) (4 ms)
+    ✓ a newly registered applicant (PENDING_VERIFICATION) still logs in (5 ms)
+    ✓ re-enabling the account lets the applicant log in again (7 ms)
+  SECU-03 — tokens issued before the account was disabled stop working
+    ✓ refresh token issued before disableUser is refused (session-epoch stamp) (7 ms)
+    ✓ refresh token is refused when the account was deactivated by a write that did not stamp the epoch (5 ms)
+    ✓ refresh token minted after the disable stamp is still refused while the account is disabled (3 ms)
+    ✓ refresh token of a PDPA-erased account (isDeleted, status untouched) is refused (20 ms)
+    ✓ an ACTIVE applicant can still refresh (5 ms)
+    ✓ a staff refresh token is refused at /refresh once the account is PENDING_VERIFICATION (2 ms)
+    ✓ an ACTIVE staff refresh token is refused too: staff sessions are never renewed (2 ms)
+    ✓ access token issued before disableUser is refused by authenticateHealth (6 ms)
+  SECU-03 — every access-token guard reads the owner's status itself
+    ✓ authenticateHealth refuses a token once the owner is SUSPENDED without an epoch stamp (2 ms)
+    ✓ authenticateProvider refuses a token once the owner is SUSPENDED without an epoch stamp (2 ms)
+    ✓ authenticateAny (staff token) refuses a token once the owner is SUSPENDED without an epoch stamp (2 ms)
+    ✓ authenticateAny (applicant token) refuses a token once the owner is SUSPENDED without an epoch stamp (2 ms)
+    ✓ authenticateHealth refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateProvider refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateAny (staff token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateAny (applicant token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (2 ms)
+    ✓ authenticateHealth refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateProvider refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateAny (staff token) refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateAny (applicant token) refuses a token whose owner row no longer exists (2 ms)
+    ✓ authenticateHealth still admits a legacy lowercase "active" status (2 ms)
+    ✓ authenticateProvider still admits a legacy lowercase "active" status (2 ms)
+    ✓ authenticateAny (staff token) still admits a legacy lowercase "active" status (2 ms)
+    ✓ authenticateAny (applicant token) still admits a legacy lowercase "active" status (1 ms)
+    ✓ authenticateHealth still admits a PENDING_VERIFICATION applicant (new registrations must log in) (1 ms)
+    ✓ authenticateAny (applicant token) still admits a PENDING_VERIFICATION applicant (new registrations must log in) (2 ms)
+    ✓ authenticateProvider refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (2 ms)
+    ✓ authenticateAny (staff token) refuses a staff token once the account is PENDING_VERIFICATION (staff login admits ACTIVE only) (3 ms)
+    ✓ a database outage keeps the applicant keep-alive (status cannot be read, the token is not refused) (3 ms)
+  SECU-03 — MFA completion and the shared mint site refuse a disabled account
+    ✓ an MFA challenge issued before the disable cannot be completed into a session (3 ms)
+    ✓ an MFA challenge for an ACTIVE account still completes (3 ms)
+    ✓ a 2FA account whose legacy status reads lowercase "active" can complete MFA (5 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a disabled or deleted account (2 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a staff account that is not ACTIVE (2 ms)
+  SECU-03 — staff complete MFA only while ACTIVE (the staff login rule)
+    ✓ a staff challenge cannot complete once the account is PENDING_VERIFICATION (3 ms)
+    ✓ an ACTIVE staff challenge still completes into a provider session (2 ms)
+  SECU-03 — an MFA challenge minted before a session revocation cannot complete
+    ✓ a challenge minted before the owner changed the password is refused, before any code is checked (357 ms)
+    ✓ a challenge minted after the password change still completes (377 ms)
+  SECU-03 — a login that races the disable button yields nothing usable
+    ✓ password login: the token minted while disableUser ran is refused by the guards and by /refresh (7 ms)
+    ✓ MFA completion: the token minted while disableUser ran is refused by authenticateHealth (4 ms)
+Test Suites: 1 passed, 1 total
+Tests:       49 passed, 49 total
+Snapshots:   0 total
+Time:        1.626 s, estimated 3 s
+Ran all test suites matching __tests__/unit/disabled-account-cannot-hold-session.test.js.
+jest exit 0

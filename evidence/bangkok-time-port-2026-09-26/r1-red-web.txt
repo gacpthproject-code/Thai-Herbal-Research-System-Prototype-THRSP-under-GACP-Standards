@@ -1,0 +1,169 @@
+# RED round 1 web — sources reverted to b39d4c75 except lib/format/thai-date.ts, TZ=UTC
+FAIL src/lib/format/__tests__/bangkok-business-dates.test.ts
+  the simulated process really formats zone-less calls in UTC
+    ✓ a zone-less call reads 16, a Bangkok call reads 17 (19 ms)
+  lib/format/thai-date — Bangkok parts and pickers
+    ✓ reads the Bangkok day, month and year of an instant (3 ms)
+    ✓ today and the 1st of the month are Bangkok days, including 1 Oct at 03:00 (1 ms)
+    ✓ date-time and time print Bangkok time, with a fallback for bad input (3 ms)
+  finance period pickers (accounting + orphans) default to the Bangkok month
+    ✕ accounting-service: firstOfMonthIso is the 1st (not the last day of the previous month) and todayIso is the Bangkok day (5 ms)
+    ✕ finance-orphans-service: firstOfMonthIso is the 1st (not the last day of the previous month) and todayIso is the Bangkok day (11 ms)
+  shared Thai date formatters print the Bangkok day
+    ✕ lib/utils (2 ms)
+    ✕ utils/thai-date (2 ms)
+  dashboards and deadlines count Bangkok days
+    ✕ the provider dashboard counts an application submitted at 01:30 today (Bangkok) as new today (2 ms)
+    ✕ a revision due at the end of 17 Sep (Bangkok) has 0 days left at 01:30 on 17 Sep (1 ms)
+    ✕ a planting activity date picked as 17 Sep round-trips as 17 Sep, 00:00 in Bangkok (2 ms)
+
+  ● finance period pickers (accounting + orphans) default to the Bangkok month › accounting-service: firstOfMonthIso is the 1st (not the last day of the previous month) and todayIso is the Bangkok day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-10-01"
+    Received: "2026-09-01"
+
+      110 |     expect(mod.firstOfMonthIso()).toBe('2026-09-01');
+      111 |     freezeClock(FIRST_OF_OCT_BKK);
+    > 112 |     expect(mod.firstOfMonthIso()).toBe('2026-10-01');
+          |                                   ^
+      113 |     expect(mod.todayIso()).toBe('2026-10-01');
+      114 |     expect(mod.formatThaiDate(AFTER_MIDNIGHT_BKK)).toBe('17/09/2569');
+      115 |   });
+
+      at src/lib/format/__tests__/bangkok-business-dates.test.ts:112:35
+
+  ● finance period pickers (accounting + orphans) default to the Bangkok month › finance-orphans-service: firstOfMonthIso is the 1st (not the last day of the previous month) and todayIso is the Bangkok day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-10-01"
+    Received: "2026-09-01"
+
+      110 |     expect(mod.firstOfMonthIso()).toBe('2026-09-01');
+      111 |     freezeClock(FIRST_OF_OCT_BKK);
+    > 112 |     expect(mod.firstOfMonthIso()).toBe('2026-10-01');
+          |                                   ^
+      113 |     expect(mod.todayIso()).toBe('2026-10-01');
+      114 |     expect(mod.formatThaiDate(AFTER_MIDNIGHT_BKK)).toBe('17/09/2569');
+      115 |   });
+
+      at src/lib/format/__tests__/bangkok-business-dates.test.ts:112:35
+
+  ● shared Thai date formatters print the Bangkok day › lib/utils
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "17 กันยายน 2569"
+    Received: "16 กันยายน 2569"
+
+      118 | describe('shared Thai date formatters print the Bangkok day', () => {
+      119 |   it('lib/utils', () => {
+    > 120 |     expect(libFormatThaiDate(AFTER_MIDNIGHT_BKK)).toBe('17 กันยายน 2569');
+          |                                                   ^
+      121 |     expect(libFormatThaiDateShort(AFTER_MIDNIGHT_BKK)).toBe('17 ก.ย. 2569');
+      122 |   });
+      123 |
+
+      at Object.<anonymous> (src/lib/format/__tests__/bangkok-business-dates.test.ts:120:51)
+
+  ● shared Thai date formatters print the Bangkok day › utils/thai-date
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "17 กันยายน 2569"
+    Received: "16 กันยายน 2569"
+
+      123 |
+      124 |   it('utils/thai-date', () => {
+    > 125 |     expect(formatThaiDateLong(AFTER_MIDNIGHT_BKK)).toBe('17 กันยายน 2569');
+          |                                                    ^
+      126 |     expect(formatThaiDateNumeric(AFTER_MIDNIGHT_BKK)).toBe('17/09/2569');
+      127 |     expect(utilsFormatThaiDateTime(AFTER_MIDNIGHT_BKK)).toBe('17 ก.ย. 69 01:30 น.');
+      128 |   });
+
+      at Object.<anonymous> (src/lib/format/__tests__/bangkok-business-dates.test.ts:125:52)
+
+  ● dashboards and deadlines count Bangkok days › the provider dashboard counts an application submitted at 01:30 today (Bangkok) as new today
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "17 ก.ย. 2569"
+    Received: "16 ก.ย. 2569"
+
+      137 |       actionHref: '', isOverdue: false,
+      138 |     } as QueueItem;
+    > 139 |     expect(item.submittedDate).toBe('17 ก.ย. 2569');
+          |                                ^
+      140 |     expect(calculateFallbackMetrics([item]).newToday).toBe(1);
+      141 |   });
+      142 |
+
+      at Object.<anonymous> (src/lib/format/__tests__/bangkok-business-dates.test.ts:139:32)
+
+  ● dashboards and deadlines count Bangkok days › a revision due at the end of 17 Sep (Bangkok) has 0 days left at 01:30 on 17 Sep
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 0
+    Received: 1
+
+      142 |
+      143 |   it('a revision due at the end of 17 Sep (Bangkok) has 0 days left at 01:30 on 17 Sep', () => {
+    > 144 |     expect(daysUntil('2026-09-17T16:59:59.999Z', new Date(AFTER_MIDNIGHT_BKK))).toBe(0);
+          |                                                                                 ^
+      145 |   });
+      146 |
+      147 |   it('a planting activity date picked as 17 Sep round-trips as 17 Sep, 00:00 in Bangkok', () => {
+
+      at Object.<anonymous> (src/lib/format/__tests__/bangkok-business-dates.test.ts:144:81)
+
+  ● dashboards and deadlines count Bangkok days › a planting activity date picked as 17 Sep round-trips as 17 Sep, 00:00 in Bangkok
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-09-16T17:00:00.000Z"
+    Received: "2026-09-17T00:00:00.000Z"
+
+      147 |   it('a planting activity date picked as 17 Sep round-trips as 17 Sep, 00:00 in Bangkok', () => {
+      148 |     const picked = fromDateInputValue('2026-09-17');
+    > 149 |     expect(picked?.toISOString()).toBe('2026-09-16T17:00:00.000Z');
+          |                                   ^
+      150 |     expect(toDateInputValue(picked)).toBe('2026-09-17');
+      151 |     expect(toDateInputValue(new Date(AFTER_MIDNIGHT_BKK))).toBe('2026-09-17');
+      152 |   });
+
+      at Object.<anonymous> (src/lib/format/__tests__/bangkok-business-dates.test.ts:149:35)
+
+FAIL src/app/(public)/verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx
+  public verify page — Bangkok dates on a UTC server
+    ✓ the simulated process really formats zone-less calls in UTC (18 ms)
+    ✓ prints the issue and expiry dates as the Bangkok day (175 ms)
+    ✓ prints the backend verification time in Bangkok time (147 ms)
+    ✓ prints the page's own clock in Bangkok time when the backend sends no time (140 ms)
+    ✕ an unparseable backend time shows the page's own Bangkok clock, never "Invalid Date" (151 ms)
+
+  ● public verify page — Bangkok dates on a UTC server › an unparseable backend time shows the page's own Bangkok clock, never "Invalid Date"
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "Invalid Date"
+    Received string:        "<div class=\"flex min-h-screen flex-col bg-mint-bg\"><header class=\"sticky top-0 z-50 flex h-16 items-center justify-between border-b border-primary-100 bg-card/90 px-5 backdrop-blur-sm dark:border-border sm:px-8\"><a class=\"flex items-center gap-2.5\" href=\"/\"><span class=\"flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-leaf-soft text-leaf-onSoft\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-leaf h-5 w-5\" aria-hidden=\"true\"><path d=\"M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z\"></path><path d=\"M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12\"></path></svg></span><span class=\"leading-tight\"><span class=\"block text-sm font-bold text-primary\">ระบบรับรอง GACP</span><span class=\"block text-[10px] text-muted-foreground\">กรมการแพทย์แผนไทยและการแพทย์ทางเลือก</span></span></a><span class=\"hidden items-center gap-1.5 rounded-full bg-leaf-soft px-3 py-1 text-xs font-semibold text-leaf-onSoft sm:inline-flex\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check h-3.5 w-3.5\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>ตรวจสอบใบรับรองสาธารณะ</span></header><main class=\"flex flex-1 justify-center px-4 py-10 sm:py-14\"><div class=\"w-full max-w-xl\"><div class=\"mb-6 text-center\"><p class=\"text-xs font-bold uppercase text-leaf-800 dark:text-leaf-onSoft\">ตรวจสอบใบรับรองสาธารณะ</p><h1 class=\"mt-2 text-2xl font-bold leading-snug text-primary\">ผลการตรวจสอบใบรับรอง</h1></div><div class=\"rounded-[1.375rem] bg-card text-card-foreground shadow-leaf-card overflow-hidden\"><div class=\"flex items-center gap-3 px-6 py-5 bg-leaf-soft\"><span class=\"flex h-12 w-12 shrink-0 items-center justify-center rounded-full text-white bg-leaf\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-circle-check-big h-7 w-7\" aria-hidden=\"true\"><path d=\"M21.801 10A10 10 0 1 1 17 3.335\"></path><path d=\"m9 11 3 3L22 4\"></path></svg></span><div class=\"leading-snug\"><p class=\"text-base font-bold text-leaf-onSoft\">ใบรับรองถูกต้องและยังมีผลบังคับใช้</p><p class=\"text-xs text-leaf-onSoft\">Valid &amp; active certificate</p></div></div><div class=\"flex flex-col gap-6 p-6 sm:flex-row\"><div class=\"flex shrink-0 flex-col items-center text-center sm:items-start\"><div class=\"rounded-2xl border border-primary-100 bg-white p-3 dark:bg-white\"><img src=\"data:image/png;base64,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\" alt=\"QR ตรวจสอบใบรับรอง GACP-TH-2569-A3F7B2\" width=\"176\" height=\"176\" class=\"h-44 w-44\" data-testid=\"qr-image\"/></div><p class=\"mt-2 w-full text-center text-[11px] text-muted-foreground\">สแกนเพื่อตรวจสอบ</p></div><div class=\"flex flex-1 flex-col gap-3\"><div class=\"rounded-xl bg-mint-soft p-3 text-center font-mono text-lg font-bold text-leaf-onSoft\">GACP-TH-2569-A3F7B2</div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">ชื่อแปลง</span><span class=\"text-right text-sm font-semibold text-foreground\">ฟาร์มสมุนไพรบ้านนา</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">จังหวัด</span><span class=\"text-right text-sm font-semibold text-foreground\">เชียงใหม่</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">พืชสมุนไพร</span><span class=\"text-right text-sm font-semibold text-foreground\">ขมิ้นชัน</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันที่ออก</span><span class=\"text-right text-sm font-semibold text-foreground\">17 กันยายน 2569</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">วันหมดอายุ</span><span class=\"text-right text-sm font-semibold text-foreground\">17 กันยายน 2572</span></div><div class=\"flex items-start justify-between border-b border-primary-100 py-2 last:border-0\"><span class=\"mr-4 shrink-0 text-xs text-muted-foreground\">มาตรฐาน</span><span class=\"text-right text-sm font-semibold text-foreground\">GACP</span></div><div class=\"flex items-center justify-between pt-1\"><span class=\"text-xs text-muted-foreground\">สถานะ</span><span class=\"inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold bg-leaf-soft text-leaf-onSoft\"><span class=\"mr-1.5 inline-block h-1.5 w-1.5 flex-shrink-0 rounded-full bg-leaf-600\" aria-hidden=\"true\"></span>รับรองแล้ว</span></div></div></div><div class=\"border-t border-primary-100 bg-mint-soft px-6 py-4 text-center\"><p class=\"text-[11px] text-muted-foreground\">ตรวจสอบเมื่อ Invalid Date</p><p class=\"mt-0.5 text-[11px] text-muted-foreground\">ระบบรับรองมาตรฐาน GACP สมุนไพร | GACP Thai Platform</p></div></div><p class=\"mt-4 text-center text-[11px] leading-relaxed text-muted-foreground\">ออกโดยกรมการแพทย์แผนไทยและการแพทย์ทางเลือก (DTAM) ภายใต้มาตรฐาน ISO/IEC 17065</p><div class=\"mt-3 text-center\"><a href=\"/\" class=\"inline-flex items-center justify-center whitespace-nowrap rounded-full text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 text-foreground hover:bg-mint-soft h-12 px-5\"><span class=\"mr-1.5 flex-shrink-0\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-arrow-left h-4 w-4\" aria-hidden=\"true\"><path d=\"m12 19-7-7 7-7\"></path><path d=\"M19 12H5\"></path></svg></span>กลับหน้าหลัก</a></div></div></main></div>"
+
+      110 |     stubVerifyResponse({ certificate: CERT, verifiedAt: 'not-a-date' });
+      111 |     const html = await renderPage();
+    > 112 |     expect(html).not.toContain('Invalid Date');
+          |                      ^
+      113 |     expect(html).toContain('ตรวจสอบเมื่อ 17/9/2569 01:30:00');
+      114 |   });
+      115 | });
+
+      at Object.<anonymous> (/home/ubuntu/work/wt-bkk/apps/web-app/src/app/(public)../../../../../../verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx:112:22)
+
+Test Suites: 2 failed, 2 total
+Tests:       8 failed, 8 passed, 16 total
+Snapshots:   0 total
+Time:        2.308 s
+Ran all test suites matching src/lib/format/__tests__/bangkok-business-dates.test.ts|src/app/\(public\)/verify/\[cert-number\]/__tests__/verify-bangkok-dates.test.tsx.
+exit=1

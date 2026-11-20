@@ -1,0 +1,542 @@
+{
+  "summary": "หาสาเหตุของอาการสี่ข้อที่ operator เจอบนหน้าชำระเงิน",
+  "agentCount": 5,
+  "logs": [
+    "เจอ 41 ข้อ · CRITICAL 7 · HIGH 12 · MEDIUM 15"
+  ],
+  "result": {
+    "findings": [
+      {
+        "symptom": "จ่ายเงินไปแล้ว (Stripe รับแล้ว) แต่หน้า \"การชำระเงิน\" ยังโชว์ยอดรอชำระเต็มจำนวน และปุ่ม \"ชำระเงินออนไลน์\" ยังขึ้นให้กดจ่ายซ้ำได้",
+        "cause": "หน้านี้ตัดสิน \"เป็นหนี้อยู่ไหม\" จากสถานะแถว invoice ในฐานข้อมูลของเราเท่านั้น ไม่ได้ถามเกตเวย์ว่าเงินเข้าแล้วหรือยัง แถว invoice จะเปลี่ยนเป็น PAID/RECEIPT_ISSUED ก็ต่อเมื่อ webhook ของ Stripe เดินทางมาถึงและ settlement ทำงานสำเร็จเท่านั้น ระหว่างนั้น erpStatus ยังเป็น PENDING → isPaid=false, isCancelled=false → ถูกบวกเข้า pendingAmount (client-view.tsx:314-317; การ map อยู่ที่ payment-service.ts:706 PAID_STATUSES และ :791-793) → checkoutEntryOwes คืน true ตั้งแต่บรรทัดแรก ปุ่มจึงขึ้น PromptPay เป็นวิธีจ่ายแบบ async ช่องว่างนี้จึงเกิดทุกครั้ง ไม่ใช่กรณีพิเศษ และถ้า webhook ไม่ได้ต่อไว้ (demo/staging ที่ไม่ได้รัน stripe listen หรือ secret ผิด) หรือ scheduler ไม่ได้เดิน แถวนั้นจะค้าง PENDING ตลอดไป = ปุ่มขึ้นตลอดไป ตรงกับคำบ่น ตาข่ายรองมีแค่ settlement-reconcile-job (ทุก 10 นาที และต้องเก่ากว่า RECONCILE_STALE_MS = 300000 ms ที่ config/business-rules.js:179) ซึ่งเป็น cron ที่ต้องเดินจริงเท่านั้น",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout-entry-owes.ts:42",
+        "repro": "1) เกษตรกรกดชำระเงินออนไลน์ → order PENDING_PAYMENT + invoice status 'pending' 2) จ่ายจริงที่ Stripe (PI succeeded) 3) webhook ยังไม่ถึง / ไม่ได้ต่อ 4) กลับไป /health/payments → pendingAmount = ยอดเต็ม, ปุ่มยังขึ้น. รันพิสูจน์แล้ว: /tmp/entryprobe/run.js เคส A → pendingAmount=26750 entryOwes=true button SHOWS (ใช้โมดูลจริง ไม่ใช่ของจำลอง)",
+        "severity": "CRITICAL",
+        "fix": "ปุ่มต้องอ่าน \"มีคำสั่งชำระที่ค้างอยู่ที่เกตเวย์หรือไม่\" ด้วย ไม่ใช่ดูแค่แถว invoice: ให้ /invoices/my หรือ endpoint คู่กันคืนสถานะ checkoutOrder (PENDING_PAYMENT + stripePaymentIntentId + PI status ล่าสุด) และถ้ามี order ที่รอ settle อยู่ ให้เปลี่ยนปุ่มเป็นสถานะ \"กำลังตรวจสอบการชำระเงิน\" (disabled) แทนที่จะเป็นปุ่มจ่าย — คือแยก \"ยังไม่จ่าย\" ออกจาก \"จ่ายแล้วแต่ระบบยังไม่รับรู้\"",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "ปุ่ม \"ชำระเงินออนไลน์\" ไม่หายไปสักที กดแล้วก็วนกลับมาเจอปุ่มเดิมอีก",
+        "cause": "ปุ่มนี้สร้างหนี้ที่ทำให้ตัวเองขึ้นต่อ: การกดปุ่มพาไปหน้า checkout ซึ่งเรียก createCheckoutForApplication แล้ว mint ทั้ง checkoutOrder และ invoice แถวใหม่ด้วย status 'pending' ในทรานแซกชันเดียว พอกลับมาหน้า list แถว pending ใบนั้นเองทำให้ pendingAmount > 0 → ปุ่มขึ้นอีก และวงจรนี้ปิดไม่ได้จากฝั่งเว็บ เพราะ apps/web-app ไม่มี dependency ของ Stripe เลย (grep 'stripe' ใน apps/web-app/package.json = 0 บรรทัด) และ clientSecret ที่ backend คืนมาไม่มีใครใช้ต่อ — ปรากฏแค่ในนิยาม type (lib/services/checkout-service.ts:46) กับ fixture เท่านั้น หน้าจอหลังกดจึงจบที่ข้อความ \"สร้างรายการสำเร็จ รอชำระเงิน\" + ปุ่มย้อนกลับ ไม่มี QR ไม่มีขั้นตอนจ่ายจริง",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:415",
+        "repro": "กดปุ่ม → หน้า checkout ขึ้น \"สร้างรายการสำเร็จ รอชำระเงิน\" (ไม่มีช่องทางจ่ายบนหน้าจอ) → กดกลับไปหน้ารายการชำระเงิน → ปุ่มเดิมยังอยู่ พร้อมยอดรอชำระที่เพิ่งถูกสร้างขึ้นมาเอง → กดใหม่ได้ไม่จำกัด (การกดซ้ำจะ re-enter order เดิม เพราะ findFirst หา status PENDING_PAYMENT — stripe-checkout-service.js:463-464)",
+        "severity": "CRITICAL",
+        "fix": "สองเรื่องแยกกัน: (ก) ถ้ายังไม่มีขั้นตอนจ่ายจริงบนเว็บ ต้องไม่ mint invoice ตั้งแต่กดปุ่ม — เลื่อนการออก invoice ไปที่จังหวะ settle หรือทำให้ order ที่ยังไม่จ่ายไม่ถูกนับเป็นหนี้ของหน้านี้ (ข) หน้า checkout ต้องมีขั้นตอนจ่ายจริง (stripe.js + PromptPay QR จาก clientSecret) ไม่งั้นปุ่มนี้คือทางตัน",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "จ่ายไปแล้วรอบหนึ่ง ถ้าเงินก้อนที่สองเข้ามาที่ order ใบเดียวกัน ระบบตอบ Stripe ว่า 200 เรียบร้อย แล้วเงียบ — ไม่มีใบเสร็จใบที่สอง ไม่มีการแจ้งเตือน ไม่มีการคืนเงิน ไม่มีแถวไหนในระบบรู้ว่ามีเงินก้อนที่สอง",
+        "cause": "settleFromPaymentIntent หา order จาก paymentIntent.metadata.checkoutOrderId เป็นอันดับแรก ไม่ได้ผูกกับ PaymentIntent id ที่เก็บไว้บน order ดังนั้น intent ใบไหนก็ตามที่ถือ metadata นี้จะวิ่งมาเจอ order ใบเดียวกัน พอเจอว่า order เป็น SETTLED แล้ว โค้ดถือว่าเป็น 'redelivery ของการจ่ายเดิม' คืน {settled:true, alreadySettled:true} แล้ว settleEvent ประทับ event เป็น PROCESSED โดย error เป็น null (terminal คำนวณจาก result.settled === false เท่านั้น) สมมติฐานที่ผิดคือ 'succeeded ซ้ำ = event ซ้ำ' ซึ่งจริงเฉพาะตอนที่หนึ่ง order มี intent ใบเดียวเท่านั้น",
+        "where": "apps/backend/services/checkout/checkout-settlement-service.js:231-238, 247-264, 506-511",
+        "severity": "CRITICAL",
+        "repro": "อ่านโค้ด: มี PaymentIntent สองใบที่ metadata.checkoutOrderId ชี้ order เดียวกัน (ดูข้อถัดไปว่าเกิดได้อย่างไร) → จ่ายใบแรก order เป็น SETTLED → จ่ายใบที่สอง Stripe ส่ง payment_intent.succeeded event id ใหม่ → dedup ที่ webhook ผ่านเพราะ event id คนละใบ → เข้า settleEvent → เข้าสาย alreadySettled → PROCESSED, error null",
+        "fix": "ในสาย alreadySettled ให้เทียบ paymentIntent.id กับ order.stripePaymentIntentId ก่อน ถ้าไม่ตรง แปลว่าเป็นเงินก้อนใหม่คนละใบ ไม่ใช่ redelivery ต้องบันทึกเป็น DUPLICATE_PAYMENT_RECEIVED เขียน audit CRITICAL แจ้งเจ้าหน้าที่ และเข้าคิว refund ห้ามคืน settled:true เฉย ๆ (สาย heal quotation ยังทำต่อได้ แต่ต้องแยกจากการรับรองว่า 'ไม่มีอะไรเกิดขึ้น')",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "ผู้ยื่นที่เปิดหน้าจ่ายทิ้งไว้แล้วกลับมากดใหม่วันหลัง จะได้ QR ใบใหม่ ส่วนใบเก่ายังจ่ายได้อยู่ ทั้งสองใบเรียกเก็บได้จริงและเป็นยอดเดียวกัน",
+        "cause": "idempotencyKey ที่ส่งให้ Stripe คือ `checkout:{orderId}` ซึ่งคงที่ตลอดอายุ order แต่ Stripe เก็บผลของ idempotency key ไว้ 24 ชั่วโมงเท่านั้น (ข้อเท็จจริงฝั่ง Stripe ตรวจในรีโปนี้ไม่ได้) พ้นจากนั้นคีย์เดิมจะสร้าง PaymentIntent ใบใหม่ โค้ดรองรับกรณี id เปลี่ยนไว้แล้วที่บรรทัด 725-730 แต่รองรับด้วยการ 'ทับ pointer เฉย ๆ' — ไม่ยกเลิกใบเก่า ไม่บันทึก ไม่เตือน และ stripe-adapter ไม่มีเมธอด cancel ให้เรียกเลย (module.exports มีแค่ create/verify/parse/get) ใบเก่าจึงลอยอยู่พร้อม metadata.checkoutOrderId เดิม รอไปบรรจบกับข้อบน",
+        "where": "apps/backend/services/checkout/stripe-checkout-service.js:707-730 (key ที่บรรทัด 722, การทับที่ 725-730); apps/backend/services/payment/stripe-adapter.js:160-170",
+        "severity": "CRITICAL",
+        "repro": "อ่านโค้ด: กดสร้าง checkout วันที่ 1 ได้ intent A → ทิ้งไว้ → กดใหม่วันที่ 3 order ยังเป็น PENDING_PAYMENT จึงใช้ใบเดิม ส่ง key เดิม แต่ Stripe ไม่มีคี่ย์นั้นแล้ว → ได้ intent B → บรรทัด 725 เห็นว่า id ต่าง จึงเขียนทับเป็น B → A ยังมีชีวิตและยังชี้ order เดิม",
+        "fix": "ก่อนเขียนทับ stripePaymentIntentId ให้ยกเลิก intent ใบเก่าที่ Stripe ก่อน (ต้องเพิ่ม cancelPaymentIntent เข้า adapter seam) ถ้ายกเลิกไม่ได้ให้ปฏิเสธการสร้างใบใหม่แทนที่จะทับ และเก็บประวัติ intent id ทุกใบต่อ order (ตารางลูก) เพื่อให้ settle รู้จักใบเก่าและ reconcile กวาดเจอ",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "มีหลายคำขอแล้วดูไม่ออกว่าใบไหนของคำขอไหน และปุ่มชำระมีปุ่มเดียว กดแล้วอาจไปจ่ายของคำขออื่น",
+        "cause": "grouped() จัดกลุ่มด้วย phase อย่างเดียว (PHASE_1/PHASE_2/UNKNOWN/CANCELLED) ส่วน applicationId ถูกใช้เป็นแค่ตัวกรองที่บรรทัด 185 ไม่เคยเป็น group key เลย ใบแจ้งหนี้ของทุกคำขอจึงตกลงกล่อง 'งวดที่ 1' เดียวกัน และการ์ด PaymentInvoiceCard ไม่พิมพ์ทั้งเลขคำขอและ documentNumber (มีแค่ชื่อประเภท ยอดเงิน ป้ายสถานะ ปุ่มดูรายละเอียด) ตัวระบุคำขอเดียวบนจอคือแบนเนอร์ 'กรองตามคำขอ: <UUID>' (client-view.tsx:632) ซึ่งขึ้นเฉพาะตอนมี ?app= และเป็น UUID ไม่ใช่เลขที่คำขอที่เกษตรกรรู้จัก ที่อันตรายกว่านั้น ปุ่ม 'ชำระเงินออนไลน์' (client-view.tsx:461-464) มีปุ่มเดียวและยิงไปที่ activeApplicationId ซึ่งเมื่อไม่มี ?app= จะ resolve เป็น applicationId ของ 'ใบแรกในอาร์เรย์' = ใบที่ createdAt ใหม่สุด (payments-application-id.ts:33-34) หน้า checkout ปลายทางก็พิมพ์ 'เลขคำขอ' เป็น UUID อีก (checkout/client-view.tsx:426) เกษตรกรจึงไม่มีจุดไหนเลยที่จะทันสังเกตว่ากำลังจ่ายของคำขอผิดใบ",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:195-219",
+        "severity": "CRITICAL",
+        "repro": "เกษตรกรมี 2 คำขอที่ยังค้างจ่าย → เปิด /health/payments จากเมนู (ไม่มี ?app=) → เห็นกล่อง 'งวดที่ 1' กล่องเดียวที่มีการ์ดจากทั้งสองคำขอ ไม่มีอะไรแยก → กดปุ่ม 'ชำระเงินออนไลน์' ปุ่มเดียวที่มี → ระบบพาไป checkout ของคำขอที่มีใบแจ้งหนี้ใหม่สุด ไม่ใช่ใบที่กำลังมอง",
+        "fix": "เปลี่ยน grouped() ให้เป็น 2 ชั้น: คำขอ → งวด และตั้งหัวข้อกลุ่มเป็นเลขที่คำขอจริง (ต้องเพิ่ม include: { application: { select: { applicationNumber: true } } } ใน invoice-service.js listByApplicant ก่อน เพราะตอนนี้ payload ไม่มี applicationNumber ทั้งที่ payment-service.ts:62 ประกาศฟิลด์ไว้แล้ว) แล้วย้ายปุ่มชำระจากระดับหน้า ไปเป็นปุ่มต่อกลุ่มคำขอ/ต่อใบ",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "ทำครบทุกขั้นบนหน้า \"ชำระเงินออนไลน์\" แล้ว จบที่จอ \"สร้างรายการสำเร็จ รอชำระเงิน\" ซึ่งมีปุ่มเดียวคือ \"กลับไปหน้ารายการชำระเงิน\" — ไม่มีช่องกรอกบัตร ไม่มีลิงก์ไป Stripe ไม่มีอะไรให้กดจ่ายต่อ ผู้ใช้จ่ายเงินไม่ได้จริง",
+        "cause": "created branch วาดเฉพาะข้อมูลสรุป แล้วจบ ไม่เคยอ่าน session.clientSecret / session.paymentIntentId ที่ backend ส่งมา · grep ทั้ง apps/web-app: clientSecret ปรากฏแค่ใน type declaration (lib/services/checkout-service.ts:46) กับ fixture ไม่มีผู้บริโภคสักที่ · apps/web-app/package.json ไม่มี @stripe/* (0 hits) จึงไม่มี Stripe Elements และไม่มี redirect · ข้อความปิดท้ายที่ :485-488 \"ยอดทั้งหมดคำนวณโดยระบบและแสดงตามที่ได้รับ คุณยังไม่ถูกเรียกเก็บเงินจนกว่าจะทำขั้นตอนชำระเงินถัดไปเสร็จ\" ชี้ไป \"ขั้นตอนถัดไป\" ที่ไม่มีอยู่ในผลิตภัณฑ์",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:415-495 (ข้อความ :485-488)",
+        "severity": "CRITICAL",
+        "repro": "รันจริง (scratch test ที่ mount client-view ด้วย ?app=app-1 แล้วกดเริ่มขั้นตอนชำระเงิน) ข้อความทั้งจอหลังสำเร็จคือ: \"สร้างรายการสำเร็จ รอชำระเงิน … เลขที่รายการ co_mock_1 รายการที่ชำระ ค่าบริการตามใบเสนอราคา ฿5,535 ยอดรวม (รวมภาษีมูลค่าเพิ่มแล้ว) ฿5,535 … กลับไปหน้ารายการชำระเงิน\" — จบแค่นั้น",
+        "fix": "ต่อขั้นถัดไปให้จบเส้น: ใช้ clientSecret กับ Stripe PaymentElement บนจอนี้ หรือให้ backend คืน hosted checkout url แล้ว redirect · ระหว่างที่ยังไม่มี ห้ามให้ข้อความสัญญา \"ขั้นตอนชำระเงินถัดไป\" ต้องบอกตรง ๆ ว่าต้องทำอะไรต่อที่ไหน",
+        "lens": "หน้า checkout"
+      },
+      {
+        "symptom": "คำขอที่ระบบปิดอัตโนมัติไปแล้ว (EXPIRED เพราะไม่จ่ายเกินกำหนด) ถ้าเกษตรกรเปิดลิงก์ชำระเงินเดิมแล้วจ่าย คำขอจะ \"ฟื้น\" กลับมาเป็น DOC_FEE_PAID / AUDIT_FEE_PAID เอง ออกใบเสร็จให้ด้วย โดยไม่ผ่าน waiver-reopen (คำขอผู้ตรวจ + อนุมัติโดยบัญชีฝั่ง DTAM) และไม่ผ่าน state machine",
+        "cause": "settlement เรียก writeApplicationStatus ด้วย actorRole 'SYSTEM' และไม่ส่ง assertTransition. ฝั่ง writer: รั้ว waiver-reopen ที่บรรทัด 727 ตั้งเงื่อนไข `_fenceCandidate` ให้เป็นจริงเฉพาะเมื่อ actorRole ไม่ใช่ 'system' → settlement หลุดรั้ว; และ `assertTransition = false` เป็นค่า default (บรรทัด 701) → ไม่มีการตรวจ edge เลย. ตาราง edge ที่ถูกกฎหมายบอกชัดว่า EXPIRED ออกได้แค่ ['REVISION_REQUESTED','CAR_PENDING'] (workflow-transition-service.js:87) — EXPIRED→DOC_FEE_PAID ไม่มีในตาราง. เส้นนี้เข้าถึงได้จริงเพราะ payment-closure-job แตะแค่ Application ไม่เคยปิด CheckoutOrder (grep checkoutOrder ในไฟล์นั้นเจอแค่บรรทัด 125 ที่เป็นการ *อ่าน* PI) และทั้ง backend ไม่มีการเรียก cancelPaymentIntent ที่ไหนเลย → PaymentIntent ยังจ่ายได้ตลอดกาล. ซ้ำอีกทาง: settlement-reconcile-job กวาด order PENDING_PAYMENT ทุกใบทุก 10 นาที ถาม Stripe แล้ว settle ให้ โดยไม่เคยดูสถานะ Application เลย",
+        "where": "apps/backend/services/checkout/checkout-settlement-service.js:418-429 · apps/backend/services/application-status-writer.js:701,727 · apps/backend/services/workflow-transition-service.js:87 · apps/backend/jobs/payment-closure-job.js:125 · apps/backend/jobs/settlement-reconcile-job.js:118-146",
+        "severity": "CRITICAL",
+        "repro": "คำขออยู่ PENDING_DOC_FEE มี checkout order PENDING_PAYMENT + PaymentIntent สด → เตือนครบ 3 รอบ, เลย dueDate เกิน threshold → cron 03:00 ปิดเป็น EXPIRED (order ยังเป็น PENDING_PAYMENT, PI ยังไม่ถูก cancel) → เกษตรกรเปิดลิงก์เดิมจ่าย → settleFromPaymentIntent เขียนสถานะทับเป็น DOC_FEE_PAID. หมายเหตุ: ยืนยันจากการอ่านโค้ด + ยืนยันว่าไม่มี writer ตัวใดปิด order/ยกเลิก PI ไม่ได้ทดลองจ่ายจริงตามข้อห้ามในโจทย์",
+        "fix": "ที่ checkout-settlement-service.js ก่อนเข้า transaction: ถ้า order.application.status เป็น EXPIRED/CANCELLED → หยุด ไม่ settle คืน reason ใหม่ (เช่น APPLICATION_CLOSED) ให้ operator ตัดสิน refund; และส่ง assertTransition: true ที่ call site บรรทัด 418. คู่กัน: ให้ payment-closure-job ปิด CheckoutOrder เป็น EXPIRED + เรียก cancel PaymentIntent ในธุรกรรมเดียวกับที่ปิดคำขอ",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "คำขอที่ถูกปิดไปแล้วเพราะไม่จ่ายตามกำหนด (EXPIRED) ยังโชว์ยอดรอชำระและยังมีปุ่มชำระเงินออนไลน์ กดแล้วขึ้นข้อความว่า \"งวดนี้ยังไม่ถึงกำหนดชำระ\" ซึ่งไม่จริง",
+        "cause": "payment-closure-job ปิดคำขอเป็น EXPIRED (PAYMENT_ABANDONED) แต่ไม่ได้แตะแถว invoice เลย — ทั้งไฟล์ไม่มีการเขียน invoice.update / status CANCELLED แถวนั้นจึงค้างที่ 'pending' ตลอดไป และเนื่องจาก checkoutEntryOwes บรรทัด 42 คืน true ทันทีที่ pendingAmount > 0 โดยไม่ดู applicationStatus เลย (สถานะคำขอถูกใช้เฉพาะสาขาที่ 2 บรรทัด 47-48) ปุ่มจึงขึ้นบนคำขอที่ตายแล้ว ฝั่ง backend ปฏิเสธถูกต้อง (PAYABLE_STATES ไม่มี EXPIRED — stripe-checkout-service.js:424) แต่ตอบเป็นรหัส CHECKOUT_MILESTONE_NOT_PAYABLE ที่หน้าเว็บแปลว่า \"งวดนี้ยังไม่ถึงกำหนดชำระ\" — ผิดความหมายสำหรับคำขอที่หมดอายุ",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/backend/jobs/payment-closure-job.js:82",
+        "repro": "คำขอสถานะ PENDING_DOC_FEE + invoice pending เกินกำหนด + ครบ reminder 3 ใบ → cron ปิดเป็น EXPIRED → เปิด /health/payments?app=<id> → ยอดรอชำระยังเต็ม ปุ่มยังขึ้น. รันพิสูจน์แล้ว: /tmp/entryprobe/run.js เคส B → applicationStatus=EXPIRED, entryOwes=true, button SHOWS",
+        "severity": "HIGH",
+        "fix": "ให้ payment-closure-job ยกเลิก invoice (status CANCELLED) ในทรานแซกชันเดียวกับที่ปิดคำขอ — isCancelled จะตัดแถวนั้นออกจาก pendingAmount ทันทีตามกติกาที่มีอยู่แล้ว และเพิ่มด่านสถานะคำขอในฝั่ง FE: ถ้าคำขออยู่ในสถานะปลายทาง (EXPIRED/REJECTED/CANCELLED) ห้ามวาดปุ่ม ไม่ว่า pendingAmount จะเป็นเท่าไร",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "ผู้ใช้ที่มีหลายคำขอ: เข้าหน้าชำระเงินจากเมนู (ไม่มี ?app=) เห็นปุ่มชำระเงินออนไลน์ แต่ปุ่มพาไปจ่ายของคำขอผิดใบ",
+        "cause": "หน้านี้คิดสองอย่างด้วยขอบเขตคนละแบบ: pendingAmount รวมทุกใบเมื่อไม่มี ?app= (appScopedPayments = payments ทั้งก้อน — client-view.tsx:308-311) แต่ activeApplicationId เลือกใบเดียวคือ applicationId ของแถว invoice แถวแรกที่เจอ (payments-application-id.ts:33-34) ซึ่ง backend เรียงมาแบบ createdAt desc = ใบล่าสุดที่มี invoice (invoice-service.js:213) โดยไม่สนว่าใบนั้นจ่ายครบแล้ว ถูกยกเลิก หรือจบไปแล้ว ผลคือหนี้ของคำขอ B ไปปลดล็อกปุ่มที่ชี้ไปคำขอ A เพราะ href ของปุ่มคือ /health/payments/checkout?app=<activeApplicationId> (client-view.tsx:458-464) ถ้า A ไม่อยู่ในสถานะจ่ายได้ → กดแล้วตาย 409 (ปุ่มหลอก) ถ้า A ยังจ่ายได้อยู่ → เกษตรกรตั้งใจจ่าย B แต่เงินไปลงงวดของ A จริง ๆ ยังลามไปทั้งหน้า เพราะ quotationApplicationId (client-view.tsx:249), การ์ดใบเสนอราคา, ข้อความปฏิเสธทุกกล่อง และ RefundVisibilitySection (client-view.tsx:849-851) ต่างใช้ id ใบเดียวกันนี้",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/payments-application-id.ts:33",
+        "repro": "เกษตรกรมีคำขอ A (จ่ายครบ ใบเสร็จออกแล้ว invoice ใหม่กว่า) และคำขอ B (PENDING_DOC_FEE ยังค้างจ่าย) → เปิด /health/payments โดยไม่ใส่ ?app= → pendingAmount = หนี้ของ B, activeApplicationId = A, ปุ่มขึ้นและชี้ไป A. รันพิสูจน์แล้ว: /tmp/entryprobe/run.js เคส D → pendingAmount=26750, activeApplicationId=APP-A, entryOwes=true, button SHOWS",
+        "severity": "HIGH",
+        "fix": "ผูกขอบเขตให้เป็นอันเดียวกัน: คิด pendingAmount จากคำขอที่ activeApplicationId ชี้เท่านั้น (ทั้งตอนมีและไม่มี ?app=) และเปลี่ยนกติกาเลือกใบให้เลือก \"ใบที่ยังค้างชำระและอยู่ในสถานะจ่ายได้\" แทน \"แถว invoice แถวแรก\" ถ้ามีมากกว่าหนึ่งใบที่ค้าง ต้องให้ผู้ใช้เลือกเอง ห้ามเดาแทน",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "ถ้าปล่อยให้รายการค้างข้ามวันแล้วกดปุ่มใหม่ อาจจ่ายซ้ำได้จริง และเงินก้อนแรกจะหายไปจากระบบ",
+        "cause": "การกดซ้ำบน order ที่ยังเป็น PENDING_PAYMENT จะเรียก paymentIntents.create ใหม่ทุกครั้ง โดยพึ่ง idempotencyKey = `checkout:<orderId>` เป็นตัวกันซ้ำ (stripe-adapter.js:44-60) แต่คีย์ idempotency ของ Stripe มีอายุ 24 ชั่วโมงตามข้อกำหนดของ Stripe เอง หลังพ้นช่วงนั้นคำขอเดิมจะได้ PaymentIntent ใบใหม่ แล้วโค้ดจะเขียนทับ order.stripePaymentIntentId ด้วยใบใหม่ (stripe-checkout-service.js:722-726) ถ้าเกษตรกรจ่ายใบแรกไปแล้วแต่ webhook หาย ใบแรกจะกลายเป็นเงินกำพร้า เพราะ settlement-reconcile-job อ่านเฉพาะ stripePaymentIntentId ปัจจุบันของ order (settlement-reconcile-job.js:118-124) และปุ่มบนหน้า list ก็ยังชวนให้จ่ายใบที่สองอยู่",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/backend/services/checkout/stripe-checkout-service.js:722",
+        "repro": "order PENDING_PAYMENT อายุเกิน 24 ชม. (เช่นจ่ายแล้ว webhook หาย และ cron ไม่ได้เดิน) → เข้าหน้า checkout อีกครั้ง → PI ใบใหม่ถูกสร้าง ทับ id เดิมบน order. หมายเหตุ: ยังไม่ได้ทดสอบกับ Stripe จริงในเซสชันนี้ ข้อสรุปมาจากเส้นทางโค้ดบวกกฎอายุคีย์ idempotency ของ Stripe",
+        "severity": "HIGH",
+        "fix": "อย่าพึ่ง idempotency key เป็นตัวกันซ้ำข้ามวัน: ถ้า order มี stripePaymentIntentId อยู่แล้ว ให้ retrieve ใบเดิม (adapter มี getPaymentIntent อยู่แล้ว) และถ้าใบเดิม succeeded/processing ให้ปฏิเสธการสร้างใบใหม่ทันที พร้อมสั่ง settle/reconcile แทน — ห้ามเขียนทับ stripePaymentIntentId ทิ้งใบเก่าไม่ว่ากรณีใด",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "ไม่มี order ใบไหนหมดอายุเลย ใบที่สร้างทิ้งไว้เมื่อไรก็ตามยังเปิดค้างตลอดไป",
+        "cause": "CheckoutOrder มีคอลัมน์ expiresAt แต่ createCheckoutForApplication ไม่เคยเขียนค่าลงไป (grep ทั้งไฟล์ไม่มีคำว่า expiresAt เลย) และไม่มีโค้ดที่ไหนในรีโปเขียน checkout_orders.status = 'EXPIRED' เลยสักที่ ทางออกจาก PENDING_PAYMENT จึงเหลือแค่ SETTLED กับ CANCELLED ผลคือ edge EXPIRED -> PENDING_PAYMENT ที่ประกาศไว้เป็นคำศัพท์ตายที่ไม่มีใครเดิน และหน้าต่างที่ intent เก่าลอยค้าง (ข้อบน) ไม่มีวันปิดด้วยตัวเอง",
+        "where": "apps/backend/services/checkout/stripe-checkout-service.js:561-702 (ไม่มี expiresAt); apps/backend/shared/checkout-status.js:37,43",
+        "severity": "HIGH",
+        "repro": "grep expiresAt ใน stripe-checkout-service.js ได้ 0 บรรทัด; grep \"status: 'EXPIRED'\" ทั้ง services/ jobs/ routes/ ไม่มีแถวไหนแตะ checkoutOrder",
+        "fix": "ให้ mint เขียน expiresAt ตามอายุ QR จริง แล้วมี sweep ปิด order ที่เลยกำหนดเป็น EXPIRED พร้อมยกเลิก intent ที่ Stripe ในจังหวะเดียวกัน — ถ้ายังไม่ทำ ต้องลบ EXPIRED ออกจาก vocabulary เพื่อไม่ให้เอกสารบอกว่ามีกลไกที่ไม่มีจริง",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "ใบคำขอที่ถูกปิดอัตโนมัติเพราะไม่จ่าย ถ้าเกษตรกรไปเจอ QR เก่าแล้วจ่ายทีหลัง เงินเข้าไปแล้วใบคำขอถูกดันกลับมาเป็น 'ชำระค่าเอกสารแล้ว' ทั้งที่ตามกติกาเดินเส้นนั้นไม่ได้",
+        "cause": "payment-closure-job ปิดเฉพาะใบคำขอเป็น EXPIRED โดยจงใจไม่แตะ order/invoice/transaction เลย (เขียนไว้ในหัวไฟล์ว่าไม่ใช่ money-mutating) order จึงยังเป็น PENDING_PAYMENT และ intent ยังมีชีวิต พอเงินเข้า settlement เรียก writeApplicationStatus โดยไม่ส่ง assertTransition ซึ่ง default เป็น false ระบบจึงเขียนสถานะทับโดยไม่ตรวจตารางเส้นทางเลย ทั้งที่ ALLOWED_TRANSITIONS ให้ EXPIRED ออกได้แค่ REVISION_REQUESTED กับ CAR_PENDING",
+        "where": "apps/backend/jobs/payment-closure-job.js:82-85; apps/backend/services/checkout/checkout-settlement-service.js:416-428; apps/backend/services/application-status-writer.js:701,760-761; apps/backend/services/workflow-transition-service.js:87",
+        "severity": "HIGH",
+        "repro": "อ่านโค้ด: cron ปิดใบคำขอ PENDING_DOC_FEE -> EXPIRED (ไม่แตะ order) → ผู้ใช้จ่าย QR เก่า → settleFromPaymentIntent เจอ order PENDING_PAYMENT → settle ปกติ → writeApplicationStatus EXPIRED -> DOC_FEE_PAID ผ่านฉลุยเพราะไม่ได้ขอให้ตรวจ",
+        "fix": "ให้ payment-closure-job ปิด order เป็น CANCELLED และยกเลิก intent ที่ Stripe ในจังหวะเดียวกับที่ปิดใบคำขอ และให้ settlement ส่ง assertTransition:true (หรือให้ทางเดินนี้ตัดสินใจอย่างชัดเจนว่าจะ reopen ใบคำขอด้วย edge ที่มีจริง แทนที่จะเขียนทับเงียบ ๆ)",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "ไม่รู้ว่าต้องจ่ายใบนี้ภายในวันไหน",
+        "cause": "dueDate มีอยู่จริงและเป็นคอลัมน์ NOT NULL ใน Invoice (billing.prisma:58) ถูกคำนวณตอนออกใบ (checkout: stripe-checkout-service.js:617 computeDueDate ตามวันทำการไทย, rail เดิม: quote-service.js:332) และถูกพิมพ์ลง PDF ว่า 'ครบกำหนด / Due' กับท้ายใบว่า 'กรุณาชำระภายใน {{DUE_DATE}}' (services/pdf/templates/invoice.html:468,560) แต่ตัว mapper ที่แปลง JSON เป็น PaymentRecord ไม่ได้หยิบฟิลด์นี้มาเลย — interface PaymentRecord ไม่มี dueDate และ return object ที่ payment-service.ts:814-835 ก็ไม่ใส่ ผลคือไม่มี component ไหนบนหน้านี้มีข้อมูลจะแสดงได้ grep คำว่า dueDate ทั้งโฟลเดอร์ app/health/payments/ กับ components/payments/ ได้ผลลัพธ์ศูนย์บรรทัด วันเดียวที่ผู้ใช้เห็นคือ 'วันที่ออกเอกสาร' (client-view.tsx:744 ตาราง, 819 การ์ดมือถือ) กับ 'วันที่ออกใบเสร็จ' (901) ส่วนการ์ดงวดหลัก (PaymentInvoiceCard) ไม่มีวันที่ใด ๆ เลยสักบรรทัด — ต้องโหลด PDF ถึงจะรู้ว่าครบกำหนดเมื่อไหร่",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/lib/services/payment-service.ts:5-44",
+        "severity": "HIGH",
+        "repro": "เปิด /health/payments ที่มีใบค้างจ่าย → อ่านการ์ด 'งวดที่ 1' ทั้งใบ ไม่มีคำว่าครบกำหนด → กด 'ดูรายละเอียด' โมดัลก็มีแค่ เลขที่เอกสาร/งวด/ประเภท/สถานะ → ต้องกด 'ดาวน์โหลด PDF' แล้วเปิดไฟล์ ถึงเห็น 'ครบกำหนด / Due'",
+        "fix": "เพิ่ม dueDate เข้า PaymentRecord + mapper (inv.dueDate) แล้วแสดงบนการ์ดว่า 'ครบกำหนดชำระ <วันที่ไทย>' พร้อมนับถอยหลังเป็นวันทำการ ใช้ formatThaiDate ที่หน้านี้ import อยู่แล้ว (client-view.tsx:27)",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "ไม่รู้ว่าใบไหนถึงคิวจ่ายตอนนี้ ใบไหนยังไม่ถึงคิว และใบที่ต้องจ่ายก่อนไม่ได้อยู่บนสุด",
+        "cause": "หน้านี้ไม่มีแนวคิด 'ถึงกำหนด/ยังไม่ถึงกำหนด' อยู่ในโค้ดเลย ลำดับการวางเป็นค่าคงที่ล้วน: บรรทัด 700 map ตามอาร์เรย์ ['PHASE_1','PHASE_2'] แล้วบรรทัด 724 ต่อด้วย ['UNKNOWN','CANCELLED'] จึงได้งวดที่ 1 อยู่บนงวดที่ 2 เสมอ ซึ่งถูกในกรณีปกติ แต่ไม่มีการเรียงตาม 'ยังค้างจ่ายหรือไม่' เลย — งวดที่ 1 ที่จ่ายครบและออกใบเสร็จแล้วยังยึดพื้นที่บนสุดของจอ ดันงวดที่ 2 ที่ค้างจ่ายจริงลงไปข้างล่าง และ filter เริ่มต้นคือ 'ALL' (บรรทัด 112) จ่ายแล้วกับยังไม่จ่ายจึงปนกัน ส่วนลำดับภายในกลุ่มมาจาก API ตรง ๆ ซึ่ง orderBy: { createdAt: 'desc' } (invoice-service.js:213) = ใบที่ออกใหม่สุดขึ้นก่อน ไม่ใช่ใบที่ครบกำหนดก่อน ฝั่ง backend มีตรรกะนี้ครบแล้วแต่ทำไว้ให้นักบัญชี ไม่ได้ต่อมาถึงเกษตรกร: ar-aging-service.js:7-8 มี bucket 'NOT_YET_DUE → dueDate is in the future' และ checkout-schedule-service.js:76-79 มี isInvoiceOverdue",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:700-719",
+        "severity": "HIGH",
+        "repro": "คำขอที่จ่ายงวดที่ 1 แล้วและมีใบงวดที่ 2 ค้าง → เปิดหน้า → กล่องบนสุดคือ 'งวดที่ 1' ที่ไม่ต้องทำอะไรแล้ว ต้องเลื่อนลงถึงจะเจอใบที่ต้องจ่าย และไม่มีคำว่า 'ถึงกำหนดชำระแล้ว' อยู่บนใบนั้น",
+        "fix": "เรียงกลุ่มด้วย 'ยังค้างจ่ายก่อน แล้วค่อยตามงวด' และติดป้าย 2 แบบบนการ์ด: 'ต้องชำระตอนนี้' (unpaid + dueDate มาถึงแล้วหรือใกล้) กับ 'ยังไม่ถึงกำหนด (ครบกำหนด <วันที่>)' โดยดึงตรรกะจาก checkout-schedule-service.isInvoiceOverdue มาใช้ร่วมกัน อย่าเขียนกฎวันซ้ำที่ฝั่ง web",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "เกษตรกรที่ถึงกำหนดจ่ายงวดที่ 2 (ตรวจเอกสารผ่านแล้ว) กดปุ่ม \"ชำระเงินออนไลน์\" แล้วได้ข้อความ \"งวดนี้ยังไม่ถึงกำหนดชำระ คุณสามารถตรวจสอบงวดที่ต้องชำระได้จากหน้ารายการชำระเงิน\" ซึ่งส่งกลับไปหน้าเดิมที่มีปุ่มเดิมที่พังแบบเดิม — วนไม่จบ จ่ายงวดที่ 2 ทางออนไลน์ไม่ได้เลย",
+        "cause": "ลิงก์ทางเข้าเดียวของผลิตภัณฑ์ไม่ใส่ milestone: href={`/health/payments/checkout?app=${...}`} (payments/client-view.tsx:461) → หน้านี้อ่าน searchParams.get('milestone') ?? '' (:251) → ส่ง {applicationId, milestone: \"\"} → route ทำ String(milestone || 'M1') (payments.js:523) → PAYABLE_STATES.M1 = ['SUBMITTED','PENDING_DOC_FEE'] (stripe-checkout-service.js:51-54) ไม่มีสถานะ DOC_APPROVED/PENDING_AUDIT_FEE → 409 CHECKOUT_MILESTONE_NOT_PAYABLE · ที่ประชด: หน้ารายการรู้อยู่แล้วว่างวดไหนถึงกำหนด (checkout-entry-owes.ts:24-25 PHASE1_PAYABLE/PHASE2_PAYABLE) แต่ทิ้งข้อมูลนั้นตอนสร้าง href · การต่ออายุ (renewal) ที่เกิดมาที่ PENDING_AUDIT_FEE ก็ตายด้วยเหตุเดียวกัน",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:461 → checkout/client-view.tsx:251 → /home/ubuntu/work/GACP-Certification-Application/apps/backend/routes/api/finance/payments.js:523",
+        "severity": "HIGH",
+        "repro": "scratch test: mount ด้วย ?app=app-1 อย่างเดียว → createCheckout ถูกเรียกด้วย [{\"applicationId\":\"app-1\",\"milestone\":\"\"}]",
+        "fix": "ให้หน้ารายการใส่ &milestone=M1|M2 จาก phase ที่ checkoutEntryOwes คำนวณได้อยู่แล้ว และให้ backend เลิก default 'M1' เงียบ ๆ (milestone ว่าง = CHECKOUT_INVALID_MILESTONE) · เพิ่มเทสที่เปิดหน้าด้วย href จริงจาก payments-checkout-entry-flag.test.tsx:205",
+        "lens": "หน้า checkout"
+      },
+      {
+        "symptom": "ผู้ใช้ติ๊กยอมรับ \"ค่าธรรมเนียมของขั้นตอนที่เริ่มดำเนินการตรวจแล้ว ไม่สามารถขอคืนได้\" บนจอที่ไม่บอกว่ากำลังจะจ่ายงวดไหน เท่าไร ตามใบเสนอราคาเลขที่อะไร — เห็นแค่ \"เลขคำขอ app-1\"",
+        "cause": "บล็อกใบเสนอราคาแสดงเมื่อ acceptedQuotation && milestoneLabel เท่านั้น (:545) โดย milestoneLabel = milestoneLabelTh(milestoneParam) (:306) ซึ่งคืน null เมื่อไม่มี ?milestone (payment-service.ts:537-540) · เส้นทางเข้าจริงไม่มี ?milestone (ดู finding ก่อนหน้า) บล็อกจึงไม่ขึ้นเลยแม้ใบเสนอราคาจะ ACCEPTED และมี phaseTotal อยู่ครบ · ซ้ำร้าย bullet ในกล่องเงื่อนไขที่ :641-643 เขียนว่า \"ยอดที่ต้องชำระยึดตามใบเสนอราคาที่ยอมรับไว้ ค่าธรรมเนียมถูกล็อกราคา ณ วันยื่นคำขอ\" — อ้างเอกสารที่จอนี้ไม่ได้แสดงให้ดู · เทสทุกใบใส่ milestone ให้เอง (checkout-states.test.tsx:141, checkout-shows-quotation-and-terms.test.tsx:110,:552) จึงมองไม่เห็นช่องนี้",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:545-579 (bullet :641-643)",
+        "severity": "HIGH",
+        "repro": "scratch test ด้วย ?app=app-1 + ใบเสนอราคา ACCEPTED (QT-PRD-2026-000001, phaseTotal 5,885/29,425): SUMMARY BLOCK PRESENT: false · contains quotation number: false · contains งวดที่ 1: false · contains 5,885: false — ข้อความทั้งจอมีแค่ \"เริ่มชำระเงินสำหรับคำขอของคุณ เลขคำขอ app-1 …\" ตามด้วยกล่องเงื่อนไขและปุ่ม",
+        "fix": "แก้ต้นเหตุที่ลิงก์ (ใส่ milestone) และทำให้จอนี้ปฏิเสธการติ๊กเมื่อไม่รู้ว่างวดไหน: ถ้าไม่มี milestone ที่แปลได้ ให้แสดงข้อความว่าลิงก์ไม่ระบุงวด + ปุ่มกลับ แทนการเปิดกล่องยอมรับ",
+        "lens": "หน้า checkout"
+      },
+      {
+        "symptom": "ลิงก์ชำระเงินไม่มีวันหมดอายุ — order ที่ค้างจะค้างตลอดไปพร้อม PaymentIntent ที่จ่ายได้จริง",
+        "cause": "คอลัมน์ expiresAt ประกาศไว้ใน schema และ shared/checkout-status.js ประกาศ edge PENDING_PAYMENT→EXPIRED ไว้ แต่ไม่มีโค้ดที่ไหน *เขียน* expiresAt ของ CheckoutOrder และไม่มี job ไหนเขียน status='EXPIRED' ให้ order เลย (grep ทั้ง backend เจอ writer ของ 'EXPIRED' แค่ที่ Application/trace ไม่ใช่ checkout_orders). ทางออกจาก PENDING_PAYMENT มีจริงแค่ 2 ทาง: SETTLED หรือรอ webhook payment_intent.canceled จาก Stripe ซึ่งจะมาก็ต่อเมื่อมีคนไป cancel PI เอง และไม่มีใครทำ",
+        "where": "apps/backend/prisma/schema/billing.prisma:1352 · apps/backend/shared/checkout-status.js:42 · apps/backend/services/checkout/checkout-settlement-service.js:570-583",
+        "severity": "HIGH",
+        "repro": "SELECT count(*) FILTER (WHERE \"expiresAt\" IS NULL), count(*) FROM checkout_orders บน demo → 3|3 (ทั้ง 2 ใบที่ SETTLED แล้วและ 1 ใบที่ยังค้าง ไม่มีใบไหนเคยมีวันหมดอายุ)",
+        "fix": "ตั้ง expiresAt ตอนสร้าง order (stripe-checkout-service.js ราวบรรทัด 575) และเพิ่ม sweep ที่ปิด order หมดอายุ + cancel PI — เป็นตัวเดียวกับที่ควรอุด CRITICAL ข้างบน",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "เงินที่ Stripe เก็บไปแล้วแต่หา order ไม่เจอ หรือยอดไม่ตรง จะถูก mark ว่า \"PROCESSED\" เงียบ ๆ ไม่มีใครได้รับแจ้ง ไม่ขึ้น DEAD_LETTER และจะไม่มีวันถูกกู้คืนได้อีก",
+        "cause": "ใน settleEvent: `const terminal = result.settled === false && result.reason` (AMOUNT_MISMATCH / ORDER_NOT_FOUND) แล้วเขียน status:'PROCESSED', nextRetryAt:null ทันที — ไม่ใช่ DEAD_LETTER ที่มี log 'operator action required'. ซ้ำร้าย reconcile job มี 'Refinement B' ที่ข้าม order ใด ๆ ที่ PI มี event PROCESSED อยู่แล้ว ดังนั้นต่อให้ภายหลังแก้ order ถูกต้อง เคสนั้นก็จะไม่ถูก re-drive อีกเลย ร่องรอยเหลือแค่คอลัมน์ error กับ log บรรทัดเดียวที่ไหลหายไป",
+        "where": "apps/backend/services/checkout/checkout-settlement-service.js:506-511 · apps/backend/jobs/settlement-reconcile-job.js:132-140",
+        "severity": "HIGH",
+        "repro": "บน demo: SELECT id, error, status FROM stripe_webhook_events WHERE error IS NOT NULL → 2 แถว ทั้งคู่ status='PROCESSED': evt_3U4wRWQ4HsQ2Gmd50LmmvqgJ (amount_received 5535 = ฿55.35, 2026-08-16) และ evt_3U8CDlQ4HsQ2Gmd50y1gZ29L (2000 = ฿20.00, 2026-08-25) ทั้งสองเป็น ORDER_NOT_FOUND",
+        "fix": "แยก terminal-refusal ออกจาก PROCESSED ให้ชัด — ใช้สถานะของตัวเอง (เช่น NEEDS_OPERATOR) ที่ยังค้างในคิวและมีคนเห็น แล้วให้ reconcile ข้ามเฉพาะ PROCESSED จริง ๆ ไม่ใช่ข้ามทุกอย่างที่เคยจบแบบปฏิเสธ",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "บน demo มีการ settle จริง 2 รายการเมื่อ 2026-09-07 ออกใบเสร็จ TAX-PRD-2026-000009 และ -000010 แต่ไม่มีแถว stripe_webhook_events รองรับสักแถว — หลักฐานว่า \"SETTLED มาจาก webhook เท่านั้น\" ไม่ตรงกับสิ่งที่เกิดขึ้นจริง",
+        "cause": "route webhook แทรกแถว event ลง DB ก่อนจะ dispatch เสมอ (stripe.js:81) ดังนั้นถ้าเงินเข้าทาง webhook ต้องมีแถว. ตรวจแล้วไม่มีทั้งคู่ (ค้นหา pi_3UCvmvQ4HsQ2Gmd50xmQvd1V และ pi_3UCwOsQ4HsQ2Gmd52epuDC95 ใน payload → 0 แถว) และ max(receivedAt) ของทั้งตารางคือ 2026-08-29 11:40 — ไม่มี event ใด ๆ หลัง 2026-09-01 เลย. เส้นทางเดียวที่เหลือคือ reconcile job ที่ poll Stripe แล้วเรียก settleFromPaymentIntent({eventId: null}) ซึ่งไม่ตรวจลายเซ็นและไม่ทิ้ง ledger; log ของ gacp-backend-demo ยืนยันว่า job นี้เดินทุก 10 นาทีจริง และ RECONCILE_STALE_MS=300000 (5 นาที) ทำให้ order ที่สร้างมาแล้ว 18-29 นาทีก่อน settle เข้าเงื่อนไขพอดี",
+        "where": "apps/backend/routes/api/webhooks/stripe.js:81 · apps/backend/jobs/settlement-reconcile-job.js:145-146 · apps/backend/config/business-rules.js:179",
+        "severity": "HIGH",
+        "repro": "บน demo: SELECT max(\"receivedAt\") FROM stripe_webhook_events → 2026-08-29 11:40:55; SELECT status, \"settledAt\" FROM checkout_orders → 09ea2275 SETTLED 2026-09-07 06:30:06, c1f759d7 SETTLED 2026-09-07 07:20:04",
+        "fix": "หาสาเหตุที่ webhook ไม่ถึง demo ก่อน (endpoint ใน Stripe dashboard ชี้ที่ไหน) แล้วทำให้เส้น reconcile ทิ้งหลักฐานเสมอ — เขียนแถว ledger ของตัวเองพร้อมระบุว่า settle มาจากการ poll ไม่ใช่ signed event เพื่อให้กระทบยอดย้อนหลังได้",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "คำขอที่จบไปแล้ว/ได้ใบรับรองแล้ว ยังมีปุ่มชำระเงินออนไลน์ค้างอยู่ เพราะมีเอกสารเก่าค้างในระบบ",
+        "cause": "pendingAmount นับแถว invoice ทุกประเภทที่ยังไม่ PAID และไม่ CANCELLED โดยไม่กรองว่าแถวนั้นเป็นของ rail ที่ปุ่มนี้เก็บเงินได้จริงหรือไม่ — แถวเก่าก่อน W14 (PHASE_1_STATE_FEE / PHASE_1_PLATFORM_FEE) หรือแถว SUBSCRIPTION ที่ไม่มี applicationId ด้วยซ้ำ ก็ถูกบวกเข้ายอดเดียวกัน แล้วไปปลดล็อกปุ่ม checkout ของงานรับรอง ทั้งที่ checkout rail เก็บเงินแถวพวกนั้นไม่ได้เลย (แถวเหล่านี้ถูกจัดลง bucket UNKNOWN/legacy ที่ไม่มีปุ่มจ่ายของตัวเองด้วยซ้ำ — client-view.tsx:724) กล่องเตือน \"ระบบยังไม่เปิดช่องทางชำระเงินในสภาพแวดล้อมนี้\" (client-view.tsx:432) ก็ใช้ pendingAmount ตัวเดียวกัน จึงเด้งด้วยเงื่อนไขผิดชุดเดียวกัน",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:314",
+        "repro": "เกษตรกรมี invoice เก่าค้าง pending 1 ใบ (state fee ก่อน W14 หรือ subscription) + คำขอที่จ่ายครบแล้ว → เปิด /health/payments → ปุ่มขึ้น. รันพิสูจน์แล้ว: /tmp/entryprobe/run.js เคส E (subscription ไม่มี applicationId, pendingAmount=1200 → SHOWS) และเคส F (legacy state fee บนคำขอ CERTIFIED, pendingAmount=5000 → SHOWS)",
+        "severity": "MEDIUM",
+        "fix": "ให้ยอดที่ใช้ \"เปิดปุ่ม\" นับเฉพาะแถวที่ checkout rail เก็บได้จริง (component CHECKOUT / phase PHASE_1|PHASE_2 ของคำขอที่ชี้อยู่) ส่วนยอดรวมที่โชว์บน KPI จะนับกว้างกว่าก็ได้ แต่ต้องเป็นคนละตัวแปรกับตัวที่เปิดปุ่ม",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "กดปุ่มชำระเงินออนไลน์บนงวดที่จ่ายไปแล้ว ระบบตอบว่า \"มีรายการชำระเงินของงวดนี้กำลังดำเนินการอยู่แล้ว กรุณาเปิดหน้าชำระเงินเดิมหรือลองใหม่อีกครั้ง\" ทั้งที่จ่ายจบไปนานแล้ว",
+        "cause": "เมื่อ order เดิม settle ไปแล้ว การกดซ้ำจะหา order PENDING_PAYMENT ไม่เจอ (stripe-checkout-service.js:463-464 กรองเฉพาะสถานะนี้) จึงพยายามไป mint ใบใหม่ แล้วไปชนดัชนี partial unique uniq_invoice_app_service_active บน (applicationId, serviceType) ได้ P2002 ซึ่งถูกแปลเป็น 409 CHECKOUT_ALREADY_IN_PROGRESS — ข้อดีคือดัชนีนี้กันการออกใบซ้ำได้จริง (ถ้า migration 20260701010000 ถูก deploy แล้วบนเครื่องนั้น) แต่ข้อความบอกว่า \"กำลังดำเนินการอยู่\" ไม่ใช่ \"จ่ายแล้ว\" และยังบอกให้ \"ลองใหม่อีกครั้ง\" ซึ่งเป็นการชวนให้พยายามจ่ายซ้ำ",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/backend/services/checkout/stripe-checkout-service.js:697",
+        "repro": "คำขอที่ M1 settle แล้วแต่ยังมีแถว pending อื่นทำให้ปุ่มขึ้น → กดปุ่ม → 409 CHECKOUT_ALREADY_IN_PROGRESS → หน้า checkout แสดงข้อความจาก CHECKOUT_ERROR_MAP (apps/web-app/src/app/health/payments/checkout/client-view.tsx:78-80)",
+        "severity": "MEDIUM",
+        "fix": "ตรวจก่อน mint ว่างวดนี้มี order/invoice ที่ settle แล้วหรือยัง ถ้ามีให้ตอบรหัสแยก เช่น CHECKOUT_MILESTONE_ALREADY_PAID พร้อมข้อความไทยที่บอกว่าจ่ายแล้วและชี้ไปที่ใบเสร็จ ไม่ใช่ให้ลองใหม่",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "ผู้ยื่นที่กดยกเลิกการจ่าย (หรือ intent ถูกยกเลิกฝั่ง Stripe) จะกลับมาจ่ายอีกไม่ได้เลยตลอดไป และหน้าจอบอกเหตุผลผิดว่า 'มีรายการชำระเงินของงวดนี้กำลังดำเนินการอยู่แล้ว'",
+        "cause": "webhook payment_intent.canceled เปลี่ยน order เป็น CANCELLED ซึ่งเป็นสถานะสุดท้าย กดใหม่ประตูจึงหา order PENDING_PAYMENT ไม่เจอ แล้วไป mint ใบใหม่ แต่ invoice ใบเก่ายังอยู่ (grep ทั้ง services/routes/jobs ไม่มีที่ไหน soft-delete invoice เลย) จึงชน uniq_invoice_app_service_active เป็น P2002 และ catch ก้อนเดียวนี้แปล P2002 ทุกกรณีเป็นข้อความเดียวว่ากำลังดำเนินการอยู่ ทั้งที่เหตุจริงมีสามแบบคนละเรื่อง: แข่งกันสร้าง / ยกเลิกไปแล้ว / จ่ายไปแล้ว",
+        "where": "apps/backend/services/checkout/checkout-settlement-service.js:571-584; apps/backend/services/checkout/stripe-checkout-service.js:695-701",
+        "severity": "MEDIUM",
+        "repro": "อ่านโค้ด: order CANCELLED → กดสร้าง checkout ใหม่ → findFirst ไม่เจอ → เข้า transaction → invoice.create ชน unique (applicationId, CERTIFICATION_CHECKOUT_M1, isDeleted=false) → P2002 → 409 พร้อมข้อความที่ไม่ตรงเหตุ",
+        "fix": "แยกเหตุของ P2002 ก่อนแปลเป็นข้อความ (ดูว่าชน index ของ order หรือของ invoice) และเปิดทางกลับให้ผู้ยื่นที่ยกเลิก — soft-delete invoice ของ order ที่ CANCELLED หรือให้ mint ใหม่ reuse invoice ใบเดิม",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "ชุดเทสทั้งหมดผ่านหมด แต่รูจ่ายซ้ำข้างบนไม่มีเทสตัวไหนมองเห็นได้เลย",
+        "cause": "mock adapter สร้าง intent id จาก sha256 ของ idempotencyKey ตรง ๆ และเก็บใน Map ที่ไม่มีวันหมดอายุ แปลว่า key เดิมได้ id เดิมตลอดกาล — ตัวแทนทดสอบ 'idempotent มากกว่า' ของจริงที่หมดอายุใน 24 ชั่วโมง เคสสอง intent ต่อหนึ่ง order จึงเป็นไปไม่ได้บนราง mock ทุกรายงานที่รันบนรางนี้จึงพิสูจน์เรื่องนี้ไม่ได้",
+        "where": "apps/backend/services/payment/mock-payment-adapter.js:28-33,50-63",
+        "severity": "MEDIUM",
+        "repro": "อ่านโค้ด: idFor(seed) = hash(seed) ไม่มี TTL ไม่มีทางคืน id ใหม่สำหรับ key เดิม",
+        "fix": "เพิ่มความสามารถให้ mock จำลองคีย์หมดอายุได้ (เช่น __expireIdempotency(key)) แล้วเขียนเทส RED ที่พิสูจน์ว่าเงินก้อนที่สองบน intent คนละใบต้องไม่ถูกกลืนเงียบ",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "ถ้ามีเงินเข้ามาบน intent ใบเก่าที่ถูกทับไปแล้ว ไม่มีงานเบื้องหลังตัวไหนตรวจเจอ",
+        "cause": "reconcile กวาดเฉพาะ order ที่ยัง PENDING_PAYMENT แล้วถาม getPaymentIntent(order.stripePaymentIntentId) ซึ่งคือใบล่าสุดใบเดียว เพราะ order เก็บ intent id ได้ทีละใบ (คอลัมน์เดี่ยว @unique) intent ที่ถูกเขียนทับจึงหลุดจากทั้ง Query A และ Query B และ order ที่ SETTLED แล้วก็ไม่อยู่ในขอบเขตการกวาดตั้งแต่แรก",
+        "where": "apps/backend/jobs/settlement-reconcile-job.js:118-143; apps/backend/prisma/schema/billing.prisma:1351",
+        "severity": "MEDIUM",
+        "repro": "อ่านโค้ด: where { status: 'PENDING_PAYMENT' } + getPaymentIntent(order.stripePaymentIntentId) — ไม่มี query ไหนไล่จากฝั่ง Stripe มาหา order",
+        "fix": "เพิ่มการกระทบยอดจากฝั่ง Stripe เข้ามา (ไล่ PaymentIntent ที่ succeeded แล้วเช็คว่ามี settlement รองรับครบทุกใบ) และเก็บ intent id ทุกใบต่อ order เพื่อให้ทั้งการกวาดและการ settle รู้จักใบเก่า",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "ป้ายสถานะบนการ์ดกับในหน้ารายละเอียดของใบเดียวกันเขียนคนละคำ และไม่มีป้ายไหนบอกว่าต้องทำอะไรต่อ",
+        "cause": "หน้านี้มีคำศัพท์สถานะ 2 ชุดที่ไม่รู้จักกัน ชุดที่เกษตรกรเห็นจริงบนการ์ดงวดมี 3 แบบ (PaymentInvoiceCard.tsx:109-113): 'ออกใบเสร็จแล้ว' / 'ชำระแล้ว' / 'รอชำระ' ส่วน mapStatus ในหน้าเพจมี 6 แบบ + fallback (client-view.tsx:82-90): 'รอชำระเงิน', 'ชำระแล้ว รอออกใบเสร็จ', 'ออกใบเสร็จแล้ว', 'ชำระเงินแล้ว', 'เกินกำหนดชำระ', 'ยกเลิกแล้ว', 'ไม่ทราบสถานะ' แต่ mapStatus ถูกใช้แค่ในตาราง legacy (UNKNOWN/CANCELLED) กับโมดัลรายละเอียดเท่านั้น ใบเดียวกันจึงอ่านว่า 'รอชำระ' บนการ์ด แล้วกลายเป็น 'รอชำระเงิน' ในโมดัล และ 'ชำระแล้ว' บนการ์ดกลายเป็น 'ชำระแล้ว รอออกใบเสร็จ' ในโมดัล ทั้ง 9 คำเป็นการบรรยายสถานะล้วน ไม่มีคำไหนบอกขั้นถัดไป ข้อความที่บอกขั้นถัดไปจริง ๆ อยู่แต่ในกล่องแจ้งเรื่องใบเสนอราคา (client-view.tsx:477-478, 489, 526, 537) ซึ่งพูดถึงปุ่มชำระ ไม่ได้พูดถึงใบใดใบหนึ่งในรายการ",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/components/payments/PaymentInvoiceCard.tsx:109-113",
+        "severity": "MEDIUM",
+        "repro": "เปิดหน้า → อ่านป้ายบนการ์ดว่า 'รอชำระ' → กด 'ดูรายละเอียด' บนใบเดิม → ป้ายในโมดัลเขียนว่า 'รอชำระเงิน'",
+        "fix": "ยุบเหลือชุดเดียว ย้าย mapStatus ไปเป็น export กลางใน payment-service แล้วให้การ์ด/ตาราง/โมดัลเรียกตัวเดียวกัน และเติมประโยคขั้นถัดไปต่อท้ายป้ายที่ต้องการการกระทำ เช่น 'รอชำระ · ครบกำหนด 20 ก.ย. 2569 กดชำระเงินออนไลน์'",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "ป้าย 'เกินกำหนดชำระ' ไม่เคยขึ้นให้เห็น ทั้งที่ใบเลยกำหนดมาแล้ว",
+        "cause": "mapStatus จะคืนป้าย 'เกินกำหนดชำระ' ก็ต่อเมื่อ erpStatus เท่ากับสตริง 'OVERDUE' ซึ่ง erpStatus มาจาก toErpStatus (invoice-service.js:74-86) ที่อ่านค่า status ที่ 'เก็บไว้ในตาราง' เท่านั้น แต่ระบบตัดสินใจไว้ชัดว่าไม่เก็บ — checkout-schedule-service.js:16-17 เขียนไว้ว่า 'OVERDUE is DERIVED, never stored' และ grep หาโค้ดที่เขียนค่า overdue ลง Invoice.status ทั้ง services/ routes/ ไม่พบสักที่ ป้ายสีชมพูใบนี้จึงเป็นโค้ดตาย ในทางปฏิบัติใบที่เลยกำหนดมา 3 เดือนก็ยังอ่านว่า 'รอชำระ' เหมือนใบที่เพิ่งออกเมื่อวาน",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:86",
+        "severity": "MEDIUM",
+        "repro": "ปล่อยใบแจ้งหนี้ให้เลย dueDate โดยไม่จ่าย → เปิดหน้า → ป้ายยังเป็น 'รอชำระ' สีเหลืองเหมือนเดิม ไม่มีอะไรเปลี่ยน",
+        "fix": "คำนวณ overdue ที่ฝั่งแสดงผลจาก dueDate ที่ map เข้ามาใหม่ (ข้อ 2) โดยเรียกกฎเดียวกับ checkout-schedule-service.isInvoiceOverdue อย่าไปเพิ่มการเขียนสถานะลง DB เพราะขัดกับการตัดสินใจที่บันทึกไว้แล้ว",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "ประโยคที่บอกว่า 'งวดที่ 2 ยังไม่ออก รอเจ้าหน้าที่ตรวจเอกสารก่อน' แทบไม่เคยขึ้น",
+        "cause": "แบนเนอร์ที่บอกเรื่องนี้เขียนไว้ดีมาก ('งวดที่ 1 ชำระเรียบร้อยแล้ว เจ้าหน้าที่กำลังตรวจสอบเอกสารของคุณ เมื่อเอกสารผ่านการอนุมัติ ระบบจะออกใบแจ้งหนี้งวดที่ 2 (ค่าตรวจประเมินหน้างาน) ให้อัตโนมัติ คุณจะได้รับการแจ้งเตือนในระบบ') แต่เงื่อนไขแรกของมันคือ appFilter ต้องมีค่า คือ URL ต้องมี ?app= ปัญหาคือลิงก์ที่พาคนมาหน้านี้ไม่เคยแนบ ?app= มาเลย: เมนูหลัก nav-config.ts:109 เป็น '/health/payments' เปล่า ๆ และแม้แต่ปุ่มในหน้ารายละเอียดคำขอเอง (applications/[id]/client-view.tsx:553) ก็ href='/health/payments' เปล่า ๆ ทั้งที่ตอนนั้นถือ id อยู่ในมือ มีแต่ทางเดียวที่มี ?app= คือการส่งต่อทันทีหลังกดยื่นคำขอ นอกจากนี้เงื่อนไขยังบังคับว่าใบทุกใบต้องจ่ายครบแล้ว ดังนั้นตอนที่งวดที่ 1 ยังค้างจ่าย หน้าจอจะไม่พูดถึงงวดที่ 2 เลยแม้แต่คำเดียว (กลุ่มที่ไม่มีแถวจะ return null ที่บรรทัด 702)",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:643-659",
+        "severity": "MEDIUM",
+        "repro": "จ่ายงวดที่ 1 ครบ → กลับเข้าหน้าชำระเงินจากเมนู (ไม่มี ?app=) → ไม่เห็นแบนเนอร์ เห็นแค่การ์ดที่จ่ายแล้ว ไม่มีคำอธิบายว่าขั้นต่อไปคืออะไร",
+        "fix": "สองอย่าง: (ก) เติม ?app= ให้ลิงก์ที่รู้ id อยู่แล้ว โดยเฉพาะ applications/[id] บรรทัด 553 (ข) เปลี่ยนเงื่อนไขแบนเนอร์จาก 'ต้องมี appFilter' เป็น 'คำนวณต่อคำขอ' ตามโครงกลุ่มใหม่ในข้อ 1 และแสดงงวดที่ 2 เป็นแถวจาง ๆ ว่า 'ยังไม่ถึงคิว' ตั้งแต่ตอนที่งวดที่ 1 ยังค้างจ่าย",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "ข้อความ error ตอนกดจ่ายบอกให้ 'ไปดูที่หน้ารายการชำระเงินว่างวดไหนต้องจ่าย' แต่หน้านั้นไม่ได้บอก",
+        "cause": "หน้า checkout มีข้อความปฏิเสธว่า 'งวดนี้ยังไม่ถึงกำหนดชำระ คุณสามารถตรวจสอบงวดที่ต้องชำระได้จากหน้ารายการชำระเงิน' ซึ่งชี้กลับมาที่หน้านี้ แต่ตามที่พบในข้อ 2 และ 3 หน้านี้ไม่มีวันครบกำหนดและไม่มีเครื่องหมายบอกว่างวดไหนถึงคิว ผู้ใช้ที่ทำตามคำแนะนำจึงกลับมาเจอจอที่ตอบคำถามเดิมไม่ได้ กลายเป็นวงกลม",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:82",
+        "severity": "MEDIUM",
+        "repro": "เปิด /health/payments/checkout?app=<id>&milestone=M2 ตอนที่ M2 ยังไม่ถึงกำหนด → เห็นข้อความให้กลับไปดูหน้ารายการ → กลับมาที่ /health/payments → ไม่มีข้อมูลไหนบอกว่างวดไหนถึงกำหนด",
+        "fix": "แก้ที่ต้นเหตุคือทำข้อ 2 และ 3 ให้จบก่อน แล้วข้อความนี้จึงจะเป็นคำแนะนำที่ทำตามได้จริง",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "กลับมาที่หน้านี้อีกครั้งหลังจ่ายงวดนั้นไปแล้ว (bookmark / ปุ่ม back / พิมพ์ URL) หน้ายังชวนให้จ่ายใหม่ว่า \"เริ่มชำระเงินสำหรับคำขอของคุณ\" พร้อมปุ่ม \"เริ่มขั้นตอนชำระเงิน\" ที่กดได้ · พอกดจริงถึงจะถูกปฏิเสธ และเหตุผลที่ให้ก็ผิด: \"งวดนี้ยังไม่ถึงกำหนดชำระ\" ทั้งที่ความจริงคือจ่ายไปแล้ว",
+        "cause": "หน้านี้ไม่อ่านสถานะ order/invoice/ใบเสร็จใด ๆ ตอน mount — state เริ่มที่ 'idle' เสมอ (:254) และ useEffect สองตัว (:287-304, :314-329) อ่านแค่ใบเสนอราคากับ consent · เมื่อ M1 settle แล้วสถานะคำขอกลายเป็น DOC_FEE_PAID (checkout-settlement-service.js:68) ซึ่งไม่อยู่ใน PAYABLE_STATES.M1 → backend ตอบ CHECKOUT_MILESTONE_NOT_PAYABLE → map ที่ :81-82 แปลว่า \"งวดนี้ยังไม่ถึงกำหนดชำระ …\" ซึ่งเป็นคำอธิบายของงวดที่ยังมาไม่ถึง ไม่ใช่งวดที่ปิดแล้ว · นอกจากนี้ startCheckout เขียน consent ก่อนขอเรียกเก็บเสมอ (:341-349) จึงมี consent row ของการจ่ายที่ไม่ได้เกิดขึ้น",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:254 และ :81-82",
+        "severity": "MEDIUM",
+        "repro": "เปิด /health/payments/checkout?app=<uuid>&milestone=M1 ซ้ำหลังงวด 1 settled: จอ idle ปกติ ติ๊กได้ กดได้ แล้วจึงได้ข้อความ \"งวดนี้ยังไม่ถึงกำหนดชำระ\"",
+        "fix": "ให้หน้าอ่านสถานะงวดตอน mount (เช่น GET payments/invoices ของคำขอ) แล้วแสดงสถานะ \"งวดนี้ชำระแล้ว\" + ลิงก์ใบเสร็จ แทนกล่องยอมรับ · แยกรหัสฝั่ง backend ระหว่าง \"ยังไม่ถึงกำหนด\" กับ \"ชำระแล้ว\" หรืออย่างน้อยแก้คำแปลให้ครอบสองกรณี",
+        "lens": "หน้า checkout"
+      },
+      {
+        "symptom": "ในจอสรุปหลังสร้างรายการ ชื่อรายการที่ชำระกับงวดที่ต้องชำระอาจพูดคนละงวดบนจอเดียวกัน เช่น \"งวดที่ต้องชำระ: งวดที่ 1 ค่าบริการตรวจสอบเอกสาร\" แต่บรรทัดราคาข้างล่างเขียน \"งวดที่ 2 ค่าบริการตรวจประเมินแปลงและออกใบรับรอง ฿5,535\"",
+        "cause": "บรรทัดชื่อรายการอ่านจาก URL: {milestoneLabel || 'ค่าบริการตามใบเสนอราคา'} (:472) โดย milestoneLabel มาจาก milestoneParam (:306) ขณะที่บรรทัด \"งวดที่ต้องชำระ\" อ่านจากคำตอบของ backend milestoneLabelTh(session.milestone) (:450-456) · สองแหล่งต่างกันได้ทันทีที่ URL กับสิ่งที่ backend คิดเงินไม่ตรงกัน (ซึ่งเกิดจริง เพราะ backend default 'M1') · เทสที่ตั้งใจกันเรื่องนี้ใช้ milestone=M99 (checkout-states.test.tsx:228) ซึ่งแปลไม่ได้และตกไป fallback จึงจับไม่ได้",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:472",
+        "severity": "MEDIUM",
+        "repro": "เปิดด้วย ?app=<uuid>&milestone=M2 บนคำขอสถานะ SUBMITTED: backend คิด M2 ไม่ผ่านก็จริง แต่ในทางกลับกัน ?milestone=M2 กับ response M1 ใด ๆ จะพิมพ์สองชื่อบนจอเดียว",
+        "fix": "เปลี่ยน :472 ให้ใช้ milestoneLabelTh(session.milestone) แหล่งเดียวกับ :450 แล้วเพิ่มเทสที่ URL=M2 / response=M1",
+        "lens": "หน้า checkout"
+      },
+      {
+        "symptom": "บางการปฏิเสธได้ข้อความกลาง ๆ \"ไม่สามารถสร้างรายการชำระเงินได้ กรุณาลองใหม่ภายหลัง หรือกลับไปที่หน้ารายการชำระเงิน\" ทั้งที่รอลองใหม่กี่ครั้งก็ไม่มีวันสำเร็จ",
+        "cause": "CHECKOUT_ERROR_MAP (:78-163) มี 12 รหัส แต่ backend ยังโยนอีกอย่างน้อย 2 ตัวที่ไม่มีคำแปล: CHECKOUT_RENEWAL_SINGLE_CHARGE (409, stripe-checkout-service.js:352 — ขอเก็บงวดที่คำขอต่ออายุไม่มี) และ CHECKOUT_BREAKDOWN_DRIFT (500, :368 — ยอดที่แตกไม่ตรง fee-service) ทั้งคู่เป็นการปฏิเสธถาวร · ตกไป FALLBACK_MESSAGE_TH (:169-170) · และ resolveCheckoutFailure (:219-231) ใช้ hasMappedErrorCode แทน resolveErrorCode จึงทิ้ง messageTh ภาษาไทยที่ backend ส่งมากับ envelope อยู่แล้ว (lib/i18n/error-code-map.ts:41-49) · ข้อดีที่ยืนยันได้: ไม่มีทางไหนโชว์รหัสอังกฤษดิบบนจอ ทุกทางออกเป็นไทย",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:219-231 และ :78-163",
+        "severity": "MEDIUM",
+        "repro": "ยิง POST /api/payments/checkout ด้วย applicationId ของคำขอต่ออายุ + milestone M1 → 409 CHECKOUT_RENEWAL_SINGLE_CHARGE → หน้าแสดง FALLBACK",
+        "fix": "เติมสองรหัสลง map ด้วยคำที่บอกเหตุ+สิ่งที่ทำต่อ (ไม่ใช่ \"ลองใหม่ภายหลัง\") และให้ fallback อ่าน envelope.messageTh ก่อนถึงประโยคกลาง · ขยาย checkout-error-copy-covers-the-quotation-gate.test.ts ให้เทียบรายชื่อรหัสกับ httpError ทั้งหมดใน stripe-checkout-service.js อัตโนมัติ",
+        "lens": "หน้า checkout"
+      },
+      {
+        "symptom": "demo.gacpth.com ตอนนี้เปิดให้ใครก็ได้เข้า ไม่มีทั้งด่าน IP และด่าน token ทั้งที่คอมเมนต์ในไฟล์ยังบรรยายว่ามี \"token ของลูกค้า\" แยกใบ",
+        "cause": "map $gacp_demo_deny มีแต่ `default 0;` ไม่มีกฎสักบรรทัด (เทียบกับ $gacp_prelaunch_deny ที่มี \"1:0:0\" 1; และ $gacp_bare_domain_deny ที่มี \"1:0\" 1;) ผลคือ `if ($gacp_demo_deny) { return 403; }` ทั้งสองจุดในไฟล์ vhost ไม่มีวันยิง. ดูเหมือนตั้งใจ (ไฟล์ backup ชื่อ bak-open-demo ลงวันที่ 2026-09-05/06 ตรงกับ ruling เรื่องเปิด staging/ปลดม่าน IP) แต่ข้อความอธิบายรอบ ๆ ยังเป็นของเดิมและขัดกับพฤติกรรมจริง — คนอ่าน config จะเข้าใจผิดว่ายังมีด่านอยู่. ข่าวดี: ตรวจ .env.production แล้ว DATABASE_URL เป็น RETIRED_NO_PRODUCTION_DB ดังนั้นการเปิด demo ไม่ได้เปิดฐาน production (บันทึกความจำเดิมที่ว่า prod+demo ใช้ Supabase ตัวเดียวกัน ตกยุคแล้ว) แต่ demo ก็ยังมีข้อมูลจริง 10 คำขอ 3 ใบแจ้งหนี้ และการจ่าย Stripe test จริง",
+        "where": "/etc/nginx/sites-enabled/gacp-platform.conf:203-205 (เทียบ :154-157 และ :178-181) · /etc/nginx/sites-enabled/demo.gacpth.com.conf:49,90",
+        "severity": "MEDIUM",
+        "repro": "sed -n '203,205p' /etc/nginx/sites-enabled/gacp-platform.conf → ตัว map ว่างเปล่า; curl -k -H 'Host: demo.gacpth.com' https://127.0.0.1/api/health → 200 โดยไม่ต้องมีคุกกี้",
+        "fix": "ถ้าตั้งใจเปิด ให้ลบทั้ง map และ `if` สองบรรทัดออก พร้อมแก้คอมเมนต์ให้ตรง; ถ้าไม่ตั้งใจ ให้ใส่ \"1:0:0\" 1; กลับเข้า map",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "บน staging มีธุรกรรมและสลิปที่ไม่มีทางเดินต่อได้อีกแล้ว: payment_transactions 5 แถว เป็น BANK_TRANSFER/PENDING ทั้งหมด และ payment_slips 2 ใบค้าง PENDING_REVIEW ที่ไม่มีเจ้าหน้าที่คนไหนกดอนุมัติได้",
+        "cause": "เส้นทางสลิป + การอนุมัติเงินโดยคนถูกยกเลิกไปแล้ว (ตอนนี้เป็น Stripe อย่างเดียว settle ด้วย webhook) แต่ข้อมูลเก่ายังนั่งค้างอยู่ในสถานะที่รอ actor ที่ไม่มีอยู่จริงแล้ว และ grep แล้วไม่มี service ตัวไหนเขียน amountClaimed อีกเลย ยืนยันว่าเป็น flow ตาย",
+        "where": "gacp_staging.payment_transactions (5 แถว) · gacp_staging.payment_slips (5f0bbaff, 9bc55e7f — PENDING_REVIEW ตั้งแต่ 2026-07-11)",
+        "severity": "MEDIUM",
+        "repro": "SELECT gateway, status, count(*) FROM payment_transactions GROUP BY 1,2 → BANK_TRANSFER|PENDING|5; SELECT status, count(*) FROM payment_slips GROUP BY 1 → APPROVED 6, PENDING_REVIEW 2",
+        "fix": "เนื่องจากยังไม่ขึ้น production และไม่มีข้อมูลจริงต้องรักษา — ลบแถวของ flow ที่ retired ทิ้งไปเลย หรืออย่างน้อย mark เป็น VOIDED พร้อมเหตุผล ไม่ให้หน้าจอไหนไปนับรวม",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "ใบแจ้งหนี้กับรายการชำระเงินไม่ได้ผูกกันเลยในข้อมูลจริง — กระทบยอดข้ามสองตารางนี้ตรง ๆ ไม่ได้",
+        "cause": "คอลัมน์ invoices.paymentTransactionId เป็น NULL ทุกแถว ทั้งที่มี payment_transactions ที่จับคู่กันได้ชัด ๆ อยู่. เส้นทาง checkout เขียนการเชื่อมไว้ที่ checkout_orders (invoiceId + paymentTransactionId ซึ่งมี unique index ทั้งคู่) แต่ไม่เคยเขียนย้อนกลับลงตัวใบแจ้งหนี้ ใครก็ตามที่ join จากฝั่ง invoices จะได้ศูนย์แถวเสมอ",
+        "where": "gacp_staging.invoices (0/44 แถวมีค่า) · demo invoices (0/3 แถวมีค่า ทั้งที่ payment_transactions 3 แถวจับคู่ได้ครบ)",
+        "severity": "MEDIUM",
+        "repro": "SELECT count(*) FILTER (WHERE \"paymentTransactionId\" IS NOT NULL), count(*) FROM invoices → staging 0|44, demo 0|3",
+        "fix": "เขียน paymentTransactionId ลงใบแจ้งหนี้ในธุรกรรม settle เดียวกับที่เขียน paid/receiptNumber (checkout-settlement-service.js ขั้นที่ 2) หรือถ้าตัดสินใจว่า checkout_orders คือจุดเชื่อมเดียว ก็ลบคอลัมน์นี้ทิ้ง อย่าปล่อยให้เป็นคอลัมน์ที่หลอกคนอ่าน",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "ไม่มีอาการที่ผู้ใช้เห็นชัด แต่เป็นจุดที่คำนวณหนี้ผิดได้ในคำขอรุ่นเก่าที่มีใบเสนอราคาสองฝั่ง",
+        "cause": "หน้า list เลือกใบเสนอราคามาอ่านตราประทับ phase1InvoicedAt/phase2InvoicedAt แค่ใบเดียวด้วย `quotations?.platform || quotations?.dtam` (client-view.tsx:322) แล้วส่งเข้า checkoutEntryOwes ดังนั้นถ้าเป็นคำขอก่อน W14 ที่ถือคู่ dtam+platform ตราประทับของฝั่ง dtam จะมองไม่เห็นเลย ขณะที่ quotationAccepted กลับบังคับว่าต้องยอมรับครบทั้งคู่ (isQuotationAcceptedForPayment ที่ payment-service.ts:641-647) — สองตัวนี้อ่านข้อมูลคนละขอบเขตกัน",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:322",
+        "repro": "คำขอก่อน W14 ที่มีใบเสนอราคาทั้ง dtam และ platform โดยฝั่ง dtam ถูกประทับ phase1InvoicedAt แต่ฝั่ง platform ยังไม่ถูกประทับ และไม่มีแถว invoice ของงวดนั้น → checkoutEntryOwes อ่านว่ายังไม่เคยออกบิลงวด 1",
+        "severity": "LOW",
+        "fix": "อ่านตราประทับจากทุกใบที่คำขอถืออยู่ (ถือว่าออกบิลแล้วถ้าใบใดใบหนึ่งถูกประทับ) ให้ขอบเขตตรงกับ isQuotationAcceptedForPayment ที่ดูทุกใบอยู่แล้ว",
+        "lens": "ปุ่มขึ้นตลอด"
+      },
+      {
+        "symptom": "ยังมีประตูจ่ายงวดที่ 1 อีกบานเปิดอยู่คู่กับ checkout ทั้งที่ payment เป็น Stripe อย่างเดียวแล้ว",
+        "cause": "POST /api/payments/create และ POST /api/payments/phase1 ยังเรียก createPhase1Payment ซึ่งสร้าง PaymentTransaction gateway BANK_TRANSFER พร้อม idempotencyKey ที่ผูกกับ Date.now() (จึงไม่ซ้ำกันเลยทุกครั้งที่กด) และดันสถานะใบคำขอเป็น PENDING_DOC_FEE ซึ่งเป็นสถานะที่ประตู Stripe ยังจ่ายได้ ทั้งสองรางจึงชี้งวดเดียวกันโดยไม่มี index ตัวไหนกันเพราะมันไม่ได้สร้างแถว invoice ที่จะไปชน uniq_invoice_app_service_active",
+        "where": "apps/backend/routes/api/finance/payments.js:208,356; apps/backend/services/payment-service-phase-flow.js:176-224 (idempotencyKey บรรทัด 221)",
+        "severity": "LOW",
+        "repro": "อ่านโค้ด: กด /api/payments/create phase 1 ซ้ำ ๆ จะได้ PaymentTransaction PENDING เพิ่มทีละแถว เพราะคีย์มี Date.now()",
+        "fix": "ถ้าสลิปถูกยกเลิกจริงตามที่บันทึกไว้ ให้ปิดสองประตูนี้เป็น 410 แบบเดียวกับ phase2 (payments.js:463-471) เพื่อให้เหลือรางเดียว",
+        "lens": "จ่ายซ้ำ"
+      },
+      {
+        "symptom": "บนจอคอมพิวเตอร์ ใบที่ยกเลิกแล้วดูไม่ออกว่าเป็นงวดไหน แต่บนมือถือดูออก",
+        "cause": "แถวกลุ่ม UNKNOWN/CANCELLED ใช้การเรนเดอร์แบบเก่า 2 ชุดที่ข้อมูลไม่เท่ากัน คอลัมน์ของตารางเดสก์ท็อป (บรรทัด 740-745) คือ เลขที่เอกสาร / ประเภท / จำนวนเงิน / สถานะ / วันที่ออกเอกสาร / การดำเนินการ โดย 'ประเภท' คือ mapComponentLabel ซึ่งบอกว่าเป็นค่าธรรมเนียมภาครัฐหรือค่าบริการแพลตฟอร์ม ไม่ใช่งวด — ตารางนี้จึงไม่มีช่องงวดเลย ขณะที่การ์ดมือถือของแถวชุดเดียวกันพิมพ์ทั้งสองอย่างว่า '{งวด} · {ประเภท}' ที่บรรทัด 809 คนเปิดจอใหญ่จึงได้ข้อมูลน้อยกว่าคนเปิดมือถือ",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx:740-745",
+        "severity": "LOW",
+        "repro": "มีใบแจ้งหนี้ที่ถูกยกเลิก → เปิดหน้าบนจอกว้าง (≥lg) → ตาราง 'ใบแจ้งหนี้ที่ยกเลิกแล้ว' ไม่บอกงวด → ย่อจอให้แคบกว่า lg → การ์ดเดียวกันบอกงวด",
+        "fix": "เพิ่มคอลัมน์ 'งวด' (mapPhaseLabel(payment.phase)) เข้าตารางเดสก์ท็อป ให้ตรงกับการ์ดมือถือ",
+        "lens": "ไม่รู้จ่ายบิลไหน"
+      },
+      {
+        "symptom": "บางครั้งกล่อง \"ใบเสนอราคาที่ยอมรับไว้\" หายไปเฉย ๆ ผู้ใช้แยกไม่ออกว่าเพราะยังไม่ได้กดยอมรับ หรือเพราะระบบอ่านข้อมูลไม่ได้",
+        "cause": "useEffect ที่อ่านใบเสนอราคาจับ error แล้วเงียบสนิท (:299-301 \"No answer is not a fact about the document: say nothing.\") ผลลัพธ์เหมือนกันทุกประการกับกรณีไม่มีใบที่ยอมรับ — ตัดสินใจนี้ตั้งใจไว้ แต่ผู้ใช้ที่ต้องติ๊กยอมรับไม่คืนเงินไม่มีทางรู้ว่าจอกำลังไม่รู้อะไรอยู่ (หน้ารายการชำระเงินพูดตรงกันข้าม: \"ตรวจสอบใบเสนอราคาไม่สำเร็จ …\" payments/client-view.tsx:477)",
+        "where": "/home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx:287-304",
+        "severity": "LOW",
+        "fix": "แยกสองสถานะเหมือนที่หน้ารายการทำแล้ว: lookup ล้มเหลว → ข้อความบอกว่าตรวจไม่ได้ + ปุ่มลองใหม่; ไม่มีใบที่ยอมรับ → เงียบตามเดิม",
+        "lens": "หน้า checkout"
+      },
+      {
+        "symptom": "คำขอที่ค้างรอจ่ายเงินแต่ยังไม่เคยมีใบแจ้งหนี้ จะค้างตลอดไป ไม่มี cron ตัวไหนปิดให้",
+        "cause": "payment-closure-job กวาดจากตาราง invoice เป็นตัวตั้ง (where status = pending AND dueDate < cutoff) แล้วค่อยกรองด้วยสถานะคำขอ. คำขอที่อยู่ PENDING_DOC_FEE แต่ยังไม่มีแถว invoice เลย จึงไม่เคยปรากฏใน result set ตั้งแต่แรก",
+        "where": "apps/backend/jobs/payment-closure-job.js:180-194",
+        "severity": "LOW",
+        "repro": "บน demo: application 8448d5b0-5cb1-407c-9469-970f4e2ff4e2 อยู่ PENDING_DOC_FEE ตั้งแต่ 2026-09-06 orders='-' invoices='-'",
+        "fix": "เพิ่มการกวาดชั้นที่สองที่ตั้งต้นจากคำขอใน CLOSEABLE_PRE_PAYMENT_STATES ที่อยู่เกิน threshold โดยไม่มี invoice เลย",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "payment_slips.amountClaimed เก็บสองหน่วยปนกัน — ใบที่เป็นค่าธรรมเนียม ฿5,000 เท่ากันเป๊ะ บางแถวเก็บ 5000 บางแถวเก็บ 500000",
+        "cause": "เป็นคอลัมน์ integer ที่ควรเป็นสตางค์ (payment_transactions.amount เก็บ 553500 = ฿5,535.00 ยืนยันว่ามาตรฐานคือสตางค์) แต่ 7 ใน 8 แถวเก็บเป็นบาท. ตอนนี้ไม่มี service ตัวไหนเขียนคอลัมน์นี้แล้ว (grep amountClaimed ใน services/routes ได้ 0 แถว) จึงเป็นข้อมูลตาย ไม่ใช่บั๊กที่ยังทำงาน — แต่ถ้ามีรายงานไหนไปรวมยอดตารางนี้จะผิด 100 เท่า",
+        "where": "gacp_staging.payment_slips: 0523f717-b5ea-4b55-b3f5-fbba1f0ea0d9 = 500000 เทียบ f12f9c2f-cd48-4878-a34e-87e1602b3c81 = 5000 (ทั้งคู่คู่กับใบแจ้งหนี้ PHASE_1_STATE_FEE totalAmount 5000.00)",
+        "severity": "LOW",
+        "fix": "ลบทิ้งพร้อม flow สลิปที่ retired แล้ว ไม่ต้องแปลงหน่วยย้อนหลัง",
+        "lens": "พฤติกรรมจริง"
+      },
+      {
+        "symptom": "ชุดสถานะ \"จ่ายแล้ว\" ที่ export จาก invoice-helpers ตกตัวพิมพ์เล็ก 'paid' ซึ่งเป็นค่าที่เส้นทางบัตรเขียนจริง — ถ้ามีคนหยิบไปใช้ ใบที่จ่ายและออกใบเสร็จแล้วจะถูกอ่านว่ายังไม่จ่าย",
+        "cause": "PAID_STATUSES = Set(['PAID','PAID_PENDING_RECEIPT','RECEIPT_ISSUED']) ไม่มี 'paid' ตัวเล็ก ขณะที่ทุกรายการเทียบเคียงในไฟล์อื่นใส่ไว้ครบ (invoice-repository.js:49,122 · invoice-finance-ops.js:126 · invoice-service.js:44) และ settlement เขียน status:'paid' ตัวเล็กโดยเจตนา (มีคอมเมนต์อธิบายว่า credit-note/debit-note/refund/wht อ่านค่าดิบเป็น 'paid'). ตอนนี้ยังไม่เป็นบั๊กจริงเพราะ export ออกมาแล้วไม่มีไฟล์ไหน import ไปใช้ — เป็นกับดักที่รอคนเผลอหยิบ",
+        "where": "apps/backend/routes/api/finance/invoice-helpers.js:16,128",
+        "severity": "LOW",
+        "repro": "demo มีใบ status='paid' จริง 2 ใบพร้อม receiptNumber TAX-PRD-2026-000009/000010 — ถ้าเอา PAID_STATUSES ไปกรอง จะได้ 0 ใบ",
+        "fix": "เติม 'paid' เข้า Set หรือลบค่าคงที่ที่ไม่มีใครใช้ทิ้งไป อย่าทิ้งไว้ให้ใครหยิบ",
+        "lens": "พฤติกรรมจริง"
+      }
+    ],
+    "gaps": [
+      "[ปุ่มขึ้นตลอด] ไม่ได้ query ฐานข้อมูล demo/staging จริงในเซสชันนี้ จึงยังไม่รู้ว่าตอนนี้มีแถว invoice ค้าง 'pending' กี่แถวและเป็นชนิดใด (legacy state fee / subscription / checkout ที่ webhook หาย) — ตัวเลขจริงจะบอกได้ว่าอาการที่ operator เห็นมาจาก finding ข้อไหนเป็นหลัก",
+      "[ปุ่มขึ้นตลอด] ยังไม่ได้ยืนยันว่า settlement-reconcile-job เดินอยู่จริงบนเครื่อง demo/staging (ลงทะเบียนไว้ที่ jobs/scheduler.js:287 ทุก 10 นาที) ถ้าไม่เดิน ช่องว่าง webhook จะไม่มีตาข่ายรองเลย และ invoice จะค้าง PENDING ถาวร",
+      "[ปุ่มขึ้นตลอด] ข้อสรุปเรื่องอายุคีย์ idempotency 24 ชม. ของ Stripe มาจากกฎของ Stripe ไม่ได้พิสูจน์ด้วยการยิงจริงในเซสชันนี้ ควรทดสอบกับ Stripe test mode ก่อนตัดสินความรุนแรง",
+      "[ปุ่มขึ้นตลอด] ไม่ได้ตรวจว่า mock payment adapter (apps/backend/services/payment/mock-payment-adapter.js) ทำให้ demo จ่ายสำเร็จได้ด้วยวิธีอื่นหรือไม่ — ที่ยืนยันแล้วคือฝั่งเว็บไม่มี dependency ของ Stripe และไม่มีใครใช้ clientSecret ต่อ",
+      "[ปุ่มขึ้นตลอด] ไม่ได้รันชุดเทสต์ของหน้านี้ (apps/web-app/src/app/health/payments/__tests__/) เพื่อดูว่าเคสไหนถูก pin ไว้แล้วบ้าง จากชื่อไฟล์เห็นว่ามี needs-debt / needs-accepted-quotation / flag แต่ยังไม่มีไฟล์เทสต์ที่ชื่อสื่อถึงเคสหลายคำขอหรือเคส webhook ค้าง",
+      "[จ่ายซ้ำ] ไม่ได้รันอะไรเลยตามคำสั่ง (ห้ามทดลองจ่าย) ทุกข้อข้างบนมาจากการอ่านโค้ดล้วน ๆ ยังไม่มี artifact ผลรันมายืนยัน — ตาม CLAUDE.md L1 สถานะของงานนี้คือ PENDING ไม่ใช่ DONE",
+      "[จ่ายซ้ำ] ข้อเท็จจริงที่ว่า Stripe เก็บผลของ idempotency key ไว้ 24 ชั่วโมง เป็นพฤติกรรมฝั่ง Stripe ตรวจยืนยันจากในรีโปนี้ไม่ได้ สิ่งที่ยืนยันได้จากโค้ดคือ: คีย์คงที่ตลอดอายุ order, โค้ดเผื่อกรณี intent id เปลี่ยนไว้แล้วที่บรรทัด 725, และไม่มี cancel intent ที่ไหนเลยทั้งรีโป",
+      "[จ่ายซ้ำ] ยังไม่ได้ query ฐานข้อมูล demo/staging ว่ามี order ที่ SETTLED แล้วมี succeeded PaymentIntent เกินหนึ่งใบจริงหรือไม่ — ถ้าต้องการรู้ว่า 'เกิดขึ้นแล้วหรือยัง' ต้องไล่จากฝั่ง Stripe dashboard (test mode) เทียบกับ checkout_orders ไม่ใช่จากในโค้ด",
+      "[จ่ายซ้ำ] ยังไม่ได้อ่านทางเดินของ renewal (RENEWAL_MILESTONE = M2) แบบครบเส้น ว่า quotation ของ renewal ที่มีแต่ PHASE_2 ไปโผล่ที่ประตูไหนได้อีกบ้าง",
+      "[จ่ายซ้ำ] ยังไม่ได้ตรวจว่ามี admin/override door ไหนที่ดันสถานะใบคำขอกลับมาเป็น SUBMITTED/PENDING_DOC_FEE หลังจ่ายแล้วได้ (ถ้ามี ด่านที่เหลือจะเหลือแค่ unique index ของ invoice ตัวเดียว)",
+      "[จ่ายซ้ำ] ไม่ได้ตรวจว่า demo/staging ตั้ง PAYMENT_ADAPTER เป็น mock หรือ stripe และ STRIPE_CHECKOUT_ENABLED เปิดอยู่ไหม ซึ่งเปลี่ยนคำตอบว่าอาการที่ operator เห็นมาจากรางไหน",
+      "[ไม่รู้จ่ายบิลไหน] ยังไม่ได้เปิดหน้าจอจริง — ทั้งหมดเป็นการอ่าน source (client-view.tsx, TwoCardPaymentSection.tsx, PaymentInvoiceCard.tsx, payment-service.ts, invoice-service.js, billing.prisma) ยังไม่มี view-pack ตามมาตรฐาน §5 ชั้น B",
+      "[ไม่รู้จ่ายบิลไหน] ยังไม่ได้ยืนยันข้อ 1 (หลายคำขอปนกัน) ด้วยข้อมูลจริง — ต้องมีเกษตรกรที่ถือ 2 คำขอค้างจ่ายพร้อมกันบน demo DB แล้วถ่ายจอ เพราะข้อสรุปเรื่องปุ่มชำระพาไปผิดคำขอมาจากการอ่าน resolvePaymentsApplicationId ยังไม่ได้กดจริง",
+      "[ไม่รู้จ่ายบิลไหน] ยังไม่ได้ตรวจว่าเกษตรกรได้รับการแจ้งเตือนวันครบกำหนดทางช่องทางอื่นหรือไม่ — checkout-schedule-service.computeReminderDates คำนวณวัน PRE_DUE/DUE_DATE/OVERDUE_NOTICE ไว้แล้ว แต่ comment บอกว่าการส่งจริงเป็นงาน D2 ยังไม่ได้ยืนยันว่ามี job ส่งอยู่จริงหรือยัง ถ้ายังไม่ส่ง แปลว่าเกษตรกรไม่มีทางรู้วันครบกำหนดเลยทั้งในระบบและนอกระบบ",
+      "[ไม่รู้จ่ายบิลไหน] ยังไม่ได้ดูหน้า /health/status และหน้า home ว่ามีการบอกงวด/วันครบกำหนดซ้ำอยู่ที่อื่นไหม ถ้ามี อาจแก้ที่เดียวไม่พอ",
+      "[หน้า checkout] ยังไม่ได้เดินจริงในเบราว์เซอร์ — หลักฐานทั้งหมดมาจาก jsdom (jest) + การอ่านโค้ด backend ไม่มี view-pack/ภาพหน้าจอ ตามมาตรฐาน gacp-view-in-the-loop",
+      "[หน้า checkout] การปฏิเสธฝั่ง backend (CHECKOUT_MILESTONE_NOT_PAYABLE เมื่อถึงงวด 2, สถานะหลัง settle) อ่านจาก source ล้วน ยังไม่ได้ยิง HTTP จริงบน Postgres จริง — ลำดับ PAYABLE_STATES/DOC_FEE_PAID ยืนยันได้จากไฟล์เท่านั้น",
+      "[หน้า checkout] ไม่ได้ตรวจว่า NEXT_PUBLIC_CHECKOUT_UI_ENABLED เปิดอยู่จริงบน demo/staging ตอนนี้ — ถ้าปิด หน้านี้ 404 (page.tsx) และผู้ใช้จะเห็นแถบเหลือง \"ระบบยังไม่เปิดช่องทางชำระเงินในสภาพแวดล้อมนี้ …\" ที่หน้ารายการแทน ระดับความเร่งด่วนของ finding 1-2 ขึ้นกับข้อนี้",
+      "[หน้า checkout] ไม่ได้ตรวจว่ามีช่องทางอื่นนอก apps/web-app (เช่น backend redirect หรือ hosted Stripe page) ที่พาไปจ่ายจริงหรือไม่ — ตรวจเฉพาะ apps/web-app: ไม่มีผู้ใช้ clientSecret และไม่มี dependency @stripe/*",
+      "[หน้า checkout] ลบไฟล์ scratch test ที่ใช้พิสูจน์ออกแล้ว (zz-scratch-entry-link.test.tsx) จึงไม่มี artifact ค้างในทรี — ถ้าต้องการ evidence pack ต้องสร้างใหม่เป็นเทสถาวร",
+      "[พฤติกรรมจริง] ตัวหน้า /health/payments เองยังไม่เคยเห็น — ทั้ง staging และ demo ตอบ 307 ไปหน้าล็อกอิน (guard ทำงานถูกต้อง) ที่ยืนยันได้คือหน้าปลายทางเป็นหน้า เข้าสู่ระบบ จริง ไม่ใช่หน้า error. ถ้าต้องการดูโครงหน้าจริงต้องมี session ของ role health",
+      "[พฤติกรรมจริง] หาสาเหตุไม่ได้ว่าทำไม stripe_webhook_events หยุดรับตั้งแต่ 2026-08-29 — คอนเทนเนอร์ gacp-backend-demo เพิ่งขึ้นมา 40 ชั่วโมง log ของวันที่ 2026-09-07 หายไปแล้ว. ที่ยืนยันได้มีแค่: nginx ฝั่ง demo ไม่ได้ block (map ว่าง), เครื่องนี้ไม่มี cloudflared/tunnel และไม่มี `stripe listen` รันอยู่, และ endpoint ใน Stripe dashboard ตรวจไม่ได้จากในนี้",
+      "[พฤติกรรมจริง] ไม่ได้ทดสอบเส้น EXPIRED-แล้วเงินมาทีหลัง แบบรันจริง เพราะต้องสร้าง checkout session และจ่ายเงิน ซึ่งโจทย์ห้าม. ข้อสรุปมาจากการอ่านโค้ดบวกหลักฐานเชิงลบที่ตรวจได้จริง (ไม่มี writer ตัวใดเขียน checkout_orders.status='EXPIRED' หรือ expiresAt, ไม่มีการเรียก cancelPaymentIntent ที่ไหนใน backend) — ถ้าต้องการยกระดับเป็น CONFIRMED ต้องรันบน scratch DB + Stripe test",
+      "[พฤติกรรมจริง] สถานะ flag NEXT_PUBLIC_CHECKOUT_UI_ENABLED ของทั้งสอง environment บอกไม่ได้ — Next.js ฝัง NEXT_PUBLIC_* ตอน build ส่วน env ตอน runtime ในคอนเทนเนอร์ frontend ทั้งสองตัวว่างเปล่า จึงพิสูจน์อะไรไม่ได้",
+      "[พฤติกรรมจริง] ฐาน gacp_db ในคอนเทนเนอร์เดียวกัน (applications 5, invoices 2, payment_slips 6, checkout_orders 0) ไม่ใช่ทั้ง demo และ staging — demo ชี้ไป Supabase pooler ap-southeast-1 ตาม .env.demo ส่วน staging คือ gacp_staging. ไม่ได้ไล่ต่อว่า gacp_db คือของใคร",
+      "[พฤติกรรมจริง] 19 succeeded events บน demo ที่หา order ไม่เจอ ส่วนใหญ่อธิบายได้ด้วยการ reset ข้อมูล ไม่ใช่ของพังสด — applications ทุกใบบน demo สร้างวันที่ 2026-09-06/07 ขณะที่ events เหล่านั้นลงวันที่ 2026-08-16 ถึง 2026-08-29 จึงเป็นเศษก่อน reset. ที่นับเป็นของจริงมีแค่ 2 แถวที่มี error='ORDER_NOT_FOUND' ซึ่งเป็นพฤติกรรมของโค้ด ไม่ใช่ผลของ reset"
+    ],
+    "lensSummaries": [
+      {
+        "lens": "ปุ่มขึ้นตลอด",
+        "summary": "ปุ่ม \"ชำระเงินออนไลน์\" ถูกควบคุมด้วยเงื่อนไขเดียวคือ entryOwes (client-view.tsx:448) และบรรทัดแรกของ checkoutEntryOwes คือ `if (pendingAmount > 0) return true;` (checkout-entry-owes.ts:42) — pendingAmount นับแค่ \"แถว invoice ที่ยังไม่ PAID และไม่ CANCELLED\" ไม่ดูว่าเงินถึงจริงหรือยัง ไม่ดูสถานะคำขอ และไม่ดูว่าแถวนั้นเป็นของคำขอใบไหน ผลคือมี 5 สถานะที่ปุ่มยังขึ้นทั้งที่ไม่ควรขึ้น ตัวที่ตรงกับคำบ่นของ operator มากที่สุดคือ (1) จ่ายที่ Stripe แล้วแต่ webhook ยังไม่ลง invoice ยัง PENDING → ปุ่มยังขึ้น และ (2) การกดปุ่มเองเป็นคนสร้างหนี้ที่ทำให้ปุ่มขึ้นต่อ — กดปุ่ม → mint invoice status 'pending' → กลับมาหน้า list → pendingAmount > 0 → ปุ่มขึ้นอีก วนไม่จบ ส่วนข้อที่ operator สงสัยเรื่อง \"ชำระครบทั้งสองงวดแล้ว\" นั้นสะอาด: รันจริงแล้วปุ่มถูกซ่อนถูกต้อง (settlement เขียนสถานะเป็น DOC_FEE_PAID/AUDIT_FEE_PAID ในทรานแซกชันเดียวกับ invoice) เว้นแต่มีแถว PENDING ค้างใบใดใบหนึ่ง. หลักฐานการรัน: /tmp/entryprobe/run.js — transpile ไฟล์ .ts จริงด้วย esbuild แล้วรัน 6 เคส ได้ A,B,D,E,F = button SHOWS, C (จ่ายครบสองงวด) = hidden"
+      },
+      {
+        "lens": "จ่ายซ้ำ",
+        "summary": "อ่านโค้ดอย่างเดียว ไม่ได้รันหรือกดจ่ายใด ๆ ตอบ 5 คำถามตรง ๆ ก่อน:\n\n(1) กดสร้าง checkout สองครั้งติดกันสำหรับงวดเดียวกัน — **ไม่ปฏิเสธ และไม่ต้องปฏิเสธ**: ครั้งที่สองไปเจอ order ใบเดิมที่ `stripe-checkout-service.js:463-465` (`findFirst` status `PENDING_PAYMENT`) แล้ว \"ใช้ซ้ำ\" ส่ง idempotencyKey เดิม `checkout:{orderId}` (บรรทัด 722) จึงควรได้ PaymentIntent ใบเดิม ถ้าแข่งกันจนทั้งคู่หลุด findFirst พร้อมกัน ตัวที่แพ้ตายที่ partial unique index `checkout_orders_open_per_application_milestone_key` (migration 20260802150000/migration.sql:89-91) → P2002 → 409 `CHECKOUT_ALREADY_IN_PROGRESS` ที่ `stripe-checkout-service.js:696-698` มี paymentLimiter คุมอยู่ด้วย (`server.js:342`)\n\n(2) จ่ายสำเร็จแล้วกดอีกครั้ง — **ปฏิเสธ แต่ปฏิเสธด้วยเหตุผลที่ยืมมา**: ประตูปฏิเสธที่ `stripe-checkout-service.js:424-427` (`CHECKOUT_MILESTONE_NOT_PAYABLE`) ได้ก็ต่อเมื่อ webhook เขียนสถานะใบคำขอเป็น DOC_FEE_PAID/AUDIT_FEE_PAID ไปแล้ว (`checkout-settlement-service.js:416-428`) ตัวประตูเองไม่เคยอ่านความจริงเรื่องเงินเลย — grep ทั้งไฟล์ไม่มีการอ่าน `invoice.status`, `order.settledAt` หรือสถานะ SETTLED สักบรรทัด ด่านสองคือ unique index ของ invoice `uniq_invoice_app_service_active` (migration 20260701010000/migration.sql:87-89) ซึ่งจะโยน P2002 แล้วถูกแปลเป็นข้อความ \"มีรายการชำระเงินของงวดนี้กำลังดำเนินการอยู่แล้ว\" ทั้งที่ความจริงคือ \"จ่ายไปแล้ว\"\n\n(3) idempotency — มีสามชั้น: idempotencyKey `checkout:{orderId}` ส่งเข้า Stripe (`stripe-checkout-service.js:722`) และเขียนลง PaymentTransaction (บรรทัด 685) · partial unique index หนึ่ง open order ต่อ (application, milestone) · unique index หนึ่ง invoice ที่ยังไม่ถูกลบต่อ (applicationId, serviceType) · ฝั่ง webhook มี dedup ด้วย Stripe event id (`routes/api/webhooks/stripe.js:80-95`) และ `SELECT ... FOR UPDATE` ตอน settle (`checkout-settlement-service.js:305-308`)\n\n(4) webhook มาช้า — ระหว่างนั้น order = PENDING_PAYMENT, invoice = 'pending', PaymentTransaction = PENDING, สถานะใบคำขอยังเป็น SUBMITTED/PENDING_DOC_FEE คือยังจ่ายได้ทุกอย่าง **ประตูตัดสินจาก 2 อย่างเท่านั้น: `application.status` (บรรทัด 424) กับ `checkoutOrder.status === 'PENDING_PAYMENT'` (บรรทัด 463) ไม่เคยถาม Stripe เลย** — ต่างจาก payment-closure-job ที่ยอมถาม gateway ก่อนปิดใบคำขอ (`jobs/payment-closure-job.js:105-120`) ในหน้าต่างนี้ผู้ยื่นจะได้ order/intent ใบเดิมกลับไป ซึ่งยังไม่เป็นการจ่ายซ้ำ\n\n(5) Stripe session ค้างหลายใบแล้วเปิดใบเก่าจ่าย — **นี่คือรูจริง** `settleFromPaymentIntent` หา order จาก `paymentIntent.metadata.checkoutOrderId` ก่อนเสมอ (`checkout-settlement-service.js:231-238`) ใบเก่าถือ metadata ชุดเดียวกับใบใหม่ ยอดเท่ากันจึงผ่าน amount cross-check ที่บรรทัด 267-276 ด้วย ถ้า order ถูก settle ไปแล้ว โค้ดเข้าสาย `alreadySettled` ที่บรรทัด 247-264 แล้ว `settleEvent` ประทับ event เป็น PROCESSED โดย `error: null` (บรรทัด 506-511) — **เงินก้อนที่สองเข้า Stripe จริง แต่ระบบไม่บันทึก ไม่แจ้งเตือน ไม่คืน ไม่มี ledger ใด ๆ** และไม่มี sweep ไหนเห็น เพราะ reconcile กวาดเฉพาะ intent ใบปัจจุบันบน order ที่ยัง PENDING_PAYMENT (`jobs/settlement-reconcile-job.js:118-143`)\n\nข้อควรบอก operator ก่อนอื่น: **ในโค้ดชุดนี้ยังจ่ายจริงผ่าน UI ไม่ได้เลยสักรอบ** apps/web-app ไม่มี dependency `@stripe/stripe-js` และไม่มีใครอ่าน `clientSecret` ที่ backend ส่งกลับ หน้า checkout จบที่การ์ด \"สร้างรายการสำเร็จ รอชำระเงิน\" (`checkout/client-view.tsx:415-495`) สิ่งที่กดซ้ำได้ตอนนี้คือปุ่ม \"สร้างรายการชำระเงิน\" ไม่ใช่การจ่าย ดังนั้น \"เงินออกสองรอบ\" ยังเกิดไม่ได้วันนี้ — แต่กลไกที่ทำให้เกิดถูกติดตั้งรออยู่ครบแล้ว และจะยิงทันทีที่มีขั้นตอนจ่ายจริงต่อท้าย"
+      },
+      {
+        "lens": "ไม่รู้จ่ายบิลไหน",
+        "summary": "หน้ารายการใบแจ้งหนี้ตอบคำถาม \"ใบไหน\" ได้ครึ่งเดียว และตอบคำถาม \"ตอนไหน\" ไม่ได้เลย\n\nสิ่งที่บอก: งวดถูกบอกที่ \"หัวข้อกลุ่ม\" เท่านั้น — TwoCardPaymentSection.tsx:64-67 พิมพ์ \"งวดที่ 1\" / \"งวดที่ 2\" (client-view.tsx:94-96) พร้อมคำอธิบาย \"ค่าธรรมเนียมเอกสาร ชำระครั้งเดียวให้บริษัท\" / \"ค่าตรวจประเมินหน้างาน ชำระครั้งเดียวให้บริษัท\" (client-view.tsx:704-708) ลำดับกลุ่มถูกล็อกไว้ที่ PHASE_1 → PHASE_2 → UNKNOWN → CANCELLED (client-view.tsx:700, 724) งวดที่ 1 จึงอยู่บนงวดที่ 2 เสมอ\n\nสิ่งที่ไม่บอก (5 ข้อ):\n1. ไม่มีวันครบกำหนดสักที่เดียวบนจอ — `dueDate` เป็นคอลัมน์บังคับใน DB (billing.prisma:58) ถูกคำนวณตอนออกใบ (stripe-checkout-service.js:617) และพิมพ์ลง PDF ว่า \"ครบกำหนด / Due\" + \"กรุณาชำระภายใน …\" (invoice.html:468,560) แต่ PaymentRecord ไม่ map ฟิลด์นี้เลย (payment-service.ts:5-44) วันเดียวที่ผู้ใช้เห็นคือ \"วันที่ออกเอกสาร\" ส่วนการ์ดงวดไม่แสดงวันที่ใด ๆ\n2. ไม่มีเครื่องหมาย \"ใบนี้ถึงคิวจ่ายแล้ว / ใบนี้ยังไม่ถึงคิว\" และไม่เรียงตามความต้องจ่าย — งวดที่ 1 ที่จ่ายครบแล้วยังกินที่บนสุด ส่วนในกลุ่มเดียวกันเรียงตาม createdAt desc (invoice-service.js:213) คือใบใหม่ขึ้นก่อน ไม่ใช่ใบที่ต้องจ่ายก่อน\n3. หลายคำขอถูกยำรวมกลุ่มเดียว — grouped() แยกตามงวดอย่างเดียว ไม่แยกตามคำขอ (client-view.tsx:195-219) และการ์ดไม่พิมพ์ทั้งเลขคำขอและเลขที่เอกสาร ขณะที่ปุ่มชำระมีปุ่มเดียวต่อทั้งหน้า\n4. ป้ายสถานะมี 2 ชุดที่ไม่ตรงกัน — การ์ด 3 แบบ (PaymentInvoiceCard.tsx:109-113) ตาราง/โมดัล 6 แบบ (client-view.tsx:82-90) ไม่มีแบบไหนบอกว่าต้องทำอะไรต่อ\n5. ประโยคเดียวที่อธิบายว่า \"งวดที่ 2 ยังไม่ถึงคิว\" ถูกล็อกไว้หลัง ?app= ซึ่งเมนูไม่เคยส่งมา (client-view.tsx:643)\n\nยังไม่ได้เปิดจอจริง — ทั้งหมดเป็นการอ่านโค้ด ควรถ่าย view-pack ของเกษตรกรที่มี 2 คำขอเพื่อยืนยันข้อ 3"
+      },
+      {
+        "lens": "หน้า checkout",
+        "summary": "อ่านครบ 4 ไฟล์ (client-view.tsx 694 บรรทัด, page.tsx, เทส 4 ใบ) รันเทสเดิมผ่าน 74/74 และรัน scratch test เพิ่มเพื่อเปิดหน้าด้วยลิงก์จริงของผลิตภัณฑ์ (ลบไฟล์ทิ้งแล้ว)\n\nตอบ 5 คำถาม\n\n1) เห็นอะไร ต้องเลือก/กดอะไร — page.tsx ปิดทั้ง route ด้วย notFound() ถ้า NEXT_PUBLIC_CHECKOUT_UI_ENABLED ไม่ใช่ 'true' เป๊ะ ๆ · เปิดได้แล้วเห็นหัวเรื่อง \"ผู้ขอรับรอง · การเงิน / ชำระเงินออนไลน์ / สร้างรายการชำระเงินสำหรับงวดของคำขอ แล้วดำเนินการชำระผ่านระบบออนไลน์\" (client-view.tsx:394-398), การ์ด \"เริ่มชำระเงินสำหรับคำขอของคุณ\" + แถว \"เลขคำขอ\" (:521-525), กล่องใบเสนอราคา (มีเงื่อนไข ดูข้อ 2), กล่อง \"เงื่อนไขการชำระเงินและการคืนเงิน\" 4 ข้อ + checkbox \"ข้าพเจ้าได้อ่านและยอมรับเงื่อนไขการชำระเงินและการคืนเงินข้างต้น\" (:669) หรือบรรทัด \"คุณได้ยอมรับเงื่อนไขนี้ไว้แล้ว\" (:650) ถ้าเคยยอมรับ · สิ่งเดียวที่ต้องเลือกคือติ๊ก สิ่งเดียวที่ต้องกดคือ \"เริ่มขั้นตอนชำระเงิน\" (:684) มีปุ่มรอง \"กลับไปหน้ารายการชำระเงิน\" (:205) · ไม่มี ?app → \"ไม่พบเลขคำขอ\" + ปุ่มกลับ (:403-407)\n\n2) บอกไหมว่างวดไหน เท่าไร ของคำขอใบไหน — เลขคำขอบอกเสมอ · งวด+ยอด+เลขใบเสนอราคาบอกเฉพาะเมื่อ URL มี ?milestone และดึงใบเสนอราคา ACCEPTED ได้ (:545-579) · แต่ลิงก์ทางเข้าเดียวของระบบไม่ใส่ milestone (payments/client-view.tsx:461) พิสูจน์แล้วว่าบนเส้นทางจริง จอไม่โชว์ทั้งเลขใบเสนอราคา ทั้ง \"งวดที่ 1\" ทั้งยอด 5,885 — ผู้ใช้ติ๊ก \"ไม่สามารถขอคืนได้\" โดยไม่เห็นตัวเลขเลย (finding 3)\n\n3) กดสร้างรายการซ้ำ ๆ — ปลอดภัย ปุ่ม disabled={creating || !termsAnswered} (:681) พร้อม spinner และข้อความ role=\"status\" \"กำลังสร้างรายการชำระเงิน กรุณารอสักครู่\" (:531-533) · ฝั่ง backend re-enter order เดิมที่ PENDING_PAYMENT และใช้ idempotency key = order id (stripe-checkout-service.js:463-465) ไม่เกิดรายการซ้ำ · ปุ่ม \"ลองใหม่อีกครั้ง\" (:504-511) ไม่มี disabled แต่ถูก unmount ทันทีที่ phase เป็น creating จึงกดซ้ำไม่ได้ในทางปฏิบัติ\n\n4) กลับมาหลังจ่ายแล้ว — หน้าไม่รู้เรื่องเลย mount เป็น idle เสมอ (:254) ชวนให้จ่ายใหม่ กดได้จริง แล้วค่อยโดนปฏิเสธด้วยเหตุผลที่ผิด \"งวดนี้ยังไม่ถึงกำหนดชำระ\" (finding 4)\n\n5) error เป็นไทยไหม — ไม่เคยโชว์รหัสดิบ ทุกทางออกเป็นไทย: 12 รหัสใน CHECKOUT_ERROR_MAP (:78-163) บอกเหตุ+สิ่งที่ต้องทำต่อ และหลายตัวคัดลอกตรงจาก catalogue ฝั่ง backend, timeout → \"เชื่อมต่อกับระบบไม่สำเร็จ กรุณากดปุ่มลองใหม่อีกครั้ง\" (:166) พร้อมปุ่ม retry จริง · จุดอ่อน: อีก 2 รหัสไม่มีคำแปล ตกไปประโยคกลาง \"ไม่สามารถสร้างรายการชำระเงินได้ กรุณาลองใหม่ภายหลัง …\" และโค้ดทิ้ง messageTh ที่ backend ส่งมา (finding 6)\n\nข้อที่หนักที่สุดคือ finding 1: หน้าชื่อ \"ชำระเงินออนไลน์\" แต่จ่ายเงินไม่ได้ — clientSecret ที่ backend คืนมาไม่มีใครใช้ทั้งแอป และไม่มี dependency @stripe/* เลย"
+      },
+      {
+        "lens": "พฤติกรรมจริง",
+        "summary": "ตอบ 3 คำถามตรง ๆ ก่อน (อ่านจริงจาก DB ทั้งสองตัว):\n\n(1) ใบแจ้งหนี้ซ้ำงวดเดียวกัน — **ไม่มี** ทั้ง staging และ demo. หมายเหตุสำคัญ: ตาราง invoices ไม่มีคอลัมน์ `phase` เลย งวดถูกเก็บใน `serviceType` แทน จึง GROUP BY (applicationId, serviceType) ผลได้ 0 แถวทั้งคู่. ถ้ากลุ่มแค่ระดับ PHASE_1/PHASE_2 จะเห็นคู่ละ 2 ใบ 20 คู่บน staging แต่ทุกคู่คือ STATE_FEE + PLATFORM_FEE อย่างละใบ = โครงสร้างค่าธรรมเนียมสองทางตามออกแบบ ไม่ใช่ของซ้ำ.\n\n(2) จ่ายแล้วแต่ยัง PENDING — **ไม่มี** ทั้งสองฐาน. staging: invoices 44 ใบ ที่มี paidAt/receiptNumber มี 6 ใบ ทั้ง 6 เป็น RECEIPT_ISSUED ครบ ไม่มีใบไหนค้าง pending ทั้งที่มีร่องรอยการจ่าย. demo: 3 ใบ (paid 2 / pending 1) ตรงกับสถานะ order ทุกใบ.\n\n(3) checkout session ค้างหลายใบต่อคำขอ — **ไม่มี** และมี partial unique index บังคับที่ระดับ DB จริงทั้งสองฐาน: `checkout_orders_open_per_application_milestone_key` ON (applicationId, milestone) WHERE status='PENDING_PAYMENT'. ที่ค้างจริงมี 1 ใบ (demo 0b8bff25, M1, PENDING_PAYMENT ตั้งแต่ 2026-09-07) — และนั่นคือจุดที่เจอปัญหา เพราะ **ไม่มีอะไรในระบบทำให้ order หมดอายุได้เลย**.\n\n(4) GET /health/payments ของ staging (127.0.0.1:3001) → **HTTP 307** ไป `/auth/health/login?redirect=%2Fhealth%2Fpayments`; ตามต่อได้ 200, 29,611 bytes, `<title>GACP - ระบบรับรองมาตรฐานสมุนไพรไทย</title>`, `<h2>เข้าสู่ระบบ</h2>`. demo (3003) พฤติกรรมเหมือนกันเป๊ะ. แปลว่า guard ทำงาน แต่ตัวหน้าเองดูไม่ได้ถ้าไม่ล็อกอิน.\n\nตัวเลขสะอาด แต่ตอนไล่โค้ดตามคำถามข้อ 3 เจอของหนักกว่า: เส้นทาง \"คำขอถูกปิดอัตโนมัติแล้วเงินมาทีหลัง\" เปิดอยู่จริง และ ledger ของ webhook บน demo หยุดบันทึกไปตั้งแต่ 2026-08-29 ทั้งที่มีการ settle จริงวันที่ 2026-09-07"
+      }
+    ]
+  },
+  "workflowProgress": [
+    {
+      "type": "workflow_phase",
+      "index": 1,
+      "title": "ตรวจ"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 1,
+      "label": "ปุ่มขึ้นตลอด",
+      "phaseIndex": 1,
+      "phaseTitle": "ตรวจ",
+      "agentId": "a1b704716f6dccef2",
+      "model": "claude-opus-5[1m]",
+      "state": "done",
+      "startedAt": 1789003850639,
+      "queuedAt": 1789003841636,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "ปุ่ม \"ชำระเงินออนไลน์\" ถูกควบคุมด้วยเงื่อนไขเดียวคือ entryOwes (client…",
+      "promptPreview": "operator บ่นว่า \"มีปุ่มชำระเงินออนไลน์มาตลอดแล้วจ่ายได้ตลอด\"\n\nอ่าน /home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx (969 บรรทัด) ทั้งไฟล์\nและ checkout-entry-owes.ts, payments-application-id.ts\n\nหาให้เจอว่า ในสถานะไหนบ้างที่ปุ่ม \"ชำระเงินออนไลน์\" ยังขึ้นทั้งที่ไม่ควรขึ้น\nโดยเฉพาะ:\n- ใบแจ้งหนี้ที่จ่ายไปแล้วแต่ webhook ยังไม่ลง (invoice ยัง PENDING…",
+      "lastProgressAt": 1789004563059,
+      "tokens": 169941,
+      "toolCalls": 60,
+      "durationMs": 712419,
+      "resultPreview": "{\"summary\":\"ปุ่ม \\\"ชำระเงินออนไลน์\\\" ถูกควบคุมด้วยเงื่อนไขเดียวคือ entryOwes (client-view.tsx:448) และบรรทัดแรกของ checkoutEntryOwes คือ `if (pendingAmount > 0) return true;` (checkout-entry-owes.ts:42) — pendingAmount นับแค่ \\\"แถว invoice ที่ยังไม่ PAID และไม่ CANCELLED\\\" ไม่ดูว่าเงินถึงจริงหรือยัง ไม่ดูสถานะคำขอ และไม่ดูว่าแถวนั้นเป็นของคำขอใบไหน ผลคือมี 5 สถานะที่ปุ่มยังขึ้นทั้งที่ไม่ควรขึ้น ตั…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 2,
+      "label": "จ่ายซ้ำ",
+      "phaseIndex": 1,
+      "phaseTitle": "ตรวจ",
+      "agentId": "aede950c3bb4d50f4",
+      "model": "claude-opus-5[1m]",
+      "state": "done",
+      "startedAt": 1789003851683,
+      "queuedAt": 1789003841636,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "อ่านโค้ดอย่างเดียว ไม่ได้รันหรือกดจ่ายใด ๆ ตอบ 5 คำถามตรง ๆ ก่อน: (1)…",
+      "promptPreview": "operator บ่นว่า \"จ่ายซ้ำได้อีก\" — ถ้าจริงคือเงินออกสองรอบ นี่คือข้อที่สำคัญที่สุด\n\nห้ามทดลองจ่ายจริงเด็ดขาด อ่านโค้ดอย่างเดียว\n\nอ่านฝั่ง backend ที่ /home/ubuntu/work/GACP-Certification-Application/apps/backend:\n- ประตูสร้าง checkout (หาด้วย grep createCheckout, /payments/checkout, checkout-service)\n- services/checkout/* และ shared/checkout-status.js\n- webhook ที่ settle (grep stripe webhook)\n\nตอบ…",
+      "lastProgressAt": 1789004430136,
+      "tokens": 141607,
+      "toolCalls": 49,
+      "durationMs": 578373,
+      "resultPreview": "{\"summary\":\"อ่านโค้ดอย่างเดียว ไม่ได้รันหรือกดจ่ายใด ๆ ตอบ 5 คำถามตรง ๆ ก่อน:\\n\\n(1) กดสร้าง checkout สองครั้งติดกันสำหรับงวดเดียวกัน — **ไม่ปฏิเสธ และไม่ต้องปฏิเสธ**: ครั้งที่สองไปเจอ order ใบเดิมที่ `stripe-checkout-service.js:463-465` (`findFirst` status `PENDING_PAYMENT`) แล้ว \\\"ใช้ซ้ำ\\\" ส่ง idempotencyKey เดิม `checkout:{orderId}` (บรรทัด 722) จึงควรได้ PaymentIntent ใบเดิม ถ้าแข่งกันจนทั้งคู…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 3,
+      "label": "ไม่รู้จ่ายบิลไหน",
+      "phaseIndex": 1,
+      "phaseTitle": "ตรวจ",
+      "agentId": "a6fb301d5b8dfd525",
+      "model": "claude-opus-5[1m]",
+      "state": "done",
+      "startedAt": 1789004435250,
+      "queuedAt": 1789003841636,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "หน้ารายการใบแจ้งหนี้ตอบคำถาม \"ใบไหน\" ได้ครึ่งเดียว และตอบคำถาม \"ตอน…",
+      "promptPreview": "operator บ่นว่า \"ไม่รู้จ่ายบิลไหนตอนไหน\"\n\nอ่าน /home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/client-view.tsx ทั้งไฟล์ โดยดูที่การแสดงผล\nรายการใบแจ้งหนี้ ไม่ใช่ปุ่ม\n\nตอบให้ได้ว่า:\n- รายการที่แสดงบอกไหมว่าใบไหนคืองวดที่ 1 งวดที่ 2 (ค่าตรวจเอกสาร/ค่าตรวจแปลง)\n- บอกไหมว่าใบไหน \"ถึงกำหนดจ่ายตอนนี้\" กับใบไหน \"ยังไม่ถึงคิว\"\n- เรียงลำดับอย่างไร ใบที่ต้องจ่ายก่อนอยู่…",
+      "lastProgressAt": 1789004836875,
+      "tokens": 104822,
+      "toolCalls": 33,
+      "durationMs": 401625,
+      "resultPreview": "{\"summary\":\"หน้ารายการใบแจ้งหนี้ตอบคำถาม \\\"ใบไหน\\\" ได้ครึ่งเดียว และตอบคำถาม \\\"ตอนไหน\\\" ไม่ได้เลย\\n\\nสิ่งที่บอก: งวดถูกบอกที่ \\\"หัวข้อกลุ่ม\\\" เท่านั้น — TwoCardPaymentSection.tsx:64-67 พิมพ์ \\\"งวดที่ 1\\\" / \\\"งวดที่ 2\\\" (client-view.tsx:94-96) พร้อมคำอธิบาย \\\"ค่าธรรมเนียมเอกสาร ชำระครั้งเดียวให้บริษัท\\\" / \\\"ค่าตรวจประเมินหน้างาน ชำระครั้งเดียวให้บริษัท\\\" (client-view.tsx:704-708) ลำดับกลุ่มถูกล็อกไ…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 4,
+      "label": "หน้า checkout",
+      "phaseIndex": 1,
+      "phaseTitle": "ตรวจ",
+      "agentId": "a8c1de89b5663d7a5",
+      "model": "claude-opus-5[1m]",
+      "state": "done",
+      "startedAt": 1789004568541,
+      "queuedAt": 1789003841636,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "อ่านครบ 4 ไฟล์ (client-view.tsx 694 บรรทัด, page.tsx, เทส 4 ใบ…",
+      "promptPreview": "อ่าน /home/ubuntu/work/GACP-Certification-Application/apps/web-app/src/app/health/payments/checkout/client-view.tsx (694 บรรทัด) ทั้งไฟล์\nและ page.tsx กับเทสในโฟลเดอร์ __tests__\n\nตอบให้ได้ว่า:\n- ผู้ใช้มาถึงหน้านี้แล้วเห็นอะไร ต้องเลือกอะไร กดอะไร\n- หน้านี้บอกไหมว่ากำลังจะจ่ายงวดไหน จำนวนเท่าไร ของคำขอใบไหน\n- ถ้ากดปุ่มสร้างรายการซ้ำ ๆ เกิดอะไร (ปุ่ม disable ระหว่างรอไหม)\n- ถ้ากลับมาหน้านี้อีกครั้งห…",
+      "lastProgressAt": 1789005065978,
+      "tokens": 123434,
+      "toolCalls": 35,
+      "durationMs": 497436,
+      "resultPreview": "{\"findings\":[{\"symptom\":\"ทำครบทุกขั้นบนหน้า \\\"ชำระเงินออนไลน์\\\" แล้ว จบที่จอ \\\"สร้างรายการสำเร็จ รอชำระเงิน\\\" ซึ่งมีปุ่มเดียวคือ \\\"กลับไปหน้ารายการชำระเงิน\\\" — ไม่มีช่องกรอกบัตร ไม่มีลิงก์ไป Stripe ไม่มีอะไรให้กดจ่ายต่อ ผู้ใช้จ่ายเงินไม่ได้จริง\",\"cause\":\"created branch วาดเฉพาะข้อมูลสรุป แล้วจบ ไม่เคยอ่าน session.clientSecret / session.paymentIntentId ที่ backend ส่งมา · grep ทั้ง apps/web-app: cl…"
+    },
+    {
+      "type": "workflow_agent",
+      "index": 5,
+      "label": "พฤติกรรมจริง",
+      "phaseIndex": 1,
+      "phaseTitle": "ตรวจ",
+      "agentId": "a55cb020a78926695",
+      "model": "claude-opus-5[1m]",
+      "state": "done",
+      "startedAt": 1789004848746,
+      "queuedAt": 1789003841636,
+      "attempt": 1,
+      "lastToolName": "StructuredOutput",
+      "lastToolSummary": "ตอบ 3 คำถามตรง ๆ ก่อน (อ่านจริงจาก DB ทั้งสองตัว): (1) ใบแจ้งหนี้ซ้ำง…",
+      "promptPreview": "ดูพฤติกรรมจริงบนระบบที่รันอยู่ **โดยไม่จ่ายเงินและไม่สร้าง checkout session ใด ๆ**\nอนุญาตเฉพาะการอ่าน: GET เท่านั้น และ SELECT บนฐานข้อมูล\n\n1. ฐานข้อมูล demo/staging อยู่ในคอนเทนเนอร์ gacp-postgres\n   ใช้: sudo docker exec gacp-postgres psql -U gacp -d <db> -tAc \"SELECT ...\"\n   ชื่อฐาน: gacp_staging (staging) · หา db ของ demo จาก /opt/gacp-platform/.env.demo (อย่าพิมพ์ค่า secret)\n\n   ตอบให้ได้ว่า:…",
+      "lastProgressAt": 1789005807241,
+      "tokens": 145059,
+      "toolCalls": 90,
+      "durationMs": 958495,
+      "resultPreview": "{\"summary\":\"ตอบ 3 คำถามตรง ๆ ก่อน (อ่านจริงจาก DB ทั้งสองตัว):\\n\\n(1) ใบแจ้งหนี้ซ้ำงวดเดียวกัน — **ไม่มี** ทั้ง staging และ demo. หมายเหตุสำคัญ: ตาราง invoices ไม่มีคอลัมน์ `phase` เลย งวดถูกเก็บใน `serviceType` แทน จึง GROUP BY (applicationId, serviceType) ผลได้ 0 แถวทั้งคู่. ถ้ากลุ่มแค่ระดับ PHASE_1/PHASE_2 จะเห็นคู่ละ 2 ใบ 20 คู่บน staging แต่ทุกคู่คือ STATE_FEE + PLATFORM_FEE อย่างละใบ = โครงส…"
+    }
+  ],
+  "totalTokens": 684863,
+  "totalToolCalls": 267
+}

@@ -1,0 +1,189 @@
+Can an application reach certificate issuance with no cultivation type declared in its own data? (round 3, item 1)
+Measured on real Postgres through the real applications router and the real certificate-service (scratch DB, synthetic data).
+The draft: JURISTIC holder, plant cannabis, purpose RESEARCH, documents for the rules in force attached,
+formData with no farmData.areaTypes, no cultivationMethods, no plots, no locationType; applications.areaType = OUTDOOR.
+
+P0 = what deriveDimensions answers for the draft
+P1 = POST /api/applications/submit with the canonical payload
+P2 = POST /api/applications/submit with a legacy step-keyed payload (steps 1-9, validated by validateAllSteps)
+P3 = generateCertificate for that application after onsite evidence (status set to AUDIT_PASSED directly)
+
+  P0 own-data types: [] | with column: ["OUTDOOR"] | column: OUTDOOR
+  P1 canonical submit: 422 {"success":false,"error":"APPLICATION_INCOMPLETE","message":"กรุณากรอกข้อมูลให้ครบถ้วนก่อนส่งคำขอ","errorsByStep":{"2":[{"path":"cultivation_methods","message":"ลักษณะพื้นที่ปลูก จำเป็น — ต้องเลือกอย่างน้อยหนึ่งข้อ","code":"too_small"}],"5":[{"path":"plot_count","message":"ต้องมีแปลงปลูกอย่างน้อย 1 แปลง","code":"too_small"},{"path":"plot_name","me
+  P2 legacy submit: 200 {"success":true,"data":{"id":"<uuid>","applicationNumber":"APP-PV3-4eaba95b","status":"PENDING_DOC_FEE","organizationId":"<uuid>"},"nextRequiredAction":"PAY_PHASE_1","quotation":{"issued":true},"cases":[{"id":"<uuid>","applicationNumber":"APP-PV3-4eaba95b","status":"PENDING_DOC_FEE","areaType":"OUTDOOR","quot
+  P2 stored: PENDING_DOC_FEE | own-data types: [] | with column: ["OUTDOOR"]
+  P3 issued: active | scope rows: [{"areaType":"OUTDOOR","status":"active"}]
+
+Reading: the canonical door refuses (step 2 cultivation_methods). The legacy step-keyed door accepts it and mints the
+quotation; issuance then records the column's OUTDOOR as the certificate's scope. The steps in between (payment, document
+review, scheduling, inspection, approval) were not walked: every reader that can refuse on the area declaration goes
+through resolveApplicationRequirements, which refuses only an unreadable declaration, and the column fills the ticks.
+
+Probe source (not committed as a test; the synthetic national ID in the legacy steps is masked here):
+  'use strict';
+  
+  /**
+   * PROBE (round 3, not committed): can an application whose cultivation type comes only from the
+   * applications.areaType column get past the submit door, and what does issuance then record?
+   * Real Postgres, the real applications router, the real certificate-service.
+   */
+  
+  process.env.PAYMENT_ADAPTER = process.env.PAYMENT_ADAPTER || 'mock';
+  process.env.RATE_LIMIT_MAX = '1000000';
+  
+  const crypto = require('crypto');
+  const express = require('express');
+  const request = require('supertest');
+  const { PrismaClient } = require('@prisma/client');
+  const { describeIfTestDatabase: d } = require('../../test-support/test-database');
+  const { phaseBWizardAnswers } = require('../../test-support/phase-b-application-seed');
+  
+  const OUT = '/tmp/claude-1000/pubverify3/probe/out.txt';
+  const say = (...parts) => require('fs').appendFileSync(OUT, parts.join(' ') + '\n');
+  const mockActor = { current: null };
+  jest.mock('../../middleware/auth-middleware', () => {
+      const actual = jest.requireActual('../../middleware/auth-middleware');
+      const { tenantContextMiddleware } = jest.requireActual('../../middleware/tenant-context-middleware');
+      const bindTenant = tenantContextMiddleware();
+      const attach = (req, res, next) => { req.user = { ...mockActor.current }; return bindTenant(req, res, next); };
+      return { ...actual, authenticateAny: attach, authenticateHealth: attach, authenticateProvider: attach, authenticateToken: attach };
+  });
+  jest.mock('../../middleware/consent-manager', () => ({
+      ...jest.requireActual('../../middleware/consent-manager'),
+      requireConsent: (_req, _res, next) => next(),
+  }));
+  jest.mock('../../services/queue-service', () => ({
+      ...jest.requireActual('../../services/queue-service'),
+      getPrecheckQueue: () => ({ add: async () => ({ id: 'job-probe' }) }),
+      getPdfQueue: () => null,
+  }));
+  jest.mock('../../services/pdf/pdf-generator.service', () => ({
+      initialize: async () => {}, warmUp: async () => {}, close: async () => {},
+      generatePDF: async () => Buffer.from('%PDF-1.4 t'), generateFromTemplate: async () => Buffer.from('%PDF-1.4 t'),
+      replaceTemplateVariables: (t) => t, readTemplateCached: (p) => require('fs').readFileSync(p, 'utf8'),
+  }));
+  jest.mock('../../services/pdf/invoice-template-service', () => ({
+      ...jest.requireActual('../../services/pdf/invoice-template-service'),
+      generateQuotationPdf: async () => Buffer.from('%PDF-1.4 quotation'),
+  }));
+  
+  const LEGACY_STEPS = {
+      1: { operator_name: 'นายทดสอบ', tax_id: '<synthetic 13-digit ID>', address_contact: '123 ถนนทดสอบ', phone_no: '0812345678', email: 'legacy@example.com', operator_type: 'JURISTIC' },
+      2: { herb_type_id: 'cannabis', botanical_name: 'Cannabis sativa', strain_name: 'Thai Stick', material_source: 'self', source_location: 'farm', lot_number: 'LOT-1' },
+      3: {},
+      4: { applicant_type: 'INDIVIDUAL', first_name: 'นาย', last_name: 'ทดสอบ', id_card: '<synthetic 13-digit ID>', phone: '0812345678', email: 'legacy@example.com' },
+      5: { plot_name: 'แปลง 1', land_title_no: 'NS3-1', area_rai: 2, area_ngan: 0, area_sq_wa: 0, lat: 13.1, long: 100.6, surrounding_environment: 'rural' },
+      6: { water_source_type: 'well', irrigation_method: 'drip', soil_preparation_method: 'tilling', soil_analysis_date: '2026-01-01', water_analysis_date: '2026-01-01', fertilizer_type: 'organic', fertilizer_schedule: 'weekly', pest_control_method: 'ipm', weed_control_method: 'manual', input_usage_history: 'none' },
+      7: { harvest_criteria: 'maturity', harvest_method: 'manual', equipment_sanitation: 'cleaned', harvest_time_of_day: 'morning', cleaning_method: 'rinse', drying_method: 'sun', sorting_criteria: 'size', moisture_content_target: '12%', packaging_material_type: 'foil', storage_condition: 'cool', warehouse_pest_control: 'traps', stock_management_system: 'fifo' },
+      8: { files: [{ name: 'doc.pdf' }] },
+      9: { traceability_code_format: 'QR', internal_audit_date: '2026-01-01', sample_retention_period: '1 year', complaint_handling_procedure: 'documented' },
+  };
+  
+  d('PROBE column-only area type: submit door and issuance', () => {
+      let raw; let app; const sfx = crypto.randomUUID().slice(0, 8);
+      const fx = { userIds: [], entityIds: [], appIds: [], ruleIds: [] };
+      const asApplicant = () => { mockActor.current = { id: fx.A.id, canonicalId: fx.A.canonicalId, healthId: fx.A.canonicalId, role: 'health', canonicalRole: 'health', organizationId: fx.org }; };
+      const { deriveDimensions } = require('../../services/application-requirements-service');
+  
+      beforeAll(async () => {
+          raw = new PrismaClient(); await raw.$connect();
+          await require('../../services/prisma-database').connect();
+          const { ConsentCategory, ConsentVersions } = require('../../middleware/consent-manager');
+          if (!(await raw.plantSpecies.findFirst({ where: { code: 'CAN' } }))) {
+              await raw.plantSpecies.create({ data: { code: 'CAN', nameTH: 'กัญชา', nameEN: 'Cannabis' } });
+          }
+          fx.org = (await raw.organization.create({ data: { name: `pv3-${sfx}`, slug: `pv3-${sfx}`, code: `PV3_${sfx}`.toUpperCase() } })).id;
+          fx.auditor = (await raw.user.create({ data: { canonicalId: `pv3-aud-${sfx}`, password: 'x', organizationId: fx.org, authType: 'EMAIL_LEGACY', role: 'auditor', firstName: 'ผู้ตรวจ', lastName: 'ทดสอบ' } })).id;
+          fx.userIds.push(fx.auditor);
+          const applicantId = crypto.randomUUID();
+          fx.A = { id: applicantId, canonicalId: `pv3-a-${sfx}` };
+          await raw.user.create({ data: { id: applicantId, canonicalId: fx.A.canonicalId, healthId: fx.A.canonicalId, password: 'x', role: 'health', authType: 'EMAIL_LEGACY', email: `pv3-a-${sfx}@example.test`, firstName: 'ผู้ยื่น', lastName: 'ทดสอบ', organizationId: fx.org } });
+          fx.userIds.push(applicantId);
+          fx.C = (await raw.entity.create({ data: { type: 'JURISTIC', displayName: `บริษัท pv3 ${sfx} จำกัด`, organizationId: fx.org } })).id;
+          fx.entityIds.push(fx.C);
+          await raw.entityMembership.create({ data: { userId: applicantId, entityId: fx.C, role: 'OWNER', status: 'ACTIVE', organizationId: fx.org } });
+          await raw.userConsent.create({ data: { userId: applicantId, organizationId: fx.org, category: ConsentCategory.PAYMENT_TERMS, version: ConsentVersions.PAYMENT_TERMS, granted: true, grantedAt: new Date() } });
+          const plantCode = deriveDimensions({ formData: { plantId: 'cannabis' } }).plantCode;
+          fx.ruleIds.push((await raw.requirementRule.create({ data: { plantCode, slotId: 'sop_manual', isRequired: true, effectiveFrom: new Date('2020-01-01'), createdBy: fx.auditor, reason: 'probe' } })).id);
+          const draft = await raw.application.create({
+              data: {
+                  applicationNumber: `APP-PV3-${sfx}`, healthId: fx.A.canonicalId, areaType: 'OUTDOOR', organizationId: fx.org,
+                  entityId: fx.C, submitterId: applicantId, status: 'DRAFT',
+                  formData: {
+                      ...phaseBWizardAnswers(), serviceType: 'NEW', requestType: 'NEW', certificationPurposes: ['RESEARCH'],
+                      applicantType: 'JURISTIC', consentedPDPA: true, acknowledgedStandards: true,
+                      applicantData: { applicantType: 'JURISTIC', companyName: `บริษัท pv3 ${sfx} จำกัด`, registrationNumber: '<synthetic 13-digit registration number>', directorName: 'สมชาย ใจดี', phone: '0812345678', email: 'x@example.com', address: '1' },
+                  },
+              },
+          });
+          fx.app = draft.id; fx.appIds.push(draft.id);
+          const { documentTypesOfSlot } = require('../../services/application-document-sync');
+          for (const slotId of ['sop_manual', 'juristic_reg_6m', 'licence_pt09']) {
+              await raw.applicationDocument.create({ data: { applicationId: fx.app, documentType: documentTypesOfSlot(slotId)[0], slotId, fileName: `${slotId}.pdf`, fileUrl: `/uploads/${slotId}.pdf`, currentForSlot: slotId } });
+          }
+          app = express(); app.use(express.json());
+          app.use('/api/applications', require('../../routes/api/applications/applications'));
+      }, 120000);
+  
+      afterAll(async () => {
+          const wipe = (model, where) => raw[model].deleteMany({ where }).catch(() => {});
+          const byApp = { applicationId: { in: fx.appIds } };
+          await wipe('certificate', byApp);
+          for (const model of ['applicationDocument', 'workActivity', 'quotation', 'checkoutOrder', 'invoice', 'documentPrecheck', 'revisionDeadline']) { await wipe(model, byApp); }
+          await wipe('auditLog', { organizationId: fx.org });
+          await wipe('farmAuditPhoto', { audit: { applicationId: { in: fx.appIds } } });
+          await wipe('farmAuditChecklistItem', { audit: { applicationId: { in: fx.appIds } } });
+          await wipe('auditChecklist', byApp);
+          await wipe('attachment', { organizationId: fx.org });
+          await wipe('application', { id: { in: fx.appIds } });
+          await wipe('plot', { organizationId: fx.org });
+          await wipe('farm', { organizationId: fx.org });
+          await wipe('requirementRule', { id: { in: fx.ruleIds } });
+          await wipe('notification', { userId: { in: fx.userIds } });
+          await wipe('userConsent', { userId: { in: fx.userIds } });
+          await wipe('entityMembership', { entityId: { in: fx.entityIds } });
+          await wipe('entity', { id: { in: fx.entityIds } });
+          await wipe('user', { id: { in: fx.userIds } });
+          await wipe('organization', { id: fx.org });
+          await raw.$disconnect();
+      });
+  
+      const row = () => raw.application.findUnique({ where: { id: fx.app }, select: { status: true, areaType: true, formData: true } });
+  
+      test('P0 the draft declares no type in its own data; the column alone answers', async () => {
+          const a = await row();
+          say('P0 own-data types:', JSON.stringify(deriveDimensions({ formData: a.formData }).areaTypes),
+              '| with column:', JSON.stringify(deriveDimensions(a).areaTypes), '| column:', a.areaType);
+      });
+  
+      test('P1 canonical submit (no steps) is refused for the missing area declaration', async () => {
+          asApplicant();
+          const res = await request(app).post('/api/applications/submit').send({ applicationId: fx.app, declarationsAccepted: true });
+          say('P1 canonical submit:', res.status, JSON.stringify(res.body).slice(0, 400));
+      });
+  
+      test('P2 legacy step-keyed submit', async () => {
+          asApplicant();
+          const res = await request(app).post('/api/applications/submit').send({ applicationId: fx.app, declarationsAccepted: true, steps: LEGACY_STEPS });
+          const a = await row();
+          say('P2 legacy submit:', res.status, JSON.stringify(res.body).slice(0, 400));
+          say('P2 stored:', a.status, '| own-data types:', JSON.stringify(deriveDimensions({ formData: a.formData }).areaTypes),
+              '| with column:', JSON.stringify(deriveDimensions(a).areaTypes));
+      });
+  
+      test('P3 issuance for this application records the column as its scope', async () => {
+          const auditOnsiteService = require('../../services/audit-onsite-service');
+          const certificateService = require('../../services/certificate-service');
+          await raw.application.update({ where: { id: fx.app }, data: { status: 'AUDIT_PASSED', auditResult: 'PASS' } });
+          const audit = await raw.auditChecklist.create({ data: { applicationId: fx.app, templateName: 'GACP_GENERAL', sections: [], auditorId: fx.auditor, organizationId: fx.org, status: 'IN_PROGRESS' } });
+          for (const item of auditOnsiteService.CHECKLIST_TEMPLATE_2026) {
+              await auditOnsiteService.submitChecklistItem({ auditId: audit.id, itemCode: item.itemCode, response: 'PASS', actorId: fx.auditor, prisma: raw });
+          }
+          for (let i = 0; i < auditOnsiteService.DEFAULT_MIN_PHOTOS; i += 1) {
+              await auditOnsiteService.uploadPhoto({ auditId: audit.id, fileBuffer: Buffer.from(`pv3-${audit.id}-${i}`), fileName: `pv3-${i}.jpg`, gpsLat: 13.75 + i * 0.0001, gpsLng: 100.5 + i * 0.0001, capturedAt: new Date(), uploadedBy: fx.auditor, organizationId: fx.org, prisma: raw });
+          }
+          const certificate = await certificateService.generateCertificate(fx.app, fx.auditor, { prisma: raw });
+          const scopes = await raw.certificateScope.findMany({ where: { certificateId: certificate.id }, select: { areaType: true, status: true } });
+          say('P3 issued:', certificate.status, '| scope rows:', JSON.stringify(scopes));
+      }, 120000);
+  });

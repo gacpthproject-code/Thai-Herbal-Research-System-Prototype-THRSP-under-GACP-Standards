@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GACP Carpet-Bomb Dashboard</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+    color: #e2e8f0;
+    min-height: 100vh;
+    padding: 2rem;
+  }
+  .header {
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .header h1 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #34d399, #3b82f6, #8b5cf6);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.5rem;
+  }
+  .header .subtitle {
+    color: #94a3b8;
+    font-size: 1.1rem;
+  }
+  .overall {
+    display: flex;
+    justify-content: center;
+    gap: 2rem;
+    margin: 2rem 0;
+    flex-wrap: wrap;
+  }
+  .stat-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    padding: 1.5rem 2rem;
+    text-align: center;
+    min-width: 160px;
+    backdrop-filter: blur(10px);
+  }
+  .stat-card .value {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #34d399;
+  }
+  .stat-card .label {
+    color: #94a3b8;
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
+  .stat-card.fail .value { color: #f87171; }
+  .agents-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin: 2rem 0;
+  }
+  .agent-card {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.5rem;
+    transition: transform 0.2s, border-color 0.2s;
+  }
+  .agent-card:hover {
+    transform: translateY(-4px);
+    border-color: rgba(255,255,255,0.2);
+  }
+  .agent-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .agent-icon {
+    font-size: 1.5rem;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 10px;
+    background: rgba(255,255,255,0.05);
+  }
+  .agent-header h3 { font-size: 1.1rem; font-weight: 600; }
+  .agent-header .key { color: #64748b; font-size: 0.85rem; }
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background: rgba(255,255,255,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 0.75rem 0;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.5s ease;
+  }
+  .agent-stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    color: #94a3b8;
+  }
+  .agent-stats .rate {
+    font-weight: 700;
+    color: #34d399;
+  }
+  .perf-section {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin: 2rem 0;
+  }
+  .perf-section h3 {
+    margin-bottom: 1rem;
+    font-size: 1.2rem;
+  }
+  .perf-bars {
+    display: flex;
+    gap: 0.5rem;
+    align-items: flex-end;
+    height: 120px;
+  }
+  .perf-bar {
+    flex: 1;
+    background: linear-gradient(180deg, #34d399, #059669);
+    border-radius: 4px 4px 0 0;
+    min-width: 8px;
+    position: relative;
+    transition: opacity 0.2s;
+  }
+  .perf-bar:hover { opacity: 0.8; }
+  .footer {
+    text-align: center;
+    margin-top: 2rem;
+    color: #475569;
+    font-size: 0.85rem;
+  }
+  .timestamp { color: #64748b; font-size: 0.8rem; }
+</style>
+</head>
+<body>
+<div class="header">
+  <h1>🤖 GACP Carpet-Bomb Dashboard</h1>
+  <p class="subtitle">7-Agent Platform Health Report</p>
+  <p class="timestamp">24/3/2569 09:45:02</p>
+</div>
+
+<div class="overall">
+  <div class="stat-card">
+    <div class="value">295/297</div>
+    <div class="label">Tests Passed</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">99.3%</div>
+    <div class="label">Pass Rate</div>
+  </div>
+  <div class="stat-card fail">
+    <div class="value">2</div>
+    <div class="label">Failures</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">92ms</div>
+    <div class="label">Avg Latency</div>
+  </div>
+  <div class="stat-card">
+    <div class="value">7</div>
+    <div class="label">Active Agents</div>
+  </div>
+</div>
+
+<div class="agents-grid">
+
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-icon">🔌</div>
+      <div>
+        <h3>Backend API</h3>
+        <span class="key">Agent B</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 100.0%; background: #34d399;"></div>
+    </div>
+    <div class="agent-stats">
+      <span>69/69 passed</span>
+      <span class="rate" style="color: #34d399">100.0%</span>
+    </div>
+  </div>
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-icon">🌐</div>
+      <div>
+        <h3>Frontend</h3>
+        <span class="key">Agent F</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 100.0%; background: #34d399;"></div>
+    </div>
+    <div class="agent-stats">
+      <span>45/45 passed</span>
+      <span class="rate" style="color: #34d399">100.0%</span>
+    </div>
+  </div>
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-icon">🗄️</div>
+      <div>
+        <h3>Database</h3>
+        <span class="key">Agent D</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 100.0%; background: #34d399;"></div>
+    </div>
+    <div class="agent-stats">
+      <span>33/33 passed</span>
+      <span class="rate" style="color: #34d399">100.0%</span>
+    </div>
+  </div>
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-icon">🩺</div>
+      <div>
+        <h3>Route Doctor</h3>
+        <span class="key">Agent R</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 100.0%; background: #34d399;"></div>
+    </div>
+    <div class="agent-stats">
+      <span>34/34 passed</span>
+      <span class="rate" style="color: #34d399">100.0%</span>
+    </div>
+  </div>
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-icon">🛡️</div>
+      <div>
+        <h3>Security</h3>
+        <span class="key">Agent S</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 94.4%; background: #f87171;"></div>
+    </div>
+    <div class="agent-stats">
+      <span>34/36 passed</span>
+      <span class="rate" style="color: #f87171">94.4%</span>
+    </div>
+  </div>
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-icon">⏱️</div>
+      <div>
+        <h3>Performance</h3>
+        <span class="key">Agent P</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 100.0%; background: #34d399;"></div>
+    </div>
+    <div class="agent-stats">
+      <span>33/33 passed</span>
+      <span class="rate" style="color: #34d399">100.0%</span>
+    </div>
+  </div>
+  <div class="agent-card">
+    <div class="agent-header">
+      <div class="agent-icon">🔍</div>
+      <div>
+        <h3>Config Audit</h3>
+        <span class="key">Agent E</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" style="width: 100.0%; background: #34d399;"></div>
+    </div>
+    <div class="agent-stats">
+      <span>47/47 passed</span>
+      <span class="rate" style="color: #34d399">100.0%</span>
+    </div>
+  </div>
+</div>
+
+
+<div class="perf-section">
+  <h3>⏱️ Response Time Distribution (Avg: 92ms | P95: 505ms)</h3>
+  <div class="perf-bars">
+    <div class="perf-bar" style="height: 20%; background: #34d399;" title="[API] Health: 40ms"></div><div class="perf-bar" style="height: 57.99999999999999%; background: #34d399;" title="[API] Version: 116ms"></div><div class="perf-bar" style="height: 24%; background: #34d399;" title="[API] Standards: 48ms"></div><div class="perf-bar" style="height: 23%; background: #34d399;" title="[API] Config slots: 46ms"></div><div class="perf-bar" style="height: 18.5%; background: #34d399;" title="[API] Config standards: 37ms"></div><div class="perf-bar" style="height: 19.5%; background: #34d399;" title="[API] Config pricing: 39ms"></div><div class="perf-bar" style="height: 23%; background: #34d399;" title="[API] Pricing fees: 46ms"></div><div class="perf-bar" style="height: 21.5%; background: #34d399;" title="[API] System config: 43ms"></div><div class="perf-bar" style="height: 38%; background: #34d399;" title="[API] Dashboard: 76ms"></div><div class="perf-bar" style="height: 41.5%; background: #34d399;" title="[API] Dashboard stats: 83ms"></div><div class="perf-bar" style="height: 35%; background: #34d399;" title="[API] Dashboard summary: 70ms"></div><div class="perf-bar" style="height: 27.500000000000004%; background: #34d399;" title="[API] My applications: 55ms"></div><div class="perf-bar" style="height: 25.5%; background: #34d399;" title="[API] Farms: 51ms"></div><div class="perf-bar" style="height: 24.5%; background: #34d399;" title="[API] Notifications: 49ms"></div><div class="perf-bar" style="height: 19.5%; background: #34d399;" title="[API] Admin health: 39ms"></div><div class="perf-bar" style="height: 27.500000000000004%; background: #34d399;" title="[API] Admin users: 55ms"></div><div class="perf-bar" style="height: 20.5%; background: #34d399;" title="[API] Admin config: 41ms"></div><div class="perf-bar" style="height: 22.5%; background: #34d399;" title="[API] Admin plants: 45ms"></div><div class="perf-bar" style="height: 25.5%; background: #34d399;" title="[API] Certificates: 51ms"></div><div class="perf-bar" style="height: 52.5%; background: #34d399;" title="[API] Admin dashboard: 105ms"></div><div class="perf-bar" style="height: 23%; background: #34d399;" title="[API] Reviewer dashboard: 46ms"></div><div class="perf-bar" style="height: 26%; background: #34d399;" title="[API] Auditor dashboard: 52ms"></div><div class="perf-bar" style="height: 35.5%; background: #34d399;" title="[API] Quotes: 71ms"></div><div class="perf-bar" style="height: 27.500000000000004%; background: #34d399;" title="[API] Accounting: 55ms"></div><div class="perf-bar" style="height: 40.5%; background: #34d399;" title="[API] Audits: 81ms"></div><div class="perf-bar" style="height: 21%; background: #34d399;" title="[API] Criteria: 42ms"></div><div class="perf-bar" style="height: 43%; background: #34d399;" title="[PAGE] Homepage: 86ms"></div><div class="perf-bar" style="height: 94.5%; background: #34d399;" title="[PAGE] Login page: 189ms"></div><div class="perf-bar" style="height: 62.5%; background: #34d399;" title="[PAGE] Provider login: 125ms"></div><div class="perf-bar" style="height: 25.5%; background: #34d399;" title="[PAGE] Dashboard page: 51ms"></div><div class="perf-bar" style="height: 22.5%; background: #34d399;" title="[PAGE] New application: 45ms"></div><div class="perf-bar" style="height: 100%; background: #f59e0b;" title="[AUTH] Health login: 545ms"></div><div class="perf-bar" style="height: 100%; background: #f59e0b;" title="[AUTH] Provider login: 505ms"></div>
+  </div>
+</div>
+
+<div class="footer">
+  GACP Carpet-Bomb Test Suite v1.0 — Generated by Agent Dashboard
+</div>
+</body>
+</html>

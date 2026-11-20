@@ -1,0 +1,38 @@
+# LOCAL_GATE_FULL=1 bash scripts/ci/local-gate.sh on f605f067 (Node 24.21.0, NODE_OPTIONS unset, DATABASE_URL = scratch postgres:17 127.0.0.1:5452)
+[local-gate] banned-terms: PASS
+[local-gate] mojibake: PASS
+[local-gate] green-mask: FAIL
+[local-gate] probe-gate: FAIL
+[local-gate] unit-suite: FAIL
+[local-gate] RESULT: FAIL
+
+## unit-suite (apps/backend npx jest --ci, incl. integration on the scratch DB)
+FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+FAIL __tests__/integration/m1-submit-enforcement.test.js
+FAIL __tests__/integration/m2a-submit-enforcement.test.js
+FAIL __tests__/integration/officer-review-round-trip.test.js
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+FAIL __tests__/integration/onsite-evidence-unfreeze.test.js
+FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+FAIL __tests__/integration/staff-scope-contract.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+FAIL __tests__/unit/renewal-fast-path.test.js
+Tests:       33 failed, 54 skipped, 12127 passed, 12214 total
+Test Suites: 11 failed, 2 skipped, 933 passed, 944 of 946 total
+
+## probe-gate failures (none touch this diff)
+dependency-audit       FAIL     FAIL: 12 unaccepted high/critical advisory(ies), unsigned suppression(s) or invalid row(s): high axios GHSA-3pq3-5fj3-cg6v (vulnerable >=1.13.0 <1.20.0, patched >=1.20.
+deploy-drift           FAIL       demo-frontend: could not reach https://demo.gacpth.com/api/webapp-version (network or HTTP error). Not a verdict about the deployment — but not a pass either
+gate-attestation       FAIL     FAIL: the newest attestation covers 4fb068766eef3a35e8c6d7a37bfa12c36bae45f2, but these gated/source files changed after it: BACKLOG-FOUND.md LICENSE README.md apps/bac
+main-attestation-audit FAIL     2 of 24 gated commit(s) on origin/main in the last 30 first-parent commit(s) (cutoff 2026-08-08: 0 skipped as before cutoff, 6 touched no gated path) have NO full-gate 
+nginx-config-drift     FAIL     FAIL: host nginx differs from git in 2 of 3 vhost(s): gacp-platform.conf: 51 differing line(s) at repo/host ranges 73c73 79c79,80 173c174 175c176 177c178 ; staging.gacp
+
+## green-mask
+FAIL on f605f067: 1 tolerant-status mask in the new race test. Fixed in the next commit; check-green-mask-assertions.js then PASS (no net-new masks).
+
+## No new failures: the 11 failing backend suites run on the same DB with main e33666b9's three backend source files vs this branch's
+main sources:   Tests:       32 failed, 53 passed, 85 total
+branch sources: Tests:       32 failed, 53 passed, 85 total
+failing test names: identical (diff empty). The full run counted 33 failed vs 32 when the 11 suites run alone; the extra failure was not identified (same 11 suites, different run order and DB state).
+The full-gate attestation of 4fb06876 (main) also records suite-green / integration-pg / probe-ci / deploy-drift as fail; its logs are not in the repo, so the per-test comparison above is against main's sources run here.

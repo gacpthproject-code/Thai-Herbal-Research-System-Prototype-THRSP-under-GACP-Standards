@@ -1,0 +1,250 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js
+  PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction
+    ✕ hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission (64 ms)
+    ✕ hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission (14 ms)
+    ✕ exactly ONE transaction is opened for the pair (not one per hop) (16 ms)
+    ✓ WF-F5 regression pin: the illegal DRAFT→PENDING_DOC_FEE edge is still never written (11 ms)
+  PR-A0-2 #10 — correction resubmit already ran in a tx (PIN, not a fix)
+    ✓ the resubmit hop and its append-only snapshot share one tx, default emission (16 ms)
+  PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction
+    ✕ every linked case is written through the caller tx with default emission (14 ms)
+    ✕ the bundle status flip is in the SAME transaction as the case writes (18 ms)
+    ✓ R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened (12 ms)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    - Expected  -  1
+    + Received  + 14
+
+      Object {
+    -   "__tx": "submit-tx",
+    +   "$transaction": [Function $transaction],
+    +   "application": Object {
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +     "updateMany": [Function mockConstructor],
+    +   },
+    +   "applicationBundle": Object {
+    +     "create": [Function mockConstructor],
+    +     "delete": [Function mockConstructor],
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +   },
+      }
+
+      114 | function expectDefaultEmissionInCallerTx(call, txHandle) {
+      115 |     // (a) the writer runs inside the caller's transaction …
+    > 116 |     expect(call.prisma).toBe(txHandle);
+          |                         ^
+      117 |     // … which is the shape the writer treats as "somebody else's tx"
+      118 |     expect(typeof call.prisma.$transaction).not.toBe('function');
+      119 |     // (b) … and the canonical row still comes from the writer's DEFAULT emitter:
+
+      at toBe (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:116:25)
+      at Object.expectDefaultEmissionInCallerTx (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:256:9)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    - Expected  -  1
+    + Received  + 14
+
+      Object {
+    -   "__tx": "submit-tx",
+    +   "$transaction": [Function $transaction],
+    +   "application": Object {
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +     "updateMany": [Function mockConstructor],
+    +   },
+    +   "applicationBundle": Object {
+    +     "create": [Function mockConstructor],
+    +     "delete": [Function mockConstructor],
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +   },
+      }
+
+      114 | function expectDefaultEmissionInCallerTx(call, txHandle) {
+      115 |     // (a) the writer runs inside the caller's transaction …
+    > 116 |     expect(call.prisma).toBe(txHandle);
+          |                         ^
+      117 |     // … which is the shape the writer treats as "somebody else's tx"
+      118 |     expect(typeof call.prisma.$transaction).not.toBe('function');
+      119 |     // (b) … and the canonical row still comes from the writer's DEFAULT emitter:
+
+      at toBe (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:116:25)
+      at Object.expectDefaultEmissionInCallerTx (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:264:9)
+
+  ● PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction › exactly ONE transaction is opened for the pair (not one per hop)
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      268 |         await submit();
+      269 |
+    > 270 |         expect(mockTransaction).toHaveBeenCalledTimes(1);
+          |                                 ^
+      271 |         expect(writerCalls()).toHaveLength(2);
+      272 |     });
+      273 |
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:270:33)
+
+  ● PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction › every linked case is written through the caller tx with default emission
+
+    expect(received).toBe(expected) // Object.is equality
+
+    - Expected  -  1
+    + Received  + 11
+
+      Object {
+    -   "__tx": "submit-tx",
+    +   "$transaction": [Function $transaction],
+    +   "application": Object {
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+    +     "update": [Function mockConstructor],
+    +     "updateMany": [Function mockConstructor],
+    +   },
+        "applicationBundle": Object {
+    +     "create": [Function mockConstructor],
+    +     "delete": [Function mockConstructor],
+    +     "findFirst": [Function mockConstructor],
+    +     "findMany": [Function mockConstructor],
+          "update": [Function mockConstructor],
+        },
+      }
+
+      114 | function expectDefaultEmissionInCallerTx(call, txHandle) {
+      115 |     // (a) the writer runs inside the caller's transaction …
+    > 116 |     expect(call.prisma).toBe(txHandle);
+          |                         ^
+      117 |     // … which is the shape the writer treats as "somebody else's tx"
+      118 |     expect(typeof call.prisma.$transaction).not.toBe('function');
+      119 |     // (b) … and the canonical row still comes from the writer's DEFAULT emitter:
+
+      at toBe (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:116:25)
+      at Object.expectDefaultEmissionInCallerTx (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:362:13)
+
+  ● PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction › the bundle status flip is in the SAME transaction as the case writes
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      367 |         await submitBundle();
+      368 |
+    > 369 |         expect(mockTransaction).toHaveBeenCalledTimes(1);
+          |                                 ^
+      370 |         expect(TX.applicationBundle.update).toHaveBeenCalledTimes(1);
+      371 |         // and NOT through the bare client any more
+      372 |         expect(prismaMock.applicationBundle.update).not.toHaveBeenCalled();
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/a0-pr2-submit-hops-audit-emission.test.js:369:33)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/a0-pr2-admin-override-canonical-row.test.js
+  PR-A0-2 #7 — admin status override: canonical transition row is caller-owned
+    ✕ the writer is told the caller owns the emission (onAudit === false) (25 ms)
+    ✕ the canonical APPLICATION_STATUS_TRANSITION row is emitted through the SSOT hook, bound to the SAME tx (11 ms)
+    ✓ the pre-existing ADMIN override row is NOT removed (the two rows are different records) (17 ms)
+    ✕ a failing canonical emission ROLLS THE HOP BACK (fail-closed, not swallowed) (9 ms)
+
+  ● PR-A0-2 #7 — admin status override: canonical transition row is caller-owned › the writer is told the caller owns the emission (onAudit === false)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: undefined
+
+      145 |         expect(call.prisma).toBe(TX);
+      146 |         // THE MIGRATION: the tri-state is now explicit at this call site.
+    > 147 |         expect(call.onAudit).toBe(false);
+          |                              ^
+      148 |     });
+      149 |
+      150 |     test('the canonical APPLICATION_STATUS_TRANSITION row is emitted through the SSOT hook, bound to the SAME tx', async () => {
+
+      at Object.toBe (__tests__/unit/a0-pr2-admin-override-canonical-row.test.js:147:30)
+
+  ● PR-A0-2 #7 — admin status override: canonical transition row is caller-owned › the canonical APPLICATION_STATUS_TRANSITION row is emitted through the SSOT hook, bound to the SAME tx
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      151 |         await patch();
+      152 |
+    > 153 |         expect(mockStatusTransitionAuditHook).toHaveBeenCalledTimes(1);
+          |                                               ^
+      154 |         expect(mockStatusTransitionAuditHook).toHaveBeenCalledWith(
+      155 |             expect.objectContaining({ tx: TX }),
+      156 |         );
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/a0-pr2-admin-override-canonical-row.test.js:153:47)
+
+  ● PR-A0-2 #7 — admin status override: canonical transition row is caller-owned › a failing canonical emission ROLLS THE HOP BACK (fail-closed, not swallowed)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 200
+
+      190 |         const res = await patch();
+      191 |
+    > 192 |         expect(res.status).toBe(500);
+          |                            ^
+      193 |     });
+      194 | });
+      195 |
+
+      at Object.toBe (__tests__/unit/a0-pr2-admin-override-canonical-row.test.js:192:28)
+
+Test Suites: 2 failed, 2 total
+Tests:       8 failed, 4 passed, 12 total
+Snapshots:   0 total
+Time:        1.801 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/a0-pr2-submit-hops-audit-emission.test.js|__tests__\/unit\/a0-pr2-admin-override-canonical-row.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

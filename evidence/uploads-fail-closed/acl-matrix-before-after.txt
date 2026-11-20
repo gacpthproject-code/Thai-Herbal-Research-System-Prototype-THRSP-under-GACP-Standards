@@ -1,0 +1,26 @@
+/uploads object ACL, who reads what. Application held by a JURISTIC entity, status AUDIT_PASSED.
+Objects: document = ID card the uploader added (application-drafts/) · formerUploadersDocument = land document a since-revoked member added
+(application-drafts/) · car = CAR evidence (car/) · photo = on-site inspection photo (audits/, Attachment of a FarmAuditPhoto).
+Cells: R = 200 with the bytes (static door) / a signed URL (mint) · - = 404, no bytes · 5 = 500, no bytes.
+BEFORE = base d02815e51, measured on real Postgres with the read witness in production's shadow mode (static door; the mint door gave the same matrix).
+BEFORE(test) = the same base under the test witness mode (throw): every applicant-file read by a health user failed as an unscoped holder read.
+AFTER = head; the committed test asserts exactly this matrix on both doors, tenant read scope on and off, witness throw and shadow: 8/8.
+
+actor            | BEFORE | BEFORE(test) | AFTER | who
+formerFiler      | RRR-   | 555-         | ----  | health, filed the application, membership REVOKED
+uploader         | R---   | 555-         | RRR-  | health, ACTIVE MANAGER, uploaded the ID card
+coMember         | ----   | 555-         | RRR-  | health, ACTIVE MANAGER, neither filed nor uploaded
+viewer           | ----   | 555-         | RRR-  | health, ACTIVE VIEWER
+formerUploader   | -R--   | 555-         | ----  | health, uploaded a land document, membership REVOKED
+stranger         | ----   | 555-         | ----  | health, no membership
+reviewer         | RRRR   | RRRR         | RRRR  | document_reviewer, assigned (reviewerId)
+otherReviewer    | RRRR   | RRRR         | ----  | document_reviewer, same org, not assigned
+inspector        | RRRR   | RRRR         | RRRR  | field_inspector, assigned (auditorId)
+otherInspector   | RRRR   | RRRR         | ----  | field_inspector, same org, not assigned
+approver         | RRRR   | RRRR         | RRRR  | certificate_approver, same org (AUDIT_PASSED is in its slice)
+adminDtam        | RRRR   | RRRR         | RRRR  | system_admin_dtam, same org
+financeDtam      | RRRR   | RRRR         | ----  | finance_officer_dtam, same org
+financePlatform  | RRRR   | RRRR         | ----  | finance_officer_platform, same org
+otherOrgAdmin    | ----   | ----         | ----  | system_admin_dtam, another org
+
+Order of the four letters in each cell group: document, formerUploadersDocument, car, photo.

@@ -1,0 +1,104 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-13T09:57:19.761Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-13T09:57:19.766Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-13T09:57:19.767Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/site-contact-request-job-real-postgres.test.js:45:25)
+      at Object.require (routes/api/audit/scheduling.js:37:54)
+      at Object.require (__tests__/integration/site-contact-request-job-real-postgres.test.js:65:42)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/site-contact-request-job-real-postgres.test.js:45:25)
+      at Object.require (routes/api/audit/scheduling.js:37:54)
+      at Object.require (__tests__/integration/site-contact-request-job-real-postgres.test.js:65:42)
+
+[31merror[39m: [site-contact-request] notice for APP-contactask-13-bd487a82 threw: test: the notice store is unavailable {"service":"gacp-backend","timestamp":"2026-10-13T09:57:21.124Z"}
+[33mwarn[39m: [site-contact-request] ask for APP-contactask-13-bd487a82 reached nobody; released for the next run {"service":"gacp-backend","timestamp":"2026-10-13T09:57:21.125Z"}
+[31merror[39m: [site-contact-request] notice for APP-contactask-14-bd487a82 threw: test: the abandoned run ends {"service":"gacp-backend","timestamp":"2026-10-13T09:57:21.394Z"}
+[33mwarn[39m: [site-contact-request] ask for APP-contactask-14-bd487a82 reached nobody; released for the next run {"service":"gacp-backend","timestamp":"2026-10-13T09:57:21.394Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-13T09:57:21.759Z"}
+FAIL __tests__/integration/site-contact-request-job-real-postgres.test.js
+  the applicant is asked to add the person on site (real Postgres)
+    ✕ a filing without one asks the applicant and the holder once; filings with one, past their visit, or decided are not asked (400 ms)
+    ✓ a notice that throws leaves the application unasked: the dispatcher is not told it was asked, and the next run asks (177 ms)
+    ✓ a run that dies before its notice goes out leaves the application unasked, and a later run asks it (174 ms)
+    ✕ the dispatcher is promised an ask only where the job will make one, and the job counts the filings it cannot read (199 ms)
+
+  ● the applicant is asked to add the person on site (real Postgres) › a filing without one asks the applicant and the holder once; filings with one, past their visit, or decided are not asked
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+        "APP-contactask-11-bd487a82",
+    -   0,
+    +   2,
+      ]
+
+      107 |         expect((await world.rowOf(missing.id)).formData.siteContactRequest).toMatchObject({ sentAt: expect.any(String) });
+      108 |         for (const row of [named, visited, decided]) {
+    > 109 |             expect([row.applicationNumber, (await asksOf(row)).length]).toEqual([row.applicationNumber, 0]);
+          |                                                                         ^
+      110 |         }
+      111 |
+      112 |         await runSiteContactRequests();
+
+      at Object.toEqual (__tests__/integration/site-contact-request-job-real-postgres.test.js:109:73)
+
+  ● the applicant is asked to add the person on site (real Postgres) › the dispatcher is promised an ask only where the job will make one, and the job counts the filings it cannot read
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "siteContactGiven": false,
+    -   "siteContactRequestPending": false,
+    +   "siteContactRequestPending": true,
+        "siteContactRequestedAt": null,
+      }
+
+      164 |         expect(await queueItemOf(waiting)).toMatchObject({ siteContactGiven: false, siteContactRequestedAt: null, siteContactRequestPending: true });
+      165 |         expect(await queueItemOf(unreadable)).toMatchObject({ siteContactGiven: false, siteContactRequestedAt: null, siteContactRequestPending: false });
+    > 166 |         expect(await calendarItemOf(visitPassed)).toMatchObject({ siteContactGiven: false, siteContactRequestedAt: null, siteContactRequestPending: false });
+          |                                                   ^
+      167 |
+      168 |         const summary = await runSiteContactRequests();
+      169 |         expect(summary.skipped).toBeGreaterThanOrEqual(1);
+
+      at Object.toMatchObject (__tests__/integration/site-contact-request-job-real-postgres.test.js:166:51)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 passed, 4 total
+Snapshots:   0 total
+Time:        2.919 s, estimated 4 s
+Ran all test suites matching __tests__/integration/site-contact-request-job-real-postgres.test.js.
+exit=1

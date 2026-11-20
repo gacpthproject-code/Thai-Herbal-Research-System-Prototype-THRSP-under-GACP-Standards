@@ -1,0 +1,75 @@
+# GREEN (review round) — same backend tests AFTER the fixes · 2026-09-15T19:55:43Z · a838720d + uncommitted fixes
+# npx jest __tests__/unit/no-email-leftovers-after-review.test.js __tests__/unit/second-factor-is-totp-only.test.js
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/no-email-leftovers-after-review.test.js
+  POST /auth/health/reset-password answers what the service actually did
+    ✓ points to หมอพร้อม / ThaID and never claims a link was sent (6 ms)
+    ✓ answers every identifier identically, so there is nothing to enumerate (2 ms)
+  GET /api/mfa/status reads no email
+    ✓ getMfaStatus selects only the enrolment flag (2 ms)
+    ✓ the route no longer reports hasEmail (9 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/second-factor-is-totp-only.test.js
+  the second factor is TOTP only (operator ruling 2026-09-15)
+    ✓ the email OTP service and the SMTP email service are gone (1 ms)
+    ✓ no backend source requires them any more (a lazy require is a bomb, not a dependency) (49 ms)
+    ✓ the MFA router has no email enrolment routes and no EMAIL branch (1 ms)
+    ✓ identity-service can no longer enrol the EMAIL method (2 ms)
+    ✓ a legacy EMAIL-method row counts as NOT enrolled — it never had a TOTP seed, so a challenge would be a lockout (4 ms)
+    ✓ every login surface decides MFA through that one helper (2 ms)
+    ✓ a challenge token can only name TOTP (3 ms)
+    ✓ a migration retires every EMAIL-method row instead of leaving it enabled with no seed (2 ms)
+    ✓ no MFA source still narrates the email OTP path it lost (review 2026-09-16) (2 ms)
+    ✓ the error catalog documents only MFA failures that can still happen, at the line that raises them (188 ms)
+    ✓ the web app offers no email 2FA anywhere (2 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+Snapshots:   0 total
+Time:        1.413 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/no-email-leftovers-after-review.test.js|__tests__\/unit\/second-factor-is-totp-only.test.js/i.
+BACKEND_EXIT=0
+
+# eslint on changed backend sources
+
+/home/ubuntu/work/GACP-Certification-Application/apps/backend/routes/api/identity/mfa.js
+  21:9  warning  'authenticateProvider' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+✖ 1 problem (0 errors, 1 warning)
+
+ESLINT_BACKEND_EXIT=0

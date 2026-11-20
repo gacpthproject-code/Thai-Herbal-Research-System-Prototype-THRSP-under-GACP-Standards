@@ -1,0 +1,43 @@
+# GREEN round 8 (real Chromium) — working tree on top of ff9b9359 (marker carries the id of its sign-out; the tab flag holds that id)
+# same harness as red-round8-browser.txt; C2 added (expired navigation replaced, own marker must not linger)
+
+=== C2: expired navigation in flight (Leave after 1 s, login TTFB 6 s); ACCOUNT_INACTIVE 3 s later; second dialog answered Stay
+     9  server: GET /api/expired
+    10  server: GET /api/inactive?ms=3000
+    14  server: POST /api/session/clear-cookie
+   117  tab1 DIALOG beforeunload -> accept in 1000 ms
+  1121  server: GET /auth/health/login?expired=true  [cookie: ]
+  3013  server: POST /api/session/clear-cookie
+  3115  tab1 DIALOG beforeunload -> dismiss in 1000 ms
+  7458  page: tab1 login page ?expired=true -> notice shown: false, cookie after: []
+ 12009  cookie jar at end: []
+tab1: dialogs=accept/dismiss  FINAL URL: /auth/health/login?expired=true
+
+=== Z: A suspended in tab 1, presses Stay (flag left in tab 1); B signs in on tab 2 and is suspended 5 s later; tab 1 follows to a plain login page
+    11  server: GET /api/inactive
+    14  server: POST /api/session/clear-cookie
+   116  tab1 DIALOG beforeunload -> dismiss in 300 ms
+  1504  tab1 sessionStorage: {"tab":"tab1","gacp.signedOutMarkerSetInThisTab":"e3331a9738f433b2"}
+  1560  server: GET /health/home
+  1743  tab2: user B signed in
+  5247  server: GET /api/inactive
+  5251  server: POST /api/session/clear-cookie
+  5251  tab1 DIALOG beforeunload -> accept in 0 ms
+  5253  server: GET /auth/health/login  [cookie: signed_out_reason=account_inactive.e3331a9738f433b2]
+  5353  tab2 DIALOG beforeunload -> accept in 0 ms
+  5357  server: GET /auth/health/login?reason=account_inactive  [cookie: signed_out_reason=account_inactive.8578a0319066f49c]
+  5791  page: tab1 login page  -> notice shown: false, cookie after: [signed_out_reason=account_inactive.8578a0319066f49c]
+  5885  page: tab2 login page ?reason=account_inactive -> notice shown: true, cookie after: []
+tab1: dialogs=dismiss/accept  FINAL URL: /auth/health/login
+tab2: dialogs=accept  FINAL URL: /auth/health/login?reason=account_inactive
+
+=== M: same suspended health user has two tabs; tab 1 gets ACCOUNT_INACTIVE (tab 2 follows via the storage event)
+     4  server: GET /api/inactive
+     8  server: POST /api/session/clear-cookie
+    11  server: GET /auth/health/login  [cookie: ]
+   111  server: GET /auth/health/login?reason=account_inactive  [cookie: signed_out_reason=account_inactive.073bc394c21a4e21]
+   543  page: tab2 login page  -> notice shown: false, cookie after: [signed_out_reason=account_inactive.073bc394c21a4e21]
+   645  page: tab1 login page ?reason=account_inactive -> notice shown: true, cookie after: []
+tab1: dialogs=0  FINAL URL: /auth/health/login?reason=account_inactive
+tab2: dialogs=0  FINAL URL: /auth/health/login
+EXIT=0

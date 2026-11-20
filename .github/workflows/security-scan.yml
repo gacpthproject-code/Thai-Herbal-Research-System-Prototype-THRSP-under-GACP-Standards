@@ -1,0 +1,116 @@
+name: Security Scan
+
+on:
+  schedule:
+    - cron: '0 0 * * 1'
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  dependency-review:
+    name: Dependency Review
+    # dependency-review-action needs the GitHub Dependency Graph + Advanced
+    # Security, which are NOT enabled on this private repo ("Dependency review is
+    # not supported on this repository"), so the job can never pass here — and it
+    # also only supports pull_request events. Gate it behind an opt-in repo
+    # variable (mirroring ENABLE_CODEQL, which is gated for the same GHAS reason)
+    # AND to PRs. Until Ops enables GHAS and sets ENABLE_DEP_REVIEW=true this skips
+    # cleanly. Dependency security is already enforced functionally by
+    # `npm run security:audit:backend` (npm audit --audit-level=high) in
+    # verify:build, plus the pnpm overrides cleared in #690.
+    if: vars.ENABLE_DEP_REVIEW == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Gating since Iter W2 (2026-05-17). Fails the workflow if any dependency
+      # advisory ≥ high severity is introduced. See
+      # docs/operations/security-ci-policy.md for the override procedure.
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v3
+        with:
+          fail-on-severity: high
+
+  codeql:
+    name: CodeQL Analysis
+    runs-on: ubuntu-latest
+    # CodeQL remains gated by the `ENABLE_CODEQL` repository variable
+    # (Ops decision — see docs/operations/security-ci-policy.md). When the
+    # job runs, it is now gating (Iter W2): a CodeQL failure fails the
+    # workflow. To enable CodeQL repo-wide, an Ops/Repo admin sets
+    # `ENABLE_CODEQL=true` under Settings → Secrets and variables → Actions
+    # → Variables.
+    if: vars.ENABLE_CODEQL == 'true'
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      matrix:
+        language: [javascript]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v2
+        with:
+          languages: ${{ matrix.language }}
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v2
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v2
+        with:
+          category: "/language:${{ matrix.language }}"
+
+  secret-scanning:
+    name: Secret Scanning
+    # TruffleHog's diff scan needs distinct BASE/HEAD. On a push to main BASE
+    # (default_branch) == HEAD → it aborts ("BASE and HEAD commits are the same").
+    # Run on PRs, where base=main ↔ head=PR is a real diff and a leak must be
+    # caught before merge. The weekly `schedule` full-history sweep is unaffected
+    # only if this gate is removed there — see note: scheduled runs skip too, which
+    # is acceptable since every change lands via a scanned PR.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Gating since Iter W2 (2026-05-17). A verified secret leak fails the
+      # workflow. `--only-verified` keeps false-positives near zero.
+      - name: TruffleHog Secret Scan
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          extra_args: --only-verified
+
+  sast:
+    name: SAST (Semgrep)
+    runs-on: ubuntu-latest
+    container:
+      image: returntocorp/semgrep
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # Gating since Iter W2 (2026-05-17). Semgrep findings on the configured
+      # rulesets fail the workflow.
+      - name: Run Semgrep
+        run: semgrep ci
+        env:
+          SEMGREP_RULES: >-
+            p/security-audit
+            p/javascript
+            p/typescript
+            p/nodejs

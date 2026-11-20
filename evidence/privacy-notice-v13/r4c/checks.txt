@@ -1,0 +1,46 @@
+ผลตรวจรอบ 4c บนหัวที่รวม main 941d08ecb แล้ว (f42dd7843) และ commit หลักฐานถัดไป
+
+รวม main: merge commit f42dd7843 ชนไฟล์เดียวคือ HARNESS_LOG.md (ท้ายไฟล์ทั้งสองฝั่ง) เก็บทั้งสองฝั่ง รายการของ main ก่อน · ตรวจด้วยสคริปต์: 1390 บรรทัดแรกเท่ากับ merge-base 1b785c48c และบรรทัดที่เพิ่ม = ของ main 9 บรรทัดตามด้วยของสาขา 19 บรรทัด ไม่มีบรรทัดหาย · main เปลี่ยนเฉพาะ HARNESS.md และ HARNESS_LOG.md (คำสั่ง 90) ไม่แตะ apps/
+
+error codes: node apps/backend/scripts/extract-error-codes.js --validate -> VALIDATION OK - catalog has 463 entries; 463 codes reconciled. (exit 0)
+
+ratchet (PROBE_OUT_DIR=<ในเครื่อง> bash scripts/probes/ratchet.sh): PASS: no counter above baseline — current: hardcode=26 todo=33 env-direct=93 dup-source=0
+
+tier-check:
+  - git diff --name-only --no-renames origin/main...HEAD | bash scripts/probes/tier-check.sh - -> TIER=B (A 35 ไฟล์ · B 124 ไฟล์ · C 0 ไฟล์) คือไฟล์ที่สาขา commit ทั้งหมดเทียบ main 941d08ecb
+  - bash scripts/probes/tier-check.sh บน worktree -> TIER=C เพราะสคริปต์นับไฟล์ที่ git ไม่ได้ติดตามด้วย และ .audit/r4b/51-gitleaks.txt (บันทึกงานในเครื่องของรอบ 4b ไม่เคย commit) เข้ากฎ scanner-cover · ไม่มีไฟล์ชั้น C ในสิ่งที่ push
+
+ไฟล์ที่รอบ 4c แตะ (git diff --stat 74e2c9726 dad7770ee): retention-matches-the-code.test.tsx (เทสต์ ชั้น A) · privacy-policy/page.tsx ข้อ 7 (หน้าเว็บ ชั้น B) · BACKLOG-FOUND.md (เอกสาร ชั้น A) · evidence/privacy-notice-v13/r4c/red.txt (หลักฐาน ชั้น A)
+
+สไตล์คำไทย (node scripts/ci/check-thai-copy-style.js): [thai-copy-style] 81 issue(s) เท่ารอบ 4b · ไม่มีไฟล์ใน privacy-policy · exit 1 มาจากรายการที่มีอยู่แล้วบน main
+
+eslint สองไฟล์ที่รอบ 4c แตะ (node node_modules/eslint/bin/eslint.js <ไฟล์>): ไม่มีข้อผิดพลาด exit 0
+
+deslop บน diff 74e2c9726..dad7770ee: ไม่มีอะไรต้องตัด (ไม่มีคอมเมนต์ ไม่มีตัวกันหรือ cast ใหม่ · toContain รายข้อคู่กับ toEqual เป็นรูปแบบเดิมของไฟล์ ให้ข้อความล้มที่บอกข้อ)
+no-comments (comment-sicko รุ่น Fable ต่างจากผู้เขียน) บน diff เดียวกัน: ไม่พบคอมเมนต์ในส่วนที่แก้ ไม่ตัดอะไร ไม่มี MUST KILL · ข้อสังเกตนอกขอบเขต: บันทึกเวอร์ชันหัวไฟล์ page.tsx (บรรทัด 12-35) ไม่พูดถึงข้อ 7 ซึ่งรอบ 4 ตัดส่วนที่เพิ่มในบันทึกนี้ตามผล no-comments แล้ว จึงคงไว้
+
+ถ้อยคำ: .audit/r4c/wording.py อ่านสามประโยคจากส่วน "ถ้อยคำที่ต้องเปลี่ยน (คัดลอกตามนี้)" ของผลตรวจโดยตรง แล้วเขียนลงเทสต์และหน้าด้วยสคริปต์ ไม่พิมพ์ใหม่ · เทียบอักษรต่ออักษรกับประโยคเดิม: รายการที่ 1 ตัด "และข้อมูลทั่วไป" และเพิ่ม "บัญชี" ใน "ทำให้ข้อมูลบัญชีไม่สามารถ…" · รายการที่ 4 เพิ่ม "เหตุการณ์" และ "ในฐานข้อมูล" · ไม่มีส่วนอื่นต่าง
+
+สแกนค่าลับ (คำสั่ง 82): gitleaks detect --no-git --no-banner --redact --source <file> ทีละไฟล์ ไม่พบทุกไฟล์ (18 ไฟล์ก่อนเขียนไฟล์นี้ และสแกน checks.txt ซ้ำหลังเขียน)
+  evidence/privacy-notice-v13/07-r4c-old-capture.json -> no leaks found
+  evidence/privacy-notice-v13/07-r4c-new-capture.json -> no leaks found
+  evidence/privacy-notice-v13/07-r4c-old-new.txt -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-new-1440x900-effective-date.png -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-new-1440x900-retention.png -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-new-390x844-effective-date.png -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-new-390x844-retention.png -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-old-1440x900-effective-date.png -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-old-1440x900-retention.png -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-old-390x844-effective-date.png -> no leaks found
+  evidence/privacy-notice-v13/screenshots/07-r4c-old-390x844-retention.png -> no leaks found
+  evidence/privacy-notice-v13/r4c/green.txt -> no leaks found
+  evidence/privacy-notice-v13/r4c/mutations.txt -> no leaks found
+  evidence/privacy-notice-v13/r4c/job.sh -> no leaks found
+  evidence/privacy-notice-v13/r4c/red.txt -> no leaks found
+  evidence/privacy-notice-v13/INDEX.md -> no leaks found
+  HARNESS_LOG.md -> no leaks found
+  BACKLOG-FOUND.md -> no leaks found
+
+สแกนค่าลับทั้งช่วง commit ก่อน push: gitleaks detect --no-banner --redact --log-opts "74e2c9726..HEAD" -> 7 commits scanned, no leaks found (ช่วงนี้มี 9 commit เป็น merge 2 ตัวคือ f42dd7843 และ 941d08ecb ที่ไม่มี diff ของตัวเอง)
+ต้นไม้โค้ดของหัวหลักฐานเท่ากับหัวที่รันงานตรวจ (f42dd7843): git diff --name-only ระหว่างสองหัวมีแต่ไฟล์ใน evidence/ และ HARNESS_LOG.md
+tier-check ของไฟล์ที่ commit หลังเพิ่มหลักฐาน: TIER=B

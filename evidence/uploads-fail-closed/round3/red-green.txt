@@ -1,0 +1,147 @@
+# รอบ 3 แดงก่อนแก้ แล้วเขียวหลังแก้ (การลงทะเบียนสาธารณะตั้งได้เฉพาะช่องในฟอร์ม)
+#
+# ที่มา: log ที่ผู้เขียนรอบ 3 รันเองบนฐานข้อมูลทดลองของตัวเอง เก็บไว้ที่
+#   ~/work/state/reviews/uploads-r3/runs/ (red-unit.log red-realpg.log green-unit.log green-realpg.log)
+# สร้างไฟล์นี้ด้วย build-red-green.py (เก็บใน ~/work/state/reviews/uploads-merge-prep/scripts/)
+#   ตัดสีและบรรทัด log ของ logger ออก เก็บผลรายข้อ และ 9 บรรทัดแรกของแต่ละผลต่างที่ล้ม
+#   สคริปต์ยืนยันว่าไม่มี URL ฐานข้อมูล และไม่มีตัวเลข 13 หลักติดกันในผลลัพธ์
+#
+# 7010a1823 = เทสต์ก่อนแก้ (ฐาน 3035a629c) · de7fa4d3a = แก้ · a0b835fa8 = เทสต์บทบาท 9 คำ (ผลอยู่ใน INDEX.md)
+
+=== RED unit at 7010a1823 (test-first, base 3035a629c) · source red-unit.log
+FAIL __tests__/unit/register-mass-assignment.test.js
+    ✓ ignores a smuggled role=ADMIN — the account is HEALTH, not a provider (375 ms)
+    ✓ ignores smuggled ministryVerified / accountTier / status / verificationStatus (351 ms)
+    ✓ ignores a smuggled privacySettings: only its own writers set it (348 ms)
+    ✓ ignores a smuggled notificationSettings: only its own writers set it (359 ms)
+    ✕ keeps no User column or relation from the body beyond the form fields (352 ms)
+    ✕ register() writes no column its caller passes beyond the applicant fields (358 ms)
+    ✓ still creates a normal HEALTH applicant from a clean body (357 ms)
+  ● registerHealthUser() — public endpoint cannot mass-assign privilege › keeps no User column or relation from the body beyond the form fields
+    expect(received).toEqual(expected) // deep equality
+    - Expected  -  1
+    + Received  + 80
+      Array [
+        201,
+    -   Array [],
+    +   Array [
+    +     "id",
+    +     "uuid",
+  ● registerHealthUser() — public endpoint cannot mass-assign privilege › register() writes no column its caller passes beyond the applicant fields
+    expect(received).toEqual(expected) // deep equality
+    - Expected  -  1
+    + Received  + 85
+    - Array []
+    + Array [
+    +   "id",
+    +   "uuid",
+    +   "createdAt",
+    +   "updatedAt",
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 5 passed, 7 total
+
+=== RED real Postgres at 7010a1823 (test-first, base 3035a629c) · source red-realpg.log
+FAIL __tests__/integration/registration-sets-no-protected-column-real-postgres.test.js
+    ✕ no column outside the form keeps the value the body sent (428 ms)
+    ✕ a nested write in the body creates no an application already CERTIFIED (384 ms)
+    ✕ a nested write in the body creates no OWNER of another company (380 ms)
+    ✕ a nested write in the body creates no a per-user permission grant (370 ms)
+    ✕ a nested write in the body creates no a certificate approver group (378 ms)
+    ✕ a nested write in the body creates no a consent row (380 ms)
+    ✕ a nested write in the body creates no a ThaiD identity link (393 ms)
+  ● a public registration sets no protected column of its own account (real Postgres) › no column outside the form keeps the value the body sent
+    expect(received).toEqual(expected) // deep equality
+    - Expected  -  1
+    + Received  + 50
+    - Array []
+    + Array [
+    +   "id",
+    +   "uuid",
+    +   "createdAt",
+    +   "updatedAt",
+  ● a public registration sets no protected column of its own account (real Postgres) › a nested write in the body creates no an application already CERTIFIED
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+    -   "rows": 0,
+    +   "rows": 1,
+        "status": 201,
+      }
+      135 |     test.each(Object.keys(relationWrites))('a nested write in the body creates no %s', async (name) => {
+  ● a public registration sets no protected column of its own account (real Postgres) › a nested write in the body creates no OWNER of another company
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+    -   "rows": 0,
+    +   "rows": 1,
+        "status": 201,
+      }
+      135 |     test.each(Object.keys(relationWrites))('a nested write in the body creates no %s', async (name) => {
+  ● a public registration sets no protected column of its own account (real Postgres) › a nested write in the body creates no a per-user permission grant
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+    -   "rows": 0,
+    +   "rows": 1,
+        "status": 201,
+      }
+      135 |     test.each(Object.keys(relationWrites))('a nested write in the body creates no %s', async (name) => {
+  ● a public registration sets no protected column of its own account (real Postgres) › a nested write in the body creates no a certificate approver group
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+    -   "rows": 0,
+    +   "rows": 1,
+        "status": 201,
+      }
+      135 |     test.each(Object.keys(relationWrites))('a nested write in the body creates no %s', async (name) => {
+  ● a public registration sets no protected column of its own account (real Postgres) › a nested write in the body creates no a consent row
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+    -   "rows": 0,
+    +   "rows": 1,
+        "status": 201,
+      }
+      135 |     test.each(Object.keys(relationWrites))('a nested write in the body creates no %s', async (name) => {
+  ● a public registration sets no protected column of its own account (real Postgres) › a nested write in the body creates no a ThaiD identity link
+    expect(received).toEqual(expected) // deep equality
+    - Expected  - 1
+    + Received  + 1
+      Object {
+    -   "rows": 0,
+    +   "rows": 1,
+        "status": 201,
+      }
+      135 |     test.each(Object.keys(relationWrites))('a nested write in the body creates no %s', async (name) => {
+Test Suites: 1 failed, 1 total
+Tests:       7 failed, 7 total
+
+=== GREEN unit at de7fa4d3a (fix) · source green-unit.log
+PASS __tests__/unit/register-mass-assignment.test.js
+    ✓ ignores a smuggled role=ADMIN — the account is HEALTH, not a provider (362 ms)
+    ✓ ignores smuggled ministryVerified / accountTier / status / verificationStatus (353 ms)
+    ✓ ignores a smuggled privacySettings: only its own writers set it (350 ms)
+    ✓ ignores a smuggled notificationSettings: only its own writers set it (350 ms)
+    ✓ keeps no User column or relation from the body beyond the form fields (356 ms)
+    ✓ register() writes no column its caller passes beyond the applicant fields (351 ms)
+    ✓ still creates a normal HEALTH applicant from a clean body (346 ms)
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total
+
+=== GREEN real Postgres at de7fa4d3a (fix) · source green-realpg.log
+PASS __tests__/integration/registration-sets-no-protected-column-real-postgres.test.js
+    ✓ no column outside the form keeps the value the body sent (398 ms)
+    ✓ a nested write in the body creates no an application already CERTIFIED (381 ms)
+    ✓ a nested write in the body creates no OWNER of another company (374 ms)
+    ✓ a nested write in the body creates no a per-user permission grant (371 ms)
+    ✓ a nested write in the body creates no a certificate approver group (373 ms)
+    ✓ a nested write in the body creates no a consent row (374 ms)
+    ✓ a nested write in the body creates no a ThaiD identity link (371 ms)
+Test Suites: 1 passed, 1 total
+Tests:       7 passed, 7 total

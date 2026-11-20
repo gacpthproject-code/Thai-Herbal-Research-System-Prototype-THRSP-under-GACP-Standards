@@ -1,0 +1,27 @@
+# Task 3 RED — Application health reads carry the holder fragment
+Date 2026-09-30 · branch feat/holder-read-scope · base e46ceba0 · Node v24.21.0 · plain jest
+Real Postgres: throwaway postgres:17 on 127.0.0.1:5447, prisma migrate deploy; container removed after the run.
+How: the two new suites run against the implementation files of e46ceba0 (implementation files swapped to HEAD, tests at their final text, then restored; git diff before/after byte-identical).
+
+Suites: 2 failed of 2 · Tests: 41 failed, 6 passed, 47 total
+
+## __tests__/unit/application-health-reads-carry-holder-marker.test.js (prisma double)
+Failed: every scoped-read case (where carries HOLDER_SCOPED, no applicant/healthId/userId pin, by-id = findFirst{id,...fragment});
+  deleteDraft pin+fragment; fail-closed without a scope for getHealthApplications/getDraft/findForPaymentOwnership;
+  positional filer id not accepted as a scope; listAuditNotesForApplicant fragment + 404 without scope.
+Passed before (controls that must hold both before and after):
+  ✓ findForPaymentOwnership keeps its lean projection and the soft-delete filter 
+  ✓ findOwnedApplicationForApplicant fails closed 
+  ✓ findApplicationByIdForHealth fails closed 
+  ✓ findLatestOpenDraftForHealth fails closed 
+  ✓ getById with no scope (staff) keeps where { id } 
+  ✓ getApplicationSlice with no scope (staff/system) keeps findUnique({ where: { id } }) 
+
+## __tests__/integration/application-health-reads-real-postgres.test.js (real client, real tenant-context + active-entity middlewares)
+All 22 failed. Causes observed in the log:
+  - witness THROW mode: HEALTH_READ_UNSCOPED thrown on Application.findFirst/findMany (doors answered 500):
+    GET /applications/:id, /:id/status, /:id/history, /:id/activities, /:id/audit-notes, /my, /my/statuses, /, /draft
+  - witness SHADOW doors (/requirements, /katorlor1, /statement, /preview): co-member B in workspace C got 404 (filer pin), Application reads logged unscoped
+  - dashboard/stats (shadow): Application reads logged HEALTH_READ_UNSCOPED
+  - bundles: company filing still listed inside A's bundle in the personal workspace (nested read not scoped)
+  - service methods behind write doors (throw): HEALTH_READ_UNSCOPED on Application.findFirst (old where = filer pin, no fragment)

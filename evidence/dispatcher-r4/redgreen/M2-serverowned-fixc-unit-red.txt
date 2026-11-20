@@ -1,0 +1,54 @@
+FAIL __tests__/unit/applications-prepare-server-owned-fields.test.js
+  SEC — /prepare rejects server-owned formData keys
+    ✓ does not persist a forged audit-pass record (79 ms)
+    ✓ does not let the applicant set their own CAR / revision SLA deadlines (16 ms)
+    ✓ does not let the applicant assign their own auditor or override admin settings (20 ms)
+    ✓ preserves what the server already recorded, rather than the applicant payload (12 ms)
+    ✓ in CAR_PENDING drops a planted second-visit request and inspector record, and keeps the farm answers (13 ms)
+    ✕ in REVISION_REQUESTED drops a planted deadline-reminder record (20 ms)
+    ✓ still persists the applicant own wizard answers (10 ms)
+    ✓ ignores and strips a body entityId: the update writes no entityId, formData carries none (16 ms)
+    ✓ ignores a body applicantType: the stored one survives (13 ms)
+    ✓ a draft whose holder the caller may read but not edit → 403 ENTITY_PERMISSION_DENIED, nothing written (14 ms)
+    ✓ a draft outside the caller's holders → 404, nothing written (13 ms)
+
+  ● SEC — /prepare rejects server-owned formData keys › in REVISION_REQUESTED drops a planted deadline-reminder record
+
+    expect(received).toBeUndefined()
+
+    Received: {"dueAt": "2026-11-01T16:59:59.999Z", "sent": {"24": "2026-10-31T00:00:00.000Z", "48": "2026-10-30T00:00:00.000Z"}}
+
+      288 |         expect(r.status).toBe(200);
+      289 |         const fd = storedFormData();
+    > 290 |         expect(fd.deadlineReminders).toBeUndefined();
+          |                                      ^
+      291 |         expect(fd.farmData).toEqual({ farmName: 'ไร่สมชาย' });
+      292 |     });
+      293 |
+
+      at Object.toBeUndefined (__tests__/unit/applications-prepare-server-owned-fields.test.js:290:38)
+
+FAIL __tests__/unit/correction-deadline-sweep-scheduled.test.js
+  ✕ an hourly block runs the correction-deadline sweep on the Bangkok clock (7 ms)
+
+  ● an hourly block runs the correction-deadline sweep on the Bangkok clock
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      27 |     scheduler.start();
+      28 |     const block = mockCronSchedule.mock.calls.find((call) => call[0] === '45 * * * *');
+    > 29 |     expect(block).toBeDefined();
+         |                   ^
+      30 |     expect(block[2]).toMatchObject({ timezone: 'Asia/Bangkok' });
+      31 |     await block[1]();
+      32 |     expect(mockSweep).toHaveBeenCalledTimes(1);
+
+      at Object.toBeDefined (__tests__/unit/correction-deadline-sweep-scheduled.test.js:29:19)
+
+Test Suites: 2 failed, 2 total
+Tests:       2 failed, 10 passed, 12 total
+Snapshots:   0 total
+Time:        1.552 s, estimated 2 s
+Ran all test suites matching __tests__/unit/applications-prepare-server-owned-fields.test.js|__tests__/unit/correction-deadline-sweep-scheduled.test.js.

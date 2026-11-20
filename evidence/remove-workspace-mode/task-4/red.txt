@@ -1,0 +1,142 @@
+# Task 4 RED — 2026-10-02 · base c26c9529 (pre-Task-4 implementation) · real Postgres 17 on 127.0.0.1:5447
+
+## Unit: __tests__/unit/cert-finance-reads-carry-holder-marker.test.js
+Result: 24 failed, 0 passed, 24 total.
+Reason per test (first assertion that failed):
+- marker missing on the where (hasHolderMarker false): listCertificatesForUser, getCertificateForUser,
+  listActiveCertificatesForUser, findCertificateForUser, quote listForApplicant, findOwnedApplicationDocuments,
+  findQuotationsByApplicationId, markQuotationAccepted, findDraftForSubmit, syncApplicationDocument,
+  assertRequiredDocumentsPresent, currentForSlots, checkout ownership read
+- a query ran with no scope (fail-closed expected): listCertificatesForUser() threw "userId is required";
+  getCertificateForUser/listActiveCertificatesForUser/findCertificateForUser/listForApplicant/
+  findOwnedApplicationDocuments/findDraftForSubmit/checkout queried with the bare filer pin
+- findUnique used where findFirst + fragment expected: getCertificatePdf, getApplicationSlice,
+  issueQuotationsForApplication (APPLICATION_NOT_FOUND via findUnique), status-writer pre-read
+
+## Real PG, witness THROW: __tests__/integration/holder-write-doors-witness-real-postgres.test.js
+Result: 3 failed, 3 total, 0 skipped.
+Door statuses (expected 200 each):
+  POST /draft 200 · POST /draft-documents 200 (sync swallowed a rejected read: no application_documents row)
+  POST /draft-documents (filing) 200 (same) · POST /submit 500 · GET /:id/quotations 500
+  GET /:id/quotations/PLATFORM/pdf 500 · POST /:id/quotations/PLATFORM/accept 500
+  POST /payments/checkout 500 HEALTH_READ_UNSCOPED · re-entry 500 HEALTH_READ_UNSCOPED
+  POST /bundles 500 · POST /:id/revision-resubmit 500 REVISION_RESUBMIT_FAILED · POST /:id/car 200
+Witness (throw) named, first rejection per door:
+  ApplicationDocument.findFirst  POST /api/applications/draft-documents  (x2, swallowed)
+  Application.findFirst          POST /api/applications/submit
+  Application.findUnique         GET  /api/applications/:id/quotations/
+  Quotation.findMany             GET  /api/applications/:id/quotations/PLATFORM/pdf
+  Quotation.findMany             POST /api/applications/:id/quotations/PLATFORM/accept
+  Application.findFirst          POST /api/payments/checkout (x2)
+  Application.findMany           POST /api/applications/bundles/
+  ApplicationDocument.findMany   POST /api/applications/:id/revision-resubmit
+
+## Full list of unscoped reads (discovery run of the same suite, witness SHADOW, before the download/report-POST/acknowledge doors were added; call site from a spy on each delegate, "?" = a transaction client the spy did not wrap)
+ApplicationDocument.findFirst POST /api/applications/draft-documents
+    at Object.findFirst [as syncApplicationDocument] (services/application-document-sync.js:112:42)
+    at syncApplicationDocument (routes/api/applications/applications.js:1703:39)
+
+ApplicationDocument.findMany POST /api/applications/draft-documents
+?
+
+ApplicationDocument.findMany POST /api/applications/draft-documents
+?
+
+ApplicationDocument.findFirst POST /api/applications/draft-documents
+    at Object.findFirst [as syncApplicationDocument] (services/application-document-sync.js:112:42)
+    at syncApplicationDocument (routes/api/applications/applications.js:1703:39)
+
+ApplicationDocument.findMany POST /api/applications/draft-documents
+?
+
+ApplicationDocument.findMany POST /api/applications/draft-documents
+?
+
+Application.findFirst POST /api/applications/submit
+    at ApplicationService.findFirst [as findDraftForSubmit] (services/application-service/application-applicant-query-methods.js:232:39)
+    at findDraftForSubmit (routes/api/applications/applications.js:923:46)
+
+ApplicationDocument.findMany POST /api/applications/submit
+    at findMany (services/application-document-requirements.js:272:63)
+    at routes/api/applications/applications.js:1090:38
+
+Application.findUnique POST /api/applications/submit
+    at ApplicationService.findUnique [as getApplicationSlice] (services/application-service/application-applicant-query-methods.js:251:39)
+    at getApplicationSlice (routes/api/applications/applications.js:1379:50)
+
+Application.findUnique POST /api/applications/submit
+    at Object.findUnique [as issueQuotationsForApplication] (services/quotation-service.js:580:46)
+    at issueQuotationsForApplication (services/quotation-issuance-on-submit.js:61:32)
+    at issueQuotationOnSubmit (routes/api/applications/applications.js:1447:46)
+
+Quotation.findMany POST /api/applications/submit
+    at findMany (services/quotation-service.js:493:29)
+    at Object._readLiveQuotationRows [as issueQuotationsForApplication] (services/quotation-service.js:612:28)
+    at issueQuotationOnSubmit (services/quotation-issuance-on-submit.js:61:9)
+    at routes/api/applications/applications.js:1447:40
+
+Quotation.findMany POST /api/applications/submit
+    at findMany (services/quotation-service.js:493:29)
+    at Object._readLiveQuotationRows [as issueQuotationsForApplication] (services/quotation-service.js:612:28)
+    at issueQuotationOnSubmit (services/quotation-issuance-on-submit.js:61:9)
+    at routes/api/applications/applications.js:1447:40
+
+Application.findUnique GET /api/applications/:id/quotations/
+    at ApplicationService.findUnique [as getApplicationSlice] (services/application-service/application-applicant-query-methods.js:251:39)
+    at getApplicationSlice (routes/api/applications/quotations.js:180:46)
+
+Quotation.findMany GET /api/applications/:id/quotations/
+    at Object.findMany [as findQuotationsByApplicationId] (services/quotation-service.js:816:37)
+    at findQuotationsByApplicationId (services/quotation-issuance-on-submit.js:302:42)
+    at ensureQuotationForIssuedApplication (routes/api/applications/quotations.js:193:36)
+
+Quotation.findMany POST /api/applications/:id/quotations/PLATFORM/accept
+    at Object.findMany [as findQuotationsByApplicationId] (services/quotation-service.js:816:37)
+    at findQuotationsByApplicationId (routes/api/applications/quotations.js:402:14)
+
+Quotation.findFirst POST /api/applications/:id/quotations/PLATFORM/accept
+    at Object.findFirst [as markQuotationAccepted] (services/quotation-service.js:1016:41)
+    at markQuotationAccepted (routes/api/applications/quotations.js:413:53)
+
+Application.findFirst POST /api/payments/checkout
+    at findFirst (services/checkout/stripe-checkout-service.js:421:50)
+    at createCheckoutForApplication (routes/api/finance/payments.js:531:26)
+
+CheckoutOrder.findFirst POST /api/payments/checkout
+    at findFirst (services/checkout/stripe-checkout-service.js:470:44)
+    at routes/api/finance/payments.js:531:20
+
+Application.findMany POST /api/applications/bundles/
+    at findMany (routes/api/applications/application-bundles.js:304:56)
+
+ApplicationDocument.findMany POST /api/applications/:id/revision-resubmit
+    at findMany (routes/api/applications/revision-resubmit.js:150:60)
+
+Application.findUnique POST /api/applications/:id/revision-resubmit
+    at findUnique (services/application-status-writer.js:827:58)
+    at writeApplicationStatus (routes/api/applications/revision-resubmit.js:172:15)
+
+Certificate.findMany GET /api/certificates/my
+    at CertificateService.findMany [as listCertificatesForUser] (services/certificate-service.js:1207:35)
+    at listCertificatesForUser (routes/api/certificates/certificates.js:192:55)
+
+Certificate.findFirst GET /api/certificates/:id
+    at CertificateService.findFirst [as getCertificateForUser] (services/certificate-service.js:1229:35)
+    at getCertificateForUser (routes/api/certificates/certificates.js:334:52)
+
+Certificate.findMany GET /api/report-submissions/schedule
+    at DocumentService.findMany [as listActiveCertificatesForUser] (services/document-service.js:203:35)
+    at listActiveCertificatesForUser (routes/api/documents/report-submissions.js:128:52)
+
+Quote.findMany GET /api/quotes/my
+    at QuoteService.findMany [as listForApplicant] (services/quote-service.js:157:29)
+    at listForApplicant (routes/api/finance/quotes.js:124:43)
+
+ApplicationDocument.findMany GET /api/applications/:id/requirements
+    at findMany (routes/api/applications/requirements.js:88:63)
+
+DocumentPrecheck.findMany GET /api/applications/:id/requirements
+    at Object.findMany [as currentForSlots] (services/document-precheck/service.js:479:48)
+    at currentForSlots (routes/api/applications/requirements.js:55:42)
+    at withApplicantPrechecks (routes/api/applications/requirements.js:105:31)
+

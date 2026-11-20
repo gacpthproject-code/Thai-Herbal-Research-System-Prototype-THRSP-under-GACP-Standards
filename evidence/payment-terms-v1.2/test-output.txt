@@ -1,0 +1,45 @@
+# GREEN — round 2, tree = merge 0db1648f + guard exemption (this commit). Supersedes the round-1 summary.
+## backend full suite — scratch postgres:17 :55445 (146 migrations), NODE_OPTIONS=--max-old-space-size=3072, fresh SIGNING_KEY_DIR
+  suites 986 | failed suites 12 | tests 12893 | failed 34 | pending 54
+  FAIL m1-erasure-holder-survives 3 | main a0ee3b68 (round-1 baseline run): 3
+  FAIL a0-pr2-per-hop-invariant 7 | main a0ee3b68 (round-1 baseline run): 7
+  FAIL onsite-decision-mint-e2e 2 | main a0ee3b68 (round-1 baseline run): 2
+  FAIL officer-review-round-trip 4 | main a0ee3b68 (round-1 baseline run): 4
+  FAIL status-writer-audit-default-invariant 1 | main a0ee3b68 (round-1 baseline run): 1
+  FAIL staff-chain-assign-then-see 1 | main a0ee3b68 (round-1 baseline run): 1
+  FAIL staff-scope-contract 4 | main a0ee3b68 (round-1 baseline run): 4
+  FAIL renewal-fast-path 1 | main a0ee3b68 (round-1 baseline run): 1
+  FAIL m2a-submit-enforcement 5 | main a0ee3b68 (round-1 baseline run): 5
+  FAIL m1-submit-enforcement 4 | main a0ee3b68 (round-1 baseline run): 4
+  FAIL fee-line-names-retired-variants 1 | main a0ee3b68 (round-1 baseline run): not in main set
+  FAIL onsite-evidence-unfreeze 1 | main a0ee3b68 (round-1 baseline run): not in main set
+  not in main set, resolved:
+   - fee-line-names-retired-variants 1: v1.2 §2.6 negation sentence; exemption added (verbatim §2.6 only, read from the doc) — now 3/3 pass
+   - onsite-evidence-unfreeze 1: plant-register order dependence (same as round 1); passes alone on this tree
+  focused re-run after the fix (payment-terms*, consent-version, rollout real-PG, fee-service-catalogue-web-mirror, fee-line-names-retired-variants, checkout-*, error-codes*, onsite-evidence-unfreeze):
+    Test Suites: 19 passed, 19 total · Tests: 198 passed, 198 total
+
+## web
+  tsc exit 0
+  Test Suites: 456 passed, 456 total
+  Tests:       3746 passed, 3746 total
+  jest exit 0
+  (after dropping §2.6 from pricing: src/__tests__ + payments + marketing + help + lib = 157 suites / 1598 tests passed)
+
+## flutter: not run — no Dart file differs from origin/fix/fee-line-descriptions (git diff --stat empty for apps/mobile-app); flutter not on PATH
+
+## probes
+  == ratchet exit=0 :: PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/home/ubuntu/work/wt-pt12/evidence/ratchet-current.txt)
+  == no-skip exit=0 :: PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+  == retired-words exit=0 :: PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 พื้นผิว)
+  == no-secret exit=0 :: PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+  == fee-single-source exit=0 :: PASS: one fee table: /home/ubuntu/work/wt-pt12/apps/backend/config/business-rules.js
+  == holiday-single-source exit=0 :: PASS: single calendar source: apps/backend/utils/working-days.js
+  == settle-webhook-only exit=0 :: PASS: only services/checkout/checkout-settlement-service.js writes SETTLED; settle test green
+  == stripe-sdk-isolated exit=0 :: PASS: stripe SDK only in services/payment/stripe-adapter.js
+  == webhook-idempotent exit=0 :: PASS: replay dedup test green — /home/ubuntu/work/wt-pt12/evidence/webhook-idempotent.log
+  == status-vocab exit=0 :: PASS: 11 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (3 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+  == themed-surface-tokens exit=0 :: PASS: every Tailwind-consumed surface token carries a distinct value in :root and .dark, and no stylesheet under src/styles/ nails a background with !important
+  ratchet same as main a0ee3b68 evidence/ratchet-current.txt: hardcode 26 todo 53 env-direct 101 dup-source 0
+
+## infra: container pt12-pg-55445 removed · apps/backend/keys/*.pem mtime 2026-09-05 22:50:35 +0700 (1788623435) before and after

@@ -1,0 +1,146 @@
+== N1-job-deletes-documents (jobs/payment-closure-job.js): >  > async function mutantN1(prisma) { await prisma.applicationDocument.deleteMany({ where: {} }); } 
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (6 ms)
+    ✓ the rules do catch a deletion when one is there (20 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (77 ms)
+    +   "jobs/payment-closure-job.js:262 deletes ApplicationDocument: would make §7 item 5 (ข้อมูลคำขอ เอกสารประกอบคำขอ และข้อมูลฟาร์ม ... ระบบไม่ลบข้อมูลเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes
+== N2-transitive-raw-audit-delete (services/document-precheck/clear-text.js): >  > async function mutantN2(tx) { await tx.$executeRawUnsafe("DELETE FROM audit_logs WHERE 1=0"); } 
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (5 ms)
+    ✓ the rules do catch a deletion when one is there (20 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (75 ms)
+    +   "services/document-precheck/clear-text.js:101 raw SQL removes rows of audit_logs: would make §7 item 4 (บันทึกการตรวจสอบ ... ระบบไม่ลบบันทึกเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes
+== N3-cron-deletes-a-file (cron/renewal-reminder-cron.js): >  > async function mutantN3(fs, p) { await fs.promises.unlink(p); } 
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (7 ms)
+    ✓ the rules do catch a deletion when one is there (18 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (78 ms)
+    +   "cron/renewal-reminder-cron.js:236 deletes a file (uploaded documents are files): would make §7 item 5 (ข้อมูลคำขอ เอกสารประกอบคำขอ และข้อมูลฟาร์ม ... ระบบไม่ลบข้อมูลเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes
+== N4-job-clears-formData (jobs/site-contact-request-job.js): >  > async function mutantN4(tx, id) { await tx.application.update({ where: { id }, data: { formData: null } }); } 
+    ✓ the scan reaches the real scheduler, the queue and the retention sweep (6 ms)
+    ✓ the rules do catch a deletion when one is there (17 ms)
+    ✕ nothing reachable from a timer deletes or clears what §7 items 4 and 5 say stays (79 ms)
+    +   "jobs/site-contact-request-job.js:111 clears application formData: would make §7 item 5 (ข้อมูลคำขอ เอกสารประกอบคำขอ และข้อมูลฟาร์ม ... ระบบไม่ลบข้อมูลเหล่านี้โดยอัตโนมัติ) untrue",
+Tests:       1 failed, 2 passed, 3 total
+restored: yes
+== S1-user-laserCode-forgotten (services/account-anonymization.js): <         laserCode: null, 
+    ✕ an active applicant past retention: no seeded value remains in users, entities or identity_links (179 ms)
+    ✕ a staff account past retention is anonymized the same way (59 ms)
+    ✕ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (92 ms)
+    ✕ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (201 ms)
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep (81 ms)
+    ✕ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (136 ms)
+    ✕ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (100 ms)
+    ✓ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (120 ms)
+    ✓ a credit note issued after an old receipt keeps the payer name for its own retention (128 ms)
+    ✕ a company the swept person owns keeps its name and registration: only the personal entity is the person (116 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (160 ms)
+    ✓ the kept lists name only columns that exist (7 ms)
+    ✕ the retention sweep writes every User column that is not on the kept list (11 ms)
+    ✓ the retention sweep writes every column of the personal entity that is not on the kept list (13 ms)
+    ✕ the confirmed erasure writes every User column that is not on the kept list (16 ms)
+    ✓ the confirmed erasure writes every column of the personal entity that is not on the kept list (5 ms)
+Tests:       9 failed, 7 passed, 16 total
+restored: yes
+== P1-sweep-query-outside-withDeletedRows (jobs/pdpa-retention-job.js): <         const batch = await withDeletedRows(async () => prisma.user.findMany({ >         const batch = await withDeletedRows(() => prisma.user.findMany({ 
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links (260 ms)
+    ✓ a staff account past retention is anonymized the same way (107 ms)
+    ✕ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (112 ms)
+    ✓ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (203 ms)
+    ✕ an account the door erased before this change (personal entity left named) is finished by the sweep (108 ms)
+    ✓ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (223 ms)
+    ✓ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (219 ms)
+    ✓ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (126 ms)
+    ✓ a credit note issued after an old receipt keeps the payer name for its own retention (138 ms)
+    ✓ a company the swept person owns keeps its name and registration: only the personal entity is the person (134 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (171 ms)
+Tests:       2 failed, 9 passed, 11 total
+restored: yes
+== A1-erasure-audit-without-role (services/pdpa-erasure-service.js): <         actorRole, >         actorRole: undefined, 
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links (375 ms)
+    ✓ a staff account past retention is anonymized the same way (110 ms)
+    ✓ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (151 ms)
+    ✕ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (257 ms)
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep (132 ms)
+    ✓ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (225 ms)
+    ✓ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (210 ms)
+    ✓ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (107 ms)
+    ✓ a credit note issued after an old receipt keeps the payer name for its own retention (132 ms)
+    ✓ a company the swept person owns keeps its name and registration: only the personal entity is the person (190 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (165 ms)
+Tests:       1 failed, 10 passed, 11 total
+restored: yes
+== B1-payer-name-cleared-at-once (services/account-anonymization.js): <     const keepName = await payerNameOnTaxDocumentInRetention(tx, entityId, now); >     const keepName = false; 
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links (237 ms)
+    ✓ a staff account past retention is anonymized the same way (47 ms)
+    ✓ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (85 ms)
+    ✓ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (253 ms)
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep (67 ms)
+    ✕ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (136 ms)
+    ✕ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (79 ms)
+    ✕ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (142 ms)
+    ✕ a credit note issued after an old receipt keeps the payer name for its own retention (62 ms)
+    ✓ a company the swept person owns keeps its name and registration: only the personal entity is the person (73 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (93 ms)
+Tests:       4 failed, 7 passed, 11 total
+restored: yes
+== B2-kept-name-never-revisited (jobs/pdpa-retention-job.js): <             displayName: { not: ERASED }, >             displayName: ERASED, 
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links (2002 ms)
+    ✓ a staff account past retention is anonymized the same way (1578 ms)
+    ✓ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (1622 ms)
+    ✓ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (223 ms)
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep (1610 ms)
+    ✕ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (1761 ms)
+    ✕ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (3886 ms)
+    ✓ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (128 ms)
+    ✓ a credit note issued after an old receipt keeps the payer name for its own retention (1673 ms)
+    ✓ a company the swept person owns keeps its name and registration: only the personal entity is the person (1775 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (1835 ms)
+Tests:       2 failed, 9 passed, 11 total
+restored: yes
+== J1-company-entity-swept-as-personal (services/account-anonymization.js): <         where: { userId, role: 'OWNER', entity: { type: 'INDIVIDUAL' } }, >         where: { userId, role: 'OWNER' }, 
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links (218 ms)
+    ✓ a staff account past retention is anonymized the same way (54 ms)
+    ✓ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (94 ms)
+    ✓ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (203 ms)
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep (82 ms)
+    ✓ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (177 ms)
+    ✓ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (124 ms)
+    ✓ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (102 ms)
+    ✓ a credit note issued after an old receipt keeps the payer name for its own retention (87 ms)
+    ✕ a company the swept person owns keeps its name and registration: only the personal entity is the person (101 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (108 ms)
+Tests:       1 failed, 10 passed, 11 total
+restored: yes
+== T1-door-count-scoped-to-request-tenant (services/account-anonymization.js): < const { withoutTenantScope } = require('./tenant-context'); > const withoutTenantScope = (fn) => fn(); 
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links (220 ms)
+    ✓ a staff account past retention is anonymized the same way (82 ms)
+    ✓ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (115 ms)
+    ✓ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (217 ms)
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep (126 ms)
+    ✓ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (207 ms)
+    ✓ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (155 ms)
+    ✕ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (112 ms)
+    ✓ a credit note issued after an old receipt keeps the payer name for its own retention (93 ms)
+    ✓ a company the swept person owns keeps its name and registration: only the personal entity is the person (91 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (132 ms)
+Tests:       1 failed, 10 passed, 11 total
+restored: yes
+== C1-credit-note-date-ignored (services/account-anonymization.js): <                 { creditNotes: { some: issuedSince } }, 
+    ✓ an active applicant past retention: no seeded value remains in users, entities or identity_links (239 ms)
+    ✓ a staff account past retention is anonymized the same way (60 ms)
+    ✓ an account closed with the older "ลบบัญชีของฉัน" button and past retention: the sweep reaches it (105 ms)
+    ✓ an erasure requested and confirmed through the two-step door: nothing identifying remains, and both audit rows exist (201 ms)
+    ✓ an account the door erased before this change (personal entity left named) is finished by the sweep (83 ms)
+    ✓ §7 item 2: while a receipt names the person, an erasure keeps the payer name it prints; the sweep clears it once that retention ends (181 ms)
+    ✓ the retention sweep keeps the payer name of a receipt still inside its retention, then clears it on a later run (122 ms)
+    ✓ an erasure under the request's tenant still sees a receipt filed under another organization, and keeps the name it prints (117 ms)
+    ✕ a credit note issued after an old receipt keeps the payer name for its own retention (86 ms)
+    ✓ a company the swept person owns keeps its name and registration: only the personal entity is the person (85 ms)
+    ✓ a legal-hold account past retention and an account inside its window are left exactly as they were (98 ms)
+Tests:       1 failed, 10 passed, 11 total
+restored: yes
+exit=0

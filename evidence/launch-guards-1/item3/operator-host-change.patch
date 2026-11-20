@@ -1,0 +1,26 @@
+diff --git a/nginx/gacp.production.conf b/nginx/gacp.production.conf
+index 2b4da312a..8f3e3b6af 100644
+--- a/nginx/gacp.production.conf
++++ b/nginx/gacp.production.conf
+@@ -22,9 +22,11 @@
+ # Rate limiting zones
+ limit_req_zone $binary_remote_addr zone=api_general:10m rate=50r/s;
+ limit_req_zone $binary_remote_addr zone=api_auth:10m rate=10r/s;
+-limit_req_zone $binary_remote_addr zone=api_upload:10m rate=5r/m;
++limit_req_zone $binary_remote_addr zone=api_upload:10m rate=30r/m;
+ limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+ 
++limit_req_status 429;
++
+ # Upstream selection by Host header. staging.gacpth.com is the ONLY Host value
+ # that routes to the *-staging containers; every other Host (gacpth.com, a
+ # missing/spoofed Host, a direct IP hit) falls through to `default`, i.e.
+@@ -299,7 +301,7 @@ server {
+     # staging for real. Uploads keep the strict zone here; everything else under
+     # /api/applications/ moves to the general zone below.
+     location /api/applications/draft-documents {
+-        limit_req zone=api_upload burst=10 nodelay;
++        limit_req zone=api_upload burst=50 nodelay;
+         client_max_body_size 50M;
+ 
+         proxy_pass http://$backend_up;

@@ -1,0 +1,86 @@
+# Task 2 GREEN — read witness by value (option D), 2026-09-30, Node 24.21.0, Prisma 5.22.0
+
+## Real Postgres (the proof): postgres:17 on 127.0.0.1:5447, migrate deploy, container removed afterwards
+cmd: cd apps/backend && DATABASE_URL=TEST_DATABASE_URL=<local 5447> SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs -i __tests__/integration/holder-read-witness-real-postgres.test.js __tests__/integration/holder-marker-prisma-real-postgres.test.js
+PASS __tests__/integration/holder-read-witness-real-postgres.test.js
+PASS __tests__/integration/holder-marker-prisma-real-postgres.test.js
+Tests:       25 passed, 25 total
+[annotation, written by hand, not jest output: 0 skipped. The Tests: line above carries no "skipped" count and the run printed no ○ lines.]
+    ✓ (c) a fragment registered in request 1 is unscoped in request 2
+    ✓ (f) mode shadow: a non-health principal is never counted
+    ✓ (f) mode throw: a non-health principal is never counted
+      ✓ findMany / findUniqueOrThrow / findFirstOrThrow / count run, nothing counted or logged
+      ✓ the entity ALS rewrite really runs after the witness: bound entity W replaces the fragment (W row back), no witness hit
+      ✓ a registered Farm fragment (holderReadWhere and farmAccessWhere) is scoped
+      ✓ findMany / findUniqueOrThrow / findFirstOrThrow / count run, nothing counted or logged
+      ✓ the entity ALS rewrite really runs after the witness: bound entity W replaces the fragment (W row back), no witness hit
+      ✓ a registered Farm fragment (holderReadWhere and farmAccessWhere) is scoped
+      ✓ shadow: the read runs, counted +1, logged with model/op/route/principal
+      ✓ throw: rejects HEALTH_READ_UNSCOPED
+      ✓ throw: a deleted key (fragment keys dropped) rejects too
+      ✓ a registered application.entityId fragment is scoped
+      ✓ a hand-written { application: { entityId: { in } } } never registered is unscoped
+      ✓ one unregistered branch → unscoped
+      ✓ every branch registered → scoped
+    ✓ R(user) on the real schema: ACTIVE on a live entity only (no PENDING, no REVOKED, no deleted entity)
+    ✓ Prisma 5.22 ignores the symbol key
+    ✓ the seeded memberships are really there (the R(user) test is not vacuous)
+    ✓ a spread-then-override where is unscoped by the marker check
+    ✓ Prisma 5.22 ignores the symbol key inside a relation filter
+    ✓ an empty scope still fails closed on the real database
+    ✓ the same holds through the tenantInjectExtension client (tenant + entity context bound)
+    ✓ (Task 2) Prisma 5.22 accepts deep-frozen fragments passed unspread
+    ✓ (Task 2) a query hook receives a clone: the symbol marker does not reach it
+
+## Mutation check on real Postgres: witness moved AFTER applyReadScopes in findMany (then restored from backup)
+Tests:       4 failed, 12 passed, 16 total
+      ✕ findMany / findUniqueOrThrow / findFirstOrThrow / count run, nothing counted or logged
+      ✕ the entity ALS rewrite really runs after the witness: bound entity W replaces the fragment (W row back), no witness hit
+      ✕ findMany / findUniqueOrThrow / findFirstOrThrow / count run, nothing counted or logged
+      ✕ the entity ALS rewrite really runs after the witness: bound entity W replaces the fragment (W row back), no witness hit
+   assertion lines: Expected: 0 / Received: 1 (shadow); HEALTH_READ_UNSCOPED: health read Application.findMany (throw)
+
+## Unit
+cmd: npx jest --config jest.config.cjs __tests__/unit/holder-read-witness.test.js
+Tests:       77 passed, 77 total
+cmd: every unit suite requiring tenant-prisma-extension / prometheus / holder-* / farm-access / tenant-context-middleware (38 suites, incl. tenant-context, tenant-aggregate-groupby-scope, tenant-read-org-backstop, holder-access, farm-access*)
+Test Suites: 38 passed, 38 total
+Tests:       600 passed, 600 total
+
+Signing key mtime (GACP-Certification-Application/apps/backend/keys/*.pem): 1788623435 before and after every run.
+
+## Full local gate (after .env.example + error-codes pointer fix)
+cmd: LOCAL_GATE_FULL=1 bash scripts/ci/local-gate.sh (Node 24.21.0, NODE_OPTIONS unset)
+FAIL __tests__/integration/payer-block-matrix.test.js
+Tests:       15 failed, 357 skipped, 11982 passed, 12354 total
+Test Suites: 1 failed, 48 skipped, 898 passed, 899 of 947 total
+probe-gate FAIL: deploy-drift
+probe-gate FAIL: gate-attestation
+probe-gate FAIL: main-attestation-audit
+probe-gate FAIL: nginx-config-drift
+[local-gate] RESULT: FAIL
+Comparison: same set as the Task 1 round (unit: payer-block-matrix only, no DB; probe-gate: nginx-config-drift, deploy-drift, main-attestation-audit, gate-attestation = host/attestation state). No new failures.
+First gate run of this round also failed env-example-documents-config (HOLDER_READ_WITNESS undocumented) and error-codes-source-pointers (TENANT_CONTEXT_FAILED pointer shifted :77 -> :96); both fixed, both PASS in the rerun above.
+
+## Reviewer minors (M1-M9) — GREEN
+Unit: npx jest --config jest.config.cjs __tests__/unit/holder-read-witness.test.js __tests__/unit/error-codes-source-pointers.test.js __tests__/unit/error-codes-catalog.test.js
+Tests:       106 passed, 106 total
+Unit, every related suite (38 + error-codes-source-pointers + error-codes-catalog + env-example-documents-config):
+Test Suites: 41 passed, 41 total
+Tests:       634 passed, 634 total
+Real PG (postgres:17 on 127.0.0.1:5447, migrate deploy, container removed): both suites
+PASS __tests__/integration/holder-read-witness-real-postgres.test.js
+PASS __tests__/integration/holder-marker-prisma-real-postgres.test.js
+Tests:       29 passed, 29 total
+[annotation, written by hand, not jest output: 0 skipped. No skipped count and no ○ lines.]
+Mutation (real PG): registry match on keys only, value ignored (then restored from backup):
+Tests:       7 failed, 13 passed, 20 total
+    ✕ (c) a fragment registered in request 1 (A, [X]) is unscoped in request 2 (B, registered [W])
+    ✕ (M2) two interleaved requests (users A and B) each see only their own registration
+      ✕ shadow: the read runs, counted +1, logged with model/op/route/principal
+      ✕ throw: rejects HEALTH_READ_UNSCOPED
+      ✕ with an Invoice fragment for [X] registered in the same request, hand-written in:[W] is unscoped
+      ✕ with an Invoice fragment for [X] registered in the same request, hand-written in:[X,W] is unscoped
+      ✕ one unregistered branch → unscoped
+Probes: ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0 · retired-words PASS · no-skip PASS · no-secret PASS (layer1 0 hits, gitleaks clean)
+Signing key mtime: 1788623435 before and after.

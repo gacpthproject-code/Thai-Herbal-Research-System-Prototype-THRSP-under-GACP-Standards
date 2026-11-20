@@ -1,0 +1,43 @@
+fix round 1 — re-run on committed code 8d6e38fb · node v24.21.0 · NODE_OPTIONS unset · fresh SIGNING_KEY_DIR
+
+== real Postgres 17 scratch (127.0.0.1:5443, random password, removed after) — PR3 suite + canceled-webhook
+PASS __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js (9.652 s)
+      ✓ ตัวตรวจก่อน deploy: exit 1 พร้อมตัวเลขต่อสถานะ และไม่พิมพ์รหัสผ่านฐาน (154 ms)
+      ✓ migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย (693 ms)
+      ✓ หลังถูกปฏิเสธ: migrate resolve --rolled-back แล้วแก้แถวที่ขวาง → deploy ซ้ำผ่าน (2392 ms)
+      ✓ ตัวตรวจก่อน deploy: exit 1 พร้อมเหตุผลที่มีชื่อ ไม่ใช่ SAFE_TO_DROP (146 ms)
+      ✓ migrate deploy ถูกปฏิเสธด้วยข้อความที่มีชื่อพร้อมจำนวน (ไม่ใช่ constraint error ดิบ) และไม่มีอะไรถูกดรอป (695 ms)
+      ✓ ตัวตรวจก่อน deploy: exit 0 (150 ms)
+      ✓ migrate deploy ผ่าน: ตารางและคอลัมน์หาย, CHECK ใหม่อยู่, แถวเก่ายังอยู่และยอดไม่ถูกแตะ (826 ms)
+      ✓ CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้ (49 ms)
+      ✓ mint + settle ใหม่ทั้งเส้นบนคำขอเดียวกับ order เก่า: ลง 1110-001 / 4110-001 / 2131-001 เท่านั้น (251 ms)
+      ✓ หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้ (892 ms)
+PASS __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js
+    ✓ A. ordinary order: canceled webhook → order CANCELLED + invoice retired (deletedBy/deleteReason) + charge CANCELLED → next press mints afresh (169 ms)
+Tests:       11 passed, 11 total
+
+== unit (touched suites, no DB)
+PASS __tests__/unit/dtam-remittance-pipeline-removed.test.js
+PASS __tests__/unit/error-codes-catalog.test.js
+PASS __tests__/unit/stripe-checkout-engine.test.js
+PASS __tests__/unit/settlement-refuses-a-cancelled-legacy-total.test.js
+PASS __tests__/unit/dtam-remittance-schema-dropped.test.js
+PASS __tests__/unit/checkout-vocabulary.test.js
+PASS __tests__/unit/dtam-accounting-layer-removed.test.js
+PASS __tests__/unit/settlement-binds-receipt-number-to-invoice.test.js
+PASS __tests__/unit/one-vat-rate-one-company-name.test.js
+PASS __tests__/unit/error-codes-source-pointers.test.js
+PASS __tests__/unit/settle-event.test.js
+PASS __tests__/unit/settlement-closes-quotation.test.js
+PASS __tests__/unit/settlement-quotation-must-not-throw-in-tx.test.js
+Tests:       124 passed, 124 total
+
+== money-equation --selftest
+money-equation --selftest: 6/6 cases PASS
+
+== probes
+ratchet: PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (<scratch>/pe/ratchet-current.txt)
+no-skip: PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+no-secret: PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+retired-words: PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 พื้นผิว)
+settle-webhook-only: PASS: only services/checkout/checkout-settlement-service.js writes SETTLED; settle test green

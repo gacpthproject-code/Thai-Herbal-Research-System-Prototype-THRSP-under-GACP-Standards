@@ -1,0 +1,23 @@
+Task 7b round 2 (b) — GREEN: DELETE = farm OWNER, or the uploader still holding the capability; in-use = 409
+Date: 2026-10-03 · Real Postgres 17 :55438 · key mtime 1788623435 before/after (unchanged)
+
+planting-attachment-door-real-postgres.test.js + unit/error-codes-source-pointers.test.js +
+holder-write-doors-witness-real-postgres.test.js (jest -i): Test Suites 3 passed · Tests 26 passed · 0 skipped
+  ✓ another member holding the same capability cannot delete someone else's file: 403 ATTACHMENT_OWNERSHIP_DENIED, row+file stay (was 200)
+  ✓ in-use: 409 PLANTING_ATTACHMENT_IN_USE with a Thai message for the uploader AND the OWNER, row+file stay (was 200)
+  ✓ VIEWER delete → 403 ATTACHMENT_OWNERSHIP_DENIED (was ENTITY_PERMISSION_DENIED)
+  ✓ OWNER deletes a member's file 200 (pin) · uploader without the capability 403 ENTITY_PERMISSION_DENIED (pin)
+  ✓ uploader deletes own file 200 (round-0 test, unchanged)
+
+Choice for an attachment a saved activity carries: REFUSE (409), never unlink — operator's "safe option".
+New code registered: shared/error-codes.js PLANTING_ATTACHMENT_IN_USE (409)
+  messageTh "ไฟล์นี้แนบอยู่กับกิจกรรมที่บันทึกแล้ว จึงลบไม่ได้ หากแนบผิดไฟล์ ให้บันทึกกิจกรรมใหม่พร้อมไฟล์ที่ถูกต้อง"
+Owner = ACTIVE OWNER membership of the farm's holding entity (entity not deleted); personal farm (no entity) = farm.ownerId.
+
+Full backend suite on real PG after round 2 (9f4ef4af), vs main df107376 attestation log:
+  this branch: Suites 12 failed / 957 passed · Tests 35 failed, 54 skipped, 12676 passed (12765)
+  failing names vs main: the same 33 + 2 in integration/invoice-tax-id-select.test.js ("Unique constraint failed on canonicalId").
+  Cause: this DB also held the view-pack walk farmer, registered with national ID 1100000000008, the same id that suite
+  inserts. Re-run alone on a FRESH database in the same container (fresh7b, migrate deploy): Tests 9 passed, 9 total.
+  → no new failure from the code; the 2 are a fixture collision with the view-pack seed.
+Probes after round 2: ratchet PASS 26/53/101/0 · no-skip · retired-words · no-secret · green-mask PASS · tier-check TIER=C

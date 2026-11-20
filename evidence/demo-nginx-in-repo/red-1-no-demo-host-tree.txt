@@ -1,0 +1,445 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+FAIL __tests__/unit/nginx-exposure.test.js
+  pgAdmin is not reachable from the public internet
+    ✓ the host config, which is the only layer that sees the real client, refuses /pgadmin/ (4 ms)
+    ✓ the container config does not claim an IP whitelist it cannot enforce (2 ms)
+  security headers survive into every location
+    ✓ finds the locations that override headers (2 ms)
+    ✓ X-Frame-Options is present in every header-setting location (2 ms)
+    ✓ X-Content-Type-Options is present in every header-setting location (2 ms)
+    ✓ Referrer-Policy is present in every header-setting location (1 ms)
+  exactly one layer owns the Content-Security-Policy
+    ✓ deploy/nginx/gacp-platform.conf sets no Content-Security-Policy (1 ms)
+    ✓ nginx/gacp.production.conf sets no Content-Security-Policy (1 ms)
+    ✓ the application still sets one, and it carries the configured tile origin (1 ms)
+  an HTTP-01 challenge can reach the webroot
+    ✓ deploy/nginx/gacp-platform.conf answers the ACME challenge path before redirecting to HTTPS (2 ms)
+    ✓ deploy/nginx/staging.gacpth.com.conf answers the ACME challenge path before redirecting to HTTPS (1 ms)
+  the container config does not tell search engines to ignore the platform
+    ✓ X-Robots-Tag noindex is not set for the whole server (1 ms)
+  on staging, gacpth.com and www.gacpth.com keep the blank page as the rollback target
+    ✓ both listeners of the bare-domain vhost name gacpth.com and www.gacpth.com (3 ms)
+    ✓ no other vhost in deploy/nginx claims gacpth.com (9 ms)
+    ✓ no other vhost in deploy/nginx claims www.gacpth.com (1 ms)
+    ✓ the blank-page rewrite is the first rewrite-phase directive in each bare-domain server (2 ms)
+    ✓ the guard pattern matches the bare and www hosts in any case, and no subdomain (3 ms)
+    ✓ /__gacp_blank is internal, returns an empty body, and proxies nowhere (3 ms)
+  on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30)
+    ✕ the host nginx.conf loads exactly the conf.d files kept here (1 ms)
+    ✕ 00-gacp-platform.conf is the fallback server for unnamed hosts on both ports (1 ms)
+    ✕ no other server block on the demo host claims gacpth.com (1 ms)
+    ✕ no other server block on the demo host claims www.gacpth.com (1 ms)
+    ✕ the guard opens the rewrite phase of both listeners, ahead of the address deny (1 ms)
+    ✕ gacpth.com/ gets the notice page
+    ✕ www.gacpth.com/ gets the notice page
+    ✕ GACPTH.COM/login gets the notice page (1 ms)
+    ✕ Www.GacpTh.com/api/v1/health gets the notice page (1 ms)
+    ✕ gacpth.com/api/auth/login gets the notice page (1 ms)
+    ✕ gacpth.com/verify gets the notice page (1 ms)
+    ✕ gacpth.com/VERIFY/abc gets the notice page (1 ms)
+    ✕ gacpth.com/trace/lot/1 gets the notice page (1 ms)
+    ✕ gacpth.com/verify/TH-GACP-1-2569 is sent to demo.gacpth.com with its path and query (1 ms)
+    ✕ www.gacpth.com/verify/abc is sent to demo.gacpth.com with its path and query (1 ms)
+    ✕ GACPTH.COM/verify/ is sent to demo.gacpth.com with its path and query (1 ms)
+    ✕ demo.gacpth.com is not touched by the guard (1 ms)
+    ✕ staging.gacpth.com is not touched by the guard (1 ms)
+    ✕ xgacpth.com is not touched by the guard (1 ms)
+    ✕ gacpth.com.evil.test is not touched by the guard (1 ms)
+    ✕ www.gacpth.com.evil.test is not touched by the guard (1 ms)
+    ✕ localhost is not touched by the guard (1 ms)
+    ✕ 119.59.105.140 is not touched by the guard (1 ms)
+    ✕ /__gacp_notice is internal, noindex, and serves only the notice file (2 ms)
+    ✕ the notice file says the site is not open yet and asks not to be indexed (1 ms)
+    ✕ demo.gacpth.com is served by its own vhost on both ports and proxies to the container on 443 (1 ms)
+    ✕ demo.gacpth.com is open: the demo deny map has no row that denies (8 ms)
+    ✕ inside the container, demo.gacpth.com routes to the demo backend and frontend (1 ms)
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › the host nginx.conf loads exactly the conf.d files kept here
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/nginx.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › 00-gacp-platform.conf is the fallback server for unnamed hosts on both ports
+
+    ENOENT: no such file or directory, scandir '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d'
+
+      311 |     const NOTICE_LINES = ['เว็บไซต์นี้ยังไม่เปิดให้บริการ', 'ระบบอยู่ระหว่างการพัฒนาและทดสอบ'];
+      312 |
+    > 313 |     const confFiles = () => fs.readdirSync(CONF_D).filter((f) => f.endsWith('.conf')).sort();
+          |                                ^
+      314 |     const bareBlocks = () => {
+      315 |         const blocks = serverBlocks(DEFAULT_VHOST).filter((b) => b.names.includes('gacpth.com'));
+      316 |         expect(blocks).toHaveLength(2);
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › no other server block on the demo host claims gacpth.com
+
+    ENOENT: no such file or directory, scandir '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d'
+
+      311 |     const NOTICE_LINES = ['เว็บไซต์นี้ยังไม่เปิดให้บริการ', 'ระบบอยู่ระหว่างการพัฒนาและทดสอบ'];
+      312 |
+    > 313 |     const confFiles = () => fs.readdirSync(CONF_D).filter((f) => f.endsWith('.conf')).sort();
+          |                                ^
+      314 |     const bareBlocks = () => {
+      315 |         const blocks = serverBlocks(DEFAULT_VHOST).filter((b) => b.names.includes('gacpth.com'));
+      316 |         expect(blocks).toHaveLength(2);
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › no other server block on the demo host claims www.gacpth.com
+
+    ENOENT: no such file or directory, scandir '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d'
+
+      311 |     const NOTICE_LINES = ['เว็บไซต์นี้ยังไม่เปิดให้บริการ', 'ระบบอยู่ระหว่างการพัฒนาและทดสอบ'];
+      312 |
+    > 313 |     const confFiles = () => fs.readdirSync(CONF_D).filter((f) => f.endsWith('.conf')).sort();
+          |                                ^
+      314 |     const bareBlocks = () => {
+      315 |         const blocks = serverBlocks(DEFAULT_VHOST).filter((b) => b.names.includes('gacpth.com'));
+      316 |         expect(blocks).toHaveLength(2);
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › the guard opens the rewrite phase of both listeners, ahead of the address deny
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › gacpth.com/ gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › www.gacpth.com/ gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › GACPTH.COM/login gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › Www.GacpTh.com/api/v1/health gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › gacpth.com/api/auth/login gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › gacpth.com/verify gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › gacpth.com/VERIFY/abc gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › gacpth.com/trace/lot/1 gets the notice page
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › gacpth.com/verify/TH-GACP-1-2569 is sent to demo.gacpth.com with its path and query
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › www.gacpth.com/verify/abc is sent to demo.gacpth.com with its path and query
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › GACPTH.COM/verify/ is sent to demo.gacpth.com with its path and query
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › demo.gacpth.com is not touched by the guard
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › staging.gacpth.com is not touched by the guard
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › xgacpth.com is not touched by the guard
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › gacpth.com.evil.test is not touched by the guard
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › www.gacpth.com.evil.test is not touched by the guard
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › localhost is not touched by the guard
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › 119.59.105.140 is not touched by the guard
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › /__gacp_notice is internal, noindex, and serves only the notice file
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › the notice file says the site is not open yet and asks not to be indexed
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/usr/share/nginx/gacpth-notice/index.html'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › demo.gacpth.com is served by its own vhost on both ports and proxies to the container on 443
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/demo.gacpth.com.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › demo.gacpth.com is open: the demo deny map has no row that denies
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/etc/nginx/conf.d/00-gacp-platform.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+  ● on the demo host, gacpth.com and www.gacpth.com show a notice and pass only /verify/ to demo (operator 2026-10-30) › inside the container, demo.gacpth.com routes to the demo backend and frontend
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-demonginx/deploy/nginx/demo-host/opt/gacp-platform/nginx/gacp.production.conf'
+
+      37 | const DOCKER_CONF = path.join(REPO_ROOT, 'nginx', 'gacp.production.conf');
+      38 |
+    > 39 | const read = (file) => fs.readFileSync(file, 'utf8');
+         |                           ^
+      40 | const liveLines = (file) => read(file)
+      41 |     .split('\n')
+      42 |     .map((text, index) => ({ text, line: index + 1 }))
+
+
+Test Suites: 1 failed, 1 total
+Tests:       28 failed, 18 passed, 46 total
+Snapshots:   0 total
+Time:        0.719 s, estimated 1 s
+Ran all test suites matching __tests__/unit/nginx-exposure.test.js.

@@ -1,0 +1,51 @@
+pre-deploy guard against a PRE-drop scratch DB holding 1 legacy SETTLED + 1 legacy CANCELLED order with a DTAM part (real Postgres 17.11). cmd: node scripts/ops/check-dtam-schema-drop-preflight.js
+{
+  "database": "timing_probe",
+  "batchTablePresent": true,
+  "dtamColumnPresent": true,
+  "verdict": "BLOCKED",
+  "blockingOrdersByStatus": {
+    "SETTLED": 1
+  },
+  "blockingOrders": [
+    {
+      "id": "legacy-settled",
+      "status": "SETTLED",
+      "milestone": "M1",
+      "applicationId": "66a8de9b-94d9-416c-8718-01619c5dd61b",
+      "applicationNumber": "PROBE-PRE-1",
+      "paymentIntentId": null,
+      "createdAt": "2026-09-29T16:01:06.282Z"
+    }
+  ],
+  "blockingBatchesByStatus": {},
+  "cancelledOrdersWithDtamPortion": 1,
+  "batchesByStatus": {},
+  "ordersWithRemittanceStatus": {},
+  "ordersWithBatchPointer": 0,
+  "next": "do NOT deploy yet. A PENDING_PAYMENT order is retired by one press of its pay button (PR2 checkout door) — then run this again. Any other listed row (SETTLED / EXPIRED order, REMITTED / RECONCILED batch) is an operator decision; the migration refuses until it is resolved."
+}
+exit=1
+
+== the migration itself on that DB (prisma migrate deploy)
+Prisma schema loaded from prisma/schema
+Datasource "db": PostgreSQL database "timing_probe", schema "public" at "127.0.0.1:5443"
+
+146 migrations found in prisma/migrations
+
+Applying migration `20260929155037_drop_dtam_remittance_schema`
+Error: P3018
+
+A migration failed to apply. New migrations cannot be applied before the error is recovered from. Read more about how to resolve migration issues in a production database: https://pris.ly/d/migrate-resolve
+
+Migration name: 20260929155037_drop_dtam_remittance_schema
+
+Database error code: P0001
+
+Database error:
+ERROR: DTAM_SCHEMA_DROP_REFUSED: 1 checkout_orders row(s) carry dtam_fee_amount > 0 and are not CANCELLED (SETTLED=1); 0 dtam_remittance_batches row(s) are not OPEN (none). Nothing was dropped. Run apps/backend/scripts/ops/check-dtam-schema-drop-preflight.js for the rows; an open order is retired by one press of its pay button (PR2), anything else is an operator decision.
+
+DbError { severity: "ERROR", parsed_severity: Some(Error), code: SqlState(EP0001), message: "DTAM_SCHEMA_DROP_REFUSED: 1 checkout_orders row(s) carry dtam_fee_amount > 0 and are not CANCELLED (SETTLED=1); 0 dtam_remittance_batches row(s) are not OPEN (none). Nothing was dropped. Run apps/backend/scripts/ops/check-dtam-schema-drop-preflight.js for the rows; an open order is retired by one press of its pay button (PR2), anything else is an operator decision.", detail: None, hint: None, position: None, where_: Some("PL/pgSQL function inline_code_block line 23 at RAISE"), schema: None, table: None, column: None, datatype: None, constraint: None, file: Some("pl_exec.c"), line: Some(3897), routine: Some("exec_stmt_raise") }
+
+
+exit=1

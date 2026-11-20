@@ -1,0 +1,111 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.904Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":1,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":2,"notifications":5},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.910Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.929Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":1,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.933Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.936Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.941Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.960Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.964Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.967Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.977Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:26:42.979Z","userId":"user-abc"}
+FAIL __tests__/unit/pdpa-erasure-service.test.js
+  pdpa-erasure-service
+    requestErasure
+      √ rejects when healthId is missing (6 ms)
+      √ rejects when actorId is missing (2 ms)
+      √ rejects unknown data subject (2 ms)
+      √ rejects when legalHold is set (2 ms)
+      √ returns requestId + expiresAt + token; persists envelope; emits audit + fanout (4 ms)
+      √ returns PDPA_ERASURE_IN_PROGRESS when a REQUESTED envelope already exists (1 ms)
+    confirmErasure
+      √ rejects when token mismatches (1 ms)
+      √ rejects and marks EXPIRED when the window has passed (1 ms)
+      √ rejects when requestId does not match the envelope (2 ms)
+      √ executes erasure on valid token and returns the summary (8 ms)
+    executeErasure
+      √ anonymises user, application formData, and certificates; deletes drafts + notifications (4 ms)
+      √ blocks erasure when legalHold is set on the user row (1 ms)
+      √ requires either healthId or userId (1 ms)
+    _sanitizeApplicationFormData
+      √ clears known PII keys at every level of a nested blob (2 ms)
+      √ passes through null / primitive inputs unchanged (1 ms)
+    listErasureRequests
+      √ returns envelopes without the token field (1 ms)
+      √ filters by status when provided (1 ms)
+      √ falls back to a broad scan when JSON-path filter is unsupported (2 ms)
+    cancelErasure
+      √ flips status to CANCELED and strips the token (2 ms)
+      √ refuses to cancel a non-REQUESTED envelope (1 ms)
+    STAGE 0 — erasure gap + data-state-agnostic resolve
+      √ (d) executeErasure ALSO nulls the *Hmac columns + sets canonicalId = user.id (4 ms)
+      √ (d) anonymises the personal INDIVIDUAL Entity row (null thaiCitizenId + thaiCitizenIdHash) (3 ms)
+      √ (d) Application anonymise queries by the post-cascade FK value (resolvedUserId), not the old national ID (3 ms)
+      √ (b) requestErasure resolves the subject by the national-ID HASH (not a canonicalId value WHERE) (2 ms)
+    M1 — erasure and the holder columns (D8 / AC4)
+      × asks Postgres for holderType — without it every branch below reads undefined (4 ms)
+      × wipes holderDisplayName to the sentinel when holderType is LEGACY_PERSON (a person is behind that name) (3 ms)
+      × wipes holderDisplayName to the sentinel when holderType is INDIVIDUAL (a person is behind that name) (2 ms)
+      √ never writes holderDisplayName at all when holderType is JURISTIC (AC4 — the farm keeps its certificate) (3 ms)
+      √ never writes holderDisplayName at all when holderType is COMMUNITY_ENTERPRISE (AC4 — the farm keeps its certificate) (10 ms)
+      √ leaves holderDisplayName alone for a row whose holderType is still NULL (pre-backfill safety) (2 ms)
+
+  ● pdpa-erasure-service › M1 — erasure and the holder columns (D8 / AC4) › asks Postgres for holderType — without it every branch below reads undefined
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: ObjectContaining {"select": ObjectContaining {"holderType": true, "id": true}, "where": {"userId": "user-abc"}}
+    Received: {"select": {"id": true}, "where": {"userId": "user-abc"}}
+
+    Number of calls: 1
+
+    [0m [90m 670 |[39m         it([32m'asks Postgres for holderType — without it every branch below reads undefined'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m 671 |[39m             [36mawait[39m eraseWithCert({ id[33m:[39m [32m'cert-select'[39m[33m,[39m holderType[33m:[39m [32m'JURISTIC'[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 672 |[39m             expect(prisma[33m.[39mcertificate[33m.[39mfindMany)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mobjectContaining({
+     [90m     |[39m                                                 [31m[1m^[22m[39m
+     [90m 673 |[39m                 where[33m:[39m { userId[33m:[39m [33mUSER_ID[39m }[33m,[39m
+     [90m 674 |[39m                 select[33m:[39m expect[33m.[39mobjectContaining({ id[33m:[39m [36mtrue[39m[33m,[39m holderType[33m:[39m [36mtrue[39m })[33m,[39m
+     [90m 675 |[39m             }))[33m;[39m[0m
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/pdpa-erasure-service.test.js:672:49)
+
+  ● pdpa-erasure-service › M1 — erasure and the holder columns (D8 / AC4) › wipes holderDisplayName to the sentinel when holderType is LEGACY_PERSON (a person is behind that name)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PDPA_ERASED"
+    Received: undefined
+
+    [0m [90m 680 |[39m             [36masync[39m (holderType) [33m=>[39m {
+     [90m 681 |[39m                 [36mconst[39m data [33m=[39m [36mawait[39m eraseWithCert({ id[33m:[39m [32m`cert-${holderType}`[39m[33m,[39m holderType })[33m;[39m
+    [31m[1m>[22m[39m[90m 682 |[39m                 expect(data[33m.[39mholderDisplayName)[33m.[39mtoBe([33mERASURE_SENTINEL[39m)[33m;[39m
+     [90m     |[39m                                                [31m[1m^[22m[39m
+     [90m 683 |[39m                 [90m// The pre-M1 behaviour is unchanged, letter for letter.[39m
+     [90m 684 |[39m                 expect(data[33m.[39mapplicantName)[33m.[39mtoBe([33mERASURE_SENTINEL[39m)[33m;[39m
+     [90m 685 |[39m                 expect(data[33m.[39maddress)[33m.[39mtoBeNull()[33m;[39m[0m
+
+      at toBe (__tests__/unit/pdpa-erasure-service.test.js:682:48)
+
+  ● pdpa-erasure-service › M1 — erasure and the holder columns (D8 / AC4) › wipes holderDisplayName to the sentinel when holderType is INDIVIDUAL (a person is behind that name)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PDPA_ERASED"
+    Received: undefined
+
+    [0m [90m 680 |[39m             [36masync[39m (holderType) [33m=>[39m {
+     [90m 681 |[39m                 [36mconst[39m data [33m=[39m [36mawait[39m eraseWithCert({ id[33m:[39m [32m`cert-${holderType}`[39m[33m,[39m holderType })[33m;[39m
+    [31m[1m>[22m[39m[90m 682 |[39m                 expect(data[33m.[39mholderDisplayName)[33m.[39mtoBe([33mERASURE_SENTINEL[39m)[33m;[39m
+     [90m     |[39m                                                [31m[1m^[22m[39m
+     [90m 683 |[39m                 [90m// The pre-M1 behaviour is unchanged, letter for letter.[39m
+     [90m 684 |[39m                 expect(data[33m.[39mapplicantName)[33m.[39mtoBe([33mERASURE_SENTINEL[39m)[33m;[39m
+     [90m 685 |[39m                 expect(data[33m.[39maddress)[33m.[39mtoBeNull()[33m;[39m[0m
+
+      at toBe (__tests__/unit/pdpa-erasure-service.test.js:682:48)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 27 passed, 30 total
+Snapshots:   0 total
+Time:        1.974 s
+Ran all test suites within paths "__tests__/unit/pdpa-erasure-service.test.js".

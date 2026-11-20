@@ -1,0 +1,548 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/staff-password-doors.test.js
+  directory doors never write a password
+    ✕ admin PUT a staff password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, hash unchanged (563 ms)
+    ✕ admin PUT a farmer password → 400, the farmer hash unchanged and the old password still works (544 ms)
+    ✕ a password riding along with a legitimate edit refuses the whole request (nothing written) (575 ms)
+    ✕ admin PUT their OWN password through the directory → 400 (own change needs the old password) (600 ms)
+    ✕ platform admin (cross-tenant) PUT a password → 400 (439 ms)
+    ✕ PATCH carrying a password → 400 as well (the field used to be dropped silently) (22 ms)
+    ✓ control: an empty password string is "no password" — the edit goes through and the hash stays (12 ms)
+  directory mutations reach staff accounts only
+    ✕ PUT a farmer (no providerId) → 404, nothing written (12 ms)
+    ✕ PATCH a farmer → 404 (17 ms)
+    ✕ DELETE a farmer → 404, the account is not deleted (14 ms)
+    ✕ an account with a providerId but the health role → 404 (13 ms)
+    ✕ platform admin cannot reach a farmer either → 404 (12 ms)
+    ✓ kept: cross-org staff → 404 for a dtam admin (12 ms)
+    ✓ kept: a non-admin caller → 403 (11 ms)
+    ✓ control: PATCH a staff member in the same org still works (14 ms)
+  POST /api/auth/provider/change-password — staff change their own password
+    ✕ old + new → 200; the new password verifies, sessions revoked, audit written (13 ms)
+    ✕ changes only the caller: a userId in the body is ignored (12 ms)
+    ✕ wrong old password → the same 400 as the health door, hash unchanged (33 ms)
+    ✕ a weak new password → 400 VALIDATION_ERROR (the registration policy), hash unchanged (16 ms)
+    ✕ no old password → 400, hash unchanged (13 ms)
+    ✕ not signed in → 401 (12 ms)
+  server.js mounts one change-password limiter on both doors, both prefixes
+    ✕ the limiter exists and counts failures only (3 ms)
+    ✕ mounted on /auth/health/change-password inside the prefix loop (2 ms)
+    ✕ mounted on /auth/provider/change-password inside the prefix loop (2 ms)
+
+  ● directory doors never write a password › admin PUT a staff password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, hash unchanged
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      194 |     test('admin PUT a staff password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, hash unchanged', async () => {
+      195 |         const res = await asAdmin(request(app).put('/api/provider/directory/staff-1')).send({ password: 'Taken#Over2026' });
+    > 196 |         expect(res.status).toBe(400);
+          |                            ^
+      197 |         expect(res.body.code).toBe('DIRECTORY_PASSWORD_WRITE_FORBIDDEN');
+      198 |         expect(mockUsers.get('staff-1').password).toBe(HASHES.staff);
+      199 |         expect(mockUserUpdate).not.toHaveBeenCalled();
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:196:28)
+
+  ● directory doors never write a password › admin PUT a farmer password → 400, the farmer hash unchanged and the old password still works
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      202 |     test('admin PUT a farmer password → 400, the farmer hash unchanged and the old password still works', async () => {
+      203 |         const res = await asAdmin(request(app).put('/api/provider/directory/farmer-1')).send({ password: 'Taken#Over2026' });
+    > 204 |         expect(res.status).toBe(400);
+          |                            ^
+      205 |         expect(mockUsers.get('farmer-1').password).toBe(HASHES.farmer);
+      206 |         expect(await bcrypt.compare(FARMER_PASSWORD, mockUsers.get('farmer-1').password)).toBe(true);
+      207 |     });
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:204:28)
+
+  ● directory doors never write a password › a password riding along with a legitimate edit refuses the whole request (nothing written)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      209 |     test('a password riding along with a legitimate edit refuses the whole request (nothing written)', async () => {
+      210 |         const res = await asAdmin(request(app).put('/api/provider/directory/staff-1')).send({ firstName: 'ใหม่', password: 'Taken#Over2026' });
+    > 211 |         expect(res.status).toBe(400);
+          |                            ^
+      212 |         expect(mockUsers.get('staff-1').firstName).toBe('สมชาย');
+      213 |         expect(mockUsers.get('staff-1').password).toBe(HASHES.staff);
+      214 |     });
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:211:28)
+
+  ● directory doors never write a password › admin PUT their OWN password through the directory → 400 (own change needs the old password)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      216 |     test('admin PUT their OWN password through the directory → 400 (own change needs the old password)', async () => {
+      217 |         const res = await asAdmin(request(app).put('/api/provider/directory/admin-1')).send({ password: 'Self#Reset2026' });
+    > 218 |         expect(res.status).toBe(400);
+          |                            ^
+      219 |         expect(mockUsers.get('admin-1').password).toBe(HASHES.admin);
+      220 |     });
+      221 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:218:28)
+
+  ● directory doors never write a password › platform admin (cross-tenant) PUT a password → 400
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      223 |         const res = await asAdmin(request(app).put('/api/provider/directory/staff-org2'), { role: 'system_admin_platform', org: 'org-9' })
+      224 |             .send({ password: 'Taken#Over2026' });
+    > 225 |         expect(res.status).toBe(400);
+          |                            ^
+      226 |         expect(mockUsers.get('staff-org2').password).toBe(HASHES.staff);
+      227 |     });
+      228 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:225:28)
+
+  ● directory doors never write a password › PATCH carrying a password → 400 as well (the field used to be dropped silently)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      229 |     test('PATCH carrying a password → 400 as well (the field used to be dropped silently)', async () => {
+      230 |         const res = await asAdmin(request(app).patch('/api/provider/directory/staff-1')).send({ password: 'Taken#Over2026' });
+    > 231 |         expect(res.status).toBe(400);
+          |                            ^
+      232 |         expect(res.body.code).toBe('DIRECTORY_PASSWORD_WRITE_FORBIDDEN');
+      233 |         expect(mockUsers.get('staff-1').password).toBe(HASHES.staff);
+      234 |     });
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:231:28)
+
+  ● directory mutations reach staff accounts only › PUT a farmer (no providerId) → 404, nothing written
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 200
+
+      246 |     test('PUT a farmer (no providerId) → 404, nothing written', async () => {
+      247 |         const res = await asAdmin(request(app).put('/api/provider/directory/farmer-1')).send({ firstName: 'เปลี่ยน' });
+    > 248 |         expect(res.status).toBe(404);
+          |                            ^
+      249 |         expect(mockUsers.get('farmer-1').firstName).toBe('ชาวไร่');
+      250 |     });
+      251 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:248:28)
+
+  ● directory mutations reach staff accounts only › PATCH a farmer → 404
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 200
+
+      252 |     test('PATCH a farmer → 404', async () => {
+      253 |         const res = await asAdmin(request(app).patch('/api/provider/directory/farmer-1')).send({ isActive: false });
+    > 254 |         expect(res.status).toBe(404);
+          |                            ^
+      255 |         expect(mockUsers.get('farmer-1').status).toBe('ACTIVE');
+      256 |     });
+      257 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:254:28)
+
+  ● directory mutations reach staff accounts only › DELETE a farmer → 404, the account is not deleted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 200
+
+      258 |     test('DELETE a farmer → 404, the account is not deleted', async () => {
+      259 |         const res = await asAdmin(request(app).delete('/api/provider/directory/farmer-1')).send();
+    > 260 |         expect(res.status).toBe(404);
+          |                            ^
+      261 |         expect(mockUsers.get('farmer-1').isDeleted).toBe(false);
+      262 |     });
+      263 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:260:28)
+
+  ● directory mutations reach staff accounts only › an account with a providerId but the health role → 404
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 200
+
+      264 |     test('an account with a providerId but the health role → 404', async () => {
+      265 |         const res = await asAdmin(request(app).patch('/api/provider/directory/health-with-pid')).send({ firstName: 'x' });
+    > 266 |         expect(res.status).toBe(404);
+          |                            ^
+      267 |         expect(mockUsers.get('health-with-pid').firstName).toBe('ลูกผสม');
+      268 |     });
+      269 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:266:28)
+
+  ● directory mutations reach staff accounts only › platform admin cannot reach a farmer either → 404
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 404
+    Received: 200
+
+      271 |         const res = await asAdmin(request(app).put('/api/provider/directory/farmer-1'), { role: 'system_admin_platform', org: 'org-9' })
+      272 |             .send({ firstName: 'x' });
+    > 273 |         expect(res.status).toBe(404);
+          |                            ^
+      274 |     });
+      275 |
+      276 |     test('kept: cross-org staff → 404 for a dtam admin', async () => {
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:273:28)
+
+  ● POST /api/auth/provider/change-password — staff change their own password › old + new → 200; the new password verifies, sessions revoked, audit written
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      300 |         const res = await asStaff(request(app).post('/api/auth/provider/change-password'))
+      301 |             .send({ oldPassword: OLD_PASSWORD, newPassword: NEW_PASSWORD });
+    > 302 |         expect(res.status).toBe(200);
+          |                            ^
+      303 |         expect(res.body.success).toBe(true);
+      304 |         const row = mockUsers.get('staff-1');
+      305 |         expect(await bcrypt.compare(NEW_PASSWORD, row.password)).toBe(true);
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:302:28)
+
+  ● POST /api/auth/provider/change-password — staff change their own password › changes only the caller: a userId in the body is ignored
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+      315 |         const res = await asStaff(request(app).post('/api/auth/provider/change-password'))
+      316 |             .send({ oldPassword: OLD_PASSWORD, newPassword: NEW_PASSWORD, userId: 'admin-1', id: 'admin-1' });
+    > 317 |         expect(res.status).toBe(200);
+          |                            ^
+      318 |         expect(mockUsers.get('admin-1').password).toBe(HASHES.admin);
+      319 |     });
+      320 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:317:28)
+
+  ● POST /api/auth/provider/change-password — staff change their own password › wrong old password → the same 400 as the health door, hash unchanged
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      325 |             .set('x-test-user-id', 'farmer-1').set('x-test-role', 'health')
+      326 |             .send({ oldPassword: 'Wrong#Pass2026', newPassword: NEW_PASSWORD });
+    > 327 |         expect(staffRes.status).toBe(400);
+          |                                 ^
+      328 |         expect(staffRes.body.code).toBe('INVALID_CREDENTIALS');
+      329 |         expect(staffRes.status).toBe(healthRes.status);
+      330 |         expect(staffRes.body.code).toBe(healthRes.body.code);
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:327:33)
+
+  ● POST /api/auth/provider/change-password — staff change their own password › a weak new password → 400 VALIDATION_ERROR (the registration policy), hash unchanged
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      337 |         const res = await asStaff(request(app).post('/api/auth/provider/change-password'))
+      338 |             .send({ oldPassword: OLD_PASSWORD, newPassword: 'short' });
+    > 339 |         expect(res.status).toBe(400);
+          |                            ^
+      340 |         expect(res.body.code).toBe('VALIDATION_ERROR');
+      341 |         expect(mockUsers.get('staff-1').password).toBe(HASHES.staff);
+      342 |     });
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:339:28)
+
+  ● POST /api/auth/provider/change-password — staff change their own password › no old password → 400, hash unchanged
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+      345 |         const res = await asStaff(request(app).post('/api/auth/provider/change-password'))
+      346 |             .send({ newPassword: NEW_PASSWORD });
+    > 347 |         expect(res.status).toBe(400);
+          |                            ^
+      348 |         expect(mockUsers.get('staff-1').password).toBe(HASHES.staff);
+      349 |     });
+      350 |
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:347:28)
+
+  ● POST /api/auth/provider/change-password — staff change their own password › not signed in → 401
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 404
+
+      352 |         const res = await request(app).post('/api/auth/provider/change-password')
+      353 |             .send({ oldPassword: OLD_PASSWORD, newPassword: NEW_PASSWORD });
+    > 354 |         expect(res.status).toBe(401);
+          |                            ^
+      355 |         expect(mockUsers.get('staff-1').password).toBe(HASHES.staff);
+      356 |     });
+      357 | });
+
+      at Object.toBe (__tests__/unit/staff-password-doors.test.js:354:28)
+
+  ● server.js mounts one change-password limiter on both doors, both prefixes › the limiter exists and counts failures only
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      364 |     test('the limiter exists and counts failures only', () => {
+      365 |         const block = src.match(/const changePasswordLimiter = rateLimit\(\{[\s\S]*?\n\}\);/);
+    > 366 |         expect(block).not.toBeNull();
+          |                           ^
+      367 |         expect(block[0]).toMatch(/skipSuccessfulRequests: true/);
+      368 |         expect(block[0]).toMatch(/keyGenerator: req => getRequestIp\(req\)/);
+      369 |     });
+
+      at Object.toBeNull (__tests__/unit/staff-password-doors.test.js:366:27)
+
+  ● server.js mounts one change-password limiter on both doors, both prefixes › mounted on /auth/health/change-password inside the prefix loop
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "app.use(`${prefix}/auth/health/change-password`, changePasswordLimiter);"
+    Received string:    "for (const prefix of ['/api', '/api/v1']) {
+        app.use(`${prefix}/auth/health/login`, authLimiter);
+        app.use(`${prefix}/auth/provider/login`, authLimiter);
+        // AUTH-01 P2: OAuth IdP endpoints (authorize-url + callback) share the
+        // SAME limiter instance as the login routes — authorize-url mints state
+        // cookies and callback drives outbound IdP token exchanges, both
+        // brute-forceable login surfaces (mandate §D3). Prefix mount covers
+        // every /auth/idp/:provider/* sub-path on both API prefixes.
+        //
+        // ONE carve-out: GET /providers steps out of the strict login limiter —
+        // its per-IP bucket is SHARED with the login routes above, so one NAT
+        // office fumbling 50 logins in 15 minutes would take the public states
+        // feed (and with it the ministry-mandated buttons) down. globalLimiter
+        // still covers abuse. The wrapper lives in middleware/idp-rate-limit.js
+        // as a factory because the E1 deep review PROVED the inline form was
+        // pinned only by source regexes: inverting the branch passed every test.
+        // The factory's own suite mounts it in express and counts real requests.
+        app.use(`${prefix}/auth/idp`, createIdpRateLimit({ authLimiter }));
+        app.use(`${prefix}/auth/health/register`, registerLimiter);
+        app.use(`${prefix}/auth/health/check-identifier`, checkIdentifierLimiter);
+    }"
+
+      371 |         const loop = src.match(/for \(const prefix of \['\/api', '\/api\/v1'\]\) \{[\s\S]*?\n\}/);
+      372 |         expect(loop).not.toBeNull();
+    > 373 |         expect(loop[0]).toContain(`app.use(\`\${prefix}/auth/${who}/change-password\`, changePasswordLimiter);`);
+          |                         ^
+      374 |     });
+      375 | });
+      376 |
+
+      at toContain (__tests__/unit/staff-password-doors.test.js:373:25)
+
+  ● server.js mounts one change-password limiter on both doors, both prefixes › mounted on /auth/provider/change-password inside the prefix loop
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "app.use(`${prefix}/auth/provider/change-password`, changePasswordLimiter);"
+    Received string:    "for (const prefix of ['/api', '/api/v1']) {
+        app.use(`${prefix}/auth/health/login`, authLimiter);
+        app.use(`${prefix}/auth/provider/login`, authLimiter);
+        // AUTH-01 P2: OAuth IdP endpoints (authorize-url + callback) share the
+        // SAME limiter instance as the login routes — authorize-url mints state
+        // cookies and callback drives outbound IdP token exchanges, both
+        // brute-forceable login surfaces (mandate §D3). Prefix mount covers
+        // every /auth/idp/:provider/* sub-path on both API prefixes.
+        //
+        // ONE carve-out: GET /providers steps out of the strict login limiter —
+        // its per-IP bucket is SHARED with the login routes above, so one NAT
+        // office fumbling 50 logins in 15 minutes would take the public states
+        // feed (and with it the ministry-mandated buttons) down. globalLimiter
+        // still covers abuse. The wrapper lives in middleware/idp-rate-limit.js
+        // as a factory because the E1 deep review PROVED the inline form was
+        // pinned only by source regexes: inverting the branch passed every test.
+        // The factory's own suite mounts it in express and counts real requests.
+        app.use(`${prefix}/auth/idp`, createIdpRateLimit({ authLimiter }));
+        app.use(`${prefix}/auth/health/register`, registerLimiter);
+        app.use(`${prefix}/auth/health/check-identifier`, checkIdentifierLimiter);
+    }"
+
+      371 |         const loop = src.match(/for \(const prefix of \['\/api', '\/api\/v1'\]\) \{[\s\S]*?\n\}/);
+      372 |         expect(loop).not.toBeNull();
+    > 373 |         expect(loop[0]).toContain(`app.use(\`\${prefix}/auth/${who}/change-password\`, changePasswordLimiter);`);
+          |                         ^
+      374 |     });
+      375 | });
+      376 |
+
+      at toContain (__tests__/unit/staff-password-doors.test.js:373:25)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/provider-directory-hardening.test.js
+  P0-D staff-directory hardening — /api/system/providers
+    providerId edit forbid
+      ✓ PATCH /:id — differing providerId → 400 PROVIDER_ID_EDIT_FORBIDDEN, no write (97 ms)
+      ✓ PATCH /:id — identical providerId is an idempotent no-op (2xx, providerId NOT in update data) (28 ms)
+      ✓ PATCH /:id — dashed-but-identical providerId also passes as no-op (12 ms)
+      ✓ PUT /:id — differing providerId → 400 PROVIDER_ID_EDIT_FORBIDDEN, no write (23 ms)
+      ✓ PUT /:id — identical providerId is an idempotent no-op (2xx, providerId NOT in update data) (22 ms)
+      ✓ PUT /:id — dashed-but-identical providerId also passes as no-op (12 ms)
+    tenant scope on PATCH/PUT/DELETE
+      ✓ PATCH /:id — cross-tenant target → 404, no write (no existence disclosure) (22 ms)
+      ✓ PATCH /:id — PLATFORM_ADMIN bypasses the org filter (cross-tenant role) (11 ms)
+      ✓ PUT /:id — cross-tenant target → 404, no write (no existence disclosure) (11 ms)
+      ✓ PUT /:id — PLATFORM_ADMIN bypasses the org filter (cross-tenant role) (23 ms)
+      ✓ DELETE /:id — cross-tenant target → 404, no write (11 ms)
+      ✓ same-tenant PATCH still works (positive control) (11 ms)
+    session-epoch stamp on role/isActive/password changes
+      ✓ PATCH role change stamps sessionsRevokedAt (14 ms)
+      ✓ PATCH isActive change stamps sessionsRevokedAt (11 ms)
+      ✕ PUT password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, no write at all (24 ms)
+      ✓ PUT isActive change stamps sessionsRevokedAt (40 ms)
+      ✓ PATCH name-only change does NOT stamp sessionsRevokedAt (21 ms)
+      ✓ PATCH re-submitting the UNCHANGED role does NOT stamp sessionsRevokedAt (33 ms)
+      ✓ PATCH unchanged isActive:true (already ACTIVE) does NOT stamp (38 ms)
+      ✓ PUT re-submitting the UNCHANGED role does NOT stamp sessionsRevokedAt (25 ms)
+      ✓ DELETE stamps sessionsRevokedAt on the soft delete (26 ms)
+    self-guards
+      ✓ PATCH /:id — own role CHANGE → 403 SELF_ROLE_CHANGE_FORBIDDEN, no write (43 ms)
+      ✓ PATCH /:id — own status CHANGE → 403 SELF_DISABLE_FORBIDDEN, no write (29 ms)
+      ✓ PATCH /:id — own name/email edits stay allowed (43 ms)
+      ✓ PATCH /:id — own edit re-submitting the UNCHANGED role passes as a profile edit (27 ms)
+      ✓ PATCH /:id — own isActive:true while already ACTIVE is a no-op edit, not a 403 (23 ms)
+      ✓ PUT /:id — own role CHANGE → 403 SELF_ROLE_CHANGE_FORBIDDEN, no write (20 ms)
+      ✓ PUT /:id — own status CHANGE → 403 SELF_DISABLE_FORBIDDEN, no write (12 ms)
+      ✓ PUT /:id — own name/email edits stay allowed (11 ms)
+      ✓ PUT /:id — own edit re-submitting the UNCHANGED role passes as a profile edit (12 ms)
+      ✓ PUT /:id — own isActive:true while already ACTIVE is a no-op edit, not a 403 (14 ms)
+      ✓ DELETE /:id — self-delete → 403 SELF_DISABLE_FORBIDDEN, no write (15 ms)
+    last-admin guard (ROLE_ADMIN_CANNOT_BE_LAST)
+      ✓ PATCH demoting the last active ADMIN → 409 + code, no write (19 ms)
+      ✓ PATCH isActive=false on the last active ADMIN → 409 + code, no write (54 ms)
+      ✓ DELETE targeting the last active ADMIN → 409 + code, no write (31 ms)
+      ✓ PATCH demoting an ADMIN when another active admin exists → passes (14 ms)
+      ✓ PATCH demoting a NON-admin target skips the admin count entirely (29 ms)
+    audit emission (best-effort)
+      ✓ PATCH role change writes USER_ROLE_UPDATED with before/after metadata (27 ms)
+      ✓ PATCH name-only change does NOT write the role-update audit row (28 ms)
+      ✓ PATCH re-submitting the UNCHANGED role does NOT write a before==after audit row (22 ms)
+      ✓ audit failure NEVER blocks the mutation (best-effort) (12 ms)
+    S2 — tenant scope on unlock / disable-2fa
+      ✓ POST /:id/unlock — cross-tenant target → 404, no write (19 ms)
+      ✓ POST /:id/disable-2fa — cross-tenant target → 404, no write (11 ms)
+      ✓ POST /:id/unlock — same-tenant target still works (positive control) (10 ms)
+      ✓ POST /:id/disable-2fa — same-tenant target still works (positive control) (25 ms)
+    S6 — target lookups run inside withoutTenantScope
+      ✓ PATCH /:id target lookup is wrapped (25 ms)
+      ✓ POST /:id/unlock target lookup is wrapped (9 ms)
+    GET /roles
+      ✓ includes Tier-16 ACCOUNT_DTAM + ACCOUNT_PLATFORM, excludes PLATFORM_ADMIN and HEALTH (18 ms)
+      ✓ keeps the FE-expected value/label shape and the legacy entries (14 ms)
+    mutation gate
+      ✓ PATCH /:id — document_reviewer role gets 403, no write (10 ms)
+      ✓ PATCH /:id — dispatcher role gets 403, no write (20 ms)
+      ✓ PATCH /:id — field_inspector role gets 403, no write (27 ms)
+      ✓ PATCH /:id — finance_officer_dtam role gets 403, no write (12 ms)
+      ✓ PATCH /:id — finance_officer_platform role gets 403, no write (10 ms)
+      ✓ PATCH /:id — finance_officer_platform role gets 403, no write (19 ms)
+      ✓ PUT /:id — document_reviewer role gets 403, no write (15 ms)
+      ✓ PUT /:id — dispatcher role gets 403, no write (12 ms)
+      ✓ PUT /:id — field_inspector role gets 403, no write (16 ms)
+      ✓ PUT /:id — finance_officer_dtam role gets 403, no write (11 ms)
+      ✓ PUT /:id — finance_officer_platform role gets 403, no write (11 ms)
+      ✓ PUT /:id — finance_officer_platform role gets 403, no write (12 ms)
+      ✓ DELETE /:id — document_reviewer role gets 403, no write (11 ms)
+      ✓ DELETE /:id — dispatcher role gets 403, no write (13 ms)
+      ✓ DELETE /:id — field_inspector role gets 403, no write (16 ms)
+      ✓ DELETE /:id — finance_officer_dtam role gets 403, no write (11 ms)
+      ✓ DELETE /:id — finance_officer_platform role gets 403, no write (13 ms)
+      ✓ DELETE /:id — finance_officer_platform role gets 403, no write (15 ms)
+      ✓ DELETE /:id — PLATFORM_ADMIN is allowed through the gate (12 ms)
+
+  ● P0-D staff-directory hardening — /api/system/providers › session-epoch stamp on role/isActive/password changes › PUT password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, no write at all
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      307 |                 .set('x-test-role', 'system_admin_dtam')
+      308 |                 .send({ password: 'N3wStr0ngPass!' });
+    > 309 |             expect(res.status).toBe(400);
+          |                                ^
+      310 |             expect(res.body.code).toBe('DIRECTORY_PASSWORD_WRITE_FORBIDDEN');
+      311 |             expect(mockUserUpdate).not.toHaveBeenCalled();
+      312 |         });
+
+      at Object.toBe (__tests__/unit/provider-directory-hardening.test.js:309:32)
+
+Test Suites: 2 failed, 2 total
+Tests:       21 failed, 71 passed, 92 total
+Snapshots:   0 total
+Time:        6.317 s
+Ran all test suites matching /__tests__\/unit\/staff-password-doors.test.js|__tests__\/unit\/provider-directory-hardening.test.js/i.

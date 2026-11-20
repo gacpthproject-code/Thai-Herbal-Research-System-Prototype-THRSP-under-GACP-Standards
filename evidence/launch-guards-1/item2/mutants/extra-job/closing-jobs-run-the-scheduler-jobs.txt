@@ -1,0 +1,72 @@
+  console.error
+    correctionDeadlineSweep failed: APP-SECRET-0001 boom
+
+      17 |             ok = false;
+      18 |             parts.push(`${name}:failed`);
+    > 19 |             console.error(`${name} failed: ${error?.message}`);
+         |                     ^
+      20 |         }
+      21 |     }
+      22 |     return { ok, summary: `closing-jobs ${parts.join(' ')}` };
+
+
+FAIL __tests__/unit/closing-jobs-run-the-scheduler-jobs.test.js
+  ✕ the entry runs exactly the revision-deadline, correction-deadline and unpaid-closure blocks of the scheduler, with the same arguments, and no other job (158 ms)
+  ✕ the summary carries job names and integer counts only, and one failing job fails the run without stopping the next (17 ms)
+
+  ● the entry runs exactly the revision-deadline, correction-deadline and unpaid-closure blocks of the scheduler, with the same arguments, and no other job
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 4
+
+    @@ -13,6 +13,10 @@
+        ],
+        Array [
+          "runPaymentClosureSweep",
+          Array [],
+        ],
+    +   Array [
+    +     "runPaymentReminderSweep",
+    +     Array [],
+    +   ],
+      ]
+
+      63 |
+      64 |     const entryCalls = await callsOf(() => entry.runClosingJobs());
+    > 65 |     expect(entryCalls).toEqual(closingBlocks.flatMap((block) => block.calls));
+         |                        ^
+      66 |     expect(entryCalls).toEqual([
+      67 |         ['refreshSpecialHolidays', []],
+      68 |         ['checkExpiredDeadlines', []],
+
+
+  ● the summary carries job names and integer counts only, and one failing job fails the run without stopping the next
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "ok": false,
+    -   "summary": "closing-jobs revisionDeadlineChecker:processed=2,expired=1,errors=0 correctionDeadlineSweep:failed paymentClosureSweep:scanned=4,closed=1",
+    +   "summary": "closing-jobs revisionDeadlineChecker:processed=2,expired=1,errors=0 correctionDeadlineSweep:failed paymentClosureSweep:scanned=4,closed=1 paymentReminderSweep:scanned=0",
+      }
+
+      79 |     require('../../jobs/revision-deadline-checker').checkExpiredDeadlines.mockResolvedValueOnce({ processed: 2, expired: 1, errors: 0 });
+      80 |     const result = await entry.runClosingJobs();
+    > 81 |     expect(result).toEqual({
+         |                    ^
+      82 |         ok: false,
+      83 |         summary: 'closing-jobs revisionDeadlineChecker:processed=2,expired=1,errors=0 correctionDeadlineSweep:failed paymentClosureSweep:scanned=4,closed=1',
+      84 |     });
+
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        0.729 s, estimated 1 s
+Ran all test suites matching __tests__/unit/closing-jobs-run-the-scheduler-jobs.test.js.
+jest exit 1

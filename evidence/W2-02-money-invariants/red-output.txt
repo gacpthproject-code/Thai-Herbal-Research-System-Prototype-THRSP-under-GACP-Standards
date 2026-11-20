@@ -1,0 +1,335 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/money-equation-property.test.js
+  money equation — 1,000 random cases (seeded)
+    ✓ total = state + platform + vat holds exactly, per phase, on every case (889 ms)
+    ✕ the rounding rule is documented where checkout consumes it (design v2 §5.5) (4 ms)
+
+  ● money equation — 1,000 random cases (seeded) › the rounding rule is documented where checkout consumes it (design v2 §5.5)
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /ROUNDING RULE \(design v2 §5\.5\)/
+    Received string:  "'use strict';·
+    /**
+     * Stripe checkout intent service — Wave 2
+     * (docs/payment-refactor/step2-data-model-design.md v2, approved).
+     *
+     * One checkout = one CheckoutOrder = one Invoice = one PaymentIntent.
+     *
+     * The two milestones of the canonical 7-step workflow:
+     *   M1 — Step 1 checkout (DTAM audit fee + platform fee P1 + 7% VAT),
+     *        payable while the application is in a phase-1-payable state.
+     *   M2 — Step 4 checkout (DTAM cert fee + platform fee P2 + 7% VAT),
+     *        payable only after เอกสารผ่าน (DOC_APPROVED / PENDING_AUDIT_FEE).
+     *
+     * Idempotency, twice over:
+     *   - the Wave-1 partial unique index guarantees ONE open order per
+     *     (application, milestone); re-entry re-uses it.
+     *   - the PaymentIntent is created with idempotency key `checkout:{orderId}`,
+     *     so a retried create returns the SAME intent — never a second charge.
+     *
+     * Drain-then-purge (D2): this service is additive. The legacy slip path is
+     * untouched; routing new checkouts here is gated by STRIPE_CHECKOUT_ENABLED.
+     */·
+    const { prisma } = require('../prisma-database');
+    const feeService = require('../fee-service');
+    const logger = require('../../shared/logger');
+    const { MILESTONES } = require('../../shared/checkout-status');
+    const { getPaymentAdapter } = require('../payment/payment-adapter');
+    const { toSatang, STATEMENT_DESCRIPTOR } = require('../../config/stripe');·
+    /**
+     * Application states from which each milestone may be paid. M1 covers the
+     * submission window; M2 opens only when the documents have passed. Mirrors
+     * the canonical dictionary; the slip-era states stay listed so an in-flight
+     * application that switches rails mid-window can still pay (drain window).
+     */
+    const PAYABLE_STATES = Object.freeze({
+        M1: Object.freeze(['DRAFT', 'SUBMITTED', 'PENDING_DOC_FEE']),
+        M2: Object.freeze(['DOC_APPROVED', 'PENDING_AUDIT_FEE']),
+    });·
+    function httpError(status, code, message) {
+        return Object.assign(new Error(message), { status, statusCode: status, code });
+    }·
+    /** modules/billing decomposition for one milestone. */
+    function breakdownForMilestone(application, milestone) {
+        const feeContext = {
+            ...(typeof application.formData === 'object' && application.formData ? application.formData : {}),
+            totalAreaTypes: application.totalAreaTypes,
+        };
+        const fees = feeService.calculateApplicationFees(feeContext);
+        const phase = milestone === 'M1' ? fees.phase1 : fees.phase2;
+        const dtamFeeAmount = phase.stateAmount;
+        const platformFeeNet = phase.platformAmount;
+        const platformFeeVat = phase.vatAmount;
+        const platformFeeGross = platformFeeNet + platformFeeVat;
+        const totalPayableAmount = dtamFeeAmount + platformFeeGross;
+        if (totalPayableAmount !== phase.phaseTotal) {
+            // The DB CHECK would refuse the row anyway; fail here with a clearer
+            // message so a fee-service drift is caught at the source.
+            throw httpError(500, 'CHECKOUT_BREAKDOWN_DRIFT',
+                `breakdown total ${totalPayableAmount} != fee-service phaseTotal ${phase.phaseTotal}`);
+        }
+        return { dtamFeeAmount, platformFeeNet, platformFeeVat, platformFeeGross, totalPayableAmount };
+    }·
+    /**
+     * Create (or re-enter) the checkout for an application milestone.
+     *
+     * @returns {Promise<{checkoutOrderId, clientSecret, paymentIntentId, breakdown, milestone}>}
+     */
+    async function createCheckoutForApplication({ applicationId, milestone, actor }) {
+        if (!MILESTONES.includes(milestone)) {
+            throw httpError(400, 'CHECKOUT_INVALID_MILESTONE', `Unknown milestone: ${milestone}`);
+        }·
+        // Ownership is part of the lookup: a non-owner gets 404, never 403 — the
+        // same collapse-avoidance the preview routes use.
+        const application = await prisma.application.findFirst({
+            where: {
+                id: applicationId,
+                isDeleted: false,
+                ...(actor?.healthId ? { healthId: actor.healthId } : {}),
+            },
+        });
+        if (!application) {
+            throw httpError(404, 'APPLICATION_NOT_FOUND', 'Application not found');
+        }
+        if (!PAYABLE_STATES[milestone].includes(application.status)) {
+            throw httpError(409, 'CHECKOUT_MILESTONE_NOT_PAYABLE',
+                `Milestone ${milestone} is not payable from status ${application.status}`);
+        }·
+        // W2-01 adapter seam: no SDK here. Fail fast BEFORE any DB row is minted
+        // when the gateway is unconfigured (same fail-closed posture as before).
+        const adapter = getPaymentAdapter();
+        if (typeof adapter.assertReady === 'function') {
+            adapter.assertReady();
+        }·
+        // Re-entry: the Wave-1 partial unique index means at most one open order
+        // exists; reuse it so the applicant always lands on the same charge.
+        let order = await prisma.checkoutOrder.findFirst({
+            where: { applicationId: application.id, milestone, status: 'PENDING_PAYMENT' },
+        });·
+        let breakdown;
+        if (order) {
+            breakdown = {
+                dtamFeeAmount: Number(order.dtamFeeAmount),
+                platformFeeNet: Number(order.platformFeeNet),
+                platformFeeVat: Number(order.platformFeeVat),
+                platformFeeGross: Number(order.platformFeeGross),
+                totalPayableAmount: Number(order.totalPayableAmount),
+            };
+        } else {
+            breakdown = breakdownForMilestone(application, milestone);·
+            order = await prisma.checkoutOrder.create({
+                data: {
+                    applicationId: application.id,
+                    milestone,
+                    ...breakdown,
+                    status: 'PENDING_PAYMENT',
+                    organizationId: application.organizationId,
+                },
+            });·
+            // The ONE invoice for this checkout, with the itemized three-line
+            // breakdown (replaces the per-phase STATE+PLATFORM invoice pair).
+            const invoice = await prisma.invoice.create({
+                data: {
+                    invoiceNumber: `INV-CO-${order.id.slice(0, 8).toUpperCase()}-${milestone}`,
+                    applicationId: application.id,
+                    healthId: application.healthId,
+                    serviceType: 'CERTIFICATION_CHECKOUT',
+                    subtotal: breakdown.dtamFeeAmount + breakdown.platformFeeNet,
+                    vat: breakdown.platformFeeVat,
+                    totalAmount: breakdown.totalPayableAmount,
+                    status: 'pending',
+                    organizationId: application.organizationId,
+                },
+            });·
+            await prisma.invoiceLineItem.createMany({
+                data: [
+                    {
+                        invoiceId: invoice.id,
+                        organizationId: application.organizationId,
+                        lineNumber: 1,
+                        code: 'DTAM_FEE',
+                        description: 'ค่าธรรมเนียมกรมการแพทย์แผนไทยฯ (ยกเว้นภาษีมูลค่าเพิ่ม ม.77/1(10))',
+                        quantity: 1,
+                        unitPrice: breakdown.dtamFeeAmount,
+                        amount: breakdown.dtamFeeAmount,
+                        isTaxable: false,
+                    },
+                    {
+                        invoiceId: invoice.id,
+                        organizationId: application.organizationId,
+                        lineNumber: 2,
+                        code: 'PLATFORM_FEE',
+                        description: 'ค่าบริการแพลตฟอร์ม (ไม่รวมภาษีมูลค่าเพิ่ม)',
+                        quantity: 1,
+                        unitPrice: breakdown.platformFeeNet,
+                        amount: breakdown.platformFeeNet,
+                        isTaxable: true,
+                    },
+                    {
+                        invoiceId: invoice.id,
+                        organizationId: application.organizationId,
+                        lineNumber: 3,
+                        code: 'PLATFORM_VAT',
+                        description: 'ภาษีมูลค่าเพิ่ม 7% (ของค่าบริการแพลตฟอร์ม)',
+                        quantity: 1,
+                        unitPrice: breakdown.platformFeeVat,
+                        amount: breakdown.platformFeeVat,
+                        isTaxable: false,
+                    },
+                ],
+            });·
+            const charge = await prisma.paymentTransaction.create({
+                data: {
+                    applicationId: application.id,
+                    phase: milestone === 'M1' ? 'PHASE_1' : 'PHASE_2',
+                    gateway: 'STRIPE',
+                    amount: toSatang(breakdown.totalPayableAmount),
+                    currency: 'THB',
+                    status: 'PENDING',
+                    idempotencyKey: `checkout:${order.id}`,
+                    organizationId: application.organizationId,
+                },
+            });·
+            order = await prisma.checkoutOrder.update({
+                where: { id: order.id },
+                data: { invoiceId: invoice.id, paymentTransactionId: charge.id },
+            });
+        }·
+        // Create-or-return the intent through the adapter. The idempotency key is
+        // the order id, so the gateway returns the SAME intent on re-entry — one
+        // charge, ever.
+        const session = await adapter.createCheckoutSession({
+            amountSatang: toSatang(breakdown.totalPayableAmount),
+            currency: 'thb',
+            paymentMethodTypes: ['promptpay', 'card'],
+            statementDescriptor: STATEMENT_DESCRIPTOR,
+            description: `GACP ${milestone} — ${application.applicationNumber}`,
+            metadata: {
+                checkoutOrderId: order.id,
+                applicationId: application.id,
+                milestone,
+                organizationId: application.organizationId,
+            },
+            idempotencyKey: `checkout:${order.id}`,
+        });·
+        if (order.stripePaymentIntentId !== session.id) {
+            order = await prisma.checkoutOrder.update({
+                where: { id: order.id },
+                data: { stripePaymentIntentId: session.id },
+            });
+        }·
+        logger.info('[checkout] intent ready', {
+            checkoutOrderId: order.id,
+            applicationId: application.id,
+            milestone,
+            actorId: actor?.id || null,
+        });·
+        return {
+            checkoutOrderId: order.id,
+            paymentIntentId: session.id,
+            clientSecret: session.clientSecret,
+            milestone,
+            breakdown,
+        };
+    }·
+    module.exports = {
+        PAYABLE_STATES,
+        createCheckoutForApplication,
+    };
+    "
+
+      79 |         const serviceSrc = fs.readFileSync(
+      80 |             path.join(__dirname, '../../services/checkout/stripe-checkout-service.js'), 'utf8');
+    > 81 |         expect(serviceSrc).toMatch(/ROUNDING RULE \(design v2 §5\.5\)/);
+         |                            ^
+      82 |
+      83 |         const designDoc = fs.readFileSync(
+      84 |             path.join(__dirname, '../../../../docs/payment-refactor/step2-data-model-design.md'), 'utf8');
+
+      at Object.toMatch (__tests__/unit/money-equation-property.test.js:81:28)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/stripe-checkout-engine.test.js
+  config/stripe — the locked constants and fail-closed posture
+    ✓ the statement descriptor is exactly the locked value and within the 22-char limit (4 ms)
+    ✓ THB amounts convert to satang exactly (2 ms)
+    ✓ the client factory fails closed without a secret key (22 ms)
+    ✓ the webhook secret assertion fails closed (24 ms)
+  stripe-checkout-service — one order, one invoice, one intent
+    ✓ M1 checkout mints the order with the fee-service decomposition and a satang intent (6 ms)
+    ✓ re-entry returns the open order instead of minting a sibling (3 ms)
+    ✕ concurrent double-checkout: winner mints, loser gets a clean 409 — never a raw P2002 (9 ms)
+    ✓ M2 is refused before the documents pass (canonical step 4 gate) (2 ms)
+    ✓ an unknown milestone is refused outright (2 ms)
+  checkout-settlement-service — the atomic settle
+    ✓ a verified succeeded intent settles everything in ONE transaction (5 ms)
+    ✓ M2 settlement unlocks the dispatcher-2 queue state (4 ms)
+    ✓ an amount mismatch is an alert, NOT a settlement (3 ms)
+    ✓ an already-settled order is an idempotent no-op (3 ms)
+  the webhook route — verify, dedup, dispatch
+    ✓ an invalid signature is a 400 with zero side effects (177 ms)
+    ✓ a redelivered event id is a 200 no-op (insert-first dedup) (19 ms)
+    ✓ payment_intent.succeeded settles and stamps the event processed (27 ms)
+    ✓ an unrelated event type is acknowledged without settling anything (16 ms)
+  handleStripeEvent — failure and cancellation paths
+    ✓ payment_intent.payment_failed records the failure without touching the order state (2 ms)
+
+  ● stripe-checkout-service — one order, one invoice, one intent › concurrent double-checkout: winner mints, loser gets a clean 409 — never a raw P2002
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "code": "CHECKOUT_ALREADY_IN_PROGRESS",
+    -   "status": 409,
+    +   "code": "P2002",
+      }
+
+      260 |         expect(rejected).toHaveLength(1);
+      261 |         // The loser sees a user-facing conflict, not Prisma internals.
+    > 262 |         expect(rejected[0].reason).toMatchObject({
+          |                                    ^
+      263 |             status: 409,
+      264 |             code: 'CHECKOUT_ALREADY_IN_PROGRESS',
+      265 |         });
+
+      at Object.toMatchObject (__tests__/unit/stripe-checkout-engine.test.js:262:36)
+
+Test Suites: 2 failed, 2 total
+Tests:       2 failed, 18 passed, 20 total
+Snapshots:   0 total
+Time:        7.086 s
+Ran all test suites matching /__tests__\/unit\/money-equation-property.test.js|__tests__\/unit\/stripe-checkout-engine.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

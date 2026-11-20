@@ -1,0 +1,99 @@
+Task 6 — GREEN evidence (summary; raw jest logs not committed). Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d),
+command: npx jest --config jest.config.cjs <file>  (from the worktree root)
+
+=== unit: apps/backend/__tests__/unit/document-precheck/service.test.js (TZ=UTC) ===
+    ✓ a slot outside CATALOG (sop_cultivation) creates no row and adds no job (3 ms)
+    ✓ a land_deed upload creates a PENDING row at RULES_VERSION and adds one job carrying the file (3 ms)
+    ✓ a re-upload into the same slot (any spelling) supersedes the earlier row; other slots are untouched (1 ms)
+    ✓ enqueue-failure: queue.add throws → the row is FAILED with exactly the failure flag, and the call resolves (1 ms)
+    ✓ the queue not initialised (no Redis) is the same failure: FAILED + the failure flag
+    ✓ land_deed: DONE with exactly the checks CATALOG defines for it (no VALIDITY rule → 4 flags) (3 ms)
+    ✓ OCR confidence is the mean of the page confidences; NONE stores null text and null confidence (1 ms)
+    ✓ a row that is no longer PENDING exits without extracting (the supersede guard)
+    ✓ precheck-supersede-race: B arrives while A is extracting → A's flags are discarded and A stays SUPERSEDED (2 ms)
+    ✓ extraction PRECHECK_TIMEOUT on a non-final attempt rethrows and leaves the row PENDING for the retry
+    ✓ an OCR failure on the final attempt → FAILED + the failure flag, and does not throw
+    ✓ a non-extraction exception (reference load) → FAILED + the flag at once, even on a non-final attempt (1 ms)
+    ✓ the processor: attempt 1 of 2 fails → rethrows, PENDING; attempt 2 of 2 fails → FAILED + flag. Nothing is left PENDING (1 ms)
+    ✓ failPrecheck (the queue's last-resort failed handler) marks a still-PENDING row FAILED and leaves a DONE row alone (1 ms)
+    ✓ INDIVIDUAL: applicant name, entity type, and only the last 4 digits of the citizen ID — never the full ID (1 ms)
+    ✓ JURISTIC: entity name, juristic ID and the director's name from payload.director — the director's ID card is not carried (1 ms)
+    ✓ a whole run never writes the full citizen ID to a log line, a flag, or the reference (1 ms)
+    ✓ the owner sets applicantAcknowledgedAt once; a second call keeps the first time (6 ms)
+    ✓ anyone else is refused (FORBIDDEN) and nothing is written; an unknown id is NOT_FOUND (1 ms)
+    ✓ initQueues creates document-precheck with the brief's job options and a sandboxed processor file — even though pdf-processor.js is absent (3 ms)
+    ✓ a job that failed its LAST attempt is marked FAILED; a failure with a retry left is not (1 ms)
+    ✓ an in-scope upload creates a PENDING pre-check for exactly this document and adds the job (28 ms)
+    ✓ enqueue-failure-still-uploads: the queue add throws → 200 with the unchanged body, and the row is FAILED with the failure flag (6 ms)
+    ✓ even enqueueForUpload itself throwing (database down) leaves the upload response unchanged (5 ms)
+    ✓ an out-of-scope slot uploads exactly as before and creates no pre-check (5 ms)
+Tests:       25 passed, 25 total
+TZ=Asia/Bangkok: Tests:       25 passed, 25 total
+TZ=America/Los_Angeles: Tests:       25 passed, 25 total
+
+=== integration: apps/backend/__tests__/integration/document-precheck-flow.test.js ===
+scratch Postgres 17 (postgres:17-alpine) on 127.0.0.1:5436, random password (never printed), ready on a TCP 'select 1',
+prisma migrate deploy: 'All migrations have been successfully applied.'; container removed after the runs.
+    ✓ a land_deed upload creates a PENDING row; the processor gives DONE with exactly the checks CATALOG defines (4) (225 ms)
+    ✓ a scanned (PNG) land_deed goes through real tesseract: DONE, OCR method, a real confidence (342 ms)
+    ✓ a slot outside scope (sop_cultivation) creates no row (4 ms)
+    ✓ precheck-supersede-race: upload A → upload B (same slot) → A's job runs after B exists: A's flags are not written, A is SUPERSEDED (185 ms)
+    ✓ precheck-supersede-race, in flight: B lands while A is extracting → A ends SUPERSEDED with no flags (164 ms)
+    ✓ a processor exception yields FAILED plus the flag after the retry; nothing is left PENDING (15 ms)
+    ✓ enqueue-failure-still-uploads: the queue add throws → POST /draft-documents still returns 200 and the row is FAILED with the failure flag (300 ms)
+Tests:       7 passed, 7 total
+--- document-precheck-flow wall time: total 1460ms ---
+  land_deed text-layer PDF: 224ms
+  land_deed PNG through tesseract: 342ms
+  sop_cultivation out of scope: 3ms
+  supersede race (A after B): 185ms
+  supersede race (in flight): 164ms
+  processor exception (missing file): 15ms
+  upload door, queue add throws: 299ms
+WALL 3.76 s
+tesseract really ran: OCR completed in 103ms, confidence: 93%
+TZ=Asia/Bangkok: Tests:       7 passed, 7 total WALL 3.52 s
+TZ=America/Los_Angeles: Tests:       7 passed, 7 total WALL 3.59 s
+
+=== whole apps/backend/__tests__/unit/document-precheck dir ===
+Test Suites: 5 passed, 5 total
+Tests:       143 passed, 143 total
+
+=== related suites that load the applications router / guards (35 suites) ===
+Test Suites: 1 failed, 34 passed, 35 total
+Tests:       1 failed, 544 passed, 545 total
+the 1 failure: error-codes-catalog.test.js:191 — PRECHECK_TIMEOUT / PRECHECK_ABORTED / TESSERACT_TERMINATED uncatalogued;
+  all three are thrown by Task 4 files Task 6 did not touch (extract.js:75,83 · tesseract-service.js:27) → BACKLOG-FOUND.md
+
+=== after all runs ===
+ps -eo args, separate shell after all runs: pdf-extract / tesseract / worker-script processes = 0 (an earlier count of 3-4 was grep matching its own parent shell's command line)
+main repo apps/backend/keys/private.pem mtime: 2026-09-05 22:50:35.069951192 +0700 (unchanged; worktree has no keys/private.pem)
+leftover draft uploads from this task's suites: 0
+=== probes (after implementation) ===
+PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/home/ubuntu/work/wt-precheck/evidence/ratchet-current.txt)
+PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+eslint (service.js, processor, queue-service.js, both test files): 0 problems
+
+=== Fix round 1 — GREEN ===
+I1: Tests:       18 passed, 18 total (error-codes-catalog + error-codes-source-pointers, both PASS)
+unit service.test.js: UTC Tests: 30 passed, 30 total · Bangkok Tests: 30 passed, 30 total · LA Tests: 30 passed, 30 total
+    ✓ a queue add that never settles is given up after ENQUEUE_TIMEOUT_MS (2 s): FAILED + the failure flag (2003 ms)
+    ✓ supersede + insert take pg_advisory_xact_lock on (applicationId, canonical slot) first, inside the transaction (1 ms)
+    ✓ maps every spelling of an in-scope slot (old key, canonical v2 id, alias) to its CATALOG key; others to null (1 ms)
+    ✓ a NUL character in the extracted text is stripped before the write: DONE, text and flags carry no NUL (1 ms)
+    ✓ I2: a queue add that never settles (unreachable Redis) → the route answers 200 unchanged within ~2 s, and the row is FAILED (2007 ms)
+integration (scratch PG17 5436, migrate deploy, container removed after): UTC Tests: 8 passed, 8 total WALL 3.49 s · Bangkok Tests: 8 passed, 8 total WALL 3.53 s · LA Tests: 8 passed, 8 total WALL 3.49 s
+--- document-precheck-flow wall time: total 1438ms ---
+  land_deed text-layer PDF: 229ms
+  land_deed PNG through tesseract: 318ms
+  sop_cultivation out of scope: 3ms
+  supersede race (A after B): 172ms
+  supersede race (in flight): 162ms
+  concurrent enqueue x5 pairs: 52ms
+  processor exception (missing file): 14ms
+  upload door, queue add throws: 272ms
+related suites (precheck dir + router/upload/guard/error-code suites): Test Suites: 39 passed, 39 total · Tests: 664 passed, 664 total — run before the lint-only rewrite of stripNul (regex → split/join); service.test.js + integration above re-ran after it
+eslint (service.js, error-codes.js, both test files): 0 problems
+probes: ratchet hardcode=26 todo=53 env-direct=101 dup-source=0 (PASS) · no-skip PASS · no-secret PASS (layer1 0 hits, gitleaks clean)
+after the runs: extraction processes 0 · leftover draft uploads 0 · main keys/private.pem mtime 2026-09-05 22:50:35 (unchanged) · scratch container removed

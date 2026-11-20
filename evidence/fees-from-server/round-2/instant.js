@@ -1,0 +1,10 @@
+const { chromium } = require('/home/ubuntu/work/wt-fees/node_modules/.pnpm/playwright@1.63.0/node_modules/playwright');
+(async () => { const b = await chromium.launch(); const p = await b.newPage({ viewport: { width: 1280, height: 900 } });
+await p.goto('http://127.0.0.1:3100/pricing', { waitUntil: 'networkidle' });
+await p.evaluate(() => document.documentElement.classList.add('dark'));
+const at0 = await p.$eval('nav[aria-label="เมนูหลัก"] a', (a) => getComputedStyle(a).color);
+await p.waitForTimeout(400);
+const at400 = await p.$eval('nav[aria-label="เมนูหลัก"] a', (a) => getComputedStyle(a).color);
+const tr = await p.$eval('nav[aria-label="เมนูหลัก"] a', (a) => getComputedStyle(a).transition);
+console.log('immediately after .dark:', at0, '| after 400ms:', at400, '| transition:', tr);
+await b.close(); })();

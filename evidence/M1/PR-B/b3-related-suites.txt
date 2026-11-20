@@ -1,0 +1,349 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/pdpa-final-sweep.test.js
+  [Sprint6 final sweep] PDPA regression guards
+    MFA verify response/JWT — no raw national ID
+      √ JWT payload from /verify omits providerId and healthId (174 ms)
+      √ JSON response body from /verify omits raw providerId/healthId (14 ms)
+    admin/users PROVIDER_USER_CREATED audit metadata — no raw providerId
+      √ persists masked providerId, never raw, into the AuditLog row (69 ms)
+    provider-directory mapProviderUser — masks raw providerId in response
+      √ mapProviderUser output never contains the raw 13-digit id (23 ms)
+
+PASS __tests__/unit/m1-interop-holder-additive.test.js
+  M1 D12 — e-certificate envelope carries the holder additively
+    √ schema version is bumped MINOR (additive change, partners on 1.x survive) (1 ms)
+    √ subject gains holderDisplayName + holderType (1 ms)
+    √ every pre-M1 subject field keeps its name AND its value (no silent re-meaning) (2 ms)
+    √ a pre-backfill row (no holder columns) still emits both keys as null, not undefined (2 ms)
+  M1 D12 — trust registry search finds a certificate by its holder name
+    √ search OR adds holderDisplayName and keeps all three existing columns (19 ms)
+    √ no search term → no OR clause at all (unchanged behaviour) (11 ms)
+
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.760Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":1,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":2,"notifications":5},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.766Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.782Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":1,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.785Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":0,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.787Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.792Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.794Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.796Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.799Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.802Z","userId":"user-abc"}
+[32minfo[39m: [pdpa-erasure] EXECUTED {"anonymized":{"applications":0,"certificates":1,"entities":0,"user":true},"erased":{"applicationDrafts":0,"notifications":0},"service":"pdpa-erasure-service","timestamp":"2026-08-15T05:28:33.804Z","userId":"user-abc"}
+PASS __tests__/unit/pdpa-erasure-service.test.js
+  pdpa-erasure-service
+    requestErasure
+      √ rejects when healthId is missing (2 ms)
+      √ rejects when actorId is missing (1 ms)
+      √ rejects unknown data subject (1 ms)
+      √ rejects when legalHold is set (1 ms)
+      √ returns requestId + expiresAt + token; persists envelope; emits audit + fanout (16 ms)
+      √ returns PDPA_ERASURE_IN_PROGRESS when a REQUESTED envelope already exists (1 ms)
+    confirmErasure
+      √ rejects when token mismatches (2 ms)
+      √ rejects and marks EXPIRED when the window has passed (1 ms)
+      √ rejects when requestId does not match the envelope (1 ms)
+      √ executes erasure on valid token and returns the summary (6 ms)
+    executeErasure
+      √ anonymises user, application formData, and certificates; deletes drafts + notifications (3 ms)
+      √ blocks erasure when legalHold is set on the user row (1 ms)
+      √ requires either healthId or userId (1 ms)
+    _sanitizeApplicationFormData
+      √ clears known PII keys at every level of a nested blob (1 ms)
+      √ passes through null / primitive inputs unchanged (1 ms)
+    listErasureRequests
+      √ returns envelopes without the token field (2 ms)
+      √ filters by status when provided (1 ms)
+      √ falls back to a broad scan when JSON-path filter is unsupported (1 ms)
+    cancelErasure
+      √ flips status to CANCELED and strips the token (2 ms)
+      √ refuses to cancel a non-REQUESTED envelope (1 ms)
+    STAGE 0 — erasure gap + data-state-agnostic resolve
+      √ (d) executeErasure ALSO nulls the *Hmac columns + sets canonicalId = user.id (3 ms)
+      √ (d) anonymises the personal INDIVIDUAL Entity row (null thaiCitizenId + thaiCitizenIdHash) (2 ms)
+      √ (d) Application anonymise queries by the post-cascade FK value (resolvedUserId), not the old national ID (3 ms)
+      √ (b) requestErasure resolves the subject by the national-ID HASH (not a canonicalId value WHERE) (2 ms)
+    M1 — erasure and the holder columns (D8 / AC4)
+      √ asks Postgres for holderType — without it every branch below reads undefined (2 ms)
+      √ wipes holderDisplayName to the sentinel when holderType is LEGACY_PERSON (a person is behind that name) (2 ms)
+      √ wipes holderDisplayName to the sentinel when holderType is INDIVIDUAL (a person is behind that name) (2 ms)
+      √ never writes holderDisplayName at all when holderType is JURISTIC (AC4 — the farm keeps its certificate) (3 ms)
+      √ never writes holderDisplayName at all when holderType is COMMUNITY_ENTERPRISE (AC4 — the farm keeps its certificate) (2 ms)
+      √ leaves holderDisplayName alone for a row whose holderType is still NULL (pre-backfill safety) (2 ms)
+
+PASS __tests__/unit/pdpa-backfill-script.test.js
+  [Tier 6] parseArgs
+    √ returns defaults when no flags provided (7 ms)
+    √ parses --dry-run / --verbose boolean flags (5 ms)
+    √ parses --batch-size with valid integer (3 ms)
+    √ rejects --batch-size out of bounds or non-integer (58 ms)
+    √ parses --max-rows with valid positive integer (1 ms)
+    √ rejects --max-rows of 0 or negative (3 ms)
+    √ rejects unknown flags (2 ms)
+  [Tier 6] rowNeedsBackfill
+    √ returns true when any Phase-1 column has plaintext (no version prefix) (2 ms)
+    √ returns false when all Phase-1 columns are already encrypted (have version prefix) (2 ms)
+    √ returns false when all Phase-1 columns are null or empty (2 ms)
+    √ ignores non-Phase-1 columns (2 ms)
+  [Tier 6] buildUpdatePayload
+    √ encrypts every plaintext Phase-1 column and leaves others alone (2 ms)
+    √ returns null when no column needs writing (all already encrypted) (1 ms)
+    √ returns null when all Phase-1 columns are null/empty (2 ms)
+    √ mixes encrypted + plaintext (mid-migration row) — only writes the plaintext ones (2 ms)
+  [Tier 6] runBackfill — orchestration
+    √ cursor-paginates and stops when a short page is returned (no infinite loop) (3 ms)
+    √ skips rows that are already fully encrypted (idempotency) (2 ms)
+    √ dry-run does not write to DB (1 ms)
+    √ respects maxRows cap (1 ms)
+    √ only filters non-deleted users (isDeleted=false on findMany WHERE) (1 ms)
+
+PASS __tests__/unit/pdpa-backfill-formdata-script.test.js
+  [STAGE-formData] runFormDataBackfill
+    √ encrypts formData PII leaves in place, pages by id, skips clean rows (4 ms)
+    √ dry-run does NOT write but still counts rows that would be backfilled (1 ms)
+    √ is idempotent — a second pass over already-encrypted rows updates nothing (1 ms)
+    √ respects maxRows (1 ms)
+  [STAGE-formData] countRemainingPlaintext
+    √ returns 0 after a full backfill, >0 when a plaintext leaf remains (1 ms)
+    √ returns 0 when every app is encrypted (1 ms)
+  [GAP 1] application backfill encrypts workflowHistory + previewData leaves
+    √ exports the covered column lists
+    √ encrypts a national ID in workflowHistory (actorId) AND in formData; minimal UPDATE data (1 ms)
+    √ countRemainingPlaintext sees a plaintext workflowHistory leaf (1 ms)
+  [GAP 2] invoice backfill encrypts metadata.whtCertificate.issuedByTaxId
+    √ encrypts the 13-digit tax ID under metadata.whtCertificate via runModelBackfill (1 ms)
+    √ countRemainingPlaintext over invoice.metadata returns 1 for a plaintext tax ID, 0 once encrypted (1 ms)
+    √ is idempotent on already-encrypted invoice metadata (1 ms)
+  [ROUND-2] runScalarColumnBackfill (Certificate / Entity / PurchaseInvoice)
+    √ exports the ROUND-2 column lists (1 ms)
+    √ certificate: encrypts issuedBy/signedBy in place, skips clean + already-encrypted, selects id+cols only (2 ms)
+    √ certificate: dry-run counts but does not write (1 ms)
+    √ certificate: idempotent — second pass over encrypted rows writes nothing (1 ms)
+    √ entity: encrypts thaiCitizenId + juristicId (scalar); payload covered by runModelBackfill (JSON-leaf) (2 ms)
+    √ purchase-invoice: encrypts supplierTaxId AND derives supplierTaxIdHmac from the PLAINTEXT (1 ms)
+    √ countRemainingScalarPlaintext: 1 when a plaintext scalar remains, 0 once encrypted (1 ms)
+  [SHOULD-#4] certificate revokedReason/deleteReason backfill coverage
+    √ CERTIFICATE_SCALAR_PII_COLUMNS covers revokedReason AND deleteReason (1 ms)
+    √ encrypts a legacy plaintext revokedReason AND deleteReason via the exported list (2 ms)
+    √ countRemainingScalarPlaintext counts a legacy plaintext revokedReason (no more false-green) (1 ms)
+  [ROUND-4] Organization.taxId scalar backfill (+ taxIdHash derive)
+    √ exports the ROUND-4 column list (1 ms)
+    √ encrypts taxId AND derives taxIdHash from the PLAINTEXT; skips clean + already-encrypted; selects id+col only (1 ms)
+    √ dry-run counts but does not write (1 ms)
+    √ is idempotent — second pass over an already-encrypted taxId writes nothing (1 ms)
+    √ countRemainingScalarPlaintext over organizations: 1 plaintext, 0 once encrypted (1 ms)
+
+PASS __tests__/unit/admin-pdpa-read-side-audit.test.js
+  X5-FIX-A M-5 — PDPA ม.24 read-side audit logging
+    GET /api/admin/users
+      √ emits ADMIN_USER_LIST_READ audit row on success (52 ms)
+      √ does NOT fail the request when audit-write throws (21 ms)
+    GET /api/admin/audit-log
+      √ emits AUDIT_LOG_READ audit row on success (18 ms)
+      √ records filter values in metadata for forensic recall (12 ms)
+    GET /api/admin/audit-log/export.csv
+      √ emits AUDIT_LOG_EXPORT audit row distinct from AUDIT_LOG_READ (18 ms)
+
+PASS __tests__/unit/prisma-pdpa-formdata.test.js
+  [STAGE-formData] encrypt-on-write (encryptApplicationDataPayload)
+    √ (c) encrypts formData national-ID leaves on a create payload (2 ms)
+    √ (c) is a no-op when the payload has no formData key (1 ms)
+    √ (c) handles a { set: <obj> } JSON write helper shape (1 ms)
+  [GAP 1] encryptApplicationDataPayload — workflowHistory + previewData
+    √ exports the application JSON column list (1 ms)
+    √ encrypts a national-ID actorId in workflowHistory AND still encrypts formData (1 ms)
+    √ encrypts a previewData snapshot national ID (1 ms)
+    √ returns the SAME reference when no covered column is present (1 ms)
+  [GAP 2] encryptInvoiceDataPayload — Invoice.metadata WHT tax ID
+    √ exports the invoice JSON column list (1 ms)
+    √ encrypts the 13-digit issuedByTaxId under metadata.whtCertificate (value-net, any key) (1 ms)
+    √ is a no-op when there is no metadata key (returns same reference) (1 ms)
+  [STAGE-formData] flag OFF — byte-for-byte unchanged
+    √ (c) returns the input client unchanged; no encrypt/decrypt (1 ms)
+  [STAGE-formData] flag ON — write encrypts, read auto-decrypts (B1 proof)
+    √ (c)+(b) create stores encrypted leaves; findUnique returns them decrypted (2 ms)
+    √ (c)+(b) applicationDraft.create encrypts formData leaves; findUnique decrypts (transient wizard draft) (1 ms)
+    √ (b) findUnique on a row stored directly with enc:v1: leaves decrypts them (no write code) (2 ms)
+    √ (GAP 1) update encrypts workflowHistory actorId; findFirst returns it decrypted (B1) (1 ms)
+    √ (GAP 2) invoice.update encrypts metadata.whtCertificate.issuedByTaxId; findMany decrypts (B1) (2 ms)
+
+PASS __tests__/unit/prisma-pdpa-extension-invoice-notes.test.js
+  [B1] Invoice.notes whole-column encrypt (national-ID free-text sink)
+    √ INVOICE_PII_COLUMNS = [notes] (the operator free-text scalar sink) (1 ms)
+    √ encrypts the WHOLE notes string at rest — a mid-string 13-digit ID becomes ciphertext (1 ms)
+    √ still walks metadata (WHT tax ID) alongside the notes scalar (1 ms)
+    √ leaves a null / absent notes untouched and returns the SAME reference when nothing is covered (1 ms)
+    √ is idempotent — an already-encrypted notes value is not double-wrapped (1 ms)
+  [B1] invoice hook — encrypt notes at rest, decrypt on read (round-trip)
+    √ invoice.update encrypts notes at rest, returns decrypted on read (1 ms)
+    √ invoice.updateMany (receipt-issue path) encrypts notes at rest (1 ms)
+    √ invoice.findMany decrypts notes on read (legacy plaintext rows pass through) (1 ms)
+  [B1] REAL AES-256-GCM cipher — a 13-digit ID in notes is UNRECOVERABLE from a dump
+    √ the enc:v1: at-rest value has no recoverable \d{13} run and round-trips (3 ms)
+
+PASS __tests__/unit/pdpa-certificate-delete-reason.test.js
+  [B2b] Certificate.deleteReason whole-column encrypt at rest
+    √ deleteReason is in the certificate encrypt column set (1 ms)
+    √ encryptCertificateDataPayload wraps a deleteReason that carries a national ID (1 ms)
+    √ decryptCertificateRow round-trips a deleteReason (1 ms)
+    √ certificate.update hook encrypts deleteReason at rest, decrypts on read (1 ms)
+    √ REAL cipher — an ID in deleteReason is enc:v1: at rest and UNRECOVERABLE from a dump (3 ms)
+
+PASS __tests__/unit/prisma-pdpa-nested-decrypt.test.js
+  [STAGE B1] decryptResultTree — generic nested decrypt walker
+    √ (b) decrypts a flat top-level row (existing behavior preserved) (2 ms)
+    √ (c) decrypts PII inside a nested include (application → applicant) (2 ms)
+    √ (c2) decrypts an Entity nested relation (relation-name-agnostic, RFC scope addition) (1 ms)
+    √ (d) decrypts deeply nested relations + arrays of users (1 ms)
+    √ (e) leaves non-encrypted strings, numbers, booleans, Decimals, Dates, null untouched (1 ms)
+    √ (f) is idempotent — running on already-decrypted plaintext is a no-op (no double-decrypt) (2 ms)
+    √ (g) a cycle / shared reference does not infinite-loop (1 ms)
+    √ (g2) a shared (non-cyclic) reference seen twice is still decrypted (1 ms)
+    √ respects a max-depth guard without throwing on pathological nesting (2 ms)
+  [STAGE B1] flag gating + extension wiring
+    √ (a) flag OFF → createPdpaEncryptedClient returns the client UNCHANGED (walker never wired) (2 ms)
+    √ (a2) flag ON → $extends config carries a $allModels.$allOperations result walker (1 ms)
+    √ (a3) the wired $allOperations handler decrypts the result of query() (3 ms)
+    √ (b) flag ON → user.create encrypts national-ID columns by-column in args.data (2 ms)
+    √ (b2) flag ON → entity.create encrypts thaiCitizenId by-column, not the hash columns (2 ms)
+    √ (c-nested) flag ON → entity.findMany result with a nested entity include round-trips decrypted (1 ms)
+
+[31merror[39m: [pdpa] field decrypt FAILED (rotated key / corrupt ciphertext?) — returning [PII_DECRYPT_FAILED] marker [occurrence #1] {"service":"gacp-backend","timestamp":"2026-08-15T05:28:38.038Z"}
+PASS __tests__/unit/prisma-pdpa-extension.test.js
+  [Tier 5] PDPA field-encryption helpers
+    √ encryptValue prepends version prefix and is idempotent (1 ms)
+    √ decryptValue returns plain for prefixed input and passes through legacy plaintext (1 ms)
+    √ decryptValue returns [PII_DECRYPT_FAILED] marker on cipher errors instead of leaking ciphertext (45 ms)
+    √ decryptValue returns the marker when decrypt() RETURNS NULL (real behaviour — not just throw) (1 ms)
+    √ handles null/undefined/empty values without crashing (2 ms)
+    √ PHASE_1_PII_COLUMNS only includes columns confirmed safe (NOT used in WHERE) (1 ms)
+    √ encryptUserDataPayload encrypts the B3 active set (incl. national IDs), leaves non-PII + deferred plaintext (2 ms)
+    √ decryptUserRow round-trips through encryptUserDataPayload (2 ms)
+    √ decryptUserRow tolerates rows with mixed legacy plaintext + new encrypted columns (1 ms)
+    √ createPdpaEncryptedClient returns the input client UNCHANGED when env var is not set (1 ms)
+    √ createPdpaEncryptedClient calls $extends when env var is true (4 ms)
+  [Iter 27] PDPA Phase 2 + Certificate encryption surface
+    √ PHASE_2_USER_PII_COLUMNS anchor unchanged (historical list) (1 ms)
+    √ STAGE B3 active set = (Phase1 ∪ Phase2 ∪ Phase3) MINUS deferred (3 ms)
+    √ DEFERRED columns are NOT in the active encrypt list (would break search/sort/group) (2 ms)
+    √ encryptUserDataPayload leaves DEFERRED phoneNumber/firstName/lastName as plaintext (1 ms)
+    √ Certificate scope encrypts address + issuedBy + signedBy + revokedReason + deleteReason (applicantName deferred) (1 ms)
+    √ decryptCertificateRow round-trips through encryptCertificateDataPayload (incl issuedBy/signedBy) (1 ms)
+    √ STAGE B3 / ROUND-2 — Entity scope encrypts thaiCitizenId + juristicId + payload-leaf + round-trips (1 ms)
+    √ ROUND-2 — Entity.payload JSON leaf encrypts nested director/president idCard (Mod-11 net) (1 ms)
+    √ ROUND-2 — Entity.payload handles the Prisma { set: ... } write shape (1 ms)
+    √ hashForLookup uses HMAC and returns null for empty input (1 ms)
+  [ROUND-2 close-natid-round2] PurchaseInvoice.supplierTaxId encryption surface
+    √ PURCHASE_INVOICE_PII_COLUMNS = [supplierTaxId] (NOT the hmac/number columns) (1 ms)
+    √ encryptPurchaseInvoiceDataPayload encrypts supplierTaxId only, leaves hmac/name plaintext (1 ms)
+    √ decryptPurchaseInvoiceRow round-trips through encryptPurchaseInvoiceDataPayload (1 ms)
+    √ ENTITY_JSON_PII_COLUMNS = [payload] (the only Entity Json column) (1 ms)
+  [ROUND-4 close-natid-round4] Organization.taxId encryption surface
+    √ ORGANIZATION_PII_COLUMNS = [taxId] (NOT taxIdHash / slug / code) (1 ms)
+    √ encryptOrganizationDataPayload encrypts taxId only, leaves taxIdHash/name/slug plaintext (1 ms)
+    √ decryptOrganizationRow round-trips through encryptOrganizationDataPayload (1 ms)
+    √ encryptOrganizationDataPayload leaves a null/absent taxId untouched (1 ms)
+    √ decryptOrganizationRow tolerates mixed legacy plaintext + encrypted taxId (1 ms)
+  [ROUND-2] $extends hook — encrypt-on-write + decrypt-on-read round-trip
+    √ purchaseInvoice.create encrypts supplierTaxId at rest, returns decrypted on read (1 ms)
+    √ certificate.create encrypts issuedBy/signedBy at rest, returns decrypted on read (1 ms)
+    √ organization.create encrypts taxId at rest, returns decrypted on read (1 ms)
+    √ organization.update encrypts taxId at rest, returns decrypted on read (1 ms)
+    √ applicationComment.create encrypts content at rest, returns decrypted on read (1 ms)
+    √ applicationComment.findMany decrypts content on read (list view) (1 ms)
+    √ entity.create encrypts juristicId scalar + payload.director.idCard leaf at rest, decrypts on read (10 ms)
+  [ROUND-2] flag-OFF inertness — every new helper is byte-for-byte unchanged
+    √ createPdpaEncryptedClient returns the SAME client reference (no $extends) when flag OFF (1 ms)
+    √ ROUND-4 — encrypt/decrypt org helpers are pure data transforms (flag-independent) (1 ms)
+
+[32minfo[39m: [PDPA] User user-123 soft-deleted; retainUntil=2026-09-14T05:28:38.661Z {"service":"pdpa-service","timestamp":"2026-08-15T05:28:38.661Z"}
+[32minfo[39m: [PDPA] User user-123 soft-deleted; retainUntil=2030-08-14T05:28:38.664Z {"service":"pdpa-service","timestamp":"2026-08-15T05:28:38.674Z"}
+[32minfo[39m: [PDPA] User user-123 soft-deleted; retainUntil=2026-08-15T05:28:38.677Z {"service":"pdpa-service","timestamp":"2026-08-15T05:28:38.678Z"}
+[32minfo[39m: [PDPA] User user-123 soft-deleted; retainUntil=2026-08-15T05:28:38.681Z {"service":"pdpa-service","timestamp":"2026-08-15T05:28:38.682Z"}
+PASS __tests__/unit/pdpa-service.test.js
+  pdpa-service
+    assembleUserDataExport
+      √ throws when userId is missing (14 ms)
+      √ throws when user not found (2 ms)
+      √ uses canonicalId for Application + Invoice and id for everything else (3 ms)
+      √ caps notification export at 500 rows (most-recent first) (1 ms)
+      √ returns a JSON-serializable shape with PDPA citation + retention notice (1 ms)
+      √ does NOT include sensitive credential fields in the user payload (1 ms)
+      √ looks up the user by User.id (UUID), never by User.healthId plaintext (1 ms)
+      √ passes `user.canonicalId` (not `user.healthId`) into the Application/Invoice FK WHERE (2 ms)
+      √ short-circuits FK-keyed queries to [] when canonicalId is missing (2 ms)
+    softDeleteUser
+      √ rejects when password is missing (1 ms)
+      √ rejects when user not found (1 ms)
+      √ rejects already-deleted account with PDPA_ALREADY_DELETED (1 ms)
+      √ refuses when legalHold is set (1 ms)
+      √ refuses with INVALID_CREDENTIALS when password mismatches (3 ms)
+      √ soft-deletes with 30-day grace period when no regulatory retention is in effect (5 ms)
+      √ keeps the longer regulatory retainUntil when it exceeds 30-day grace (13 ms)
+      √ stamps sessionsRevokedAt so the deleted user's live tokens are evicted (4 ms)
+      √ truncates very long reason strings to 500 chars (4 ms)
+
+PASS __tests__/unit/pdpa-retention-job.test.js
+  [Sprint6] PDPA Retention Sweep
+    √ anonymises users whose retainUntil is past, leaving future users alone (5 ms)
+    √ anonymisation nulls ALL identity + PII fields and sets password to PDPA_ANONYMIZED (3 ms)
+    √ never retries without isAnonymized/anonymizedAt — a marker failure is recorded, not routed around (2 ms)
+    √ error in a single user update is recorded but does not halt the sweep (2 ms)
+    √ exits the loop cleanly when findMany returns empty batch (1 ms)
+  [R-HOTFIX-PDPA] PDPA retention sweep respects legal hold
+    √ filters legalHold rows out at the query layer and selects the column (1 ms)
+    √ never anonymises a legal-hold user whose retainUntil is in the past (2 ms)
+    √ fails closed when the isAnonymized column is missing — no unfiltered fallback re-query (2 ms)
+    √ fails closed when the legalHold column is missing — aborts the sweep, anonymises nobody (1 ms)
+  [R-HOTFIX-PDPA] legal hold is permanent, not a deferral
+    √ skips a held row whose retainUntil elapsed 36 years ago (2 ms)
+    √ the query excludes held rows unconditionally, not by shifting the date window (2 ms)
+    √ never writes retainUntil or legalHold — the sweep cannot defer or clear a hold (2 ms)
+  [R-HOTFIX-PDPA] the sweep names only columns that really exist
+    √ every column in the WHERE clause is declared on model User (1 ms)
+    √ every column in the SELECT clause is declared on model User (1 ms)
+    √ every column the anonymization payload writes is declared on model User (1 ms)
+    √ passes no null predicate to a column the schema declares NOT NULL (1 ms)
+    √ every column the sweep touches is materialised by a migration, not only declared (21 ms)
+
+PASS __tests__/unit/prisma-pdpa-extension-revoked-reason.test.js
+  [B2] Certificate.revokedReason whole-column encrypt at rest
+    √ revokedReason is in the certificate encrypt column set (1 ms)
+    √ encryptCertificateDataPayload wraps a revokedReason that carries a national ID (1 ms)
+    √ decryptCertificateRow round-trips a revokedReason (1 ms)
+    √ certificate.update hook encrypts revokedReason at rest, decrypts on read (1 ms)
+    √ REAL cipher — an ID in revokedReason is UNRECOVERABLE from a dump and round-trips (3 ms)
+
+PASS __tests__/unit/pdpa-backfill-national-id-script.test.js
+  [STAGE B3] runEntityBackfill
+    √ encrypts thaiCitizenId for INDIVIDUAL entities, scoped + by-id paging (2 ms)
+    √ is idempotent — skips already-encrypted and null thaiCitizenId rows (1 ms)
+    √ dry-run does not write (1 ms)
+  [STAGE B3] countRemainingPlaintext — the "0 plaintext remaining" assertion
+    √ returns 0/0 when every in-scope column is encrypted or null (2 ms)
+    √ counts rows that still hold plaintext in the encrypt set (1 ms)
+  [STAGE B3] the script consumes the DECIDED encrypt set
+    √ ALL_USER_PII_COLUMNS includes national IDs + excludes deferred; ENTITY = thaiCitizenId (4 ms)
+
+PASS __tests__/unit/pdpa-b3-unique-drop-migration.test.js
+  [STAGE B3] @unique-drop migration is well-formed
+    √ drops the three plaintext uniques (constraint + index forms, IF EXISTS) (1 ms)
+    √ every DROP is IF EXISTS (idempotent / re-runnable) (2 ms)
+    √ does NOT drop the columns themselves (B1 decrypt + back-compat) (1 ms)
+    √ does NOT touch the keyed uniques that now hold the invariant (1 ms)
+    √ does NOT contain a CREATE DDL statement (this migration only drops) (1 ms)
+
+PASS __tests__/unit/delete-me-erasure.test.js
+  [Sprint6] DELETE /me Right-to-Erasure
+    √ returns 401 when no user is authenticated (3 ms)
+    √ returns 400 when password confirmation is missing from request body (1 ms)
+    √ returns 401 when password confirmation does not match bcrypt hash (2 ms)
+    √ successful erasure: nulls all PII, sets password to PDPA_ANONYMIZED, revokes sessions, returns 200 (3 ms)
+    √ returns 410 ALREADY_ANONYMIZED when user is already anonymised (13 ms)
+    √ never retries without isAnonymized/anonymizedAt — a marker failure surfaces, it is not routed around (2 ms)
+
+Test Suites: 3 skipped, 17 passed, 17 of 20 total
+Tests:       8 skipped, 233 passed, 241 total
+Snapshots:   0 total
+Time:        11.106 s, estimated 18 s
+Ran all test suites matching /__tests__\\(unit|integration)\\.*(pdpa|erasure|m1-).*/i.

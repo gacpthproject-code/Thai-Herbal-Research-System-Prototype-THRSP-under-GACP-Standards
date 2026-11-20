@@ -1,0 +1,71 @@
+### docker compose config was NOT run (no Docker on this laptop).
+### This is a YAML parse + ${} interpolation resolve, run 2026-08-22.
+
+YAML parse: OK
+project name: gacp-preview
+
+--- networks ---
+  gacp-preview-network: name=gacp-preview-network external=false
+  gacp-network: name=gacp-network external=true
+
+--- volumes ---
+  gacp_preview_uploads: name=gacp-preview-uploads
+  gacp_preview_storage: name=gacp-preview-storage
+  gacp_preview_signing_keys: name=gacp-preview-signing-keys
+
+=== service: backend-preview ===
+  image        : ghcr.io/jonmaxmore/gacp-backend:local-000000000000
+  container    : gacp-backend-preview
+  restart      : unless-stopped
+  ports        : 127.0.0.1:8002:8000
+  env_file     : .env.preview
+  networks     : gacp-preview-network, gacp-network
+  depends_on   : (none)
+  volumes      :
+      gacp_preview_uploads:/app/apps/backend/public/uploads
+      gacp_preview_storage:/app/storage
+      gacp_preview_signing_keys:/app/apps/backend/keys
+  healthcheck  : ["CMD-SHELL","wget -q --spider http://127.0.0.1:8000/api/health || exit 1"] interval=30s start_period=30s
+  limits       : {"cpus":"0.50","memory":"512M"}
+  environment  :
+      NODE_ENV                       = staging
+      PORT                           = 8000
+      CORS_ORIGIN                    = https://preview.gacpth.com
+      FRONTEND_URL                   = https://preview.gacpth.com
+      APP_URL                        = https://preview.gacpth.com
+      APP_PUBLIC_URL                 = https://preview.gacpth.com
+      PUBLIC_APP_URL                 = https://preview.gacpth.com
+      TRACE_BASE_URL                 = https://preview.gacpth.com
+      PUBLIC_TRACE_URL               = https://preview.gacpth.com/trace
+      COOKIE_DOMAIN                  = preview.gacpth.com
+      COOKIE_SECURE                  = true
+      STORAGE_PROVIDER               = local
+      TRUST_PRIVATE_PROXY_RANGES     = true
+      REQUIRE_MFA_FOR_PRIVILEGED     = false
+      TENANT_READ_ORG_SCOPE          = true
+      BILLING_FREE_TIER_FOR_ALL      = true
+
+=== service: frontend-preview ===
+  image        : ghcr.io/jonmaxmore/gacp-frontend:local-000000000000
+  container    : gacp-frontend-preview
+  restart      : unless-stopped
+  ports        : 127.0.0.1:3002:3000
+  env_file     : (none)
+  networks     : gacp-preview-network, gacp-network
+  depends_on   : backend-preview
+  volumes      :
+  healthcheck  : ["CMD-SHELL","wget -q --spider http://127.0.0.1:3000 || exit 1"] interval=30s start_period=20s
+  limits       : {"cpus":"0.50","memory":"512M"}
+  environment  :
+      NODE_ENV                       = staging
+      PORT                           = 3000
+      INTERNAL_API_URL               = http://backend-preview:8000
+      PUBLIC_VERIFY_HOST_ALLOWLIST   = gacpth.com,staging.gacpth.com,preview.gacpth.com
+
+--- interpolation vars that would FAIL without an env file ---
+(none — every ${} has a default)
+
+--- guard: staging deploy-slot marker must NOT appear ---
+PASS: marker absent
+--- guard: no postgres/minio service, no literal secret value ---
+services: backend-preview, frontend-preview (PASS: exactly the two preview services)

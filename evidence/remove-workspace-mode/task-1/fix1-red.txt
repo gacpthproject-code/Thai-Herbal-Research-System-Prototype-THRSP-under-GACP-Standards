@@ -1,0 +1,28 @@
+Task 1 fix round 1 RED (2026-09-30) — reviewer Important-1 (marker vouches for a replaced key) + m1/m2/m8/m9
+
+Command (apps/backend, Node v24.21.0, NODE_OPTIONS unset, SIGNING_KEY_DIR=$(mktemp -d),
+throwaway postgres:17 on 127.0.0.1:5447, 145 migrations deployed):
+  npx jest --config jest.config.cjs -i __tests__/unit/holder-access.test.js \
+    __tests__/integration/holder-marker-prisma-real-postgres.test.js __tests__/unit/farm-access.test.js
+
+Result: Test Suites 3 failed, 3 total · Tests 20 failed, 81 passed, 101 total
+
+Failing assertions (why expected: the code under test is still bbdee648):
+  Important-1 — boolean marker vouches for a key the caller replaced:
+    override of entityId after a spread reads as unscoped ............ Expected: false  Received: true
+    override of application after a spread (x8 byApplication models) . Expected: false  Received: true
+    override of checkoutOrder on CheckoutDocument .................... Expected: false  Received: true
+    override of the Farm OR .......................................... Expected: false  Received: true
+    deleting the vouched key ......................................... Expected: false  Received: true
+    a forged marker whose ref does not match ......................... Expected: false  Received: true
+    real PG: a spread-then-override where is unscoped ................ Expected: false  Received: true
+    markHolderScoped refuses a where with nothing to vouch for ....... Received function did not throw
+  m2 — WATCHED_MODELS cannot be mutated ............................. Expected: "undefined" Received: "function" (Set.add)
+  m9 — holderScope(undefined) rejects instead of throwing ............ not.toThrow: threw TypeError synchronously
+  m1 — resolveFarmAccess on a deleted entity ........................ Expected: false  Received: true
+       resolveFarmOwnerAccess on a deleted entity ................... Expected: false  Received: true
+       allows an ACTIVE co-member (select now asks entity.isDeleted) . calledWith mismatch (select lacks entity)
+
+Passing already (pins, not RED by design):
+  m8 — real PG: R(user) with a seeded REVOKED membership grants nothing; seeded rows = 4, W is REVOKED.
+  spread plus an unrelated key stays scoped.

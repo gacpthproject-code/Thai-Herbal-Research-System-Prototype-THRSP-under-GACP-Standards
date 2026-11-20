@@ -1,0 +1,148 @@
+--- /tmp/secrev-rolesplit-r2/walk.js	2026-10-09 22:02:11.069143302 +0700
++++ /home/ubuntu/work/state/rolesplit-r3/walk/walk.js	2026-10-09 22:48:48.274637983 +0700
+@@ -24,12 +24,13 @@
+ const { spawnSync } = require('child_process');
+ 
+ const BACKEND = '/home/ubuntu/work/wt-rolesplit/apps/backend';
+-const D = '/tmp/secrev-rolesplit-r2';
++const D = process.env.WALK_DIR || '/home/ubuntu/work/state/rolesplit-r3/walk';
+ const { PrismaClient } = require(require.resolve('@prisma/client', { paths: [BACKEND] }));
+ const bcrypt = require(require.resolve('bcryptjs', { paths: [BACKEND] }));
+ const userGroups = require(path.join(BACKEND, 'shared/user-groups'));
+ 
+-const BASE = process.env.WALK_BASE || 'http://127.0.0.1:8098';
++const BASE = process.env.WALK_BASE || 'http://127.0.0.1:8099';
++if (!process.env.DATABASE_URL) { throw new Error('set DATABASE_URL explicitly'); }
+ const db = new PrismaClient();
+ const sfx = crypto.randomUUID().slice(0, 8);
+ const PASSWORD = `Rev#${crypto.randomBytes(6).toString('hex')}Aa1`;
+@@ -130,7 +131,7 @@
+ })).map((m) => m.group.code).sort().join('+') || '(none)';
+ 
+ function runScript(script, args) {
+-    const env = { ...process.env, DATABASE_URL: fs.readFileSync(path.join(D, 'db.url'), 'utf8').trim(), LOG_LEVEL: 'warn' };
++    const env = { ...process.env, LOG_LEVEL: 'warn' };
+     const res = spawnSync(process.execPath, [path.join(BACKEND, script), ...args], { cwd: BACKEND, env, encoding: 'utf8', timeout: 90000 });
+     return { status: res.status, output: `${res.stdout || ''}${res.stderr || ''}` };
+ }
+@@ -158,15 +159,15 @@
+     const demoted = await signIn(target);
+     record(S, 'demoted re-signs in (1.5 s after the revocation stamp)', 'yes', 'yes');
+     record(S, 'demoted GET /admin/users (role gate)', 403, (await call(demoted, 'GET', '/api/admin/users')).status);
+-    record(S, 'demoted GET /work/queue?group=dispatcher', '-', cell(await call(demoted, 'GET', '/api/provider/work/queue?group=dispatcher')), 'a document_reviewer without the admin group gets 403');
+-    record(S, 'demoted GET /work/queue?group=field_inspector', '-', cell(await call(demoted, 'GET', '/api/provider/work/queue?group=field_inspector')));
++    record(S, 'demoted GET /work/queue?group=dispatcher', '403', cell(await call(demoted, 'GET', '/api/provider/work/queue?group=dispatcher')), 'a document_reviewer without the admin group gets 403');
++    record(S, 'demoted GET /work/queue?group=field_inspector', '403', cell(await call(demoted, 'GET', '/api/provider/work/queue?group=field_inspector')));
+     const my = await call(demoted, 'GET', '/api/provider/work/my');
+-    record(S, 'demoted GET /work/my lists the open dispatcher item', '-', my.status === 200 && (my.json?.data || []).some((a) => a.id === open.id));
+-    record(S, 'demoted GET /work/:id of the dispatcher\'s claimed item', '-', cell(await call(demoted, 'GET', `/api/provider/work/${claimed.id}`)));
++    record(S, 'demoted GET /work/my lists the open dispatcher item', false, my.status === 200 && (my.json?.data || []).some((a) => a.id === open.id));
++    record(S, 'demoted GET /work/:id of the dispatcher\'s claimed item', '404', cell(await call(demoted, 'GET', `/api/provider/work/${claimed.id}`)));
+     const done = await call(demoted, 'POST', `/api/provider/work/${claimed.id}/done`, {});
+-    record(S, 'demoted POST /work/:id/done on the dispatcher\'s claimed item', '-', cell(done), `row after: ${JSON.stringify(await stateOf(claimed.id)).replace(dispatcher.id, 'dispatcher').replace(demoted.id, 'demoted')}`);
++    record(S, 'demoted POST /work/:id/done on the dispatcher\'s claimed item', '400', cell(done), `row after: ${JSON.stringify(await stateOf(claimed.id)).replace(dispatcher.id, 'dispatcher').replace(demoted.id, 'demoted')}`);
+     const claim = await call(demoted, 'POST', `/api/provider/work/${inspector.id}/claim`, {});
+-    record(S, 'demoted POST /work/:id/claim on field_inspector work', '-', cell(claim), `row after: ${JSON.stringify(await stateOf(inspector.id)).replace(demoted.id, 'demoted')}`);
++    record(S, 'demoted POST /work/:id/claim on field_inspector work', '400', cell(claim), `row after: ${JSON.stringify(await stateOf(inspector.id)).replace(demoted.id, 'demoted')}`);
+ 
+     record(S, 'control document_reviewer GET /work/queue?group=dispatcher', 403, (await call(control, 'GET', '/api/provider/work/queue?group=dispatcher')).status);
+     record(S, 'control document_reviewer POST /work/:id/claim on field_inspector work', 400, (await call(control, 'POST', `/api/provider/work/${inspector.id}/claim`, {})).status);
+@@ -188,12 +189,12 @@
+     const demoted3 = await signIn(target3);
+     record(S, 'variant B: demoted GET /admin/users (role gate)', 403, (await call(demoted3, 'GET', '/api/admin/users')).status);
+     const q3 = await call(demoted3, 'GET', '/api/provider/work/queue?group=field_inspector');
+-    record(S, 'variant B: demoted GET /work/queue?group=field_inspector', '-', cell(q3), `items listed: ${(q3.json?.data || []).length}`);
+-    record(S, 'variant B: demoted GET /work/:id of field_inspector work', '-', cell(await call(demoted3, 'GET', `/api/provider/work/${inspector3.id}`)));
++    record(S, 'variant B: demoted GET /work/queue?group=field_inspector', '403', cell(q3), `items listed: ${(q3.json?.data || []).length}`);
++    record(S, 'variant B: demoted GET /work/:id of field_inspector work', '403', cell(await call(demoted3, 'GET', `/api/provider/work/${inspector3.id}`)));
+     const done3 = await call(demoted3, 'POST', `/api/provider/work/${claimed3.id}/done`, {});
+-    record(S, "variant B: demoted POST /work/:id/done on the dispatcher's claimed item", '-', cell(done3), `row after: ${JSON.stringify(await stateOf(claimed3.id)).replace(dispatcher.id, 'dispatcher').replace(demoted3.id, 'demoted')}`);
++    record(S, "variant B: demoted POST /work/:id/done on the dispatcher's claimed item", '400', cell(done3), `row after: ${JSON.stringify(await stateOf(claimed3.id)).replace(dispatcher.id, 'dispatcher').replace(demoted3.id, 'demoted')}`);
+     const claim3 = await call(demoted3, 'POST', `/api/provider/work/${inspector3.id}/claim`, {});
+-    record(S, 'variant B: demoted POST /work/:id/claim on field_inspector work', '-', cell(claim3), `row after: ${JSON.stringify(await stateOf(inspector3.id)).replace(demoted3.id, 'demoted')}`);
++    record(S, 'variant B: demoted POST /work/:id/claim on field_inspector work', '400', cell(claim3), `row after: ${JSON.stringify(await stateOf(inspector3.id)).replace(demoted3.id, 'demoted')}`);
+     const claimed4 = await workItem(org, applicant, { assignedUserId: control.id });
+     const inspector4 = await workItem(org, applicant, { candidateGroup: 'field_inspector' });
+     record(S, 'control plain dispatcher GET /work/queue?group=field_inspector', 403, (await call(dispatcher, 'GET', '/api/provider/work/queue?group=field_inspector')).status);
+@@ -246,7 +247,9 @@
+ 
+ async function s5Race() {
+     const S = 'S5 Jev#4 last-admin race';
+-    const TRIALS = 15;
++    const TRIALS = Number(process.env.WALK_TRIALS || 15);
++    const kinds = { dtam: {}, platform: {} };
++    const tally = (side, rs) => { const k = rs.map(cell).sort().join(' / '); kinds[side][k] = (kinds[side][k] || 0) + 1; };
+     let dtamBoth = 0; let dtamZero = 0;
+     for (let i = 0; i < TRIALS; i += 1) {
+         const org = (await organization()).id;
+@@ -256,12 +259,14 @@
+             call(a, 'PATCH', `/api/admin/users/${b.id}/disable`, { reason: REASON }),
+             call(b, 'PATCH', `/api/admin/users/${a.id}/disable`, { reason: REASON }),
+         ]);
++        tally('dtam', [ra, rb]);
+         if (ra.status === 200 && rb.status === 200) { dtamBoth += 1; }
+         const active = await db.user.count({ where: { organizationId: org, role: 'system_admin_dtam', status: 'ACTIVE', isDeleted: false } });
+         if (active === 0) { dtamZero += 1; }
+     }
+-    record(S, `DTAM: two admins disable each other at once, ${TRIALS} trials: both 200`, '-', `${dtamBoth}/${TRIALS}`);
+-    record(S, `DTAM: trials ending with ZERO active admins in the organization`, '0', `${dtamZero}/${TRIALS}`, 'guard intends 0');
++    record(S, `DTAM: two admins disable each other at once, ${TRIALS} trials: both 200`, `0/${TRIALS}`, `${dtamBoth}/${TRIALS}`);
++    record(S, `DTAM: outcomes over ${TRIALS} trials`, '-', JSON.stringify(kinds.dtam));
++    record(S, `DTAM: trials ending with ZERO active admins in the organization`, `0/${TRIALS}`, `${dtamZero}/${TRIALS}`, 'guard intends 0');
+ 
+     let platBoth = 0; let platZero = 0;
+     for (let i = 0; i < TRIALS; i += 1) {
+@@ -272,14 +277,16 @@
+             call(p, 'DELETE', `/api/provider/directory/${q.id}`),
+             call(q, 'DELETE', `/api/provider/directory/${p.id}`),
+         ]);
++        tally('platform', [rp, rq]);
+         if (rp.status === 200 && rq.status === 200) { platBoth += 1; }
+         const active = await db.user.count({ where: { role: 'system_admin_platform', status: 'ACTIVE', isDeleted: false } });
+         if (active === 0) { platZero += 1; }
+         // retire the pair so the next trial's count sees only its own pair
+         await db.user.updateMany({ where: { id: { in: [p.id, q.id] } }, data: { isDeleted: true, status: 'INACTIVE' } });
+     }
+-    record(S, `platform: two platform admins delete each other at once, ${TRIALS} trials: both 200`, '-', `${platBoth}/${TRIALS}`);
+-    record(S, `platform: trials ending with ZERO active platform admins`, '0', `${platZero}/${TRIALS}`, 'guard intends 0');
++    record(S, `platform: two platform admins delete each other at once, ${TRIALS} trials: both 200`, `0/${TRIALS}`, `${platBoth}/${TRIALS}`);
++    record(S, `platform: outcomes over ${TRIALS} trials`, '-', JSON.stringify(kinds.platform));
++    record(S, `platform: trials ending with ZERO active platform admins`, `0/${TRIALS}`, `${platZero}/${TRIALS}`, 'guard intends 0');
+ 
+     // sequential control: the guard holds when the two requests do not overlap
+     const org = (await organization()).id;
+@@ -335,6 +342,19 @@
+     for (const line of lines.slice(1)) { record(S, `output: ${line.replace(/\s+/g, ' ')}`, '-', ''); }
+ }
+ 
++async function s8Promotion(ctx) {
++    const S = 'S8 promotion keeps a leftover group';
++    const { org, applicant, admin } = ctx;
++    const promoted = await account('dispatcher', { org, groups: ['dispatcher'], login: true });
++    const inspectorWork = await workItem(org, applicant, { candidateGroup: 'field_inspector' });
++    record(S, 'admin promotes a dispatcher holding the dispatcher row to system_admin_dtam', 200, (await call(admin, 'PATCH', `/api/admin/users/${promoted.id}/change-role`, { newRole: 'system_admin_dtam', reason: REASON })).status, `row: ${(await userRow(promoted.id)).role}, groups: ${await groupsOf(promoted.id)}`);
++    await pause(1500);
++    const again = await signIn(promoted);
++    record(S, 'promoted GET /admin/users (role gate)', 200, (await call(again, 'GET', '/api/admin/users')).status);
++    record(S, 'promoted GET /work/queue?group=field_inspector', '-', cell(await call(again, 'GET', '/api/provider/work/queue?group=field_inspector')), 'the leftover dispatcher row hides the role fallback');
++    record(S, 'promoted POST /work/:id/claim on field_inspector work', '-', cell(await call(again, 'POST', `/api/provider/work/${inspectorWork.id}/claim`, {})));
++}
++
+ async function cleanup(ids) {
+     const { users, apps, orgs } = ids;
+     await db.workActivity.deleteMany({ where: { applicationId: { in: apps } } }).catch(() => {});
+@@ -366,12 +386,13 @@
+         if (want('s5')) { await s5Race(); }
+         if (want('s6')) { await s6OpsScripts(ctx); }
+         if (want('s7')) { await s7Count(); }
++        if (only && only.has('s8')) { await s8Promotion(ctx); }
+     } catch (error) {
+         rows.push({ section: 'ERROR', step: error.message, expected: '', got: '', ok: 'NO', note: '' });
+     } finally {
+         const md = ['| section | step | expected | got | ok | note |', '|---|---|---|---|---|---|',
+             ...rows.map((r) => `| ${r.section} | ${r.step} | ${r.expected} | ${r.got} | ${r.ok} | ${r.note} |`)].join('\n');
+-        fs.writeFileSync(path.join(D, 'walk-report.md'), `${md}\n`);
++        fs.writeFileSync(path.join(D, process.env.WALK_REPORT || 'walk-report.md'), `${md}\n`);
+         console.log(md);
+         if (process.argv.includes('--keep')) {
+             fs.writeFileSync(FIX, JSON.stringify(fx));

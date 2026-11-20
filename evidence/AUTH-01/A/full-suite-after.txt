@@ -1,0 +1,55 @@
+### full-suite-after — จาก apps/backend:
+###   env -u DATABASE_URL JWT_SECRET=… ENCRYPTION_KEY=… NODE_ENV=test \
+###     npx jest --config jest.config.cjs --no-coverage --forceExit
+### (log เต็ม ~19238 บรรทัด ตัดเก็บเฉพาะรายการ FAIL ทุกบรรทัด + ท้าย log 45 บรรทัดที่มี summary จริง)
+
+--- ทุกบรรทัดที่ขึ้นต้นด้วย FAIL ---
+FAIL __tests__/unit/dataset-export-service.test.js
+FAIL __tests__/unit/dataset-export-service.test.js
+
+--- 45 บรรทัดสุดท้ายของ log ---
+[33mwarn[39m: Unauthorized role access attempt {"normalizedUserRole":"account","path":"/api/test","requiredRoles":["scheduler"],"service":"gacp-backend","timestamp":"2026-08-04T01:21:43.505Z","userId":"u2","userRole":"account"}
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/role-middleware.test.js
+  role-middleware requireRole
+    ✓ allows canonical alias role mapping (2 ms)
+    ✓ blocks unauthorized role (3 ms)
+
+Summary of all failing tests
+FAIL __tests__/unit/dataset-export-service.test.js
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 7 skipped, 530 passed, 531 of 538 total
+Tests:       1 failed, 74 skipped, 7146 passed, 7221 total
+Snapshots:   0 total
+Time:        236.621 s
+Ran all test suites.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+EXIT=1

@@ -1,0 +1,43 @@
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'PAYMENT',
+      action: 'SETTLEMENT_STATUS_REFUSED',
+      severity: 'CRITICAL',
+      error: 'tx.$executeRaw is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-10-21T11:31:07.260Z'
+    }
+
+      540 |
+      541 |                 // Fallback to console
+    > 542 |                 console.error('[AUDIT_FALLBACK]', {
+          |                         ^
+      543 |                     category, action, severity,
+      544 |                     error: error.message,
+      545 |                     code: error.code || null,
+
+
+PASS __tests__/unit/dtam-remittance-pipeline-removed.test.js (12.178 s)
+  โมดูลของ pipeline นำส่งเงินกรมฯ ไม่มีอยู่แล้ว
+    ✓ require(services/checkout/dtam-remittance-service) โยน MODULE_NOT_FOUND (4 ms)
+    ✓ require(routes/api/finance/dtam-remittance) โยน MODULE_NOT_FOUND (2 ms)
+    ✓ require(jobs/dtam-remittance-batch-job) โยน MODULE_NOT_FOUND (1 ms)
+    ✓ require(shared/dtam-remittance-status) โยน MODULE_NOT_FOUND (2 ms)
+  ประตู /api/finance/dtam-remittance ไม่ถูก mount
+    ✓ get /api/finance/dtam-remittance → 404 (10749 ms)
+    ✓ post /api/finance/dtam-remittance/batches → 404 (178 ms)
+    ✓ post /api/finance/dtam-remittance/batches/b-1/remit → 404 (182 ms)
+    ✓ post /api/finance/dtam-remittance/batches/b-1/reconcile → 404 (193 ms)
+    ✓ delete /api/finance/dtam-remittance/batches/b-1 → 404 (174 ms)
+  scheduler ไม่ลงทะเบียนงานนำส่งเงินกรมฯ
+    ✓ ไม่มี cron 0 2 1 * * และไม่มี callback ไหนเรียก dtam-remittance-batch-job (6 ms)
+  settlement ไม่เขียน dtamRemittanceStatus อีก
+    ✓ payload ของ checkoutOrder.update ตอน settle มีแค่ status + settledAt (25 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       11 passed, 11 total
+Snapshots:   0 total
+Time:        12.227 s
+Ran all test suites matching __tests__/unit/dtam-remittance-pipeline-removed.test.js.
+jest exit 0

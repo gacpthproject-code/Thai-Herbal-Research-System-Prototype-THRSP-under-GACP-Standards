@@ -1,0 +1,28 @@
+Review M1/M2 pins — tree 2ea201bf + the pin tests (uncommitted at run time). PINS, not fixes: green on the branch as written.
+node v24.21.0 · NODE_OPTIONS=<unset> · SIGNING_KEY_DIR=<mktemp -d> · TEST_DATABASE_URL -> scratch PG17 127.0.0.1:5441 (password redacted)
+$ npx jest --config jest.config.cjs __tests__/integration/without-tenant-scope-lazy.int.test.js -t M1 pin|M2 pin
+      ✓ :92 PATCH on org B's staff answers 404 and org B's row is unchanged (178 ms)
+      ✓ :92 DELETE on org B's staff answers 404 and org B's row is unchanged (21 ms)
+      ✓ :705 unlock on org B's staff answers 404 and the account stays locked (20 ms)
+      ✓ control: the same admin unlocks a staff member of its own org A (41 ms)
+      ✓ tenant admin of org A → 403 AUTHORIZATION_ERROR, no user created in org B (114 ms)
+Tests:       9 skipped, 5 passed, 14 total
+
+Mutation check for the M1 pins: routes/api/system/provider.js with the explicit organizationId filter REMOVED at :92 and :705 (temporary edit, restored with git checkout right after — file was committed)
+$ npx jest --config jest.config.cjs __tests__/integration/without-tenant-scope-lazy.int.test.js -t M1 pin
+      ✕ :92 PATCH on org B's staff answers 404 and org B's row is unchanged (465 ms)
+      ✕ :92 DELETE on org B's staff answers 404 and org B's row is unchanged (25 ms)
+      ✓ :705 unlock on org B's staff answers 404 and the account stays locked (21 ms)
+      ✓ control: the same admin unlocks a staff member of its own org A (29 ms)
+    Expected: 404
+    Received: 200
+    Expected: 404
+    Received: 200
+Tests:       2 failed, 10 skipped, 2 passed, 14 total
+
+Second run, :705 alone (in the first run PATCH+DELETE had already soft-deleted staffB under the mutation, so unlock 404'd for isDeleted — not the org filter):
+$ npx jest --config jest.config.cjs __tests__/integration/without-tenant-scope-lazy.int.test.js -t :705 unlock
+      ✕ :705 unlock on org B's staff answers 404 and the account stays locked (157 ms)
+    Expected: 404
+    Received: 200
+Tests:       1 failed, 13 skipped, 14 total

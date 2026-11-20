@@ -1,0 +1,60 @@
+PASS __tests__/unit/reset-for-handoff-guard.test.js
+  reset-for-handoff — environment guard (cannot be bypassed)
+    ✓ RED 1: refuses NODE_ENV=production and issues no delete (22 ms)
+    ✓ RED 2: refuses NODE_ENV=staging and issues no delete (2 ms)
+    ✓ RED 3: fail-closed — refuses when NODE_ENV is unset (3 ms)
+    ✓ RED 3b: fail-closed — refuses when NODE_ENV is an empty string (2 ms)
+    ✓ RED 3c: fail-closed — refuses an unrecognised NODE_ENV (allowlist, not denylist) (2 ms)
+    ✓ the confirmation token does NOT unlock the environment guard (2 ms)
+    ✓ main() returns a non-zero exit code when the environment is blocked (1 ms)
+  reset-for-handoff — confirmation gate
+    ✓ RED 4: refuses without confirmation and issues no delete (2 ms)
+    ✓ refuses a non-TTY run (docker exec) that carries no flag and no env token (2 ms)
+    ✓ refuses when the echoed database name does not match the target (2 ms)
+    ✓ refuses when the interactive answer does not match the database name (2 ms)
+    ✓ accepts the echoed database name via env (works under docker exec, no TTY) (4 ms)
+    ✓ accepts an interactive answer that matches the database name (1 ms)
+    ✓ shows the table count and the target database name before deleting anything (2 ms)
+  reset-for-handoff — negative control (Law 3.13 draft)
+    ✓ RED 5: development + confirmation still purges every table in DELETE_ORDER (2 ms)
+    ✓ main() returns exit code 0 on a confirmed development run (2 ms)
+  reset-for-handoff — require-time safety
+    ✓ requiring the module runs nothing (no delete at import) (1 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       17 passed, 17 total
+Snapshots:   0 total
+Time:        0.963 s, estimated 1 s
+Ran all test suites within paths "__tests__/unit/reset-for-handoff-guard.test.js".
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+===== FULL BACKEND SUITE (npx jest, apps/backend) =====
+    ✓ grants a 'health' user the applicant permission dashboard.view (was 403) (2 ms)
+    ✓ 'applicant' still works (control) (1 ms)
+    ✓ an unknown role is still fail-closed (control) (1 ms)
+    ✓ a 'health' user is still denied a permission applicant does NOT have (1 ms)
+
+Summary of all failing tests
+FAIL __tests__/unit/dataset-export-service.test.js
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 7 skipped, 533 passed, 534 of 541 total
+Tests:       1 failed, 74 skipped, 7209 passed, 7284 total
+Snapshots:   0 total
+Time:        231.026 s
+Ran all test suites.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+JEST_EXIT=1

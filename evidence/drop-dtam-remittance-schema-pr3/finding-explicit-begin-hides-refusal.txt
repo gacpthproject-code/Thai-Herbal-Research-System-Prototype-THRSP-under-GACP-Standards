@@ -1,0 +1,52 @@
+FINDING during GREEN — the migration first had an explicit BEGIN/COMMIT. Prisma sends the file as one multi-statement query; with an explicit BEGIN the RAISE aborts the transaction and Prisma reports the LAST error ('current transaction is aborted'), so the refusal message with the counts never reached the operator. Fixed by removing BEGIN/COMMIT (the multi-statement query is one implicit transaction — atomicity still asserted by the same test: columns + table still present after the refusal).
+real Postgres 17.11 scratch · node v24.21.0
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T15:57:24.874Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T15:57:24.877Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T15:57:24.878Z"}
+[32minfo[39m: [checkout] intent ready {"actorId":"52e705bf-fd58-465a-83ed-3df0b249c7ee","applicationId":"122ffaac-8d74-4d85-b0cf-c86ee27d80c1","checkoutOrderId":"7200c668-1393-4e40-ae96-5783d19f567d","milestone":"M1","service":"gacp-backend","timestamp":"2026-09-29T15:57:27.602Z"}
+[32minfo[39m: [journal-entry] balanced entry for invoice INV-CO-7200C668-M1 Dr=5885 Cr=5885 lines=3 {"entry":{"balanced":true,"description":"Payment received for invoice INV-CO-7200C668-M1","entryDate":"2026-09-29T15:57:27.624Z","invoiceId":"007ffc56-d09d-497c-8287-c6742cf539e1","invoiceNumber":"INV-CO-7200C668-M1","lines":[{"accountCode":"1110-001","accountName":"เงินสด/เงินฝากธนาคาร · บัญชีหลัก","credit":0,"debit":5885,"issuer":"PLATFORM","lineNumber":1,"memo":"Cash received — invoice INV-CO-7200C668-M1"},{"accountCode":"4110-001","accountName":"รายได้ค่าบริการ","credit":5500,"debit":0,"issuer":"PLATFORM","lineNumber":2,"memo":"Service fee — CERTIFICATION_CHECKOUT_M1"},{"accountCode":"2131-001","accountName":"ภาษีขายตั้งพัก (Output VAT 7%)","credit":385,"debit":0,"issuer":"PLATFORM","lineNumber":3,"memo":"Output VAT 7% — INV-CO-7200C668-M1"}],"reference":"INV-CO-7200C668-M1","totalCredit":5885,"totalDebit":5885},"entryId":"ca70d394-486a-41e9-becc-33b60acfdbff","fallbackReason":null,"invoiceId":"007ffc56-d09d-497c-8287-c6742cf539e1","invoiceNumber":"INV-CO-7200C668-M1","service":"gacp-backend","timestamp":"2026-09-29T15:57:27.703Z"}
+[32minfo[39m: [checkout-settle] settled {"checkoutOrderId":"7200c668-1393-4e40-ae96-5783d19f567d","eventId":"evt_pr3_1790697442170_zk3dr9","milestone":"M1","service":"gacp-backend","targetState":"DOC_FEE_PAID","timestamp":"2026-09-29T15:57:27.873Z"}
+FAIL __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js (7.408 s)
+  PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง
+    1. ฐานที่ยังมี order ค้างส่วนของกรมฯ
+      ✓ ตัวตรวจก่อน deploy: exit 1 พร้อมตัวเลขต่อสถานะ และไม่พิมพ์รหัสผ่านฐาน (155 ms)
+      ✕ migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย (735 ms)
+    2. ฐานที่ order เก่าถูกปลดแล้ว
+      ✓ ตัวตรวจก่อน deploy: exit 0 (168 ms)
+      ✓ migrate deploy ผ่าน: ตารางและคอลัมน์หาย, CHECK ใหม่อยู่, แถวเก่ายังอยู่และยอดไม่ถูกแตะ (892 ms)
+      ✓ CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้ (14 ms)
+      ✓ mint + settle ใหม่ทั้งเส้นบนคำขอเดียวกับ order เก่า: ลง 1110-001 / 4110-001 / 2131-001 เท่านั้น (443 ms)
+      ✓ หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้ (996 ms)
+
+  ● PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง › 1. ฐานที่ยังมี order ค้างส่วนของกรมฯ › migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "DTAM_SCHEMA_DROP_REFUSED"
+    Received string:    "Prisma schema loaded from prisma/schema
+    Datasource \"db\": PostgreSQL database \"pr3_refuse_1790697442170_zk3dr9\", schema \"public\" at \"127.0.0.1:5443\"·
+    146 migrations found in prisma/migrations·
+    Applying migration `20260929155037_drop_dtam_remittance_schema`·
+    Error: ERROR: current transaction is aborted, commands ignored until end of transaction block
+       0: schema_core::commands::apply_migrations::Applying migration
+               with migration_name=\"20260929155037_drop_dtam_remittance_schema\"
+                 at schema-engine/core/src/commands/apply_migrations.rs:91
+       1: schema_core::state::ApplyMigrations
+                 at schema-engine/core/src/state.rs:226·
+    "
+
+      210 |             const r = run(PRISMA_BIN, ['migrate', 'deploy', '--schema', SCHEMA], urls.refuse);
+      211 |             expect(r.status).not.toBe(0);
+    > 212 |             expect(r.out).toContain('DTAM_SCHEMA_DROP_REFUSED');
+          |                           ^
+      213 |             expect(r.out).toMatch(/1 checkout_orders row\(s\) carry dtam_fee_amount > 0 and are not CANCELLED \(PENDING_PAYMENT=1\)/);
+      214 |             expect(r.out).toMatch(/1 dtam_remittance_batches row\(s\) are not OPEN \(REMITTED=1\)/);
+      215 |             const cols = await columnsOf(clients.refuse, 'checkout_orders');
+
+      at Object.toContain (__tests__/integration/dtam-schema-drop-migration-real-postgres.test.js:212:27)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 6 passed, 7 total
+Snapshots:   0 total
+Time:        7.457 s
+Ran all test suites matching __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js.

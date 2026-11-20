@@ -1,0 +1,3316 @@
+# RED — run BEFORE any production code changed · 2026-09-15T11:19:09Z · eb2d7f90 + uncommitted test edits
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/second-factor-is-totp-only.test.js:81:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/second-factor-is-totp-only.test.js:81:13)
+
+FAIL __tests__/unit/second-factor-is-totp-only.test.js
+  the second factor is TOTP only (operator ruling 2026-09-15)
+    ✕ the email OTP service and the SMTP email service are gone (4 ms)
+    ✕ no backend source requires them any more (a lazy require is a bomb, not a dependency) (40 ms)
+    ✕ the MFA router has no email enrolment routes and no EMAIL branch (2 ms)
+    ✕ identity-service can no longer enrol the EMAIL method (1 ms)
+    ✕ a legacy EMAIL-method row counts as NOT enrolled — it never had a TOTP seed, so a challenge would be a lockout (12 ms)
+    ✕ every login surface decides MFA through that one helper (3 ms)
+    ✕ a challenge token can only name TOTP (57 ms)
+    ✕ a migration retires every EMAIL-method row instead of leaving it enabled with no seed (4 ms)
+    ✕ the web app offers no email 2FA anywhere (2 ms)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › the email OTP service and the SMTP email service are gone
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      34 | describe('the second factor is TOTP only (operator ruling 2026-09-15)', () => {
+      35 |     it('the email OTP service and the SMTP email service are gone', () => {
+    > 36 |         expect(fs.existsSync(path.join(BACKEND, 'services', 'email-otp-service.js'))).toBe(false);
+         |                                                                                       ^
+      37 |         expect(fs.existsSync(path.join(BACKEND, 'services', 'email-service.js'))).toBe(false);
+      38 |     });
+      39 |
+
+      at Object.toBe (__tests__/unit/second-factor-is-totp-only.test.js:36:87)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › no backend source requires them any more (a lazy require is a bomb, not a dependency)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 8
+
+    - Array []
+    + Array [
+    +   "controllers/auth-controller/health-auth-profile-handlers.js",
+    +   "routes/api/auth/auth-idp.js",
+    +   "routes/api/auth/auth-provider.js",
+    +   "routes/api/identity/mfa.js",
+    +   "services/auth/password-management.js",
+    +   "services/email-otp-service.js",
+    + ]
+
+      42 |             .filter((f) => /require\(\s*['"][^'"]*email-(otp-)?service['"]\s*\)/.test(read(f)))
+      43 |             .map((f) => path.relative(BACKEND, f));
+    > 44 |         expect(offenders).toEqual([]);
+         |                           ^
+      45 |     });
+      46 |
+      47 |     it('the MFA router has no email enrolment routes and no EMAIL branch', () => {
+
+      at Object.toEqual (__tests__/unit/second-factor-is-totp-only.test.js:44:27)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › the MFA router has no email enrolment routes and no EMAIL branch
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /\/email\/(setup|verify-setup)/
+    Received string:      "/**
+     * MFA API Routes (V2)
+     * For provider accounts (User model with providerId identity)
+     * Prisma Implementation
+     */
+
+    const express = require('express');
+    const router = express.Router();
+    const { mfaService } = require('../../../middleware/mfa-service');
+    // ยามของด่านลงทะเบียน: รับตั๋ว purpose='mfa_setup' ที่ประตูล็อกอินยื่นให้ หรือ session ปกติ
+    // ถ้าใช้ยามของ session อย่างเดียว คนที่ยังไม่ได้ลงทะเบียนจะไม่มีทางลงทะเบียนได้เลย
+    const { authenticateForMfaSetup } = require('../../../middleware/mfa-setup-guard');
+    const { auditLogger, AuditCategory } = require('../../../middleware/audit-logger');
+    const identityService = require('../../../services/identity-service');
+    const { getRequestIp } = require('../../../utils/client-ip');
+    const { isSecureCookie } = require('../../../utils/cookie-security');
+    const { computeMfaChallengeBinding, isMfaChallengeBindingEnforced } = require('../../../shared/mfa-challenge-binding');
+    const logger = require('../../../shared/logger');
+
+    // Middleware to ensure user is provider
+    const { authenticateProvider, authenticateAny } = require('../../../middleware/auth-middleware');
+    const redisService = require('../../../services/redis-service');
+    const { createRateLimiter } = require('../../../middleware/rate-limiter');
+
+    // Rate limiters — defined here so they are in scope for every route below.
+    // 5/15min per IP on the verification + state-change surfaces (mirrors /verify).
+    const mfaVerifyLimiter = createRateLimiter({
+        windowMs: 15 * 60 * 1000, // 15 minutes
+        max: 5, // 5 attempts
+        message: 'Too many MFA verification attempts. Please try again in 15 minutes.',
+    });
+    // Anti-email-bomb: /email/setup emails a real OTP to the on-file address and is
+    // reachable by both portals via authenticateAny. Cap per IP so a held session
+    // cannot spray a victim's inbox — the 30s service-level throttle fails OPEN on a
+    // Redis outage, whereas this route limiter degrades to in-memory, not off.
+    const mfaEmailSendLimiter = createRateLimiter({
+        windowMs: 15 * 60 * 1000,
+        max: 5,
+        message: 'Too many verification-code requests. Please wait a few minutes and try again.',
+    });
+
+    /**
+     * Map an email-OTP verification failure onto its HTTP response.
+     *
+     * Extracted from the /verify handler (W1-5, 2026-08-22) so the mapping —
+     * in particular the STORE_UNAVAILABLE branch, which is only reachable during
+     * a Redis outage and therefore impossible to hit in a route test — has a
+     * direct regression guard. Exported as `_mapOtpFailure`.
+     *
+     * The failure is ALWAYS a failure: no branch here can produce a success.
+     * A store that cannot answer makes the code unverifiable, and unverifiable
+     * means not accepted.
+     *
+     * Thai copy follows DESIGN.md: address the user as คุณ, no em dash, and an
+     * error names its cause and the next action. STORE_UNAVAILABLE deliberately
+     * does NOT say the code is wrong — we do not know that — and does not tell
+     * the user to request a new code, because during an outage a new code cannot
+     * be stored either.
+     *
+     * @param {string|null} reason  'EXPIRED' | 'TOO_MANY' | 'STORE_UNAVAILABLE' |
+     *                              'INVALID' | null (non-OTP methods)
+     * @returns {{ status: number, body: object }}
+     */
+    function mapOtpFailure(reason) {
+        if (reason === 'EXPIRED') {
+            return {
+                status: 401,
+                body: {
+                    success: false,
+                    error: 'Code expired',
+                    code: 'OTP_EXPIRED',
+                    errorTh: 'รหัส OTP หมดอายุ กรุณาขอรหัสใหม่',
+                },
+            };
+        }
+        if (reason === 'TOO_MANY') {
+            return {
+                status: 429,
+                body: {
+                    success: false,
+                    error: 'Too many attempts',
+                    code: 'OTP_TOO_MANY',
+                    errorTh: 'กรอกรหัสผิดเกินกำหนด กรุณาขอรหัสใหม่',
+                },
+            };
+        }
+        if (reason === 'STORE_UNAVAILABLE') {
+            // 503, not 401: the credential was not rejected, it could not be
+            // checked. Retryable, and the client should not burn an attempt or
+            // push the user into a re-issue loop.
+            return {
+                status: 503,
+                body: {
+                    success: false,
+                    error: 'Verification store unavailable, please try again shortly',
+                    code: 'MFA_STORE_UNAVAILABLE',
+                    errorTh: 'ระบบยืนยันรหัสไม่พร้อมใช้งานชั่วคราว จึงยังตรวจสอบรหัสของคุณไม่ได้ กรุณารอสักครู่แล้วลองใหม่อีกครั้ง',
+                },
+            };
+        }
+        return {
+            status: 401,
+            body: {
+                success: false,
+                error: 'Invalid code',
+                errorTh: 'รหัส MFA ไม่ถูกต้อง',
+            },
+        };
+    }
+
+    /**
+     * GET /status
+     * Read-only check: does the current provider have MFA enabled?
+     * Used by the security settings page so it can render either the
+     * \"enable\" CTA or the \"disable\" form without first calling /setup
+     * (which would overwrite an in-progress secret).
+     */
+    // authenticateAny: both portals (health + provider) can read/manage their 2FA.
+    router.get('/status', authenticateAny, async (req, res) => {
+        try {
+            const user = await identityService.getMfaStatus(req.user.id);
+            res.json({
+                success: true,
+                data: { enabled: Boolean(user?.twoFactorEnabled), hasEmail: Boolean(user?.email) },
+            });
+        } catch (error) {
+            logger.error('[MFA] Status error:', error);
+            res.status(500).json({ success: false, error: 'Status read failed' });
+        }
+    });
+
+    /**
+     * POST /setup
+     * Initialize MFA setup for provider user
+     */
+    router.post('/setup', authenticateForMfaSetup, async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const email = req.user.email;
+
+            // Generate new secret
+            const secret = mfaService.generateSecret();
+            const qrCodeUri = mfaService.generateQRCodeUri(secret, email);
+
+            // Store secret temporarily (not yet verified)
+            await identityService.storePendingTotpSecret(userId, secret);
+
+            // Log MFA setup initiation
+            await auditLogger.log({
+                category: AuditCategory.SECURITY,
+                action: 'MFA_SETUP_INITIATED',
+                actorId: userId,
+                actorRole: req.user.role,
+                resourceType: 'USER',
+                resourceId: userId,
+                ipAddress: getRequestIp(req),
+                userAgent: req.headers['user-agent'],
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    secret,
+                    qrCodeUri,
+                    message: 'Scan QR code with authenticator app, then verify with a code',
+                },
+            });
+        } catch (error) {
+            logger.error('[MFA] Setup error:', error);
+            res.status(500).json({ success: false, error: 'Setup failed' });
+        }
+    });
+
+    /**
+     * POST /verify-setup
+     * Verify MFA setup with first code
+     */
+    router.post('/verify-setup', authenticateForMfaSetup, async (req, res) => {
+        try {
+            const { code } = req.body;
+            const userId = req.user.id;
+
+            if (!code || code.length !== 6) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid code format',
+                });
+            }
+
+            // Get stored secret
+            const user = await identityService.findPendingTotpSecret(userId);
+
+            if (!user?.twoFactorSecret) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'MFA not initialized. Please start setup first.',
+                });
+            }
+
+            // Verify code
+            const isValid = mfaService.verifyTOTP(user.twoFactorSecret, code);
+
+            if (!isValid) {
+                await auditLogger.log({
+                    category: AuditCategory.SECURITY,
+                    action: 'MFA_SETUP_FAILED',
+                    actorId: userId,
+                    actorRole: req.user.role,
+                    resourceType: 'USER',
+                    resourceId: userId,
+                    ipAddress: getRequestIp(req),
+                    userAgent: req.headers['user-agent'],
+                    metadata: { reason: 'Invalid verification code' },
+                });
+
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid code. Please try again.',
+                });
+            }
+
+            // Generate backup codes
+            const backupCodes = mfaService.generateBackupCodes();
+            const hashedCodes = backupCodes.map(code => mfaService.hashBackupCode(code));
+
+            // Enable MFA. The Prisma `twoFactorBackupCodes` column is `Json`,
+            // so write the native array directly (Tier 2 HIGH-1 fix). The
+            // legacy `JSON.stringify(hashedCodes)` double-serialized — Postgres
+            // would store a JSON-encoded string of a JSON array, breaking the
+            // `JSON.parse(...).indexOf(hashedInput)` lookup in /verify.
+            await identityService.enableMfaWithBackupCodes(userId, hashedCodes);
+
+            // Log success
+            await auditLogger.log({
+                category: AuditCategory.SECURITY,
+                action: 'MFA_ENABLED',
+                actorId: userId,
+                actorRole: req.user.role,
+                resourceType: 'USER',
+                resourceId: userId,
+                ipAddress: getRequestIp(req),
+                userAgent: req.headers['user-agent'],
+            });
+
+            res.json({
+                success: true,
+                data: {
+                    message: 'MFA enabled successfully',
+                    backupCodes, // Show once only!
+                    warning: 'Save these backup codes securely. They will not be shown again.',
+                },
+            });
+        } catch (error) {
+            logger.error('[MFA] Verify setup error:', error);
+            res.status(500).json({ success: false, error: 'Verification failed' });
+        }
+    });
+
+    /**
+     * POST /email/setup
+     * Start EMAIL-OTP 2FA enrollment (opt-in): email a 6-digit code to the account's
+     * on-file address. REQUIRES an email — an EMAIL-2FA account with no email would be
+     * a permanent lockout (mirrors the password-reset 'no email on file' guard).
+     */
+    router.post('/email/setup', mfaEmailSendLimiter, authenticateAny, async (req, res) => {
+        try {
+            const userId = req.user.id;
+            const email = req.user.email;
+            if (!email) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'No email on file. Please add a verified email before enabling email 2FA.',
+                });
+            }
+            const emailOtpService = require('../../../services/email-otp-service');
+            const r = await emailOtpService.issueEmailOtp(userId, email);
+            if (!r.ok) {
+                return res.status(429).json({
+                    success: false,
+                    error: r.reason === 'THROTTLED' ? 'Please wait a moment before requesting another code.' : 'Could not send the code.',
+                });
+            }
+            return res.json({ success: true, data: { message: 'A verification code has been emailed.', mocked: r.mocked === true } });
+        } catch (error) {
+            logger.error('[MFA] email setup error:', error);
+            return res.status(500).json({ success: false, error: 'Setup failed' });
+        }
+    });
+
+    /**
+     * POST /email/verify-setup
+     * Confirm the emailed code and ENABLE EMAIL-OTP 2FA (issues backup codes, once).
+     */
+    router.post('/email/verify-setup', authenticateAny, async (req, res) => {
+        try {
+            const { code } = req.body;
+            const userId = req.user.id;
+            if (!code) {
+                return res.status(400).json({ success: false, error: 'Verification code required' });
+            }
+            const emailOtpService = require('../../../services/email-otp-service');
+            const r = await emailOtpService.verifyEmailOtp(userId, code);
+            if (!r.ok) {
+                await auditLogger.log({
+                    category: AuditCategory.SECURITY,
+                    action: 'MFA_SETUP_FAILED',
+                    actorId: userId,
+                    actorRole: req.user.role,
+                    resourceType: 'USER',
+                    resourceId: userId,
+                    ipAddress: getRequestIp(req),
+                    userAgent: req.headers['user-agent'],
+                    metadata: { method: 'EMAIL', reason: r.reason },
+                });
+                return res.status(400).json({ success: false, error: 'Invalid or expired code. Please try again.' });
+            }
+            const backupCodes = mfaService.generateBackupCodes();
+            const hashedCodes = backupCodes.map(c => mfaService.hashBackupCode(c));
+            await identityService.enableEmailMfa(userId, hashedCodes);
+            await auditLogger.log({
+                category: AuditCategory.SECURITY,
+                action: 'MFA_ENABLED',
+                actorId: userId,
+                actorRole: req.user.role,
+                resourceType: 'USER',
+                resourceId: userId,
+                ipAddress: getRequestIp(req),
+                userAgent: req.headers['user-agent'],
+                metadata: { method: 'EMAIL' },
+            });
+            return res.json({
+                success: true,
+                data: {
+                    message: 'Email 2FA enabled successfully',
+                    backupCodes, // Show once only!
+                    warning: 'Save these backup codes securely. They will not be shown again.',
+                },
+            });
+        } catch (error) {
+            logger.error('[MFA] email verify-setup error:', error);
+            return res.status(500).json({ success: false, error: 'Verification failed' });
+        }
+    });
+
+    /**
+     * POST /verify
+     * Verify MFA code during login and complete authentication.
+     * Accepts a signed mfa_session token (not raw userId) for security.
+     * On success, issues full auth JWT tokens + sets cookies.
+     * Rate limited: 5 attempts per 15 minutes per IP
+     */
+    const jwtConfig = require('../../../config/jwt-security');
+    const { normalizeRole, isProviderRole } = require('../../../shared/canonical-rbac');
+
+    router.post('/verify', mfaVerifyLimiter, async (req, res) => {
+        try {
+            const { mfa_session, code, isBackupCode } = req.body;
+
+            // Phase 2 #2.13: the legacy `userId` body field is no longer
+            // accepted. Before this commit, callers could bypass the signed
+            // mfa_session token by sending a plaintext userId — an MFA bypass
+            // for any client that knew the target user's ID. The signed
+            // session token (purpose='mfa_challenge', short TTL, audience-
+            // bound to provider/public) is now the only path.
+            let userId;
+            let challengeBind = null;
+            let challengeMethod = null; // 'TOTP' | 'EMAIL' from the JWT challenge (decoded.method)
+            let challengeJti = null;    // single-use key (M-2 replay guard)
+            let challengeExp = null;    // unix seconds — bounds the jti's Redis TTL
+
+            if (!mfa_session || typeof mfa_session !== 'string') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'MFA session token is required. Please log in again.',
+                    errorTh: 'ต้องการ MFA session token กรุณาเข้าสู่ระบบใหม่',
+                });
+            }
+            // Type-guard the code up front: a non-string (e.g. {} or number) would
+            // otherwise reach hashBackupCode(code).replace()/verifyTOTP and throw a
+            // 500 instead of a clean 400 (no bypass — no token is issued on bad input).
+            if (code !== undefined && code !== null && typeof code !== 'string') {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Verification code must be a string',
+                    errorTh: 'รหัสยืนยันไม่ถูกต้อง',
+                });
+            }
+
+            // Verify the signed MFA session token. Provider audience first,
+            // then public. Mismatched purpose / expired / wrong audience all
+            // surface as 401 — never a soft fallback.
+            try {
+                let decoded;
+                try {
+                    decoded = jwtConfig.verifyToken(mfa_session, 'provider');
+                } catch {
+                    decoded = jwtConfig.verifyToken(mfa_session, 'public');
+                }
+
+                if (decoded.purpose !== 'mfa_challenge') {
+                    return res.status(403).json({
+                        success: false,
+                        error: 'Invalid MFA session token',
+                    });
+                }
+
+                // Enforce JTI on the MFA challenge token. This verifies the token
+                // directly rather than through the central middleware, so it needs
+                // its own jti check to keep the revocation gate consistent. Honour
+                // the LEGACY_NO_JTI_GRACE_UNTIL rollout window.
+                const jti = decoded && typeof decoded.jti === 'string' ? decoded.jti.trim() : '';
+                if (!jti) {
+                    const graceRaw = process.env.LEGACY_NO_JTI_GRACE_UNTIL;
+                    const graceUntil = graceRaw ? Date.parse(String(graceRaw).trim()) : NaN;
+                    const inGrace = Number.isFinite(graceUntil) && Date.now() < graceUntil;
+                    if (!inGrace) {
+                        return res.status(401).json({
+                            success: false,
+                            code: 'TOKEN_NO_JTI',
+                            error: 'MFA session token missing JTI claim',
+                            errorTh: 'โทเค็น MFA ไม่มี JTI claim กรุณาเข้าสู่ระบบใหม่',
+                        });
+                    }
+                    console.warn(
+                        `[AUTH] /mfa/verify accepting legacy mfa_session without jti during grace window ` +
+                        `(until=${new Date(graceUntil).toISOString()}). Revocation cannot be enforced.`,
+                    );
+                }
+
+                userId = decoded.id;
+                challengeBind = typeof decoded.bind === 'string' ? decoded.bind : null;
+                challengeMethod = typeof decoded.method === 'string' ? decoded.method : null;
+                challengeJti = jti || null;
+                challengeExp = typeof decoded.exp === 'number' ? decoded.exp : null;
+            } catch (_tokenError) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'MFA session expired. Please login again.',
+                    errorTh: 'เซสชัน MFA หมดอายุ กรุณาเข้าสู่ระบบใหม่',
+                });
+            }
+
+            // AUTH-5: enforce the IP/User-Agent binding the challenge was issued
+            // with. A mismatch means the mfa_session is being completed from a
+            // different network/agent than the one that passed the password step —
+            // the classic challenge-hijack signal. Legacy tokens minted before this
+            // rollout carry no `bind` claim and pass through (they expire in 5 min);
+            // enforcement can be relaxed via MFA_CHALLENGE_BIND_ENFORCE=false.
+            if (challengeBind) {
+                const expectedBind = computeMfaChallengeBinding(getRequestIp(req), req.headers['user-agent']);
+                if (challengeBind !== expectedBind) {
+                    await auditLogger.log({
+                        category: AuditCategory.SECURITY,
+                        action: 'MFA_CHALLENGE_BINDING_MISMATCH',
+                        actorId: userId,
+                        actorRole: 'UNKNOWN',
+                        resourceType: 'USER',
+                        resourceId: userId,
+                        ipAddress: getRequestIp(req),
+                        userAgent: req.headers['user-agent'],
+                        result: 'FAILURE',
+                    }).catch(() => {});
+                    if (isMfaChallengeBindingEnforced()) {
+                        return res.status(401).json({
+                            success: false,
+                            code: 'MFA_CHALLENGE_BINDING_MISMATCH',
+                            error: 'MFA session does not match this device or network. Please log in again.',
+                            errorTh: 'เซสชัน MFA ไม่ตรงกับอุปกรณ์หรือเครือข่ายนี้ กรุณาเข้าสู่ระบบใหม่',
+                        });
+                    }
+                    logger.warn('[AUTH] /mfa/verify binding mismatch (monitor mode — allowed)', { userId });
+                }
+            }
+
+            if (!code) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'Verification code required',
+                });
+            }
+
+            const user = await identityService.findUserForMfaVerify(userId);
+
+            if (!user?.twoFactorEnabled) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'MFA not enabled for this user',
+                });
+            }
+
+            let isValid = false;
+            let otpFailReason = null;
+
+            // Which factor to verify: the JWT challenge carries `method` (minted by
+            // mintMfaChallengeToken); fall back to the user row, then TOTP for legacy.
+            const method = challengeMethod || user.twoFactorMethod || 'TOTP';
+
+            if (isBackupCode) {
+                // Verify backup code. The column is Prisma `Json`, so Postgres
+                // returns a native array. Defensive: if a legacy row still has
+                // a JSON-encoded string from the pre-HIGH-1 writer, parse it.
+                // Backup codes are shared across BOTH the TOTP and EMAIL methods.
+                const hashedInput = mfaService.hashBackupCode(code);
+                let backupCodes = user.twoFactorBackupCodes;
+                if (typeof backupCodes === 'string') {
+                    try { backupCodes = JSON.parse(backupCodes); } catch { backupCodes = []; }
+                }
+                if (!Array.isArray(backupCodes)) {backupCodes = [];}
+                const codeIndex = backupCodes.indexOf(hashedInput);
+
+                if (codeIndex !== -1) {
+                    isValid = true;
+                    // Remove used backup code; write back as native array.
+                    backupCodes.splice(codeIndex, 1);
+                    await identityService.updateBackupCodes(userId, backupCodes);
+                }
+            } else if (method === 'EMAIL') {
+                // Verify the emailed 6-digit OTP (single-use, attempt-capped, Redis).
+                const emailOtpService = require('../../../services/email-otp-service');
+                const r = await emailOtpService.verifyEmailOtp(userId, code);
+                isValid = r.ok;
+                // EXPIRED | TOO_MANY | INVALID | STORE_UNAVAILABLE.
+                // STORE_UNAVAILABLE means Redis could not be read, so the code is
+                // unverifiable — never accepted, and answered with a 503 rather
+                // than \"wrong code\". See mapOtpFailure().
+                if (!isValid) { otpFailReason = r.reason; }
+            } else {
+                // Verify TOTP (authenticator app). Guard the null-secret case: an
+                // EMAIL-method user (twoFactorSecret=null) whose challenge somehow
+                // routes here would otherwise hit verifyTOTP(null,…) → base32 decode
+                // throws → 500. Return a clean 400 (still no bypass — isValid stays false).
+                if (!user.twoFactorSecret) {
+                    return res.status(400).json({
+                        success: false,
+                        code: 'MFA_METHOD_MISMATCH',
+                        error: 'MFA method mismatch. Please log in again.',
+                        errorTh: 'วิธียืนยันตัวตนไม่ตรงกัน กรุณาเข้าสู่ระบบใหม่',
+                    });
+                }
+                isValid = mfaService.verifyTOTP(user.twoFactorSecret, code);
+            }
+
+            // Log attempt
+            await auditLogger.log({
+                category: AuditCategory.AUTHENTICATION,
+                action: isValid ? 'MFA_VERIFY_SUCCESS' : 'MFA_VERIFY_FAILED',
+                actorId: userId,
+                actorRole: user.role,
+                resourceType: 'USER',
+                resourceId: userId,
+                ipAddress: getRequestIp(req),
+                userAgent: req.headers['user-agent'],
+                result: isValid ? 'SUCCESS' : 'FAILURE',
+            });
+
+            if (!isValid) {
+                const failure = mapOtpFailure(otpFailReason);
+                return res.status(failure.status).json(failure.body);
+            }
+
+            // M-2 (replay guard): single-use the challenge jti now that the code
+            // verified. The mfa_session JWT is otherwise valid for its full ~5-min
+            // TTL, and TOTP stays valid across its time window — so a captured
+            // SUCCESSFUL /verify could be replayed to mint extra 8h sessions. EMAIL
+            // OTP + backup codes are already single-use (Redis del / splice); this
+            // closes the TOTP gap. Fail OPEN if Redis is unreachable (the IP/UA bind
+            // + 5/15min limiter still constrain replay; 2FA is opt-in) but REJECT a
+            // confirmed reuse.
+            //
+            // W1-5 (2026-08-22): setNX returns false on BOTH \"exists\" and
+            // \"redis-down\". This used to be disambiguated by a follow-up `get`
+            // whose null could ALSO mean either — it happened to land on \"allow\"
+            // because both unknowns collapse to null, which is right by luck, not
+            // by construction. `getStrict` makes it explicit: a rejection is the
+            // outage (documented fail-open, now logged as such), a null is a
+            // genuinely absent key, and a value is a confirmed replay.
+            //
+            // OPERATOR NOTE: this fail-open is inherited from the original design
+            // and is the one MFA-adjacent path still allowed to pass during an
+            // outage. It guards replay of an ALREADY-verified challenge, not the
+            // code check itself (that now 503s). Worth revisiting alongside the
+            // access-token blocklist policy.
+            if (challengeJti) {
+                try {
+                    const jtiKey = `mfa-jti:${challengeJti}`;
+                    const nowSec = Math.floor(Date.now() / 1000);
+                    const ttl = challengeExp && challengeExp > nowSec ? (challengeExp - nowSec) : 300;
+                    const claimed = await redisService.setNX(jtiKey, '1', ttl);
+                    if (!claimed && (await redisService.getStrict(jtiKey))) {
+                        await auditLogger.log({
+                            category: AuditCategory.SECURITY,
+                            action: 'MFA_CHALLENGE_REPLAY_BLOCKED',
+                            actorId: userId,
+                            actorRole: user.role,
+                            resourceType: 'USER',
+                            resourceId: userId,
+                            ipAddress: getRequestIp(req),
+                            userAgent: req.headers['user-agent'],
+                            result: 'FAILURE',
+                        }).catch(() => {});
+                        return res.status(401).json({
+                            success: false,
+                            code: 'MFA_CHALLENGE_REUSED',
+                            error: 'This verification was already used. Please log in again.',
+                            errorTh: 'การยืนยันนี้ถูกใช้ไปแล้ว กรุณาเข้าสู่ระบบใหม่',
+                        });
+                    }
+                } catch (jtiErr) {
+                    logger.warn('[MFA] jti single-use check failed (allowing — Redis issue):', jtiErr?.message || jtiErr);
+                }
+            }
+
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            // MFA verified — complete login by issuing full auth tokens
+            // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+            const canonicalRole = normalizeRole(user.role);
+            const isProvider = isProviderRole(canonicalRole);
+            const jwtTokenType = isProvider ? 'provider' : 'public';
+
+            // PDPA Sprint 6 (final sweep): JWTs no longer carry raw 13-digit
+            // identifiers — see prisma-auth-service.js for the canonical login
+            // payload shape. Embedding `healthId`/`providerId` in the JWT here
+            // meant every downstream service that decoded the token saw the
+            // bare national ID, undoing the Batch 1 fix on the MFA path.
+            // Identity is now resolved server-side from `id` (UUID).
+            const tokenPayload = {
+                id: user.id,
+                uuid: user.uuid,
+                email: user.email,
+                role: user.role,
+                canonicalRole,
+                authType: isProvider ? 'PROVIDER_ID' : 'HEALTH_ID',
+                userType: isProvider ? 'PROVIDER_ID' : 'HEALTH_ID',
+                // ADR-014: tenant claim — see tenant-context-middleware.
+                organizationId: user.organizationId || null,
+            };
+
+            const fullToken = jwtConfig.generateToken(tokenPayload, jwtTokenType);
+
+            // Set auth cookie
+            const isSecure = isSecureCookie();
+            const cookieName = isProvider ? 'provider_token' : 'auth_token';
+            res.cookie(cookieName, fullToken, {
+                httpOnly: true,
+                secure: isSecure,
+                sameSite: 'lax',
+                maxAge: 8 * 60 * 60 * 1000,
+                path: '/',
+            });
+
+            // Update last login
+            await identityService.touchLastLogin(userId);
+
+            logger.info(`[MFA] Login completed after MFA verification for: ${user.role} ${userId}`);
+
+            // PDPA Sprint 6 (final sweep): never echo raw 13-digit identifier
+            // in the response. Clients that need a display value should call
+            // the profile endpoint, which returns a masked form.
+            res.json({
+                success: true,
+                message: 'MFA verification successful',
+                data: {
+                    token: fullToken,
+                    user: {
+                        id: user.id,
+                        uuid: user.uuid,
+                        email: user.email,
+                        firstName: user.firstName,
+                        lastName: user.lastName,
+                        role: user.role,
+                        canonicalRole,
+                        authType: tokenPayload.authType,
+                        userType: tokenPayload.userType,
+                    },
+                },
+            });
+        } catch (error) {
+            logger.error('[MFA] Verify error:', error);
+            res.status(500).json({ success: false, error: 'Verification failed' });
+        }
+    });
+
+    /**
+     * DELETE /disable
+     * Disable MFA (requires current code)
+     */
+    router.delete('/disable', mfaVerifyLimiter, authenticateAny, async (req, res) => {
+        try {
+            const { code } = req.body;
+            const userId = req.user.id;
+
+            const user = await identityService.findMfaSecretForDisable(userId);
+
+            if (!user?.twoFactorEnabled) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'MFA is not enabled',
+                });
+            }
+
+            // Verify code before disabling — by the user's current method. For EMAIL,
+            // the user requests a code via POST /email/setup first, then disables with it.
+            let isValid;
+            if ((user.twoFactorMethod || 'TOTP') === 'EMAIL') {
+                const emailOtpService = require('../../../services/email-otp-service');
+                const r = await emailOtpService.verifyEmailOtp(userId, code);
+                isValid = r.ok;
+            } else {
+                isValid = mfaService.verifyTOTP(user.twoFactorSecret, code);
+            }
+
+            if (!isValid) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'Invalid code',
+                });
+            }
+
+            // Disable MFA
+            await identityService.disableMfa(userId);
+
+            // Log
+            await auditLogger.log({
+                category: AuditCategory.SECURITY,
+                action: 'MFA_DISABLED',
+                actorId: userId,
+                actorRole: req.user.role,
+                resourceType: 'USER',
+                resourceId: userId,
+                ipAddress: getRequestIp(req),
+                userAgent: req.headers['user-agent'],
+            });
+
+            res.json({
+                success: true,
+                message: 'MFA disabled successfully',
+            });
+        } catch (error) {
+            logger.error('[MFA] Disable error:', error);
+            res.status(500).json({ success: false, error: 'Failed to disable MFA' });
+        }
+    });
+
+    module.exports = router;
+    // Test helper — DO NOT call from production code. The STORE_UNAVAILABLE branch
+    // is only reachable during a Redis outage, so it needs a direct unit guard.
+    module.exports._mapOtpFailure = mapOtpFailure;
+    "
+
+      47 |     it('the MFA router has no email enrolment routes and no EMAIL branch', () => {
+      48 |         const src = read(path.join(BACKEND, 'routes', 'api', 'identity', 'mfa.js'));
+    > 49 |         expect(src).not.toMatch(/\/email\/(setup|verify-setup)/);
+         |                         ^
+      50 |         expect(src).not.toMatch(/['"]EMAIL['"]/);
+      51 |     });
+      52 |
+
+      at Object.toMatch (__tests__/unit/second-factor-is-totp-only.test.js:49:25)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › identity-service can no longer enrol the EMAIL method
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /enableEmailMfa|twoFactorMethod:\s*['"]EMAIL['"]/
+    Received string:      "/**
+     * Identity Service
+     *
+     * Owns the per-user identity reads/writes that the MFA + consent routes
+     * issued directly against `prisma.user.*`. Built for Batch 15 of the
+     * prisma-bypass cleanup (2026-05-16) to replace direct prisma access in:
+     *
+     *   - routes/api/identity/mfa.js
+     *
+     * Service-boundary invariants:
+     *   - Soft-delete on User is enforced (`isDeleted: false`) on every read.
+     *     A deleted user must not be able to enable MFA, verify TOTP, or
+     *     mark a backup code as used — those paths sit between the JWT verify
+     *     gate and the auth-token issue, so the check has to live here.
+     *   - Column projection is intentionally narrow per-method. Anything that
+     *     does not need `twoFactorSecret` or `twoFactorBackupCodes` (e.g. the
+     *     status check) MUST NOT select them — these are sensitive and a
+     *     route bug that returns the result wholesale would leak the TOTP
+     *     secret to the client.
+     *   - There is no path here that returns `password`, `healthId`, or
+     *     `providerId` in plain form. Identity resolution (e.g. for JWT
+     *     issuance) goes through `user-lookup-service`, which masks those
+     *     columns by default — see PDPA Sprint 6.
+     */
+
+    const { prisma } = require('./prisma-database');
+
+    // Sensitive fields that may only appear in the verify-login payload.
+    // Kept as a single source of truth so multiple methods can't drift on
+    // which columns they return.
+    const MFA_VERIFY_USER_SELECT = Object.freeze({
+        id: true,
+        uuid: true,
+        email: true,
+        healthId: true,
+        providerId: true,
+        firstName: true,
+        lastName: true,
+        role: true,
+        authType: true,
+        ministryVerified: true,
+        twoFactorSecret: true,
+        twoFactorEnabled: true,
+        twoFactorBackupCodes: true,
+        // 2FA method discriminator — the /mfa/verify handler reads this to route
+        // TOTP vs emailed-OTP verification (null/'TOTP' => TOTP).
+        twoFactorMethod: true,
+        // ADR-014 tenant claim. Without this, the MFA-completed session token
+        // carried organizationId:null (claim-poorer than a normal login → an extra
+        // tenant-context DB lookup on every request). User has organizationId
+        // (auth.prisma model User), so select it to mint a parity session token.
+        organizationId: true,
+    });
+
+    class IdentityService {
+        /**
+         * Replaces routes/api/identity/mfa.js:27 prisma.user.findUnique
+         * Read-only MFA status check used by the security settings page —
+         * returns only the `twoFactorEnabled` boolean. The TOTP secret is
+         * intentionally NOT included.
+         */
+        async getMfaStatus(userId) {
+            return prisma.user.findFirst({
+                where: { id: userId, isDeleted: false },
+                // email is selected so /status can report hasEmail — the FE routes
+                // the enroll flow on the SERVER's view of whether an address is on
+                // file, not a possibly-stale localStorage copy.
+                select: { twoFactorEnabled: true, email: true },
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:55 prisma.user.update
+         * Stores a pending TOTP secret during /setup. `twoFactorEnabled` is
+         * explicitly set to false so an interrupted setup cannot leave a row
+         * in a half-enabled state.
+         */
+        async storePendingTotpSecret(userId, secret) {
+            return prisma.user.update({
+                where: { id: userId },
+                data: {
+                    twoFactorSecret: secret,
+                    twoFactorEnabled: false,
+                },
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:106 prisma.user.findUnique
+         * Fetches the pending TOTP secret during /verify-setup. Returns ONLY
+         * `twoFactorSecret` — the caller validates it with the verifier
+         * service and does not need any other column.
+         */
+        async findPendingTotpSecret(userId) {
+            return prisma.user.findFirst({
+                where: { id: userId, isDeleted: false },
+                select: { twoFactorSecret: true },
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:149 prisma.user.update
+         * Activate MFA after successful /verify-setup and persist the hashed
+         * backup codes. The Json column accepts a native array — DO NOT
+         * JSON.stringify here (Tier 2 HIGH-1 anti-regression, see route
+         * comment).
+         */
+        async enableMfaWithBackupCodes(userId, hashedBackupCodes) {
+            return prisma.user.update({
+                where: { id: userId },
+                data: {
+                    twoFactorEnabled: true,
+                    twoFactorMethod: 'TOTP', // explicit (resets a prior EMAIL enrollment)
+                    twoFactorBackupCodes: hashedBackupCodes,
+                },
+            });
+        }
+
+        /**
+         * Enable EMAIL-OTP 2FA (opt-in). No TOTP secret — the code is emailed +
+         * verified transiently via email-otp-service. REQUIRES an email on file
+         * (enforced by the route, mirroring password-reset's guard) — an EMAIL-2FA
+         * account with no email would be a permanent lockout.
+         */
+        async enableEmailMfa(userId, hashedBackupCodes) {
+            return prisma.user.update({
+                where: { id: userId },
+                data: {
+                    twoFactorEnabled: true,
+                    twoFactorMethod: 'EMAIL',
+                    twoFactorSecret: null,            // EMAIL has no TOTP seed
+                    twoFactorBackupCodes: hashedBackupCodes,
+                },
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:276 prisma.user.findUnique
+         * Full identity slice used after a successful MFA verify so the
+         * route can issue auth tokens + return the safe user payload.
+         * Soft-deleted users get null so the route falls through to the
+         * \"MFA not enabled\" branch — preferable to a 500.
+         */
+        async findUserForMfaVerify(userId) {
+            return prisma.user.findFirst({
+                where: { id: userId, isDeleted: false },
+                select: MFA_VERIFY_USER_SELECT,
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:320 prisma.user.update
+         * Persist the remaining backup-code array after one is consumed
+         * during /verify. Caller already removed the used index.
+         */
+        async updateBackupCodes(userId, backupCodes) {
+            return prisma.user.update({
+                where: { id: userId },
+                data: { twoFactorBackupCodes: backupCodes },
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:391 prisma.user.update
+         * Last-login timestamp bump after a successful MFA verify completes
+         * the auth flow.
+         */
+        async touchLastLogin(userId) {
+            return prisma.user.update({
+                where: { id: userId },
+                data: { lastLoginAt: new Date() },
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:434 prisma.user.findUnique
+         * Pre-disable check — returns just enough to verify the current TOTP
+         * code and confirm MFA is actually active. No backup-code column.
+         */
+        async findMfaSecretForDisable(userId) {
+            return prisma.user.findFirst({
+                where: { id: userId, isDeleted: false },
+                // twoFactorMethod lets /disable verify the right factor (TOTP vs email OTP).
+                select: { twoFactorSecret: true, twoFactorEnabled: true, twoFactorMethod: true },
+            });
+        }
+
+        /**
+         * Replaces routes/api/identity/mfa.js:457 prisma.user.update
+         * Disables MFA and wipes the TOTP secret + backup codes. Caller has
+         * already verified the supplied code.
+         */
+        async disableMfa(userId) {
+            return prisma.user.update({
+                where: { id: userId },
+                data: {
+                    twoFactorEnabled: false,
+                    twoFactorMethod: 'TOTP', // reset the discriminator to the default
+                    twoFactorSecret: null,
+                    twoFactorBackupCodes: null,
+                },
+            });
+        }
+    }
+
+    module.exports = new IdentityService();
+    "
+
+      53 |     it('identity-service can no longer enrol the EMAIL method', () => {
+      54 |         const src = read(path.join(BACKEND, 'services', 'identity-service.js'));
+    > 55 |         expect(src).not.toMatch(/enableEmailMfa|twoFactorMethod:\s*['"]EMAIL['"]/);
+         |                         ^
+      56 |     });
+      57 |
+      58 |     it('a legacy EMAIL-method row counts as NOT enrolled — it never had a TOTP seed, so a challenge would be a lockout', () => {
+
+      at Object.toMatch (__tests__/unit/second-factor-is-totp-only.test.js:55:25)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › a legacy EMAIL-method row counts as NOT enrolled — it never had a TOTP seed, so a challenge would be a lockout
+
+    Cannot find module '../../shared/second-factor' from '__tests__/unit/second-factor-is-totp-only.test.js'
+
+      57 |
+      58 |     it('a legacy EMAIL-method row counts as NOT enrolled — it never had a TOTP seed, so a challenge would be a lockout', () => {
+    > 59 |         const { hasUsableSecondFactor } = require('../../shared/second-factor');
+         |                                           ^
+      60 |         expect(hasUsableSecondFactor({ twoFactorEnabled: true, twoFactorMethod: 'TOTP' })).toBe(true);
+      61 |         expect(hasUsableSecondFactor({ twoFactorEnabled: true, twoFactorMethod: null })).toBe(true);
+      62 |         expect(hasUsableSecondFactor({ twoFactorEnabled: true })).toBe(true);
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/second-factor-is-totp-only.test.js:59:43)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › every login surface decides MFA through that one helper
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /hasUsableSecondFactor\(/
+    Received string:  "const { prisma } = require('./prisma-database');
+    const bcrypt = require('bcryptjs');
+    const jwtConfig = require('../config/jwt-security');
+    const {
+        CANONICAL_ROLES,
+        normalizeRole,
+        isProviderRole,
+    } = require('../shared/canonical-rbac');
+    const crypto = require('crypto');
+    const { createLogger } = require('../shared/logger');
+    const { maskThaiId, computeLookupHmac } = require('../utils/field-encryption');
+    const { identityLookupColumns } = require('./auth/identity-lookup-columns');
+    const { resolveCanonicalIdForWrite } = require('../shared/fk-token');
+    const logger = createLogger('auth-service');·
+    // H-4 Phase 1 (RFC docs/handoffs/H-4-national-id-hmac-migration-rfc.md):
+    // when `AUTH_LOOKUP_USE_HMAC === 'true'` the national-ID lookup columns switch
+    // from the legacy raw-SHA-256 `*Hash` columns to the keyed-HMAC `*Hmac`
+    // columns, and register/create DUAL-WRITES both. With the flag OFF (default)
+    // behaviour is byte-for-byte the current behaviour. The flag is read live (not
+    // cached) so a config flip needs no redeploy.
+    function useHmacLookup() {
+        return process.env.AUTH_LOOKUP_USE_HMAC === 'true';
+    }
+    // Sprint 6 C-1/C-2: refresh-token JTI allowlist + MFA challenge are issued
+    // via the centralized token-revocation-service so that revocation/rotation
+    // can be enforced at the middleware layer. The login() flow registers a
+    // fresh JTI in Redis BEFORE signing the refresh token, so the signed JWT's
+    // jti matches the allowlist entry. MFA-enabled accounts never get tokens —
+    // only an opaque challenge token bound to userId.
+    const tokenRevocationService = require('./token-revocation-service');·
+    // Bcrypt: OWASP recommends minimum 12 rounds
+    const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;·
+    // Extracted sub-modules
+    const { changePassword, requestPasswordReset, resetPasswordWithToken } = require('./auth/password-management');
+    const { ensurePersonalIndividualEntity } = require('./entity-service');
+    class PrismaAuthService {
+        // ── Private helpers (each does ONE thing) ──────────────────────────────·
+        /**
+         * Remove internal/sensitive/non-column fields before processing.
+         *
+         * These keys arrive in the request body but are NOT columns on the User
+         * model — they'd be spread into `prisma.user.create({ data })` and make
+         * Prisma throw \"Unknown argument\", which surfaced as a generic
+         * REGISTER_FAILED 500 for EVERY registration once COMP-006 began requiring
+         * the PDPA consent booleans (acceptedTermsOfService / acceptedPrivacyPolicy
+         * — validated by healthRegisterSchema, then persisted separately via
+         * consentManager, never as User columns). acceptedConsent is the
+         * single-checkbox alias some client builds send.
+         */
+        _sanitizeInput(data) {
+            const cleaned = { ...(data || {}) };
+            for (const key of [
+                '_idCardImage', 'idCardImage',
+                '_confirmPassword', 'confirmPassword',
+                '_acceptTerms', 'acceptTerms',
+                'acceptedTermsOfService', 'acceptedPrivacyPolicy', 'acceptedConsent',
+                // Detokenize STAGE 0: canonicalId is server-derived (identity or
+                // token), NEVER client-supplied. Strip it so a crafted register body
+                // can't pin the FK key / pre-seed a chosen canonicalId (mass-
+                // assignment defense — the explicit `canonicalId:` in user.create
+                // already overrides the spread, but stripping makes it unconditional).
+                'canonicalId', 'canonicalIdLegacy',
+            ]) {
+                delete cleaned[key];
+            }
+            return cleaned;
+        }·
+        /** Resolve identity type, identifier, role, and auth type from input */
+        _resolveIdentity(sanitizedInput) {
+            const { identifier, healthId, providerId, ...userData } = sanitizedInput;
+            const cleanHealthId = String(healthId || '').replace(/-/g, '').trim() || null;
+            const cleanProviderId = String(providerId || '').replace(/-/g, '').trim() || null;
+            const cleanIdentifier = String(identifier || userData.idCard || '').replace(/-/g, '').trim() || null;·
+            if (cleanHealthId && cleanProviderId) {
+                throw new Error('Identity conflict: both healthId and providerId are not allowed');
+            }·
+            const requestedRole = userData.role || 'HEALTH';
+            const canonicalRole = normalizeRole(requestedRole)
+                || (String(userData.accountType || '').toUpperCase() === 'PROVIDER'
+                    ? CANONICAL_ROLES.DOCUMENT_REVIEWER
+                    : CANONICAL_ROLES.HEALTH);
+            const isProvider = isProviderRole(canonicalRole);
+            const actualIdentifier = isProvider
+                ? (cleanProviderId || cleanIdentifier)
+                : (cleanHealthId || cleanIdentifier);·
+            if (!actualIdentifier || !/^\\d{13}$/.test(actualIdentifier)) {
+                throw new Error('Invalid identity number: expected 13 digits');
+            }·
+            const authType = isProvider ? 'PROVIDER_ID' : 'HEALTH_ID';
+            // PR 2e (contract phase): write the canonical spelling. This wrote
+            // canonicalToLegacyRole(...) — the UPPERCASE legacy value — which put
+            // back into users.role exactly what migration 20260801000000 had just
+            // cleaned, on every single self-registration and provider signup.
+            const role = canonicalRole
+                || (isProvider ? CANONICAL_ROLES.FIELD_INSPECTOR : CANONICAL_ROLES.HEALTH);
+            const accountType = isProvider
+                ? 'PROVIDER'
+                : (String(userData.accountType || '').toUpperCase() === 'PROVIDER' ? 'INDIVIDUAL' : (userData.accountType || 'INDIVIDUAL'));·
+            return { userData, actualIdentifier, authType, role, accountType, isProvider };
+        }·
+        /** Check DB toggle + env for OCR bypass → determine verification status */
+        async _resolveVerificationStatus() {
+            let ocrBypass = false;
+            try {
+                // Use the Prisma model (mapped to table `system_configs` via @@map),
+                // NOT a raw `FROM system_config` query — the singular raw table name
+                // never existed, so this lookup always threw \"relation system_config
+                // does not exist\" and silently fell through to the env var (the DB
+                // toggle was effectively dead + it spammed prisma:error in logs).
+                const row = await prisma.systemConfig.findUnique({
+                    where: { key: 'ocr_bypass_enabled' },
+                    select: { value: true },
+                });
+                if (row) {
+                    ocrBypass = String(row.value).trim().toLowerCase() === 'true';
+                }
+            } catch (_e) {
+                // Config row/table unavailable — fall back to env var
+            }
+            if (!ocrBypass) {
+                ocrBypass = String(process.env.ENABLE_OCR_BYPASS || 'false').trim().toLowerCase() === 'true';
+            }
+            return {
+                status: ocrBypass ? 'ACTIVE' : 'PENDING_VERIFICATION',
+                // NOTE: verificationStatus removed — field does not exist in Prisma schema
+                // The 'status' field alone controls the user's verification state
+            };
+        }·
+        /**
+         * Generate the lookup hashes for uniqueness checks + login lookup.
+         *
+         * Legacy `*Hash` columns hold RAW SHA-256 (no key) and are ALWAYS written —
+         * unchanged. H-4 Phase 1: when `AUTH_LOOKUP_USE_HMAC` is on we ADDITIONALLY
+         * dual-write the keyed-HMAC `*Hmac` columns (computeLookupHmac), which is
+         * what login then resolves by. With the flag off the returned object is
+         * byte-for-byte the legacy shape (no `*Hmac` keys), so the create payload is
+         * identical to today's.
+         */
+        _generateHashes(actualIdCard, authType) {
+            // The answer to \"which columns make this id findable\" now lives in ONE place,
+            // because the seed used to answer it differently: it wrote *Hash only, so every
+            // account it created on a host with AUTH_LOOKUP_USE_HMAC on could never log in
+            // (measured on demo, 2026-09-07).
+            return identityLookupColumns(actualIdCard, authType);
+        }·
+        // ── Public API ─────────────────────────────────────────────────────────·
+        async register(data) {
+            const sanitized = this._sanitizeInput(data);
+            const identity = this._resolveIdentity(sanitized);
+            const hashes = this._generateHashes(identity.actualIdentifier, identity.authType);·
+            logger.info('[AuthService] Register:', {
+                authType: identity.authType,
+                id: identity.actualIdentifier ? maskThaiId(identity.actualIdentifier) : null,
+            });·
+            // F-QA-01 (deep-qa 2026-09-06 — registration measured at 5.6 s median):
+            // these three steps do not depend on each other. The OCR-bypass config
+            // read and the default-org read are two separate crossings to a
+            // Supabase in another region (~364 ms each, measured), and bcrypt at 12
+            // rounds is ~664 ms of CPU that bcryptjs yields the event loop during.
+            // Run them together: the wall cost becomes the slowest one instead of
+            // the sum. Nothing here mutates, so ordering carries no meaning.
+            //
+            // ADR-014: every user belongs to an organization. Public self-registration
+            // lands new applicants in the default tenant. Tenant onboarding flows
+            // (creating a new org) go through a different code path.
+            const [verification, defaultOrg, hashedPassword] = await Promise.all([
+                this._resolveVerificationStatus(),
+                prisma.organization.findUnique({ where: { slug: 'default' } }),
+                bcrypt.hash(identity.userData.password, BCRYPT_ROUNDS),
+            ]);
+            if (!defaultOrg) {
+                const err = new Error('Default organization missing — DB not seeded');
+                err.code = 'NO_DEFAULT_ORG';
+                throw err;
+            }·
+            // Wave B Phase 67 — User and the personal INDIVIDUAL Entity must
+            // be created atomically. A user without their personal entity
+            // can't submit applications (Phase 66 wired Application.entityId)
+            // and a partial registration that left those out of sync would
+            // surface as confusing 500s downstream. Provider users skip the
+            // entity creation entirely — they're staff, not legal applicants.
+            const user = await prisma.$transaction(async (tx) => {
+                const created = await tx.user.create({
+                    data: {
+                        ...identity.userData,
+                        organizationId: defaultOrg.id,
+                        // Canonical ID — required FK target. Detokenize STAGE 0
+                        // (RFC docs/handoffs/national-id-detokenize-rfc-2026-06-29.md):
+                        // flag OFF (default) → the national ID (byte-for-byte today);
+                        // flag ON (APP_FK_USE_TOKEN) → the keyed-HMAC token
+                        // (isProvider ? providerIdHmac : healthIdHmac) — the same
+                        // *Hmac value dual-written below, recomputed/reused via the
+                        // shared resolver. No new crypto.
+                        canonicalId: resolveCanonicalIdForWrite({
+                            actualIdentifier: identity.actualIdentifier,
+                            isProvider: identity.isProvider,
+                            precomputedHmac: identity.isProvider
+                                ? hashes.providerIdHmac
+                                : hashes.healthIdHmac,
+                        }),
+                        role: identity.role,
+                        accountType: identity.accountType,
+                        // Legacy fields (backward compatibility)
+                        idCard: identity.actualIdentifier,
+                        idCardHash: hashes.idCardHash,
+                        // H-4 Phase 1 dual-write: keyed-HMAC lookup columns. These
+                        // keys are `undefined` (Prisma omits them) when the flag is
+                        // off, so the create payload is unchanged at flag-off.
+                        idCardHmac: hashes.idCardHmac,
+                        // GACP Thai Standard fields
+                        authType: identity.authType,
+                        healthId: identity.isProvider ? null : identity.actualIdentifier,
+                        healthIdHash: hashes.healthIdHash,
+                        healthIdHmac: hashes.healthIdHmac,
+                        providerId: identity.isProvider ? identity.actualIdentifier : null,
+                        providerIdHash: hashes.providerIdHash,
+                        providerIdHmac: hashes.providerIdHmac,
+                        password: hashedPassword,
+                        ...verification,
+                    },
+                });·
+                if (!identity.isProvider && created.healthId) {
+                    // `isNewUser` skips the \"does this user already own a personal
+                    // entity?\" membership probe — `created.id` was minted a
+                    // statement ago inside this transaction, so no EntityMembership
+                    // can reference it. The dedup lookup on the national ID still
+                    // runs (an entity CAN pre-exist from a backfill). F-QA-01.
+                    await ensurePersonalIndividualEntity({ user: created, tx, isNewUser: true });
+                }·
+                return created;
+            });·
+            // [UAT Fix] Force update if status doesn't match
+            if (user.status !== verification.status) {
+                logger.info('[AuthService] Status mismatch. Forcing update...');
+                return await prisma.user.update({
+                    where: { id: user.id },
+                    data: { status: verification.status },
+                });
+            }
+            return user;
+        }
+        async login(loginId, password, accountType, options = {}) {
+            const { healthId, providerId } = options;
+            const actualLoginId = healthId || providerId || loginId;
+            // Portal hint: callers (auth-health route vs auth-provider route) MUST
+            // pass `expectedPortal: 'HEALTH' | 'PROVIDER'` so we can reject cross-portal
+            // logins even when the bare `identifier` field is used. Falls back to
+            // the legacy hint inferred from healthId/providerId being set.
+            const explicitPortal = String(options.expectedPortal || '').toUpperCase();
+            const expectedPortal = ['HEALTH', 'PROVIDER'].includes(explicitPortal)
+                ? explicitPortal
+                : (healthId ? 'HEALTH' : (providerId ? 'PROVIDER' : null));
+            logger.info('[AuthService] Login attempt:', {
+                loginId: actualLoginId ? maskThaiId(actualLoginId) : null,
+                authType: healthId ? 'HEALTH_ID' : (providerId ? 'PROVIDER_ID' : 'LEGACY'),
+                expectedPortal: expectedPortal || 'LEGACY',
+                accountType,
+            });
+            try {
+                // Sprint 6 healthId-audit Phase B-M5: query the `*Hash` lookup
+                // columns instead of the plaintext columns.
+                // H-4 Phase 1: with `AUTH_LOOKUP_USE_HMAC` OFF (default) the lookup
+                // hash is raw SHA-256 of the cleaned numeric ID — matches what
+                // `_generateHashes()` writes on registration (legacy `*Hash`
+                // columns). With the flag ON the lookup uses the keyed-HMAC `*Hmac`
+                // columns instead (computeLookupHmac). Both writers + readers agree
+                // via the single `useHmacLookup()` switch.
+                const cleanedLoginId = String(actualLoginId || '').replace(/-/g, '').trim();
+                const isNumericId = /^\\d{13}$/.test(cleanedLoginId);·
+                // National-ID-only login (owner directive 2026-06-11): the ONLY valid
+                // login identifier is a 13-digit Thai national ID. Email is NOT a login
+                // credential — the previous `{ email: actualLoginId }` OR branches are
+                // removed. A non-13-digit identifier can never resolve to a user, so
+                // short-circuit to a generic \"invalid credentials\" rather than issue a
+                // query (whose WHERE would otherwise be empty/ambiguous). The route-level
+                // healthLoginSchema already rejects non-ID identifiers; this is the
+                // service-layer backstop for any other caller.
+                if (!isNumericId) {
+                    logger.info('[AuthService] Login rejected: identifier is not a 13-digit national ID');
+                    throw new Error('Invalid credentials');
+                }
+                // Deterministic hash lookups only. Plaintext columns are NEVER queried
+                // (Phase D-H4/H5 drops them).
+                const useHmac = useHmacLookup();
+                const loginIdHash = useHmac
+                    ? computeLookupHmac(cleanedLoginId)
+                    : crypto.createHash('sha256').update(cleanedLoginId).digest('hex');
+                const idCardCol = useHmac ? 'idCardHmac' : 'idCardHash';
+                const healthIdCol = useHmac ? 'healthIdHmac' : 'healthIdHash';
+                const providerIdCol = useHmac ? 'providerIdHmac' : 'providerIdHash';·
+                const whereClause = {
+                    OR: [
+                        { [idCardCol]: loginIdHash },
+                        { [healthIdCol]: loginIdHash },
+                        { [providerIdCol]: loginIdHash },
+                    ],
+                };
+                // If a specific auth type is hinted, prioritize that column.
+                if (healthId) {
+                    whereClause.OR = [
+                        { [healthIdCol]: loginIdHash },
+                        { [idCardCol]: loginIdHash },
+                    ];
+                } else if (providerId) {
+                    whereClause.OR = [
+                        { [providerIdCol]: loginIdHash },
+                        { [idCardCol]: loginIdHash },
+                    ];
+                }
+                const user = await prisma.user.findFirst({ where: whereClause });
+                logger.info('[AuthService] User found:', user ? 'YES' : 'NO', user ? `(authType: ${user.authType})` : '');
+                if (!user) {
+                    logger.info('[AuthService] User not found');
+                    throw new Error('Invalid credentials');
+                }
+                if (user.healthId && user.providerId) {
+                    throw new Error('Identity conflict: account has both healthId and providerId');
+                }
+                const canonicalRole = normalizeRole(user.role) || CANONICAL_ROLES.HEALTH;
+                const accountIsProvider = isProviderRole(canonicalRole);·
+                // Portal enforcement — block cross-portal login regardless of which
+                // hint field the client used. This prevents a provider from getting
+                // a health-signed JWT (or vice versa) by sending only `identifier`.
+                if (expectedPortal === 'HEALTH' && accountIsProvider) {
+                    throw new Error('Health login requires a health account. Use /auth/provider/login.');
+                }
+                if (expectedPortal === 'PROVIDER' && !accountIsProvider) {
+                    throw new Error('Provider login requires a provider account. Use /auth/health/login.');
+                }
+                // Legacy hints (kept for any existing call site that doesn't pass expectedPortal).
+                if (providerId && !accountIsProvider) {
+                    throw new Error('Provider login requires a provider account');
+                }
+                if (healthId && accountIsProvider) {
+                    throw new Error('Health login requires a health account');
+                }
+                // [LOCKOUT CHECK]
+                if (user.isLocked && user.lockedUntil && new Date() < user.lockedUntil) {
+                    const remainingMs = user.lockedUntil.getTime() - new Date().getTime();
+                    const remainingMin = Math.ceil(remainingMs / 60000);
+                    throw new Error(`Account locked. Try again in ${remainingMin} minutes.`);
+                }
+                // [AUTO UNLOCK]
+                if (user.isLocked && user.lockedUntil && new Date() >= user.lockedUntil) {
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { isLocked: false, lockedUntil: null, loginAttempts: 0 },
+                    });
+                }
+                logger.info('[AuthService] Comparing password...');
+                const passwordMatch = await bcrypt.compare(password, user.password);
+                logger.info('[AuthService] Password match:', passwordMatch ? 'YES' : 'NO');
+                if (!passwordMatch) {
+                    logger.info('[AuthService] Password incorrect');
+                    // [INCREMENT ATTEMPTS]
+                    const newAttempts = (user.loginAttempts || 0) + 1;
+                    const updateData = { loginAttempts: newAttempts };
+                    if (newAttempts >= 5) {
+                        updateData.isLocked = true;
+                        updateData.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+                    }
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: updateData,
+                    });
+                    if (newAttempts >= 5) {
+                        throw new Error('Account locked due to too many failed attempts.');
+                    }
+                    throw new Error('Invalid credentials');
+                }
+                logger.info('[AuthService] Login successful for user:', user.id);
+                // [RESET ATTEMPTS using updateMany or update to match id]
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { loginAttempts: 0, isLocked: false, lockedUntil: null, lastLoginAt: new Date() },
+                });
+                // Closing-review NEW-1: the canonical 2FA column is `twoFactorEnabled`.
+                // The legacy `mfaEnabled` column was renamed in the auth.prisma schema
+                // (line 115-117). Earlier code paths read `user.mfaEnabled` and silently
+                // returned `undefined` so 2FA was effectively disabled for every user.
+                // The fallback to `user.mfaEnabled` is kept here so a still-mid-migration
+                // database (renamed column not yet deployed) does not break login.
+                const twoFactorEnabled = Boolean(user.twoFactorEnabled || user.mfaEnabled);·
+                // Sprint 6 healthId-audit Phase B-C1/M1: when the account has 2FA enabled
+                // we MUST NOT mint access/refresh tokens at the password-only stage.
+                // Instead, issue an opaque MFA challenge (5-minute single-use, Redis-backed)
+                // bound to the userId. The /verify endpoint exchanges the challenge for
+                // real tokens once the TOTP code is confirmed. This closes the gap where
+                // a stolen password alone produced a usable JWT.
+                if (twoFactorEnabled) {
+                    // NOTE: the actual `mfa_session` the FE receives is the JWT minted by
+                    // the CALLER via mintMfaChallengeToken (it has the request IP/UA for the AUTH-5
+                    // bind) — NOT this opaque token, which /api/mfa/verify cannot consume.
+                    // `twoFactorMethod` tells the caller which factor to challenge (and
+                    // whether to send an email first for the EMAIL method).
+                    logger.info('[AuthService] MFA challenge required', { userId: user.id });
+                    return {
+                        user,
+                        mfaRequired: true,
+                        twoFactorMethod: user.twoFactorMethod || 'TOTP',
+                    };
+                }·
+                // Sprint 6 healthId-audit Phase B-M1: JWT payload MUST NOT carry plaintext
+                // PII. The Thai national ID (healthId) and the provider ID are PDPA-class
+                // identifiers — embedding them in a JWT means every downstream service
+                // that decodes the token sees the bare national ID, and any log line that
+                // dumps the payload leaks it. Identity is resolved server-side from
+                // `id` (UUID) via applicationService.resolveHealthIdentity at the few
+                // call sites that actually need the healthId.
+                //
+                // Sprint 7 follow-up (Issue B): mint a per-login `sessionFamilyId` so
+                // that refresh-token reuse-detection can scope its invalidation to the
+                // compromised device tree instead of logging the user out of every
+                // device. The family ID is embedded in BOTH the access and refresh
+                // token payloads and propagated through rotation in /refresh. On RT
+                // reuse, `invalidateSessionFamily(sessionFamilyId)` blocklists this
+                // family namespace; the verify-side check rejects ANY RT whose family
+                // is on the family-blocklist. Pre-Sprint-7 tokens (no `sessionFamilyId`
+                // claim) fall back to user-wide revocation — preserving current
+                // behavior for the migration window.
+                // Token minting is extracted into a single helper so every flow
+                // that establishes a session mints an
+                // identical session shape — see issueTokensForAuthenticatedUser.
+                return await this.issueTokensForAuthenticatedUser(user, options);
+            } catch (error) {
+                logger.info('[AuthService] Login error:', error.message);
+                throw error;
+            }
+        }·
+        /**
+         * Mint the access + refresh token pair for an already-authenticated user.
+         *
+         * Extracted from login() so any future flow that has already proven
+         * identity by other means issues the EXACT same
+         * HEALTH_JWT session — same payload claims, same per-role secret, same
+         * Redis refresh-token allowlist registration, same per-login
+         * sessionFamilyId. Keeping a single minting site prevents the two login
+         * surfaces from drifting (e.g. a claim present on one path but not the
+         * other, which would break tenant scoping or revocation for the
+         * sessions only).
+         *
+         * Callers MUST have already verified the credential / token. This method
+         * does NOT check passwords, lockout, or portal — it assumes a trusted,
+         * resolved `user` row.
+         *
+         * R-A (Task 2): every caller of this shared minting site MUST honor an
+         * enrolled 2FA user, so the twoFactorEnabled predicate that already gated
+         * login() (:412 — password path) is ALSO checked here, at the mint
+         * boundary itself. login() special-cases twoFactorEnabled and returns
+         * BEFORE it ever reaches this method, so this branch is unreachable from
+         * that caller — the password path's behavior is unchanged. It exists so
+         * a caller that resolves identity by a different means (e.g. the ThaID
+         * IdP path, auth-idp.js resolveThaidSession) cannot mint a full session
+         * for a 2FA-enrolled user by going around login()'s check.
+         *
+         * @param {Object} user      Resolved User row.
+         * @param {Object} [options] { ipAddress, userAgent, deviceId } for the
+         *                           refresh-token allowlist metadata.
+         * @returns {Promise<{ user: Object, token: string, refreshToken: string }
+         *                  | { user: Object, mfaRequired: true, twoFactorMethod: string }>}
+         */
+        async issueTokensForAuthenticatedUser(user, options = {}) {
+            const canonicalRole = normalizeRole(user.role) || CANONICAL_ROLES.HEALTH;
+            const accountIsProvider = isProviderRole(canonicalRole);
+            const resolvedUserType = user.authType === 'PROVIDER_ID'
+                ? 'PROVIDER_ID'
+                : 'HEALTH_ID';
+            const twoFactorEnabled = Boolean(user.twoFactorEnabled || user.mfaEnabled);·
+            if (twoFactorEnabled) {
+                logger.info('[AuthService] MFA challenge required at mint boundary', { userId: user.id });
+                return {
+                    user,
+                    mfaRequired: true,
+                    twoFactorMethod: user.twoFactorMethod || 'TOTP',
+                };
+            }·
+            const sessionFamilyId = crypto.randomUUID();
+            const tokenPayload = {
+                id: user.id,
+                role: user.role,
+                canonicalRole,
+                userType: resolvedUserType,
+                accountType: user.accountType,
+                accountTier: user.accountTier || 'NORMAL',
+                authType: user.authType,
+                twoFactorEnabled,
+                // ADR-014: tenant claim. tenant-context-middleware reads this
+                // first; missing claim falls back to a User table lookup so
+                // legacy tokens issued before this change still resolve.
+                organizationId: user.organizationId || null,
+                // Email is non-PDPA-sensitive (already public in directory views) and
+                // small enough that the audit-log identity-correlation flow needs it
+                // to avoid an extra DB round-trip per request.
+                email: user.email || null,
+                // Sprint 7 Issue B: session-family identifier for scoped revocation.
+                sessionFamilyId,
+            };
+            // Sign access + refresh tokens with the correct secret per role,
+            // so a provider cannot escape RBAC by going through the health portal.
+            const tokenType = accountIsProvider ? 'provider' : 'public';
+            const token = jwtConfig.generateToken(tokenPayload, tokenType);
+            // Sprint 6 C-2: refresh-token allowlist. The JTI minted by
+            // issueRefreshToken() is registered in Redis under the user's
+            // namespace BEFORE the signed JWT is created, so the JWT's `jti`
+            // claim is the same identifier the revocation lookup will match.
+            const refreshJti = await tokenRevocationService.issueRefreshToken(user.id, {
+                ipAddress: options.ipAddress || null,
+                userAgent: options.userAgent || null,
+                deviceId: options.deviceId || null,
+            });
+            const refreshToken = jwtConfig.generateRefreshToken(
+                { ...tokenPayload, jti: refreshJti },
+                tokenType,
+            );
+            return { user, token, refreshToken };
+        }·
+        async getProfile(userId) {
+            return await prisma.user.findUnique({ where: { id: userId } });
+        }
+        // Update Profile (whitelisted fields only to prevent privilege escalation)
+        async updateProfile(userId, data) {
+            const ALLOWED_FIELDS = [
+                'firstName', 'lastName', 'phoneNumber', 'email',
+                'address', 'province', 'district', 'subdistrict', 'zipCode',
+                'companyName', 'representativeName', 'representativePosition',
+                'communityName', 'privacySettings', 'notificationSettings',
+            ];
+            const safeData = {};
+            for (const key of ALLOWED_FIELDS) {
+                if (data[key] !== undefined) {
+                    safeData[key] = data[key];
+                }
+            }
+            if (Object.keys(safeData).length === 0) {
+                throw new Error('No valid fields to update');
+            }
+            return await prisma.user.update({
+                where: { id: userId },
+                data: safeData,
+            });
+        }
+        async checkIdentifierExists(identifier, accountType = 'INDIVIDUAL') {
+            const cleanId = (identifier || '').replace(/-/g, '');
+            if (!cleanId) {
+                return false;
+            }
+            // H-4 Phase 1: OFF (default) → legacy raw-SHA-256 `*Hash` columns;
+            // ON → keyed-HMAC `*Hmac` columns (computeLookupHmac). Covers the
+            // transitive taxId / communityRegistrationNo identifiers too.
+            const useHmac = useHmacLookup();
+            const hashed = useHmac
+                ? computeLookupHmac(cleanId)
+                : crypto.createHash('sha256').update(cleanId).digest('hex');
+            let where;
+            switch (accountType) {
+                case 'JURISTIC':
+                    where = useHmac ? { taxIdHmac: hashed } : { taxIdHash: hashed };
+                    break;
+                case 'COMMUNITY_ENTERPRISE':
+                    where = useHmac ? { communityRegistrationNoHmac: hashed } : { communityRegistrationNoHash: hashed };
+                    break;
+                case 'INDIVIDUAL':
+                default:
+                    where = useHmac ? { idCardHmac: hashed } : { idCardHash: hashed };
+                    break;
+            }
+            const existing = await prisma.user.findFirst({ where });
+            return !!existing;
+        }
+        // ── Delegated methods ──────────────────────────────────────────────────·
+        async changePassword(userId, oldPassword, newPassword) { return changePassword(userId, oldPassword, newPassword); }
+        async requestPasswordReset(identifier) { return requestPasswordReset(identifier); }
+        async resetPasswordWithToken(token, newPassword) { return resetPasswordWithToken(token, newPassword); }
+        /**
+         * Register a health user with validation and error classification.
+         * Extracted from AuthController.register.
+         *
+         * @param {object} body - req.body fields
+         * @param {string|null} idCardImagePath - uploaded file path
+         * @returns {Promise<{ status: number, body: object }>}
+         */
+        async registerHealthUser(body, idCardImagePath) {
+            // Wave B Phase 67 — the HEALTH_REGISTER_INDIVIDUAL_ONLY gate is
+            // gone. The user model is now firmly \"one person = one HealthID =
+            // one personal INDIVIDUAL Entity\"; juristic and community
+            // applicants are NOT people and do not register. They appear at
+            // application submission time as Entity rows the registered user
+            // is OWNER/ADMIN of (Phase 66 wired Application.entityId).
+            //
+            // The 13-digit-Thai-ID validation below is the real gate: any
+            // body that doesn't carry a valid healthId fails here regardless
+            // of what `accountType` field they sent.
+            const normalizedIdentifier = String(
+                body?.healthId || body?.idCard || body?.identifier || '',
+            ).replace(/-/g, '').trim();
+            const isValid = Boolean(
+                body?.password
+                && body?.phoneNumber
+                && normalizedIdentifier
+                && /^\\d{13}$/.test(normalizedIdentifier)
+                && body?.firstName
+                && body?.lastName,
+            );
+            if (!isValid) {
+                return {
+                    status: 400,
+                    body: {
+                        success: false,
+                        error: 'INDIVIDUAL requires: healthId/identifier (13 digits), password, phoneNumber, firstName, lastName',
+                        code: 'VALIDATION_ERROR',
+                        messageTh: 'กรุณากรอกข้อมูลให้ครบถ้วน: เลขบัตรประชาชน 13 หลัก, รหัสผ่าน, เบอร์โทร, ชื่อ, นามสกุล',
+                    },
+                };
+            }
+            const userData = {
+                ...body,
+                accountType: 'INDIVIDUAL',
+                identifier: normalizedIdentifier,
+                healthId: normalizedIdentifier,
+                idCardImage: idCardImagePath,
+            };
+            // SECURITY (audit 2026-06-11): this is the PUBLIC, unauthenticated health
+            // registration endpoint, and healthRegisterSchema uses `.passthrough()`,
+            // so a client can smuggle privileged columns straight through validation.
+            // register()'s `...identity.userData` spread then lands them in
+            // prisma.user.create — and _resolveIdentity reads `userData.role`, so
+            // POST /auth/health/register with {\"role\":\"ADMIN\"} mints a PROVIDER/ADMIN
+            // account (an ACTIVE one if ENABLE_OCR_BYPASS is set). This endpoint may
+            // ONLY ever create a HEALTH applicant: strip every authority/identity
+            // field the server must own. register() recomputes each of these itself,
+            // so dropping them is lossless for legitimate registrations (which never
+            // send them). `email` is intentionally KEPT — it is the registrant's own
+            // contact field, not a privilege.
+            for (const privilegedKey of [
+                'role', 'canonicalRole', 'status', 'verificationStatus',
+                'ministryVerified', 'accountTier', 'organizationId', 'canonicalId',
+                'authType', 'userType', 'isProvider',
+                'providerId', 'providerIdHash', 'healthIdHash', 'idCardHash',
+            ]) {
+                delete userData[privilegedKey];
+            }
+            try {
+                const user = await this.register(userData);
+                return {
+                    status: 201,
+                    body: { success: true, message: 'ลงทะเบียนสำเร็จ', data: { user } },
+                };
+            } catch (error) {
+                // Observability: this catch used to swallow the real cause and
+                // return only the generic Thai message, so the server log showed
+                // NOTHING about WHY a registration 500'd (NO_DEFAULT_ORG, schema
+                // drift, an entity-creation failure, etc.). Log the underlying
+                // error with enough context to diagnose, without leaking PII (the
+                // identifier is already hashed; we log only its code/message/stack).
+                logger.error('[AuthService] registerHealthUser failed', {
+                    errCode: error?.code || null,
+                    errName: error?.name || null,
+                    errMessage: error?.message || String(error),
+                    prismaMeta: error?.meta || null,
+                    stack: error?.stack,
+                });
+                let message = 'การลงทะเบียนล้มเหลว กรุณาลองใหม่อีกครั้ง';
+                let code = 'REGISTER_FAILED';
+                let statusCode = 500;
+                if (error.code === 'P2002') {
+                    const target = error.meta?.target || [];
+                    const targetField = Array.isArray(target) ? target[0] : target;
+                    statusCode = 400;
+                    code = 'DUPLICATE_IDENTIFIER';
+                    if (targetField === 'idCardHash' || (typeof targetField === 'string' && targetField.includes('idCardHash'))) {
+                        message = 'เลขบัตรประชาชนนี้ถูกลงทะเบียนแล้ว';
+                    } else if (targetField === 'taxIdHash' || (typeof targetField === 'string' && targetField.includes('taxIdHash'))) {
+                        message = 'เลขทะเบียนนิติบุคคลนี้ถูกลงทะเบียนแล้ว';
+                    } else if (targetField === 'communityRegistrationNoHash' || (typeof targetField === 'string' && targetField.includes('communityRegistrationNoHash'))) {
+                        message = 'เลขทะเบียนวิสาหกิจชุมชนนี้ถูกลงทะเบียนแล้ว';
+                    } else if (targetField === 'phoneNumber' || (typeof targetField === 'string' && targetField.includes('phoneNumber'))) {
+                        message = 'เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว';
+                    } else if (targetField === 'email' || (typeof targetField === 'string' && targetField.includes('email'))) {
+                        message = 'อีเมลนี้ถูกใช้งานแล้ว';
+                    } else {
+                        message = 'ข้อมูลนี้ถูกลงทะเบียนในระบบแล้ว';
+                    }
+                } else if (error.message && error.message.includes('Invalid file format')) {
+                    statusCode = 400;
+                    code = 'INVALID_FILE';
+                    message = 'รูปแบบไฟล์ไม่ถูกต้อง กรุณาอัปโหลดไฟล์ JPG, PNG หรือ PDF';
+                }
+                return {
+                    status: statusCode,
+                    body: { success: false, error: message, code },
+                };
+            }
+        }
+    }
+    module.exports = new PrismaAuthService();
+    "
+
+      70 |         for (const rel of ['services/prisma-auth-service.js', 'routes/api/auth/auth-provider.js']) {
+      71 |             const src = read(path.join(BACKEND, ...rel.split('/')));
+    > 72 |             expect(src).toMatch(/hasUsableSecondFactor\(/);
+         |                         ^
+      73 |             expect(src).not.toMatch(/Boolean\(user\.twoFactorEnabled \|\| user\.mfaEnabled\)/);
+      74 |         }
+      75 |     });
+
+      at Object.toMatch (__tests__/unit/second-factor-is-totp-only.test.js:72:25)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › a challenge token can only name TOTP
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "MFA_METHOD_RETIRED"
+    Received: undefined
+
+      81 |             mintMfaChallengeToken({ userId: 'u-1', method: 'EMAIL', ip: '127.0.0.1', userAgent: 'jest', tokenType: 'public' });
+      82 |         } catch (e) { err = e; }
+    > 83 |         expect(err && err.code).toBe('MFA_METHOD_RETIRED');
+         |                                 ^
+      84 |     });
+      85 |
+      86 |     it('a migration retires every EMAIL-method row instead of leaving it enabled with no seed', () => {
+
+      at Object.toBe (__tests__/unit/second-factor-is-totp-only.test.js:83:33)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › a migration retires every EMAIL-method row instead of leaving it enabled with no seed
+
+    expect(received).toBeTruthy()
+
+    Received: undefined
+
+      87 |         const dir = path.join(BACKEND, 'prisma', 'migrations');
+      88 |         const folder = fs.readdirSync(dir).find((d) => /^\d{14}_retire_email_second_factor$/.test(d));
+    > 89 |         expect(folder).toBeTruthy();
+         |                        ^
+      90 |         const sql = read(path.join(dir, folder, 'migration.sql'));
+      91 |         expect(sql).toMatch(/"twoFactorMethod"\s*=\s*'EMAIL'/);
+      92 |         expect(sql).toMatch(/"twoFactorEnabled"\s*=\s*false/i);
+
+      at Object.toBeTruthy (__tests__/unit/second-factor-is-totp-only.test.js:89:24)
+
+  ● the second factor is TOTP only (operator ruling 2026-09-15) › the web app offers no email 2FA anywhere
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /mfa\/email/
+    Received string:      "import { apiClient } from '@/lib/api/api-client';
+
+    export const providerApiPaths = {
+        applicationsList: \"/api/provider/applications\",
+        profileMe: \"/api/auth/provider/me\",
+        plantingCycles: (query = \"\") => `/api/provider/planting-cycles${query}`,
+        plantingCycleDetail: (cycleId: string) => `/api/provider/planting-cycles/${encodeURIComponent(cycleId)}`,
+        plantingCycleActivities: (cycleId: string, query = \"\") => `/api/provider/planting-cycles/${encodeURIComponent(cycleId)}/activities${query}`,
+        plantingCyclePlotQrs: (cycleId: string) => `/api/provider/planting-cycles/${encodeURIComponent(cycleId)}/plot-qrs`,
+        reviewerDashboard: (query = \"\") => `/api/provider/reviewer/dashboard${query}`,
+        schedulerDashboard: (query = \"\") => `/api/provider/scheduler/dashboard${query}`,
+        schedulerAuditors: (query = \"\") => `/api/provider/scheduler/auditors${query}`,
+        schedulerReviewers: (query = \"\") => `/api/provider/scheduler/reviewers${query}`,
+        schedulerAssignReviewer: \"/api/provider/scheduler/reviewer-assignments\",
+        schedulerAuditSchedules: \"/api/provider/scheduler/audits/schedules\",
+        schedulerUrgentMonitor: (query = \"\") => `/api/provider/scheduler/urgent-monitor${query}`,
+        schedulerAuditorWorkload: \"/api/provider/scheduler/auditor-workload\",
+        schedulerSendReminder: (applicationId: string) => `/api/provider/scheduler/applications/${encodeURIComponent(applicationId)}/send-reminder`,
+        auditorDashboard: (query = \"\") => `/api/provider/auditor/dashboard${query}`,
+        auditorStartInspection: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/inspection-starts`,
+        auditorDecision: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/audit-decisions`,
+        auditorFinalApprovalQueue: \"/api/provider/auditor/final-approval-queue\",
+        auditorFinalApproval: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/final-approvals`,
+        auditorRejectToAuditor: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/reject-to-auditor`,
+        // Audit Session (GPS/Evidence/Notes)
+        auditorSession: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/session`,
+        auditorSessionCheckIn: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/session/checkin`,
+        auditorSessionEvidence: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/session/evidence`,
+        auditorSessionNotes: (applicationId: string) => `/api/provider/auditor/applications/${encodeURIComponent(applicationId)}/session/notes`,
+        applicationDetail: (applicationId: string) => `/api/provider/applications/${encodeURIComponent(applicationId)}`,
+        applicationActivities: (applicationId: string) => `/api/provider/applications/${encodeURIComponent(applicationId)}/activities`,
+        applicationWorkflowTransitions: (applicationId: string) => `/api/provider/applications/${encodeURIComponent(applicationId)}/workflow-transitions`,
+        applicationAuditTimelines: (applicationId: string) => `/api/provider/applications/${encodeURIComponent(applicationId)}/audit-timelines`,
+        applicationRevisionExpirations: (applicationId: string) => `/api/provider/applications/${encodeURIComponent(applicationId)}/revision-expirations`,
+        certificatesDashboard: \"/api/provider/certificates/dashboard\",
+        certificatesBulkNotify: \"/api/provider/certificates/bulk-notify\",
+        // SOW (Scope of Work)
+        sowByApplication: (applicationId: string) => `/api/provider/applications/${encodeURIComponent(applicationId)}/sow`,
+        // Audit Checklist
+        checklistByApplication: (applicationId: string) => `/api/provider/applications/${encodeURIComponent(applicationId)}/checklist`,
+        // Document Templates (already in DB)
+        documentTemplates: \"/api/provider/documents/templates\",
+        // ADR-016 Phase 1A — BPMN-aligned unified work queue
+        workMy: (query = \"\") => `/api/provider/work/my${query}`,
+        workQueue: (query = \"\") => `/api/provider/work/queue${query}`,
+        workDetail: (id: string) => `/api/provider/work/${encodeURIComponent(id)}`,
+        workNextStates: (id: string) => `/api/provider/work/${encodeURIComponent(id)}/next-states`,
+        workClaim: (id: string) => `/api/provider/work/${encodeURIComponent(id)}/claim`,
+        workUnclaim: (id: string) => `/api/provider/work/${encodeURIComponent(id)}/unclaim`,
+        workDone: (id: string) => `/api/provider/work/${encodeURIComponent(id)}/done`,
+        // ADR-016 Phase 1D — admin work-config surfaces
+        workConfig: \"/api/provider/admin/work-config\",
+        workConfigStage: (id: string) => `/api/provider/admin/work-config/stage-configs/${encodeURIComponent(id)}`,
+        workConfigStages: \"/api/provider/admin/work-config/stage-configs\",
+        workConfigSla: (workType: string) => `/api/provider/admin/work-config/sla-policies/${encodeURIComponent(workType)}`,
+        workConfigExport: \"/api/provider/admin/work-config/export\",
+        workConfigImport: \"/api/provider/admin/work-config/import\",
+        workKpis: (days = 30) => `/api/provider/analytics/work-kpis?days=${days}`,
+        // ADR-016 Phase 1C/2 — user-group memberships (admin)
+        userGroups: (userId: string) => `/api/provider/admin/user-groups/${encodeURIComponent(userId)}`,
+        userGroupRemove: (userId: string, groupCode: string) =>
+            `/api/provider/admin/user-groups/${encodeURIComponent(userId)}/${encodeURIComponent(groupCode)}`,
+        // feat/backoffice-per-permission-grants — per-user permission GRANT/REVOKE
+        // (admin). Mounted on the ADMIN router at /api/admin/user-permissions.
+        userPermissions: (userId: string) => `/api/admin/user-permissions/${encodeURIComponent(userId)}`,
+        userPermission: (userId: string, permission: string) =>
+            `/api/admin/user-permissions/${encodeURIComponent(userId)}/${encodeURIComponent(permission)}`,
+        // MFA — backend mounted at /api/mfa. The TOTP setup endpoints stay
+        // provider-only; status/disable + the EMAIL-OTP enroll endpoints are
+        // authenticateAny (both portals) so HEALTH applicants can self-enroll
+        // email 2FA from /health/profile/security.
+        mfaStatus: '/api/mfa/status',
+        mfaSetup: '/api/mfa/setup',
+        mfaVerifySetup: '/api/mfa/verify-setup',
+        mfaEmailSetup: '/api/mfa/email/setup',
+        mfaEmailVerifySetup: '/api/mfa/email/verify-setup',
+        mfaDisable: '/api/mfa/disable',
+    };
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // T&T — ชั้นพนักงานติดตาม (มติ operator 2026-09-05)
+    //
+    // docs/design/2026-09-05-tnt-loop-and-farmer-updates.md §3.3: พนักงานเห็น
+    // \"ฟาร์มทุกแห่งทั้งประเทศ\" ไม่ผูกกับการมอบหมายงาน จึงไม่มีพารามิเตอร์ใดใน
+    // ชั้นนี้ที่กรองด้วยผู้รับผิดชอบ และไม่มีตัวใดจะถูกเพิ่มทีหลังโดยเงียบ ๆ ได้
+    // เพราะ `TrackingCycleQuery` ระบุชุดพารามิเตอร์ที่ประตูหลังบ้านรับไว้ครบ
+    // (routes/api/provider/handlers/planting.js: page · limit · status · q · farmId)
+    //
+    // สิ่งที่ *ไม่มี* ในไฟล์นี้โดยตั้งใจ: ใบแจ้งหนี้ ค่าธรรมเนียม ใบเสนอราคา
+    // ตารางเดียวกันของมติเขียนไว้ว่าเรื่องเงิน \"คนละหน้าที่ ไม่ได้อยู่ในคำว่าติดตาม\"
+    // payload ของหลังบ้านก็ไม่มีให้ — การเติมเข้ามาที่ชั้นนี้จึงเป็นการฝืนมติ
+    //
+    // ทุกการเรียกประตูเหล่านี้ถูกบันทึกตาม PDPA ม.39 ที่หลังบ้าน
+    // (services/farm-access-audit.js ติดไว้ที่ router) — ฝั่งจอมีหน้าที่บอกผู้ใช้
+    // ว่ากำลังถูกบันทึก ดู components/feature/farm-access-notice.tsx
+    // ─────────────────────────────────────────────────────────────────────────
+
+    /** ฟาร์มเจ้าของรอบปลูก เท่าที่ประตูติดตามส่งออกมา */
+    export interface TrackingFarmRef {
+        id: string;
+        farmName?: string | null;
+        district?: string | null;
+        province?: string | null;
+    }
+
+    export interface TrackingPagination {
+        page: number;
+        limit: number;
+        total: number;
+        totalPages: number;
+    }
+
+    /** หนึ่งแถวของรายการรอบปลูก (handler: providerPlantingCyclesList) */
+    export interface TrackingCycleListItem {
+        id: string;
+        cycleName: string;
+        status: string;
+        startDate: string | null;
+        expectedHarvestDate: string | null;
+        farm?: TrackingFarmRef | null;
+        plotCount: number;
+        cultivationMethods: string[];
+        totalAreaSqm: number;
+        counts?: {
+            activities?: number;
+            batches?: number;
+            lots?: number;
+        };
+    }
+
+    export interface TrackingCyclePlot {
+        id: string;
+        plotId: string;
+        allocatedAreaSqm: number;
+        plannedPlantCount: number;
+        plot?: {
+            id: string;
+            name?: string | null;
+            areaSqm?: number | null;
+            solarSystem?: string | null;
+        } | null;
+    }
+
+    /**
+     * รายละเอียดรอบปลูก (handler: providerPlantingCycleDetail)
+     *
+     * ไม่ประกาศ `integrity` และไม่ประกาศจำนวนต้นรายต้น: R8
+     * (docs/superpowers/specs/2026-08-20-planting-tnt-design.md) ปิดการติดตามรายต้น
+     * ไปแล้ว 2026-08-25 ประกาศฟิลด์ที่เซิร์ฟเวอร์ส่งไม่ได้ไว้ = เชิญให้มีคนมา \"กู้คืน\"
+     */
+    export interface TrackingCycleDetail {
+        id: string;
+        cycleName: string;
+        cycleNumber?: number | null;
+        status: string;
+        startDate: string | null;
+        expectedHarvestDate: string | null;
+        actualHarvestDate?: string | null;
+        varietyName?: string | null;
+        cultivationType?: string | null;
+        seedSource?: string | null;
+        soilType?: string | null;
+        irrigationType?: string | null;
+        actualYield?: number | null;
+        notes?: string | null;
+        farm?: TrackingFarmRef | null;
+        plantSpecies?: {
+            id: string;
+            code?: string | null;
+            nameTH?: string | null;
+            nameEN?: string | null;
+        } | null;
+        cyclePlots?: TrackingCyclePlot[];
+        _count?: {
+            cultivationLogs?: number;
+            batches?: number;
+            lots?: number;
+        };
+    }
+
+    /** หนึ่งบันทึกกิจกรรม (handler: providerPlantingCycleActivities) */
+    export interface TrackingActivity {
+        id: string;
+        logDate: string | null;
+        scope: string;
+        logType: string;
+        productName?: string | null;
+        quantity?: number | null;
+        unit?: string | null;
+        method?: string | null;
+        notes?: string | null;
+        recordedBy?: string | null;
+        plot?: { id: string; name?: string | null } | null;
+    }
+
+    /** หนึ่งแถว QR ประจำแปลง (services/plot-qr-row.js) */
+    export interface TrackingPlotQr {
+        cyclePlotId: string;
+        plotId: string | null;
+        plotName: string | null;
+        plotCode: string | null;
+        qrIssuedAt: string | null;
+        qrRevokedAt: string | null;
+        qrCode: string | null;
+        seasonalQrCode: string | null;
+        trackingUrl: string | null;
+        status?: string;
+        cultivationMethod: string;
+        allocatedAreaSqm: number;
+        plannedPlantCount: number;
+    }
+
+    /**
+     * ผลของการอ่านหนึ่งครั้ง
+     *
+     * `ok` แยก \"อ่านไม่สำเร็จ\" ออกจาก \"อ่านสำเร็จแล้วไม่มีข้อมูล\" อย่างชัดเจน
+     * หน้าจอที่รวมสองอย่างนี้เข้าด้วยกันจะแสดงตารางว่างเมื่อ API ล่ม ซึ่งอ่านได้ว่า
+     * \"ไม่มีฟาร์ม\" — เป็นการรายงานเท็จต่อผู้ใช้
+     */
+    export type TrackingReadResult<T> =
+        | { ok: true; data: T; pagination: TrackingPagination | null }
+        | { ok: false; error: string };
+
+    const TRACKING_READ_FAILED_TH = 'อ่านข้อมูลจากระบบไม่สำเร็จ';
+
+    function toPagination(meta: Record<string, unknown> | undefined): TrackingPagination | null {
+        const raw = meta && (meta.pagination as Record<string, unknown> | undefined);
+        if (!raw || typeof raw !== 'object') {
+            return null;
+        }
+        return {
+            page: Number(raw.page || 1),
+            limit: Number(raw.limit || 0),
+            total: Number(raw.total || 0),
+            totalPages: Number(raw.totalPages || 1),
+        };
+    }
+
+    /** พารามิเตอร์ที่ประตูรายการรับจริง ไม่มีตัวกรอง \"งานที่ได้รับมอบหมาย\" ตามมติ */
+    export interface TrackingCycleQuery {
+        page?: number;
+        limit?: number;
+        /** สถานะรอบปลูก (PLANNING · PLANTED · GROWING · READY_HARVEST · HARVESTED · COMPLETED) */
+        status?: string | null;
+        /** ค้นจากชื่อรอบปลูกหรือชื่อฟาร์ม */
+        q?: string | null;
+        farmId?: string | null;
+    }
+
+    export interface TrackingActivityQuery {
+        page?: number;
+        limit?: number;
+        scope?: string | null;
+        activityType?: string | null;
+    }
+
+    function toQueryString(params: Record<string, string | number | null | undefined>): string {
+        const search = new URLSearchParams();
+        for (const [key, value] of Object.entries(params)) {
+            if (value === null || value === undefined || value === '') {
+                continue;
+            }
+            search.set(key, String(value));
+        }
+        const query = search.toString();
+        return query ? `?${query}` : '';
+    }
+
+    function asArray<T>(value: unknown): T[] {
+        return Array.isArray(value) ? (value as T[]) : [];
+    }
+
+    export const providerTrackingApi = {
+        /** รอบปลูกของฟาร์มทุกแห่งทั้งประเทศ (ไม่กรองตามการมอบหมาย — มติ 2026-09-05) */
+        async listCycles(query: TrackingCycleQuery = {}): Promise<TrackingReadResult<TrackingCycleListItem[]>> {
+            const result = await apiClient.get<TrackingCycleListItem[]>(
+                providerApiPaths.plantingCycles(toQueryString({
+                    page: query.page,
+                    limit: query.limit,
+                    status: query.status,
+                    q: query.q,
+                    farmId: query.farmId,
+                })),
+            );
+            if (!result.success) {
+                return { ok: false, error: result.error || TRACKING_READ_FAILED_TH };
+            }
+            return {
+                ok: true,
+                data: asArray<TrackingCycleListItem>(result.data),
+                pagination: toPagination(result.meta),
+            };
+        },
+
+        async getCycle(cycleId: string): Promise<TrackingReadResult<TrackingCycleDetail>> {
+            const result = await apiClient.get<TrackingCycleDetail>(providerApiPaths.plantingCycleDetail(cycleId));
+            if (!result.success || !result.data) {
+                return { ok: false, error: result.error || TRACKING_READ_FAILED_TH };
+            }
+            return { ok: true, data: result.data, pagination: null };
+        },
+
+        async listActivities(
+            cycleId: string,
+            query: TrackingActivityQuery = {},
+        ): Promise<TrackingReadResult<TrackingActivity[]>> {
+            const result = await apiClient.get<TrackingActivity[]>(
+                providerApiPaths.plantingCycleActivities(cycleId, toQueryString({
+                    page: query.page,
+                    limit: query.limit,
+                    scope: query.scope,
+                    activityType: query.activityType,
+                })),
+            );
+            if (!result.success) {
+                return { ok: false, error: result.error || TRACKING_READ_FAILED_TH };
+            }
+            return {
+                ok: true,
+                data: asArray<TrackingActivity>(result.data),
+                pagination: toPagination(result.meta),
+            };
+        },
+
+        async listPlotQrs(cycleId: string): Promise<TrackingReadResult<TrackingPlotQr[]>> {
+            const result = await apiClient.get<TrackingPlotQr[]>(providerApiPaths.plantingCyclePlotQrs(cycleId));
+            if (!result.success) {
+                return { ok: false, error: result.error || TRACKING_READ_FAILED_TH };
+            }
+            return { ok: true, data: asArray<TrackingPlotQr>(result.data), pagination: null };
+        },
+    };
+    "
+
+       95 |
+       96 |     it('the web app offers no email 2FA anywhere', () => {
+    >  97 |         expect(read(path.join(WEB, 'lib', 'services', 'provider-api.ts'))).not.toMatch(/mfa\/email/);
+          |                                                                                ^
+       98 |         const farmerSecurity = read(path.join(WEB, 'app', 'health', 'profile', 'security', 'page.tsx'));
+       99 |         expect(farmerSecurity).not.toMatch(/mfa\/email|emailSetup|emailVerifySetup/);
+      100 |     });
+
+      at Object.toMatch (__tests__/unit/second-factor-is-totp-only.test.js:97:80)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: [Password] Reset successful for user: user-1 {"service":"auth-password","timestamp":"2026-09-15T11:19:12.105Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-15T11:19:12.138Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-15T11:19:12.483Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0129","service":"auth-service","timestamp":"2026-09-15T11:19:12.829Z"}
+FAIL __tests__/unit/auth-service-audit-fixes.test.js
+  B-01: Password Reset
+    requestPasswordReset
+      ✕ never creates a reset token — there is no channel that could deliver it (2 ms)
+      ✓ answers every identifier identically — nothing to enumerate (3 ms)
+    resetPasswordWithToken
+      ✓ should reset password when token is valid and not expired (361 ms)
+      ✓ should reject expired or invalid token (4 ms)
+      ✓ should reject missing token (9 ms)
+      ✓ should reject a password that fails the strong-password policy (2 ms)
+  H-05: updateProfile Whitelist
+    ✓ should allow whitelisted fields (1 ms)
+    ✓ should BLOCK role escalation attempt (1 ms)
+    ✓ should BLOCK status manipulation (1 ms)
+    ✓ should BLOCK password change via profile update (1 ms)
+    ✓ should throw when no valid fields provided (6 ms)
+  H-04: OCR Bypass Toggle (ENABLE_OCR_BYPASS)
+    ✓ should default to PENDING_VERIFICATION when bypass is off (346 ms)
+    ✓ should auto-approve when ENABLE_OCR_BYPASS=true (env bypass) (345 ms)
+    ✓ should auto-approve ALL IDs when bypass is on (no ID-ending-in-9 exception) (344 ms)
+
+  ● B-01: Password Reset › requestPasswordReset › never creates a reset token — there is no channel that could deliver it
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /หมอพร้อม|ThaID/
+    Received string:  "If an account exists, a reset link has been sent."
+
+      80 |
+      81 |             expect(result.success).toBe(true);
+    > 82 |             expect(result.message).toMatch(/หมอพร้อม|ThaID/);
+         |                                    ^
+      83 |             expect(mockPrismaUser.findFirst).not.toHaveBeenCalled();
+      84 |             expect(mockPrismaUser.update).not.toHaveBeenCalled();
+      85 |         });
+
+      at Object.toMatch (__tests__/unit/auth-service-audit-fixes.test.js:82:36)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/auth-idp-thaid-session.test.js:418:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/auth-idp-thaid-session.test.js:418:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at mintMfaChallengeToken (routes/api/auth/auth-idp.js:321:33)
+      at routes/api/auth/auth-idp.js:516:20
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at verifyToken (routes/api/identity/mfa.js:395:37)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at next (__tests__/unit/auth-idp-thaid-session.test.js:127:52)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:284:15
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at Function.handle (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:175:3)
+      at router (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:328:13)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at ../../node_modules/.pnpm/body-parser@1.20.6/node_modules/body-parser/lib/read.js:137:5
+      at invokeCallback (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:238:16)
+      at done (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:227:7)
+      at IncomingMessage.onEnd (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:287:7)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at verifyToken (routes/api/identity/mfa.js:395:37)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at next (__tests__/unit/auth-idp-thaid-session.test.js:127:52)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:284:15
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at Function.handle (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:175:3)
+      at router (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:328:13)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at ../../node_modules/.pnpm/body-parser@1.20.6/node_modules/body-parser/lib/read.js:137:5
+      at invokeCallback (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:238:16)
+      at done (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:227:7)
+      at IncomingMessage.onEnd (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:287:7)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at verifyToken (routes/api/identity/mfa.js:397:37)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at next (__tests__/unit/auth-idp-thaid-session.test.js:127:52)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:284:15
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at Function.handle (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:175:3)
+      at router (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:328:13)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at ../../node_modules/.pnpm/body-parser@1.20.6/node_modules/body-parser/lib/read.js:137:5
+      at invokeCallback (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:238:16)
+      at done (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:227:7)
+      at IncomingMessage.onEnd (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:287:7)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at verifyToken (routes/api/identity/mfa.js:397:37)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at next (__tests__/unit/auth-idp-thaid-session.test.js:127:52)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:149:13)
+      at Route.dispatch (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/route.js:119:3)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:284:15
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at Function.handle (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:175:3)
+      at router (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:47:12)
+      at Layer.handle [as handle_request] (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/layer.js:95:5)
+      at trim_prefix (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:328:13)
+      at ../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:286:9
+      at Function.process_params (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:346:12)
+      at next (../../node_modules/.pnpm/express@4.22.1/node_modules/express/lib/router/index.js:280:10)
+      at ../../node_modules/.pnpm/body-parser@1.20.6/node_modules/body-parser/lib/read.js:137:5
+      at invokeCallback (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:238:16)
+      at done (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:227:7)
+      at IncomingMessage.onEnd (../../node_modules/.pnpm/raw-body@2.5.3/node_modules/raw-body/index.js:287:7)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (routes/api/identity/mfa.js:638:37)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (routes/api/identity/mfa.js:638:37)
+
+FAIL __tests__/unit/auth-idp-thaid-session.test.js
+  resolveThaidSession — status gate (auth-idp.js)
+    ✓ SUSPENDED existing user → 403 ACCOUNT_INACTIVE, NO session minted, audit FAILURE (89 ms)
+    ✓ ACTIVE user (HEALTH role) → 200, session minted via issueTokensForAuthenticatedUser, auth_token cookie (Item 1) (17 ms)
+    ✓ PENDING_VERIFICATION (freshly provisioned citizen) → 200, session minted, auth_token cookie (18 ms)
+  resolveThaidSession — MFA gate at the mint boundary (R-A Task 2)
+    ✓ (a) TOTP-enrolled user → mfa challenge contract, NO tokens, NO session cookie, NO identity_links write (Item 2) (36 ms)
+    ✕ (b) a service result naming the retired EMAIL method fails closed — no challenge, no cookies, NO identity_links write (53 ms)
+    ✓ (c) existing-link user w/ 2FA enrolled → challenge, NO identity_links touch (22 ms)
+    ✓ the minted mfa_session decodes with purpose=mfa_challenge + the correct method claim (23 ms)
+  ThaID-minted mfa_session is verifiable at POST /api/mfa/verify (R-A Task 2)
+    ✓ completes login: real challenge mint → real /verify accepts it (binding + purpose pass) (61 ms)
+  resolveThaidSession — existing-link rider surfaces at the route (R-A Task 2)
+    ✓ (d) staff existing-link rejection (AUTH_AUTOPROVISION_ROLE_FORBIDDEN) → 403 + audit FAILURE, no mint (16 ms)
+
+  ● resolveThaidSession — MFA gate at the mint boundary (R-A Task 2) › (b) a service result naming the retired EMAIL method fails closed — no challenge, no cookies, NO identity_links write
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not true
+
+      376 |         const res = await callback(app, flow);
+      377 |
+    > 378 |         expect(res.body?.data?.mfa_required).not.toBe(true);
+          |                                                  ^
+      379 |         expect(res.body?.data?.mfa_session).toBeUndefined();
+      380 |         const setCookie = (res.headers['set-cookie'] || []).join(';');
+      381 |         expect(setCookie).not.toMatch(/provider_token=/);
+
+      at Object.toBe (__tests__/unit/auth-idp-thaid-session.test.js:378:50)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/entities-management-routes.test.js
+  Wave C PR-4 — POST /api/entities (create workspace)
+    ✓ creates a JURISTIC workspace (24 ms)
+    ✓ rejects INDIVIDUAL with 400 (9 ms)
+    ✓ rejects with 400 on validation failure (11 ms)
+  Wave C PR-4 — GET /api/entities/:id
+    ✓ returns the entity when caller is a member (by uuid) (8 ms)
+    ✓ returns the entity when caller is a member (by slug) (9 ms)
+    ✓ returns 404 when not a member (no membership probing) (9 ms)
+  Wave C PR-4 — PATCH /api/entities/:id (rename)
+    ✓ OWNER can rename (9 ms)
+    ✓ VIEWER gets 403 (8 ms)
+    ✓ 400 when no fields supplied (8 ms)
+  Wave C PR-4 — POST /api/entities/:id/members (invite)
+    ✓ OWNER invites a MANAGER by healthId (9 ms)
+    ✓ rejects role=OWNER (transfer-ownership only) (7 ms)
+    ✓ ADMIN cannot invite another ADMIN (8 ms)
+    ✓ returns 404 when invitee not found (8 ms)
+    ✓ returns 409 AMBIGUOUS_INVITEE on email collision (7 ms)
+    ✓ never sends an invitation email, even when invitee has email on file (email leg removed T1) (10 ms)
+    ✓ skips invitation email when invitee has no email on file (9 ms)
+    ✓ VIEWER cannot invite (403) (8 ms)
+    ✓ writes an INVITED audit row when inviting a fresh member (10 ms)
+    ✓ writes a ROLE_CHANGED audit row when promoting an existing member (10 ms)
+    ✓ writes NO audit row on idempotent re-invite (same role, no change) (8 ms)
+  Wave C PR-4 — DELETE /api/entities/:id/members/:memberUserId
+    ✓ OWNER revokes a MANAGER (10 ms)
+    ✓ writes a REVOKED audit row alongside the membership update (8 ms)
+    ✓ writes NO audit row on idempotent re-revoke (already REVOKED) (8 ms)
+    ✓ blocks revoking OWNER (transfer-ownership only) (7 ms)
+    ✓ VIEWER cannot revoke (9 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/entity-detail-pii-mask.test.js
+  M1.5 H2 — presentEntityForMember masks both national-ID carriers
+    ✓ masks thaiCitizenId and payload.director.idCard for EVERY role including OWNER (2 ms)
+    ✓ survives INDIVIDUAL shape: payload null / no director (1 ms)
+    ✓ does not mutate the row it was handed (the caller may still hold the Prisma object)
+    ✓ leaves a null / absent id card alone rather than masking it into a string
+  M1.5 H2 — GET /api/entities/:id masks for every role
+    ✓ role VIEWER receives masked national IDs (15 ms)
+    ✓ role MANAGER receives masked national IDs (7 ms)
+    ✓ role ADMIN receives masked national IDs (10 ms)
+    ✓ role OWNER receives masked national IDs (7 ms)
+    ✓ an INDIVIDUAL entity with a null payload still answers 200 (8 ms)
+  M1.5 H2 — the create / update echoes are masked too (same helper, three endpoints)
+    ✓ PATCH /api/entities/:id echoes the updated row masked (12 ms)
+    ✓ POST /api/entities echoes the created workspace masked (9 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/entity-claim-guard.test.js
+  M1.5 H1 — an existing org workspace cannot be claimed by its registration number
+    ✓ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row with membershipStatus:null (2 ms)
+    ✓ the refusal audit row carries a HASH, never the raw registration number (2 ms)
+    ✓ PENDING invitee → 409 with the "accept your invitation" message (4 ms)
+    ✓ ACTIVE non-OWNER → 409 telling them to switch workspace, and NO silent upgrade to OWNER (2 ms)
+    ✓ an OWNER row that is NOT ACTIVE (REVOKED ex-owner / PENDING invite) → 409, NO write (M1.5 audit MEDIUM-1 pin) (1 ms)
+    ✓ the real OWNER retrying → idempotent success, NO write (2 ms)
+    ✓ a brand-new registration number → create entity + OWNER membership (unchanged) (2 ms)
+  M1.5 H1 — the same guard on ensureCommunityEntity
+    ✓ stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row (2 ms)
+    ✓ PENDING invitee → 409 with the "accept your invitation" message (1 ms)
+    ✓ the real OWNER retrying → idempotent success, NO write (1 ms)
+    ✓ a brand-new DOAE number → create entity + OWNER membership (unchanged) (1 ms)
+  M1.5 H1 — POST /api/entities surfaces the refusal as 409, not 500
+    ✓ someone else already registered the tax ID → HTTP 409 + code, no membership write (19 ms)
+    ✓ a free registration number still creates the workspace (200) (9 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/identity/mfa.js:21:51)
+      at require (__tests__/unit/redis-outage-fail-closed.test.js:350:23)
+      at Object.describe (__tests__/unit/redis-outage-fail-closed.test.js:349:1)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/identity/mfa.js:21:51)
+      at require (__tests__/unit/redis-outage-fail-closed.test.js:350:23)
+      at Object.describe (__tests__/unit/redis-outage-fail-closed.test.js:349:1)
+
+[33mwarn[39m: Cache GET error for reports:stats: {"service":"redis-service","timestamp":"2026-09-15T11:19:16.171Z"}
+[33mwarn[39m: Cache SET error for reports:stats: {"service":"redis-service","timestamp":"2026-09-15T11:19:16.174Z"}
+PASS __tests__/unit/redis-outage-fail-closed.test.js
+  redis-service — strict accessors distinguish "unavailable" from "absent"
+    ✓ exposes a strict read accessor (the capability authoritative callers need) (2 ms)
+    ✓ getStrict REJECTS when the store is not connected (16 ms)
+    ✓ getStrict REJECTS with code REDIS_UNAVAILABLE (stable machine identifier) (1 ms)
+    ✓ getStrict REJECTS when the underlying client rejects (broken socket) (5 ms)
+    ✓ getStrict never puts the raw key in the error message (keys carry jti/userId) (1 ms)
+    ✓ getStrict RESOLVES null on a genuine miss (store healthy, key absent) (2 ms)
+    ✓ getStrict RESOLVES the parsed value on a hit (1 ms)
+    ✓ setStrict REJECTS when the store is not connected (1 ms)
+    ✓ setStrict REJECTS when the underlying client rejects (1 ms)
+    ✓ setStrict RESOLVES true on a healthy write (1 ms)
+  redis-service — cache callers keep graceful degradation (regression guard)
+    ✓ get() still resolves null when not connected (never throws) (1 ms)
+    ✓ get() still resolves null when the client rejects (never throws) (2 ms)
+    ✓ set() still resolves false when not connected (never throws) (1 ms)
+    ✓ set() still resolves false when the client rejects (never throws) (2 ms)
+    ✓ setNX() still resolves false when not connected (dedupe degrades, no throw) (1 ms)
+    ✓ del() still resolves false when not connected (never throws) (1 ms)
+    ✓ getOrSet() still falls through to the fetch fn when the store is down (1 ms)
+  token-revocation — refresh-token blocklist FAILS CLOSED on a real outage
+    ✓ isRefreshTokenBlocklisted → TRUE when the store is not connected (1 ms)
+    ✓ isRefreshTokenBlocklisted → TRUE when the client rejects (5 ms)
+    ✓ isRefreshTokenBlocklisted → FALSE on a genuine miss (store healthy) (2 ms)
+    ✓ isRefreshTokenBlocklisted → TRUE on a genuine hit (store healthy) (1 ms)
+    ✓ still returns false for a falsy jti without touching the store (1 ms)
+  token-revocation — session-family blocklist FAILS CLOSED on a real outage
+    ✓ isSessionFamilyBlocklisted → TRUE when the store is not connected (1 ms)
+    ✓ isSessionFamilyBlocklisted → TRUE when the client rejects (1 ms)
+    ✓ isSessionFamilyBlocklisted → FALSE on a genuine miss (store healthy) (1 ms)
+    ✓ invalidateSessionFamily REJECTS when the store is not connected (reuse-detection write must not be swallowed) (6 ms)
+    ✓ invalidateSessionFamily REJECTS when the client rejects (1 ms)
+    ✓ invalidateSessionFamily still no-ops on a falsy familyId (1 ms)
+  token-revocation — refresh-token ALLOWLIST fails closed on a real outage
+    ✓ isRefreshTokenValid → FALSE when the store is not connected (1 ms)
+    ✓ isRefreshTokenValid → FALSE when the client rejects (1 ms)
+    ✓ logs the outage instead of silently treating it as "not allowlisted" (1 ms)
+  token-revocation — access-token blocklist keeps the documented fail-OPEN, but the alert MUST fire
+    ✓ isAccessTokenBlocklisted → FALSE when the store is not connected (documented policy, unchanged) (1 ms)
+    ✓ emits ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE when the store is NOT CONNECTED (previously dead code) (2 ms)
+    ✓ emits the same alert when the client rejects (1 ms)
+    ✓ does NOT emit the alert on a genuine miss (healthy store, absent key) (1 ms)
+    ✓ the alert never carries the full jti (truncated prefix only) (1 ms)
+  token-revocation — MFA challenge lookup fails closed on a real outage
+    ✓ consumeMfaChallenge → null when the store is not connected (challenge cannot be honoured) (1 ms)
+    ✓ consumeMfaChallenge → null when the client rejects (1 ms)
+    ✓ issueMfaChallenge REJECTS rather than handing back a challenge the store never persisted (4 ms)
+    ✓ issueMfaChallenge → consumeMfaChallenge round-trips on a healthy store (1 ms)
+  MFA verify route — the OTP failure map has an honest Thai answer for an unavailable store
+    ✓ exports the OTP-failure map for regression testing (2 ms)
+    ✓ STORE_UNAVAILABLE maps to 503 (retryable), never to a success (1 ms)
+    ✓ the Thai message names the cause and the next action, addresses คุณ, and uses no em dash (1 ms)
+    ✓ keeps the pre-existing EXPIRED / TOO_MANY / INVALID mappings intact (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/entity-member-permission-grant-reason-pii.test.js
+  M5 — a national ID inside `reason` never reaches either sink in plaintext
+    ✓ route PUT: grant row AND event metadata receive the MASKED reason (19 ms)
+    ✓ service-level (source): setMemberPermissionGrant masks a whole-string ID reason for ANY caller (2 ms)
+    ✓ a 13-digit run inside a longer digit run is NOT mangled (not an ID) (3 ms)
+  S10 — reason bounds (when provided): trimmed >= 5 and <= 500
+    ✓ PUT with a too short reason → 400 VALIDATION_ERROR, nothing persisted (9 ms)
+    ✓ PUT with a too long reason → 400 VALIDATION_ERROR, nothing persisted (8 ms)
+    ✓ PUT without a reason stays valid (reason is optional) (15 ms)
+    ✓ PUT with a 5-char and a 500-char reason both pass (15 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/entity-my-permissions-route.test.js
+  GET /entities/:id/my-permissions
+    ✓ ACTIVE member → 200 with role + effective (role baseline) + personal:false on a workspace (15 ms)
+    ✓ grants are applied — a REVOKE drops the permission from effective (11 ms)
+    ✓ GRANT widens a VIEWER (empty baseline) to exactly the granted code (13 ms)
+    ✓ requester with NO membership on the entity → 404 (anti-probing) (7 ms)
+    ✓ PENDING / REVOKED membership → 404 (getEntityForMember filters ACTIVE) (8 ms)
+    ✓ OWNER on their own personal INDIVIDUAL entity → personal:true (9 ms)
+    ✓ non-OWNER member of someone else's INDIVIDUAL entity → personal:false (real workspace) (7 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:21:23)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:21:23)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:25:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:25:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:34:23)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:34:23)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:35:26)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:35:26)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:43:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:43:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:49:23)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as generateToken] (config/jwt-security.js:183:23)
+      at generateToken (shared/mfa-challenge-binding.js:64:22)
+      at Object.mintMfaChallengeToken (__tests__/unit/mint-mfa-challenge-token.test.js:49:23)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:51:26)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at Object.verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:51:26)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at warn (config/jwt-security.js:112:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:53:32)
+      at Object.<anonymous> (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/toThrowMatchers.js:74:11)
+      at Object.throwingMatcher [as toThrow] (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:320:21)
+      at Object.toThrow (__tests__/unit/mint-mfa-challenge-token.test.js:53:62)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at warn (config/jwt-security.js:116:13)
+      at getJWTConfiguration (config/jwt-security.js:142:34)
+      at Object.getTokenConfig [as verifyToken] (config/jwt-security.js:166:23)
+      at verifyToken (__tests__/unit/mint-mfa-challenge-token.test.js:53:32)
+      at Object.<anonymous> (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/toThrowMatchers.js:74:11)
+      at Object.throwingMatcher [as toThrow] (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:320:21)
+      at Object.toThrow (__tests__/unit/mint-mfa-challenge-token.test.js:53:62)
+
+FAIL __tests__/unit/mint-mfa-challenge-token.test.js
+  mintMfaChallengeToken
+    ✓ mints a verifiable JWT with purpose=mfa_challenge + the client binding (9 ms)
+    ✓ defaults method to TOTP when omitted (existing authenticator users) (13 ms)
+    ✕ refuses to mint an EMAIL challenge — the email second factor is retired (operator 2026-09-15) (5 ms)
+    ✓ signs with the provider key for the provider portal (not verifiable as public) (20 ms)
+
+  ● mintMfaChallengeToken › refuses to mint an EMAIL challenge — the email second factor is retired (operator 2026-09-15)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "MFA_METHOD_RETIRED"
+    Received: undefined
+
+      43 |             mintMfaChallengeToken({ userId: 'u-3', method: 'EMAIL', ip, userAgent: ua, tokenType: 'public' });
+      44 |         } catch (e) { err = e; }
+    > 45 |         expect(err && err.code).toBe('MFA_METHOD_RETIRED');
+         |                                 ^
+      46 |     });
+      47 |
+      48 |     it('signs with the provider key for the provider portal (not verifiable as public)', () => {
+
+      at Object.toBe (__tests__/unit/mint-mfa-challenge-token.test.js:45:33)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/sla-processor.test.js
+  cleanup T1 — checkSlaBreaches in-app write survives byte-identical
+    ✓ calls notifySlaBreach(app.id, daysStuck, app.applicationNumber) for a stale application (3 ms)
+  cleanup T1 — removal pin (E1 SLA-breach ops email deleted)
+    ✕ has no email transport to call at all, even with SLA_ALERT_EMAILS populated (operator 2026-09-15: no email in the system) (7 ms)
+
+  ● cleanup T1 — removal pin (E1 SLA-breach ops email deleted) › has no email transport to call at all, even with SLA_ALERT_EMAILS populated (operator 2026-09-15: no email in the system)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      78 |         const fs = require('fs');
+      79 |         const path = require('path');
+    > 80 |         expect(fs.existsSync(path.join(__dirname, '..', '..', 'services', 'email-service.js'))).toBe(false);
+         |                                                                                                 ^
+      81 |         const src = fs.readFileSync(path.join(__dirname, '..', '..', 'jobs', 'sla-processor.js'), 'utf-8');
+      82 |         expect(src).not.toMatch(/email-service|sendSLABreachNotification/);
+      83 |     });
+
+      at Object.toBe (__tests__/unit/sla-processor.test.js:80:97)
+
+Test Suites: 5 failed, 6 passed, 11 total
+Tests:       13 failed, 132 passed, 145 total
+Snapshots:   0 total
+Time:        7.556 s
+Ran all test suites matching /__tests__\/unit\/second-factor-is-totp-only.test.js|__tests__\/unit\/mint-mfa-challenge-token.test.js|__tests__\/unit\/auth-idp-thaid-session.test.js|__tests__\/unit\/auth-service-audit-fixes.test.js|__tests__\/unit\/sla-processor.test.js|__tests__\/unit\/redis-outage-fail-closed.test.js|__tests__\/unit\/entities-management-routes.test.js|__tests__\/unit\/entity-detail-pii-mask.test.js|__tests__\/unit\/entity-claim-guard.test.js|__tests__\/unit\/entity-member-permission-grant-reason-pii.test.js|__tests__\/unit\/entity-my-permissions-route.test.js/i.

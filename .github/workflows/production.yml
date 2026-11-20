@@ -1,0 +1,382 @@
+# ⚠️  ใช้ไม่ได้ตั้งแต่ 2026-08-14 — บัญชี Actions ค้างชำระ ไฟล์นี้จึงรันไม่ขึ้นเลย
+#
+# ยืนยันแล้วสองที่: docs/operations/runbooks/deploy-staging-manual.md บันทึกไว้ว่า
+# "build-images.yml cannot run (Actions unpaid, 2026-08-14) so no new tag ever reaches
+# the registry" และ staging-walkthrough.yml:5-11 บอกว่าการล็อกกินไปถึง self-hosted ด้วย
+#
+# ทางที่ใช้ได้จริงคือ build บนเครื่องแล้วรันสคริปต์เดียวกันนี้ด้วยมือ:
+#   1) docs/operations/runbooks/build-images-on-the-box.md   (ส่ง --build-arg GIT_SHA/BUILT_AT
+#      ให้ครบ ไม่งั้น /api/health จะตอบ revision: null และบอกไม่ได้ว่าเครื่องรัน sha ไหน)
+#   2) sudo IMAGE_TAG=local-<sha12> /opt/gacp-platform/scripts/deploy/deploy-staging.sh
+#
+# อย่าลบไฟล์นี้ทิ้ง — มันคือรูปแบบที่ถูกต้องของลำดับ deploy และเป็นสิ่งที่จะกลับมาใช้
+# ทันทีที่ billing ถูกปลด · ที่เติมหัวนี้เพราะมีคนอ่านไฟล์นี้แล้วสั่งให้กด Run workflow
+# โดยไม่รู้ว่ามันรันไม่ได้ (2026-09-10)
+
+name: Production Release Workflow
+
+# Phase 59 fix — also trigger on push to deploy/production. Before this
+# change, the workflow fired only on `v*` tag push or manual
+# workflow_dispatch. The expected flow per docs/operations/deploy-runbook.md
+# was that pushing to deploy/production auto-deployed via ci.yml's deploy
+# job, but ci.yml's `on.push.branches` is `[main, develop]` so that job
+# was unreachable — pushes to deploy/production silently produced GHCR
+# images that nothing pulled. See
+# docs/audit/2026-05-01-frontend-backend-route-mismatches.md for the
+# discovery context.
+#
+# Both safety gates remain in place inside the jobs (release-test-gate
+# blocks deploy on red unit suite; deploy-production is gated by
+# vars.ENABLE_PRODUCTION_DEPLOY=='true'). Adding the branch trigger
+# closes the automation gap without weakening either guard.
+#
+# ── 2026-08-13: automatic triggers removed ──────────────────────────────
+# The Phase 59 reasoning above was sound when this box ran a production
+# stack. It no longer does: the operator declared on 2026-08-13 that
+# 43.134.175.51 is STAGING ONLY. The automatic triggers had become a way
+# for a production deploy to fire at a machine that only serves staging.
+#
+# Why that mattered in practice, not in theory:
+#   - `refs/heads/deploy/production` EXISTS on origin (78f26732), so the
+#     branch trigger was live, not hypothetical.
+#   - deploy-production checks out over /opt/gacp-platform and then runs
+#     `docker compose ... up -d --build backend frontend nginx`, and that
+#     nginx container is SHARED with staging — so a production deploy
+#     disrupts the only environment currently in use.
+#   - The remaining guard is `vars.ENABLE_PRODUCTION_DEPLOY`, a repository
+#     variable that can be flipped in the GitHub UI with no diff and no
+#     review. A mutable variable is not a merge-gated control.
+#
+# This also brings the file in line with a rule the repo had already
+# written down but only half-enforced: ci.yml's promote job states
+# "§0 NO-AUTO-DEPLOY: advancing deploy/production must be an EXPLICIT
+# operator action, never an automatic consequence of a push" and backs it
+# with `if: false` (ci.yml:1085). That guard covered ci.yml only — this
+# workflow kept a live automatic path to the same branch. Same rule, both
+# files now.
+#
+# Note for whoever reads CLAUDE.md L5 and expects this to already be safe:
+# the `if: false` guard cited there is the ci.yml one. It never covered
+# this workflow. This file was the second, ungoverned deploy path.
+#
+# `workflow_dispatch` is kept deliberately — the operator must still be
+# able to deploy on purpose. Restoring the automatic triggers is a
+# deliberate act that now needs a reviewed diff.
+# See reports/risk-assessment/2026-08-13.md §4 R1.
+on:
+  workflow_dispatch:
+
+env:
+  NODE_VERSION: '24'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  validate-release-topology:
+    name: Validate Release Topology
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate production topology
+        run: node scripts/ci/check-production-topology.js
+
+      - name: Validate infrastructure contracts
+        run: node scripts/ci/check-infra-contracts.js
+
+  # Phase 1 #1.10 — production-grade test gate.
+  # Before this commit, deploy-production only depended on
+  # validate-release-topology. A red unit suite on main would still ship
+  # to prod on tag. This job runs the same backend test surface that
+  # ci.yml already runs on every PR; deploy-production now blocks on it.
+  release-test-gate:
+    name: Release Test Gate
+    runs-on: ubuntu-latest
+    needs: validate-release-topology
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # The repo is a pnpm workspace (root pnpm-lock.yaml + pnpm-workspace.yaml).
+      # No `package-lock.json` exists. Use the pnpm action + pnpm cache.
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      # `--ignore-scripts` above skips Prisma's postinstall `prisma generate`,
+      # so the @prisma/client runtime is absent and any suite that requires it
+      # fails ("Cannot find module '.prisma/client/default'"). ci.yml generates
+      # it before the same curated test surface; mirror that here so the
+      # Release Test Gate matches the (passing) PR gate.
+      - name: Generate Prisma Client
+        working-directory: apps/backend
+        run: npx prisma generate
+
+      - name: System integrity check
+        run: node scripts/system-integrity-check.js
+
+      - name: Tenant convention guardrail (ADR-014)
+        run: node scripts/ci/check-tenant-conventions.js
+
+      - name: Backend unit suite
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/test
+        run: |
+          pnpm --filter gacp-backend exec jest --config jest.config.cjs \
+            --testPathPatterns '__tests__/(simple|tenant-context|crypto-service|security-nonce|unit/applications-draft|unit/provider-legacy|unit/two-money-flow-contract|unit/error-codes-catalog|unit/tenant-scope-drift|unit/daily-cash-report-service|unit/bank-reconciliation-service|unit/admin-routes-rbac|unit/provider-admin-shim-rbac)' \
+            --no-coverage --forceExit
+
+      - name: Backend lint (no new warnings)
+        run: node scripts/ci/check-no-new-eslint-warnings.js
+
+  build-and-push-images:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    # Phase 1 #1.10: image publish is also gated behind tests so we
+    # never push a known-bad image to GHCR.
+    needs: [validate-release-topology, release-test-gate]
+    if: vars.ENABLE_IMAGE_PUBLISH == 'true'
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        service: [backend, frontend]
+        include:
+          - service: backend
+            dockerfile: ./apps/backend/Dockerfile
+            context: .
+          - service: frontend
+            dockerfile: ./apps/web-app/Dockerfile
+            context: .
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+            latest
+
+      - name: Build and Push
+        uses: docker/build-push-action@v5
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          platforms: linux/amd64,linux/arm64
+          # Build identity (design-reproducibility/01-build-identity): this is
+          # the actual production image build — it was pushing with NEITHER
+          # build-arg set, so GET /api/webapp-version on a freshly deployed
+          # production server would always answer null and
+          # scripts/probes/deploy-drift.sh could never confirm what shipped.
+          # Same args as build-images.yml, applied to both matrix legs since
+          # both Dockerfiles (apps/backend, apps/web-app) already declare
+          # these ARGs.
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILT_AT=${{ github.event.repository.updated_at }}
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    # Phase 1 #1.10: deploy is now blocked behind the test gate, not just
+    # the topology validator. A red unit suite on the release tag now
+    # fails the workflow before image build and ssh deploy run.
+    needs: [validate-release-topology, release-test-gate]
+    if: vars.ENABLE_PRODUCTION_DEPLOY == 'true'
+    environment:
+      name: production
+      url: ${{ vars.PRODUCTION_PUBLIC_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.PRODUCTION_SSH_KEY }}
+
+      # Pre-flight env note — SENTRY_DSN is OPTIONAL (never a boot gate). Error
+      # tracking was re-added 2026-10-02 by operator decision, with PII scrubbing
+      # (apps/backend/config/sentry.js); empty DSN = off. This step is
+      # informational only and never aborts.
+      - name: Pre-flight note — production env (SENTRY_DSN optional)
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+        run: |
+          ssh -o StrictHostKeyChecking=no "$PRODUCTION_USER@$PRODUCTION_HOST" <<'EOF'
+            set -euo pipefail
+            cd /opt/gacp-platform
+            if grep -qE "^SENTRY_DSN=." .env.production 2>/dev/null; then
+              echo "✓ SENTRY_DSN is set (optional) — error tracking on (PII-scrubbed)."
+            else
+              echo "ℹ SENTRY_DSN not set (optional) — error tracking off."
+            fi
+          EOF
+
+      - name: Deploy single-host production baseline
+        env:
+          PRODUCTION_HOST: ${{ secrets.PRODUCTION_HOST }}
+          PRODUCTION_USER: ${{ secrets.PRODUCTION_USER }}
+          RELEASE_REF: ${{ github.ref_name }}
+          RELEASE_SHA: ${{ github.sha }}
+        run: |
+          ssh -o StrictHostKeyChecking=no "$PRODUCTION_USER@$PRODUCTION_HOST" <<EOF
+            set -euo pipefail
+            cd /opt/gacp-platform
+
+            git fetch --tags origin
+            if git rev-parse --verify "refs/tags/$RELEASE_REF" >/dev/null 2>&1; then
+              git checkout "refs/tags/$RELEASE_REF"
+            else
+              git checkout "$RELEASE_SHA"
+            fi
+
+            docker compose --env-file .env.production -f docker-compose.production.yml config > /dev/null
+
+            mkdir -p backups
+            docker compose --env-file .env.production -f docker-compose.production.yml up -d postgres redis
+
+            TIMESTAMP=\$(date +%Y%m%d_%H%M%S)
+            docker compose --env-file .env.production -f docker-compose.production.yml exec -T postgres \
+              sh -lc 'pg_dump -U "$POSTGRES_USER" -d "$POSTGRES_DB"' \
+              > "backups/predeploy_\${TIMESTAMP}.sql"
+
+            docker compose --env-file .env.production -f docker-compose.production.yml run --rm backend sh -lc \
+              "cd /app/apps/backend && pnpm exec prisma migrate deploy --schema prisma/schema"
+
+            # B-PAY-SIDE: seed the per-issuer applicant bank accounts so the
+            # slip-flow /active endpoint has STATE + PLATFORM destinations (the
+            # farmer's "ส่งสลิป" button stays disabled without them). Idempotent —
+            # never overwrites a finance-edited row. Non-fatal: a seed hiccup must
+            # not abort a deploy that already migrated; ops then verifies the rows
+            # or finance sets the real numbers via /provider/accounting.
+            docker compose --env-file .env.production -f docker-compose.production.yml run --rm backend sh -lc \
+              "cd /app/apps/backend && node prisma/seed-bank-accounts.js" \
+              || echo "[deploy] WARNING: bank-account seed skipped/failed (non-fatal) — verify BankAccount rows / finance UI setup"
+
+            # Idempotent config-data bootstrap (system_configs, certification
+            # standards/criteria, plant_species, the application wizard,
+            # receipt counters). No-op once seeded — migrate deploy populates
+            # the schema but NOT these standalone config seeds, so a fresh DB
+            # would otherwise come up with an empty wizard / plant picker.
+            docker compose --env-file .env.production -f docker-compose.production.yml run --rm backend sh -lc \
+              "cd /app/apps/backend && node prisma/seed-all.js"
+
+            docker compose --env-file .env.production -f docker-compose.production.yml up -d --build backend frontend nginx
+
+            curl -fsS http://127.0.0.1/nginx-health
+            curl -fsS http://127.0.0.1:8080/health
+            curl -fsS http://127.0.0.1:8080/api/health
+          EOF
+
+      - name: Notify Slack
+        if: ${{ always() && env.SLACK_WEBHOOK_URL != '' }}
+        uses: slackapi/slack-github-action@v1.24.0
+        with:
+          payload: |
+            {
+              "text": "Production release ${{ job.status }}",
+              "blocks": [
+                {
+                  "type": "header",
+                  "text": {
+                    "type": "plain_text",
+                    "text": "Production release ${{ job.status }}"
+                  }
+                },
+                {
+                  "type": "section",
+                  "fields": [
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Ref:*\n${{ github.ref_name }}"
+                    },
+                    {
+                      "type": "mrkdwn",
+                      "text": "*Commit:*\n${{ github.sha }}"
+                    }
+                  ]
+                }
+              ]
+            }
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+
+  security-scan:
+    name: Security Scan
+    runs-on: ubuntu-latest
+    needs: build-and-push-images
+    if: vars.ENABLE_IMAGE_PUBLISH == 'true' && vars.ENABLE_IMAGE_SECURITY_SCAN == 'true'
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run Trivy Vulnerability Scanner (backend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:latest
+          format: sarif
+          output: trivy-results.sarif
+
+      - name: Upload Scan Results
+        uses: github/codeql-action/upload-sarif@v2
+        if: always()
+        continue-on-error: true
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Run Trivy Vulnerability Scanner (frontend)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:latest
+          format: table
+          exit-code: '1'
+          ignore-unfixed: true
+          severity: CRITICAL,HIGH

@@ -1,0 +1,64 @@
+## move-extra-cases.sh (reviewer's, work dir under /tmp/uploads-r2)
+--- Y1 destination FILE is a symlink to the source (same file through a link)
+exit=1 public=1 real-copies=2 :: applied: moved: 1 · already in place: 0 · conflicts: 1 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+--- Y2 destination FILE is a dangling symlink
+exit=1 public=1 vault-regular=1 :: applied: moved: 1 · already in place: 0 · conflicts: 1 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+--- Y3 destination FILE is a HARD link of the source (unlinking src would be safe)
+exit=0 public=0 vault=2 :: applied: moved: 1 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+--- Y4 a SOURCE entry under gacp-pdfs is a symlink to a paper elsewhere
+dry-run:   total: 2
+exit=1 links-left-in-public=1 find-L-files-left=1 :: applied: moved: 2 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0 left in the public folder: 0 · skipped symlinks: 1, never followed; check each by hand 
+--- Y5 --to is an existing regular file
+exit=1 public=2 ::   total: 2 refused: --to is not a directory 
+--- Y6 BIND MOUNT: vault/gacp-pdfs is a bind mount of uploads/lab-results (a public folder), dest files do not exist yet
+refused: --to resolves inside the public uploads folder (through a symlink or a bind mount)
+exit=1
+in-lab-results-now: report.pdf
+after the namespace is gone: public-gacp-pdfs=2 lab-results-files=1 list: report.pdf 
+--- Y7 BIND MOUNT: vault is a bind mount of uploads itself (the author's alias case, dest exists = same inode)
+refused: --to resolves inside the public uploads folder (through a symlink or a bind mount)
+exit=1
+after: public-gacp-pdfs=2
+--- Y8 BIND MOUNT: vault/gacp-pdfs is a bind mount of an EMPTY folder that itself sits inside uploads (uploads/stash)
+refused: --to resolves inside the public uploads folder (through a symlink or a bind mount)
+exit=1
+after: public-gacp-pdfs=2 uploads/stash-files=0
+
+## move-script-probe.sh (reviewer's B0 probe, work dir under /tmp/uploads-r2)
+--- 0 no flags
+exit=1 names=0 public=2
+--- 1 --dry-run
+exit=0 names=0 public=2
+    public folder: <uploads>/gacp-pdfs
+      receipts: 2
+      total: 2
+    dry run: would move 2 file(s); nothing changed
+--- 2 --apply without --to
+exit=1 public=2 :: --apply needs --to <dir>, a directory outside the public uploads folder
+--- 3 --apply --to inside uploads
+exit=1 public=2 :: public folder: <uploads>/gacp-pdfs
+  receipts: 2
+  total: 2
+refused: --to resolves inside the public uploads folder (through a symlink or a bind mount)
+--- 3b --apply --to = uploads itself
+exit=1 public=2 :: public folder: <uploads>/gacp-pdfs
+  receipts: 2
+  total: 2
+refused: --to resolves inside the public uploads folder (through a symlink or a bind mount)
+--- 4 --apply --to outside, cross-device (/dev/shm)
+exit=0 names=0 public=0 vault=2
+    public folder: <uploads>/gacp-pdfs
+      receipts: 2
+      total: 2
+    applied: moved: 2 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+    left in the public folder: 0
+--- 5 rerun (idempotent)
+exit=0 public=0 vault=2 :: applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0 left in the public folder: 0 
+--- 6 same bytes reappear in public
+exit=0 public=0 vault=2 :: applied: moved: 0 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0 left in the public folder: 0 
+--- 7 different bytes at the destination (conflict)
+exit=1 public=1 vault=2 :: applied: moved: 0 · already in place: 0 · conflicts: 1 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0 left in the public folder: 1 
+--- 8 --to is a SYMLINK into the uploads folder (lexical check only)
+exit=1 public-left=1 copies-anywhere=2 ::   total: 1 refused: --to resolves inside the public uploads folder (through a symlink or a bind mount) 
+--- 9 --to the parent of uploads (outside, but is it served?)
+exit=0 public=0 moved-to=1

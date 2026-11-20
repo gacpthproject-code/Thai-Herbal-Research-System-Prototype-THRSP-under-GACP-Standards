@@ -1,0 +1,1831 @@
+FAIL src/components/admin/__tests__/x5-fix-b.test.tsx
+  X5-FIX-B H-1 — last 4 operational color="teal" closed
+    ✓ users/[id]/groups/client-view.tsx has 0 operational color: "teal" notification callsites (7 ms)
+    ✓ X5-FIX-B H-1 annotation comments present on the patched sites (14 ms)
+  X5-FIX-B M-1 — provider/management ActionIcon palette is valid Mantine
+    ✓ management/page.tsx has 0 invalid color="amber" attributes (1 ms)
+    ✕ management/page.tsx no longer renders the Force password reset ActionIcon (2 ms)
+  X5-FIX-B H-11 — gov-gradient brand cue on ADMIN page headers
+    ✓ AdminPageShell defaults the gov-gradient className on its inner PageToolbar (1 ms)
+    ✓ admin/dashboard/page.tsx SummaryHeader carries gov-gradient (1 ms)
+    ✓ admin/communication/page.tsx SummaryHeader carries gov-gradient (1 ms)
+    ✓ admin/planting/page.tsx SummaryHeader carries gov-gradient (1 ms)
+    ✓ admin/organizations/page.tsx SummaryHeader carries gov-gradient (4 ms)
+    ✓ admin/settings/page.tsx SummaryHeader carries gov-gradient (6 ms)
+    ✓ admin/certificates/client-view.tsx PageToolbar carries gov-gradient (7 ms)
+    ✓ admin/certificates/[id]/detail-view.tsx PageToolbar carries gov-gradient (8 ms)
+  X5-FIX-B H-9 — W5-C <button> + <div role="dialog"> split on 3 modals + TermTooltip
+    ✓ ForceStatusModal.tsx remains the W5-C reference (sanity check)
+    ✓ ChangeRoleModal.tsx has the W5-C backdrop split (1 ms)
+    ✓ ForceMfaResetModal.tsx has the W5-C backdrop split (1 ms)
+    ✓ UserDisableModal.tsx has the W5-C backdrop split (1 ms)
+    ✓ TermTooltip.tsx outer wrapper has no static-element listeners (1 ms)
+
+  ● X5-FIX-B M-1 — provider/management ActionIcon palette is valid Mantine › management/page.tsx no longer renders the Force password reset ActionIcon
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /Force password reset/
+    Received string:      "'use client';
+
+
+    import { Input as TextInput, Input as PasswordInput } from '@/components/ui/primitives/input';
+    import { Select } from '@/components/ui/select';
+    import { Button } from '@/components/ui/primitives/button';
+    import { SimpleGrid } from '@/components/ui/layout-utils';
+    import { ActionIcon } from '@/components/ui/icon-buttons';
+    import { Avatar } from '@/components/ui/data-components';
+    import { Modal } from '@/components/ui/overlays';
+    import { Table } from '@/components/ui/primitives/table';
+    import { Badge } from '@/components/ui/primitives/badge';
+    import { ConfirmDialog } from '@/components/feature/confirm-dialog';
+    import React, { useState, useEffect } from 'react';
+    import { useRouter } from 'next/navigation';
+    import ProviderLayout from '../components/provider-layout';
+    import { getRoleLabelTH, getRoleColor } from '@/lib/role-utils';
+    import { normalizeRole, CANONICAL_ROLES, type CanonicalRole } from '@/lib/constants/canonical-roles';
+    import { ADMIN_ROLE_OPTIONS_WITH_ALL_PREFIX, ADMIN_ROLE_OPTIONS_FOR_NEW_USER } from '@/lib/constants/admin-role-options';
+    import { apiClient } from '@/lib/api/api-client';
+    import { buildCreateOfficerPayload } from './create-officer-payload';
+
+    import { IconSearch, IconPlus, IconEdit, IconTrash, IconCheck, IconUsers, IconLock, IconLockOpen, IconShieldCheck, IconShieldOff, IconShieldLock, IconKey, IconCopy } from '@tabler/icons-react';
+    import { toast } from 'sonner';
+
+    /**
+     * Wave B Phase 54 (G6) — short helper to render a user's last-login
+     * timestamp in Thai locale. Falls back to \"ยังไม่เคยล็อกอิน\" so we
+     * don't show a blank cell for accounts that haven't logged in yet.
+     */
+    function formatLastLogin(iso: string | null | undefined): string {
+        if (!iso) return 'ยังไม่เคยล็อกอิน';
+        try {
+            const d = new Date(iso);
+            return d.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        } catch {
+            return iso;
+        }
+    }
+
+    interface providerMember {
+        id: string;
+        username: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+        role: string;
+        isActive: boolean;
+        createdAt: string;
+        // Wave B Phase 54 (G6) — user lifecycle fields surfaced from
+        // the backend in Phase 53 (#132). Optional because older API
+        // responses might lack them.
+        lastLoginAt?: string | null;
+        loginAttempts?: number;
+        isLocked?: boolean;
+        lockedUntil?: string | null;
+        twoFactorEnabled?: boolean;
+    }
+
+    interface _PROVIDERApiResponse<T> {
+        success?: boolean;
+        data?: T;
+        error?: string;
+    }
+
+    /**
+     * X5-FIX-C / H-2 (PM-1) — Pending-action discriminated union.
+     *
+     * Replaces the 4 `window.confirm()` flows (delete / unlock / disable-2FA /
+     * force-password-reset) with a single ConfirmDialog rendered against this
+     * state. Each branch carries the target member so the dialog can render
+     * a meaningful description AND the action handler still has the row data
+     * to call the right endpoint.
+     *
+     * Native `window.confirm` was:
+     *   - Browser-locale-locked (Thai dialog copy + English browser confirm
+     *     button = jarring mixed-locale UX).
+     *   - Not screen-reader friendly (no `role=dialog` semantics, no focus
+     *     trap, no aria-modal contract).
+     *   - Unstyleable / inconsistent across OS chrome.
+     *   - Synchronous and blocked the React event loop, interfering with
+     *     state flush on rapid clicks.
+     *
+     * The replacement ConfirmDialog (built on Radix Dialog) gives us focus
+     * management, escape-to-close, ARIA roles, and locale-stable copy.
+     */
+    type PendingProviderAction =
+        | { kind: 'delete'; member: providerMember }
+        | { kind: 'unlock'; member: providerMember }
+        | { kind: 'disable2fa'; member: providerMember }
+        | { kind: 'forceReset'; member: providerMember };
+
+    // Role labels & colors imported from @/lib/role-utils (getRoleLabelTH, getRoleColor)
+
+    export default function PROVIDERManagementPage() {
+        const router = useRouter();
+        const [provider, setPROVIDER] = useState<providerMember[]>([]);
+        const [loading, setLoading] = useState(true);
+        // L3: distinguish a failed directory fetch from a genuinely empty directory.
+        // The file's own comment documents a prior prod incident where a silent 404
+        // left the table \"dark\"; without this an admin reads a fetch failure as
+        // \"no staff\" and may conclude the directory was wiped.
+        const [dirError, setDirError] = useState<string | null>(null);
+        const [searchTerm, setSearchTerm] = useState('');
+        const [filterRole, setFilterRole] = useState('ALL');
+        const [currentPage, setCurrentPage] = useState(1);
+        const ITEMS_PER_PAGE = 10;
+
+        // Modal state
+        const [showModal, setShowModal] = useState(false);
+        const [editingPROVIDER, setEditingPROVIDER] = useState<providerMember | null>(null);
+        // X5-FIX-C / TSC reconciliation — X5-FIX-A's canonical role import
+        // narrowed the inferred type to the single literal
+        // `'document_reviewer'`. Widening to `CanonicalRole` lets the create
+        // path keep `'reviewer'` alias (it canonicalises on submit) AND
+        // honours the Tier 16 split-role values (`account_dtam`,
+        // `account_platform`) without further per-call casts.
+        const [formData, setFormData] = useState<{
+            username: string;
+            providerId: string;
+            email: string;
+            password: string;
+            firstName: string;
+            lastName: string;
+            role: CanonicalRole | 'reviewer';
+        }>({
+            username: '',
+            providerId: '',
+            email: '',
+            password: '',
+            firstName: '',
+            lastName: '',
+            role: CANONICAL_ROLES.DOCUMENT_REVIEWER
+        });
+        const [submitting, setSubmitting] = useState(false);
+
+        // X5-FIX-C / H-2 — hoisted above pendingDialogCopy so the dialog
+        // description IIFE can call it without hitting the TDZ.
+        const getFullName = (m: providerMember) => `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.username;
+
+        useEffect(() => {
+            apiClient.get('/auth/provider/me').then(res => {
+                if (!res.success) { router.push(\"/auth/provider/login\"); return; }
+                fetchPROVIDER();
+            }).catch(() => router.push(\"/auth/provider/login\"));
+        }, [router]);
+
+        const fetchPROVIDER = async () => {
+            setLoading(true);
+            setDirError(null);
+            try {
+                // Wave B Phase 57 (hotfix) — provider directory routes are
+                // mounted at /api/provider/directory (see apps/backend/
+                // routes/api/index.js line 89). The bare /api/provider
+                // namespace is reserved for the sub-router (reviewer/
+                // scheduler/admin/etc.), so calling '/provider' silently
+                // 404'd and the table stayed empty. All Phase 53-56 G6
+                // work was effectively dark in production until this fix.
+                const res = await apiClient.get<providerMember[]>('/provider/directory');
+                if (res.success && res.data) {
+                    setPROVIDER(res.data);
+                } else {
+                    setPROVIDER([]);
+                    setDirError(res.error || 'ไม่สามารถโหลดรายชื่อพนักงานได้');
+                }
+            } catch (e: unknown) {
+                console.error('Failed to fetch provider:', e);
+                setPROVIDER([]);
+                setDirError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+            }
+            finally { setLoading(false); }
+        };
+
+        const handleOpenCreate = () => {
+            setEditingPROVIDER(null);
+            setFormData({ username: '', providerId: '', email: '', password: '', firstName: '', lastName: '', role: 'reviewer' });
+            setShowModal(true);
+        };
+
+        const handleOpenEdit = (member: providerMember) => {
+            setEditingPROVIDER(member);
+            // X5-FIX-A / H-6: normalize the legacy stored role
+            // (REVIEWER_AUDITOR / ACCOUNTANT / etc.) into the canonical form
+            // the select-options now use, so the modal opens with the
+            // current role pre-selected instead of falling back to the
+            // first dropdown entry.
+            const canonical = normalizeRole(member.role) || CANONICAL_ROLES.DOCUMENT_REVIEWER;
+            setFormData({
+                username: member.username,
+                providerId: '',
+                email: member.email,
+                password: '',
+                firstName: member.firstName,
+                lastName: member.lastName,
+                role: canonical
+            });
+            setShowModal(true);
+        };
+
+        const handleSubmit = async () => {
+            // Create mode: the backend contract is providerId (13-digit) + email +
+            // password (min 10) + names — NOT username, which the create route
+            // ignores. The dialog shipped without providerId and every create
+            // 400'd (2026-08-14, AC7 walk). buildCreateOfficerPayload is the
+            // tested single source of that contract.
+            let createPayload: ReturnType<typeof buildCreateOfficerPayload> | null = null;
+            if (!editingPROVIDER) {
+                createPayload = buildCreateOfficerPayload(formData);
+                if (!createPayload.ok) {
+                    toast.warning(createPayload.messageTh);
+                    return;
+                }
+            } else if (!formData.username || !formData.email) {
+                toast.warning('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            setSubmitting(true);
+            try {
+                // See fetchPROVIDER for routing note — same /directory mount.
+                const url = editingPROVIDER ? `/provider/directory/${editingPROVIDER.id}` : '/provider/directory';
+                const res = editingPROVIDER
+                    ? await apiClient.put<providerMember>(url, formData)
+                    : await apiClient.post<providerMember>(url, (createPayload as { ok: true; payload: object }).payload);
+
+                if (res.success) {
+                    toast.success(editingPROVIDER ? 'แก้ไขข้อมูลสำเร็จ' : 'เพิ่มพนักงานสำเร็จ');
+                    setShowModal(false);
+                    fetchPROVIDER();
+                } else {
+                    toast.error('เกิดข้อผิดพลาด: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                }
+            } catch (_e) {
+                toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            } finally {
+                setSubmitting(false);
+            }
+        };
+
+        // X5-FIX-C / H-2 (PM-1) — pending-action state replaces 4 calls to
+        // window.confirm(). The previous implementation called the native
+        // browser dialog inside each handler, then performed the API call
+        // only if the user clicked OK. Now each row click sets the pending
+        // action; the ConfirmDialog at the bottom of the page reads this
+        // state and, on confirm, dispatches to performPendingAction().
+        const [pendingAction, setPendingAction] = useState<PendingProviderAction | null>(null);
+
+        const handleDelete = (member: providerMember) => {
+            setPendingAction({ kind: 'delete', member });
+        };
+
+        // Wave B Phase 56 (G6) — admin user lifecycle action handlers.
+        // Backend endpoints (Phase 55) live on the provider directory
+        // mount at /api/provider/directory/:id/{unlock|disable-2fa|
+        // force-password-reset}. The Phase 57 hotfix corrected these
+        // paths after Phase 56 shipped pointing at /provider/:id (404).
+        const handleUnlock = (member: providerMember) => {
+            setPendingAction({ kind: 'unlock', member });
+        };
+
+        const handleDisable2FA = (member: providerMember) => {
+            setPendingAction({ kind: 'disable2fa', member });
+        };
+
+        // Force-reset returns a one-shot token that the admin must hand
+        // off to the user via a secure channel. The token is shown in a
+        // modal (with a copy button) — never just toasted, since toasts
+        // are too easy to miss and dismiss.
+        const [resetTokenInfo, setResetTokenInfo] = useState<{
+            memberName: string;
+            token: string;
+            expiresAt: string;
+        } | null>(null);
+
+        const handleForceReset = (member: providerMember) => {
+            setPendingAction({ kind: 'forceReset', member });
+        };
+
+        /**
+         * X5-FIX-C / H-2 — central dispatcher that runs after the
+         * ConfirmDialog confirm-button is clicked. Each branch mirrors the
+         * pre-X5 inline confirm() handler's body 1:1, just lifted out so
+         * the dialog can wait for the user before firing the API call.
+         */
+        const performPendingAction = async () => {
+            if (!pendingAction) return;
+            const { kind, member } = pendingAction;
+            try {
+                if (kind === 'delete') {
+                    const res = await apiClient.delete<providerMember>(`/provider/directory/${member.id}`);
+                    if (res.success) {
+                        toast.success('ลบพนักงานสำเร็จ');
+                        fetchPROVIDER();
+                    } else {
+                        toast.error('เกิดข้อผิดพลาด: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                } else if (kind === 'unlock') {
+                    const res = await apiClient.post<{ id: string; isLocked: boolean }>(`/provider/directory/${member.id}/unlock`, {});
+                    if (res.success) {
+                        toast.success(`ปลดล็อก ${getFullName(member)} สำเร็จ`);
+                        fetchPROVIDER();
+                    } else {
+                        toast.error('ปลดล็อกไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                } else if (kind === 'disable2fa') {
+                    const res = await apiClient.post<{ id: string; twoFactorEnabled: boolean }>(`/provider/directory/${member.id}/disable-2fa`, {});
+                    if (res.success) {
+                        toast.success(`ปิด 2FA ของ ${getFullName(member)} สำเร็จ`);
+                        fetchPROVIDER();
+                    } else {
+                        toast.error('ปิด 2FA ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                } else if (kind === 'forceReset') {
+                    const res = await apiClient.post<{
+                        id: string;
+                        resetToken: string;
+                        expiresAt: string;
+                    }>(`/provider/directory/${member.id}/force-password-reset`, {});
+                    if (res.success && res.data) {
+                        setResetTokenInfo({
+                            memberName: getFullName(member),
+                            token: res.data.resetToken,
+                            expiresAt: res.data.expiresAt,
+                        });
+                    } else {
+                        toast.error('ออกโทเค็นไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                }
+            } catch (_e) {
+                toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            } finally {
+                setPendingAction(null);
+            }
+        };
+
+        /**
+         * X5-FIX-C / H-2 — derive dialog copy from the pending action.
+         * Returns a tuple of (title, description, confirmLabel, variant)
+         * so the single ConfirmDialog instance can render the right copy
+         * for each of the 4 actions without 4 separate dialog components.
+         */
+        const pendingDialogCopy = (() => {
+            if (!pendingAction) {
+                return null;
+            }
+            const name = getFullName(pendingAction.member);
+            if (pendingAction.kind === 'delete') {
+                return {
+                    title: 'ยืนยันการลบพนักงาน',
+                    description: `ลบบัญชีของ ${name}? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+                    confirmLabel: 'ลบ',
+                    variant: 'destructive' as const,
+                };
+            }
+            if (pendingAction.kind === 'unlock') {
+                return {
+                    title: 'ปลดล็อกบัญชี',
+                    description: `ปลดล็อกบัญชี ${name}? ระบบจะรีเซ็ตจำนวนครั้งที่ล็อกอินผิดและอนุญาตให้เข้าใช้งานได้ทันที`,
+                    confirmLabel: 'ปลดล็อก',
+                    variant: 'default' as const,
+                };
+            }
+            if (pendingAction.kind === 'disable2fa') {
+                return {
+                    title: 'ปิด 2FA',
+                    description: `ปิด 2FA ของ ${name}? ผู้ใช้จะต้องเปิดใช้งาน 2FA ใหม่ในการเข้าสู่ระบบครั้งถัดไป`,
+                    confirmLabel: 'ปิด 2FA',
+                    variant: 'destructive' as const,
+                };
+            }
+            // forceReset
+            return {
+                title: 'ออกโทเค็นรีเซ็ตรหัสผ่าน',
+                description: `ออกโทเค็นรีเซ็ตรหัสผ่านสำหรับ ${name}? โทเค็นจะหมดอายุภายใน 1 ชั่วโมง`,
+                confirmLabel: 'ออกโทเค็น',
+                variant: 'destructive' as const,
+            };
+        })();
+
+        const copyResetToken = async (token: string) => {
+            try {
+                await navigator.clipboard.writeText(token);
+                toast.success('คัดลอกโทเค็นแล้ว');
+            } catch {
+                toast.error('คัดลอกไม่สำเร็จ กรุณาคัดลอกด้วยตนเอง');
+            }
+        };
+
+        // X5-FIX-A / H-6: filter compares CANONICAL roles so the same selected
+        // value (e.g. ACCOUNT_DTAM) matches both legacy DB storage (rare,
+        // post-migration) and the new split-role storage. Falls back to raw
+        // string equality if either side fails to canonicalise (so unmapped
+        // values still filter consistently). Empty searchTerm tolerated.
+        const filteredPROVIDER = provider.filter((m) => {
+            const matchesQuery = (
+                getFullName(m).toLowerCase().includes(searchTerm.toLowerCase())
+                || m.email.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            if (!matchesQuery) return false;
+            if (filterRole === 'ALL') return true;
+            const memberCanonical = normalizeRole(m.role);
+            const filterCanonical = normalizeRole(filterRole);
+            if (memberCanonical && filterCanonical) {
+                return memberCanonical === filterCanonical;
+            }
+            return m.role === filterRole;
+        });
+
+        const totalPages = Math.max(1, Math.ceil(filteredPROVIDER.length / ITEMS_PER_PAGE));
+        const currentPageIndex = Math.max(0, Math.min(currentPage - 1, totalPages - 1));
+        const paginatedPROVIDER = filteredPROVIDER.slice(currentPageIndex * ITEMS_PER_PAGE, (currentPageIndex + 1) * ITEMS_PER_PAGE);
+
+        useEffect(() => {
+            setCurrentPage(1);
+        }, [searchTerm, filterRole]);
+
+        if (loading) {
+            return <ProviderLayout title=\"จัดการพนักงาน\"><div className=\"flex items-center justify-center p-6\"><p>กำลังโหลด...</p></div></ProviderLayout>;
+        }
+
+        return (
+            <ProviderLayout title=\"จัดการพนักงาน\" subtitle=\"จัดการบัญชีพนักงานในระบบ GACP\">
+                {/* Filters */}
+                <div className=\"mb-4 rounded-lg border border-border bg-card p-4\">
+                    <div className=\"flex flex-wrap items-center\">
+                        <TextInput
+                            placeholder=\"ค้นหาชื่อหรืออีเมล...\"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.currentTarget.value)}
+                            leftSection={<IconSearch size={16} />}
+                            style={{ flex: 1 }}
+                        />
+                        {/* X5-FIX-A / H-6 (V5-A finish): role-filter dropdown
+                            was hardcoded with legacy labels (REVIEWER_AUDITOR /
+                            ACCOUNTANT) missing the Tier 16 split roles
+                            (ACCOUNT_DTAM + ACCOUNT_PLATFORM). It now derives
+                            from the canonical `ADMIN_ROLE_OPTIONS_WITH_ALL_PREFIX`
+                            source so the dropdown automatically picks up new
+                            canonical roles. The filter comparison was switched
+                            to canonical-normalised so it correctly matches
+                            legacy upper-case (REVIEWER_AUDITOR) AND new
+                            canonical (DOCUMENT_REVIEWER / ACCOUNT_DTAM /
+                            ACCOUNT_PLATFORM) DB storage forms. */}
+                        <Select
+                            value={filterRole}
+                            onChange={(val) => setFilterRole(val || 'ALL')}
+                            data={ADMIN_ROLE_OPTIONS_WITH_ALL_PREFIX
+                                .filter((opt) => !opt.hidden && opt.value !== 'HEALTH')
+                                .map((opt) => ({ value: opt.value, label: opt.label }))}
+                        />
+                        {/* X2-FIX-B / H-8 — drop Mantine `color=\"teal\"`; the
+                            Button primitive ignores `color` and already defaults
+                            to brand `variant=\"primary\"` (deep forest green). */}
+                        <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>เพิ่มพนักงาน</Button>
+                    </div>
+                </div>
+
+                {/* Stats */}
+                <SimpleGrid cols={6} spacing=\"md\">
+                    {[
+                        { label: \"พนักงานทั้งหมด\", value: provider.length, color: \"primary\" },
+                        { label: \"ผู้ตรวจสอบ\", value: provider.filter(s => s.role === 'document_reviewer').length, color: \"blue\" },
+                        { label: \"ผู้จัดตาราง\", value: provider.filter(s => s.role === 'dispatcher').length, color: \"grape\" },
+                        { label: \"บัญชี\", value: provider.filter(s => s.role === 'finance_officer_platform').length, color: \"green\" },
+                        // Wave B Phase 54 (G6) — surface lock + 2FA totals so
+                        // admins can spot security drift at a glance.
+                        { label: \"บัญชีที่ถูกล็อก\", value: provider.filter(s => s.isLocked).length, color: \"red\" },
+                        // X2-FIX-B / H-8 — 2FA stat tile re-tinted from Mantine
+                        // teal to brand `primary` (the inline stat object isn't
+                        // actually consumed for color anywhere; kept for parity
+                        // with the rest of the array shape).
+                        { label: \"เปิดใช้งาน 2FA\", value: provider.filter(s => s.twoFactorEnabled).length, color: \"primary\" },
+                    ].map((stat, i) => (
+                        <div className=\"rounded-lg border border-border bg-card p-4 text-center\" key={i}>
+                            <p className=\"text-xl font-semibold tabular-nums\">{stat.value}</p>
+                            <p className=\"text-sm text-muted-foreground\">{stat.label}</p>
+                        </div>
+                    ))}
+                </SimpleGrid>
+
+                {/* Table */}
+                <div className=\"overflow-hidden rounded-lg border border-border bg-card\">
+                    <Table.ScrollContainer>
+                        <Table>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>ชื่อ</Table.Th>
+                                    <Table.Th>อีเมล</Table.Th>
+                                    <Table.Th>ตำแหน่ง</Table.Th>
+                                    <Table.Th>สถานะ</Table.Th>
+                                    <Table.Th>เข้าสู่ระบบล่าสุด</Table.Th>
+                                    <Table.Th>ความปลอดภัย</Table.Th>
+                                    <Table.Th className=\"text-center\">จัดการ</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {paginatedPROVIDER.length > 0 ? (
+                                    paginatedPROVIDER.map(member => (
+                                        <Table.Tr key={member.id}>
+                                            <Table.Td>
+                                                <div className=\"flex flex-wrap items-center gap-3\">
+                                                    <Avatar color=\"primary\">
+                                                        {(member.firstName || member.username || '?').charAt(0)}
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className=\"font-medium\">{getFullName(member)}</p>
+                                                        <p className=\"text-xs text-muted-foreground\">@{member.username}</p>
+                                                    </div>
+                                                </div>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <p className=\"text-sm text-muted-foreground\">{member.email}</p>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge color={getRoleColor(member.role)}>
+                                                    {getRoleLabelTH(member.role)}
+                                                </Badge>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge tone={member.isActive ? 'primary' : 'neutral'}>
+                                                    {member.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                                                </Badge>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <p className=\"text-sm text-muted-foreground\">
+                                                    {formatLastLogin(member.lastLoginAt)}
+                                                </p>
+                                                {(member.loginAttempts ?? 0) > 0 && (
+                                                    <p className=\"text-xs text-warning\">
+                                                        ล็อกอินผิดพลาด {member.loginAttempts} ครั้ง
+                                                    </p>
+                                                )}
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <div className=\"flex flex-wrap items-center gap-1.5\">
+                                                    {member.isLocked ? (
+                                                        <Badge color=\"red\">
+                                                            <span className=\"inline-flex items-center gap-1\">
+                                                                <IconLock size={12} />
+                                                                ถูกล็อก
+                                                            </span>
+                                                        </Badge>
+                                                    ) : null}
+                                                    {member.twoFactorEnabled ? (
+                                                        <Badge tone=\"primary\">
+                                                            <span className=\"inline-flex items-center gap-1\">
+                                                                <IconShieldCheck size={12} />
+                                                                2FA
+                                                            </span>
+                                                        </Badge>
+                                                    ) : null}
+                                                    {!member.isLocked && !member.twoFactorEnabled && (
+                                                        <span className=\"text-xs text-muted-foreground\">-</span>
+                                                    )}
+                                                </div>
+                                            </Table.Td>
+                                            <Table.Td className=\"text-center\">
+                                                <div className=\"flex flex-wrap items-center justify-center gap-2\">
+                                                    <ActionIcon
+
+                                                        color=\"violet\"
+                                                        aria-label={`Manage groups for ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => router.push(`/provider/management/users/${member.id}/groups`)}
+                                                    >
+                                                        <IconUsers size={16} />
+                                                    </ActionIcon>
+                                                    {/* feat/backoffice-per-permission-grants — per-user
+                                                        permission GRANT/REVOKE matrix (admin). */}
+                                                    <ActionIcon
+
+                                                        color=\"grape\"
+                                                        aria-label={`Manage permissions for ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => router.push(`/provider/management/users/${member.id}/permissions`)}
+                                                    >
+                                                        <IconShieldLock size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+
+                                                        color=\"blue\"
+                                                        aria-label={`แก้ไขพนักงาน ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => handleOpenEdit(member)}
+                                                    >
+                                                        <IconEdit size={16} />
+                                                    </ActionIcon>
+                                                    {/* Wave B Phase 56 (G6) — admin lifecycle actions.
+                                                        Unlock + disable-2fa only render when the
+                                                        relevant flag is on, so the row stays compact
+                                                        for healthy accounts. Force-reset is always
+                                                        available since admins use it for any locked-
+                                                        out user, regardless of 2FA/lock state. */}
+                                                    {member.isLocked && (
+                                                        <ActionIcon
+
+                                                            color=\"orange\"
+                                                            aria-label={`Unlock account for ${member.firstName} ${member.lastName}`}
+                                                            onClick={() => handleUnlock(member)}
+                                                        >
+                                                            <IconLockOpen size={16} />
+                                                        </ActionIcon>
+                                                    )}
+                                                    {member.twoFactorEnabled && (
+                                                        <ActionIcon
+
+                                                            color=\"orange\"
+                                                            aria-label={`Disable 2FA for ${member.firstName} ${member.lastName}`}
+                                                            onClick={() => handleDisable2FA(member)}
+                                                        >
+                                                            <IconShieldOff size={16} />
+                                                        </ActionIcon>
+                                                    )}
+                                                    <ActionIcon
+                                                        // X5-FIX-B M-1: \"amber\" is NOT a Mantine palette name — it silently
+                                                        // dropped to gray. Canonical caution color in Mantine is \"yellow\"
+                                                        // (same semantic intent as Tailwind amber-*).
+                                                        color=\"yellow\"
+                                                        aria-label={`Force password reset for ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => handleForceReset(member)}
+                                                    >
+                                                        <IconKey size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+
+                                                        color=\"red\"
+                                                        aria-label={`ลบพนักงาน ${member.firstName} ${member.lastName}`}
+                                                        data-testid={`mgmt-delete-${member.id}`}
+                                                        onClick={() => handleDelete(member)}
+                                                    >
+                                                        <IconTrash size={16} />
+                                                    </ActionIcon>
+                                                </div>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))
+                                ) : (
+                                    <Table.Tr>
+                                        <Table.Td colSpan={7}>
+                                            {dirError ? (
+                                                <div role=\"alert\" aria-live=\"polite\" className=\"flex flex-col items-center justify-center gap-3 p-6 text-center\">
+                                                    <p className=\"text-sm text-destructive\">{dirError}</p>
+                                                    <Button variant=\"outline\" size=\"sm\" className=\"min-h-[44px]\" onClick={fetchPROVIDER}>
+                                                        ลองอีกครั้ง
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className=\"flex items-center justify-center p-6\"><p className=\"text-muted-foreground\">ไม่พบข้อมูลพนักงาน</p></div>
+                                            )}
+                                        </Table.Td>
+                                    </Table.Tr>
+                                )}
+                            </Table.Tbody>
+                        </Table>
+                    </Table.ScrollContainer>
+                </div>
+
+                {/* Pagination Controls */}
+                {totalPages > 1 && (
+                    <div className=\"mt-4 flex flex-col items-center justify-between gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row\">
+                        <p className=\"text-sm text-muted-foreground\">
+                            แสดง {(currentPageIndex * ITEMS_PER_PAGE) + 1} ถึง {Math.min((currentPageIndex + 1) * ITEMS_PER_PAGE, filteredPROVIDER.length)} จากทั้งหมด {filteredPROVIDER.length} รายการ
+                        </p>
+                        <div className=\"flex items-center gap-2\">
+                            <Button 
+     
+                                disabled={currentPage === 1} 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            >
+                                ก่อนหน้า
+                            </Button>
+                            <div className=\"flex items-center gap-1.5 px-2\">
+                                {Array.from({ length: totalPages }).map((_, i) => {
+                                    const pageNumber = i + 1;
+                                    // Simple logic to show only relevant pages when there are many
+                                    if (
+                                        totalPages <= 7 ||
+                                        pageNumber === 1 ||
+                                        pageNumber === totalPages ||
+                                        Math.abs(currentPage - pageNumber) <= 1
+                                    ) {
+                                        return (
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentPage(pageNumber)}
+                                                className={`flex h-8 min-h-[44px] w-8 min-w-[44px] items-center justify-center rounded-md text-sm font-medium transition-colors sm:min-h-0 sm:min-w-0 ${
+                                                    currentPage === pageNumber
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'text-muted-foreground hover:bg-muted'
+                                                }`}
+                                            >
+                                                {pageNumber}
+                                            </button>
+                                        );
+                                    }
+                                    if (
+                                        (pageNumber === 2 && currentPage > 3) ||
+                                        (pageNumber === totalPages - 1 && currentPage < totalPages - 2)
+                                    ) {
+                                        return <span key={i} className=\"px-1 text-muted-foreground\">...</span>;
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                            <Button 
+     
+                                disabled={currentPage === totalPages} 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            >
+                                ถัดไป
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {/* Wave B Phase 56 (G6) — force-password-reset token reveal.
+                    The plain token only exists in the response from the
+                    backend; once this modal closes it's gone. Admin must
+                    copy it now and hand off via secure channel. */}
+                <Modal
+                    opened={!!resetTokenInfo}
+                    onClose={() => setResetTokenInfo(null)}
+                    title=\"โทเค็นรีเซ็ตรหัสผ่าน\"
+                    centered
+                    size=\"md\"
+                >
+                    {resetTokenInfo && (
+                        <div className=\"flex flex-col gap-3\">
+                            <p className=\"text-sm\">
+                                ออกโทเค็นรีเซ็ตรหัสผ่านสำหรับ <strong>{resetTokenInfo.memberName}</strong> สำเร็จ
+                            </p>
+                            <p className=\"text-xs text-warning\">
+                                ⚠ คัดลอกโทเค็นนี้ตอนนี้ จะแสดงเพียงครั้งเดียวเท่านั้น
+                            </p>
+                            <div className=\"break-all rounded-md bg-muted p-3 font-mono text-xs\">
+                                {resetTokenInfo.token}
+                            </div>
+                            <p className=\"text-xs text-muted-foreground\">
+                                หมดอายุ: {new Date(resetTokenInfo.expiresAt).toLocaleString('th-TH')}
+                            </p>
+                            <div className=\"mt-2 flex justify-end gap-2\">
+                                <Button
+
+                                    leftSection={<IconCopy size={16} />}
+                                    onClick={() => copyResetToken(resetTokenInfo.token)}
+                                >
+                                    คัดลอกโทเค็น
+                                </Button>
+                                <Button onClick={() => setResetTokenInfo(null)}>
+                                    ปิด
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </Modal>
+
+                {/* Create/Edit Modal */}
+                <Modal
+                    opened={showModal}
+                    onClose={() => setShowModal(false)}
+                    title={editingPROVIDER ? 'แก้ไขข้อมูลพนักงาน' : 'เพิ่มพนักงานใหม่'}
+                    centered
+                    size=\"md\"
+                >
+                    <div className=\"flex flex-col\">
+                        {editingPROVIDER ? (
+                            <TextInput
+                                label=\"ชื่อผู้ใช้ (Username)\"
+                                placeholder=\"ชื่อผู้ใช้\"
+                                value={formData.username}
+                                onChange={(e) => setFormData({ ...formData, username: e.currentTarget.value })}
+                                required
+                                disabled
+                            />
+                        ) : (
+                            <TextInput
+                                label=\"เลขบัตรประชาชน (13 หลัก)\"
+                                placeholder=\"1234567890123\"
+                                description=\"เจ้าหน้าที่ใช้เลขนี้เข้าสู่ระบบคู่กับรหัสผ่าน\"
+                                value={formData.providerId}
+                                onChange={(e) => setFormData({ ...formData, providerId: e.currentTarget.value.replace(/\\D/g, '').slice(0, 13) })}
+                                required
+                                inputMode=\"numeric\"
+                            />
+                        )}
+                        <div className=\"flex flex-wrap items-center\">
+                            <TextInput
+                                label=\"ชื่อจริง\"
+                                placeholder=\"ชื่อ\"
+                                value={formData.firstName}
+                                onChange={(e) => setFormData({ ...formData, firstName: e.currentTarget.value })}
+                            />
+                            <TextInput
+                                label=\"นามสกุล\"
+                                placeholder=\"นามสกุล\"
+                                value={formData.lastName}
+                                onChange={(e) => setFormData({ ...formData, lastName: e.currentTarget.value })}
+                            />
+                        </div>
+                        <TextInput
+                            label=\"อีเมล\"
+                            placeholder=\"email@example.com\"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.currentTarget.value })}
+                            required
+                        />
+                        <PasswordInput
+                            label={editingPROVIDER ? 'รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน'}
+                            placeholder=\"********\"
+                            description={editingPROVIDER ? undefined : 'อย่างน้อย 10 ตัวอักษร'}
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.currentTarget.value })}
+                            required={!editingPROVIDER}
+                        />
+                        {/* X5-FIX-A / H-6 (PM-3): role-picker for create/edit
+                            now derives from canonical `ADMIN_ROLE_OPTIONS_FOR_NEW_USER`
+                            so new provider accounts can be provisioned as
+                            ACCOUNT_DTAM or ACCOUNT_PLATFORM directly (Tier 16
+                            split). The legacy lower-case values ('reviewer',
+                            'finance_officer_platform') were ALSO blocking new-user
+                            provisioning into split-finance roles; lower-case
+                            canonical names are now used (admin / document_reviewer
+                            / auditor / scheduler / account_dtam / account_platform
+                            / account), and the backend `createProviderUser`
+                            canonicalises before persisting. The legacy
+                            ACCOUNT option is excluded for new users — operators
+                            must pick the split-finance variant. */}
+                        <Select
+                            label=\"ตำแหน่ง\"
+                            value={formData.role}
+                            onChange={val => setFormData({ ...formData, role: ((val || CANONICAL_ROLES.DOCUMENT_REVIEWER) as CanonicalRole) })}
+                            data={ADMIN_ROLE_OPTIONS_FOR_NEW_USER
+                                .filter((opt) => opt.canonical !== 'health')
+                                .map((opt) => ({ value: opt.canonical, label: opt.label }))}
+                        />
+                        <div className=\"mt-4 flex flex-wrap items-center\">
+                            <Button onClick={() => setShowModal(false)}>ยกเลิก</Button>
+                            <Button onClick={handleSubmit} loading={submitting} leftSection={<IconCheck size={16} />}>
+                                {editingPROVIDER ? 'บันทึก' : 'เพิ่มพนักงาน'}
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+
+                {/* X5-FIX-C / H-2 (PM-1) — ConfirmDialog replaces the 4
+                    window.confirm() flows (delete / unlock / disable-2FA /
+                    force-password-reset). A single dialog instance is
+                    rendered conditionally against `pendingAction` state
+                    with action-specific copy. The native confirm() popups
+                    were locale-locked to the browser language, not screen-
+                    reader friendly, blocked the JS event loop, and could
+                    not be styled to match the design system. */}
+                {pendingDialogCopy ? (
+                    <ConfirmDialog
+                        open={pendingAction !== null}
+                        onOpenChange={(open) => {
+                            if (!open) setPendingAction(null);
+                        }}
+                        onConfirm={performPendingAction}
+                        title={pendingDialogCopy.title}
+                        description={pendingDialogCopy.description}
+                        confirmLabel={pendingDialogCopy.confirmLabel}
+                        variant={pendingDialogCopy.variant}
+                    />
+                ) : null}
+            </ProviderLayout>
+        );
+    }
+    "
+
+      137 |     // the button's absence.
+      138 |     it('management/page.tsx no longer renders the Force password reset ActionIcon', () => {
+    > 139 |         expect(MANAGEMENT_SOURCE).not.toMatch(/Force password reset/);
+          |                                       ^
+      140 |     });
+      141 | });
+      142 |
+
+      at Object.<anonymous> (src/components/admin/__tests__/x5-fix-b.test.tsx:139:39)
+
+FAIL src/app/provider/management/__tests__/x5-fix-c-confirm-dialog.test.ts
+  [X5-FIX-C / H-2] /provider/management retires window.confirm
+    ✓ contains zero `window.confirm(` invocations in source code (6 ms)
+    ✓ contains zero bare `confirm(...)` invocations on destructive paths
+    ✓ imports ConfirmDialog from the feature primitive (2 ms)
+    ✕ declares the 3-branch PendingProviderAction discriminated union (2 ms)
+    ✓ renders a <ConfirmDialog ...> element in the JSX tree (3 ms)
+    ✓ routes the destructive button through setPendingAction (not confirm()) (1 ms)
+    ✓ exposes a data-testid for the delete button so tests can find it (1 ms)
+
+  ● [X5-FIX-C / H-2] /provider/management retires window.confirm › declares the 3-branch PendingProviderAction discriminated union
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "kind: 'forceReset'"
+    Received string:        "'use client';
+
+
+    import { Input as TextInput, Input as PasswordInput } from '@/components/ui/primitives/input';
+    import { Select } from '@/components/ui/select';
+    import { Button } from '@/components/ui/primitives/button';
+    import { SimpleGrid } from '@/components/ui/layout-utils';
+    import { ActionIcon } from '@/components/ui/icon-buttons';
+    import { Avatar } from '@/components/ui/data-components';
+    import { Modal } from '@/components/ui/overlays';
+    import { Table } from '@/components/ui/primitives/table';
+    import { Badge } from '@/components/ui/primitives/badge';
+    import { ConfirmDialog } from '@/components/feature/confirm-dialog';
+    import React, { useState, useEffect } from 'react';
+    import { useRouter } from 'next/navigation';
+    import ProviderLayout from '../components/provider-layout';
+    import { getRoleLabelTH, getRoleColor } from '@/lib/role-utils';
+    import { normalizeRole, CANONICAL_ROLES, type CanonicalRole } from '@/lib/constants/canonical-roles';
+    import { ADMIN_ROLE_OPTIONS_WITH_ALL_PREFIX, ADMIN_ROLE_OPTIONS_FOR_NEW_USER } from '@/lib/constants/admin-role-options';
+    import { apiClient } from '@/lib/api/api-client';
+    import { buildCreateOfficerPayload } from './create-officer-payload';
+
+    import { IconSearch, IconPlus, IconEdit, IconTrash, IconCheck, IconUsers, IconLock, IconLockOpen, IconShieldCheck, IconShieldOff, IconShieldLock, IconKey, IconCopy } from '@tabler/icons-react';
+    import { toast } from 'sonner';
+
+
+    function formatLastLogin(iso: string | null | undefined): string {
+        if (!iso) return 'ยังไม่เคยล็อกอิน';
+        try {
+            const d = new Date(iso);
+            return d.toLocaleString('th-TH', {
+                year: 'numeric',
+                month: 'short',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        } catch {
+            return iso;
+        }
+    }
+
+    interface providerMember {
+        id: string;
+        username: string;
+        firstName: string;
+        lastName: string;
+        email: string;
+        role: string;
+        isActive: boolean;
+        createdAt: string;
+
+
+
+        lastLoginAt?: string | null;
+        loginAttempts?: number;
+        isLocked?: boolean;
+        lockedUntil?: string | null;
+        twoFactorEnabled?: boolean;
+    }
+
+    interface _PROVIDERApiResponse<T> {
+        success?: boolean;
+        data?: T;
+        error?: string;
+    }
+
+
+    type PendingProviderAction =
+        | { kind: 'delete'; member: providerMember }
+        | { kind: 'unlock'; member: providerMember }
+        | { kind: 'disable2fa'; member: providerMember }
+        | { kind: 'forceReset'; member: providerMember };
+
+
+    export default function PROVIDERManagementPage() {
+        const router = useRouter();
+        const [provider, setPROVIDER] = useState<providerMember[]>([]);
+        const [loading, setLoading] = useState(true);
+
+
+
+
+        const [dirError, setDirError] = useState<string | null>(null);
+        const [searchTerm, setSearchTerm] = useState('');
+        const [filterRole, setFilterRole] = useState('ALL');
+        const [currentPage, setCurrentPage] = useState(1);
+        const ITEMS_PER_PAGE = 10;
+
+        const [showModal, setShowModal] = useState(false);
+        const [editingPROVIDER, setEditingPROVIDER] = useState<providerMember | null>(null);
+
+
+
+
+
+
+        const [formData, setFormData] = useState<{
+            username: string;
+            providerId: string;
+            email: string;
+            password: string;
+            firstName: string;
+            lastName: string;
+            role: CanonicalRole | 'reviewer';
+        }>({
+            username: '',
+            providerId: '',
+            email: '',
+            password: '',
+            firstName: '',
+            lastName: '',
+            role: CANONICAL_ROLES.DOCUMENT_REVIEWER
+        });
+        const [submitting, setSubmitting] = useState(false);
+
+
+        const getFullName = (m: providerMember) => `${m.firstName || ''} ${m.lastName || ''}`.trim() || m.username;
+
+        useEffect(() => {
+            apiClient.get('/auth/provider/me').then(res => {
+                if (!res.success) { router.push(\"/auth/provider/login\"); return; }
+                fetchPROVIDER();
+            }).catch(() => router.push(\"/auth/provider/login\"));
+        }, [router]);
+
+        const fetchPROVIDER = async () => {
+            setLoading(true);
+            setDirError(null);
+            try {
+
+
+
+
+
+
+
+                const res = await apiClient.get<providerMember[]>('/provider/directory');
+                if (res.success && res.data) {
+                    setPROVIDER(res.data);
+                } else {
+                    setPROVIDER([]);
+                    setDirError(res.error || 'ไม่สามารถโหลดรายชื่อพนักงานได้');
+                }
+            } catch (e: unknown) {
+                console.error('Failed to fetch provider:', e);
+                setPROVIDER([]);
+                setDirError('ไม่สามารถเชื่อมต่อเซิร์ฟเวอร์ได้');
+            }
+            finally { setLoading(false); }
+        };
+
+        const handleOpenCreate = () => {
+            setEditingPROVIDER(null);
+            setFormData({ username: '', providerId: '', email: '', password: '', firstName: '', lastName: '', role: 'reviewer' });
+            setShowModal(true);
+        };
+
+        const handleOpenEdit = (member: providerMember) => {
+            setEditingPROVIDER(member);
+
+
+
+
+
+            const canonical = normalizeRole(member.role) || CANONICAL_ROLES.DOCUMENT_REVIEWER;
+            setFormData({
+                username: member.username,
+                providerId: '',
+                email: member.email,
+                password: '',
+                firstName: member.firstName,
+                lastName: member.lastName,
+                role: canonical
+            });
+            setShowModal(true);
+        };
+
+        const handleSubmit = async () => {
+
+
+
+
+
+            let createPayload: ReturnType<typeof buildCreateOfficerPayload> | null = null;
+            if (!editingPROVIDER) {
+                createPayload = buildCreateOfficerPayload(formData);
+                if (!createPayload.ok) {
+                    toast.warning(createPayload.messageTh);
+                    return;
+                }
+            } else if (!formData.username || !formData.email) {
+                toast.warning('กรุณากรอกข้อมูลให้ครบถ้วน');
+                return;
+            }
+
+            setSubmitting(true);
+            try {
+
+                const url = editingPROVIDER ? `/provider/directory/${editingPROVIDER.id}` : '/provider/directory';
+                const res = editingPROVIDER
+                    ? await apiClient.put<providerMember>(url, formData)
+                    : await apiClient.post<providerMember>(url, (createPayload as { ok: true; payload: object }).payload);
+
+                if (res.success) {
+                    toast.success(editingPROVIDER ? 'แก้ไขข้อมูลสำเร็จ' : 'เพิ่มพนักงานสำเร็จ');
+                    setShowModal(false);
+                    fetchPROVIDER();
+                } else {
+                    toast.error('เกิดข้อผิดพลาด: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                }
+            } catch (_e) {
+                toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            } finally {
+                setSubmitting(false);
+            }
+        };
+
+
+
+
+
+
+        const [pendingAction, setPendingAction] = useState<PendingProviderAction | null>(null);
+
+        const handleDelete = (member: providerMember) => {
+            setPendingAction({ kind: 'delete', member });
+        };
+
+
+
+
+
+        const handleUnlock = (member: providerMember) => {
+            setPendingAction({ kind: 'unlock', member });
+        };
+
+        const handleDisable2FA = (member: providerMember) => {
+            setPendingAction({ kind: 'disable2fa', member });
+        };
+
+
+
+
+        const [resetTokenInfo, setResetTokenInfo] = useState<{
+            memberName: string;
+            token: string;
+            expiresAt: string;
+        } | null>(null);
+
+        const handleForceReset = (member: providerMember) => {
+            setPendingAction({ kind: 'forceReset', member });
+        };
+
+        
+        const performPendingAction = async () => {
+            if (!pendingAction) return;
+            const { kind, member } = pendingAction;
+            try {
+                if (kind === 'delete') {
+                    const res = await apiClient.delete<providerMember>(`/provider/directory/${member.id}`);
+                    if (res.success) {
+                        toast.success('ลบพนักงานสำเร็จ');
+                        fetchPROVIDER();
+                    } else {
+                        toast.error('เกิดข้อผิดพลาด: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                } else if (kind === 'unlock') {
+                    const res = await apiClient.post<{ id: string; isLocked: boolean }>(`/provider/directory/${member.id}/unlock`, {});
+                    if (res.success) {
+                        toast.success(`ปลดล็อก ${getFullName(member)} สำเร็จ`);
+                        fetchPROVIDER();
+                    } else {
+                        toast.error('ปลดล็อกไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                } else if (kind === 'disable2fa') {
+                    const res = await apiClient.post<{ id: string; twoFactorEnabled: boolean }>(`/provider/directory/${member.id}/disable-2fa`, {});
+                    if (res.success) {
+                        toast.success(`ปิด 2FA ของ ${getFullName(member)} สำเร็จ`);
+                        fetchPROVIDER();
+                    } else {
+                        toast.error('ปิด 2FA ไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                } else if (kind === 'forceReset') {
+                    const res = await apiClient.post<{
+                        id: string;
+                        resetToken: string;
+                        expiresAt: string;
+                    }>(`/provider/directory/${member.id}/force-password-reset`, {});
+                    if (res.success && res.data) {
+                        setResetTokenInfo({
+                            memberName: getFullName(member),
+                            token: res.data.resetToken,
+                            expiresAt: res.data.expiresAt,
+                        });
+                    } else {
+                        toast.error('ออกโทเค็นไม่สำเร็จ: ' + (res.error || 'ไม่ทราบสาเหตุ'));
+                    }
+                }
+            } catch (_e) {
+                toast.error('เกิดข้อผิดพลาดในการเชื่อมต่อ');
+            } finally {
+                setPendingAction(null);
+            }
+        };
+
+        
+        const pendingDialogCopy = (() => {
+            if (!pendingAction) {
+                return null;
+            }
+            const name = getFullName(pendingAction.member);
+            if (pendingAction.kind === 'delete') {
+                return {
+                    title: 'ยืนยันการลบพนักงาน',
+                    description: `ลบบัญชีของ ${name}? การกระทำนี้ไม่สามารถย้อนกลับได้`,
+                    confirmLabel: 'ลบ',
+                    variant: 'destructive' as const,
+                };
+            }
+            if (pendingAction.kind === 'unlock') {
+                return {
+                    title: 'ปลดล็อกบัญชี',
+                    description: `ปลดล็อกบัญชี ${name}? ระบบจะรีเซ็ตจำนวนครั้งที่ล็อกอินผิดและอนุญาตให้เข้าใช้งานได้ทันที`,
+                    confirmLabel: 'ปลดล็อก',
+                    variant: 'default' as const,
+                };
+            }
+            if (pendingAction.kind === 'disable2fa') {
+                return {
+                    title: 'ปิด 2FA',
+                    description: `ปิด 2FA ของ ${name}? ผู้ใช้จะต้องเปิดใช้งาน 2FA ใหม่ในการเข้าสู่ระบบครั้งถัดไป`,
+                    confirmLabel: 'ปิด 2FA',
+                    variant: 'destructive' as const,
+                };
+            }
+
+            return {
+                title: 'ออกโทเค็นรีเซ็ตรหัสผ่าน',
+                description: `ออกโทเค็นรีเซ็ตรหัสผ่านสำหรับ ${name}? โทเค็นจะหมดอายุภายใน 1 ชั่วโมง`,
+                confirmLabel: 'ออกโทเค็น',
+                variant: 'destructive' as const,
+            };
+        })();
+
+        const copyResetToken = async (token: string) => {
+            try {
+                await navigator.clipboard.writeText(token);
+                toast.success('คัดลอกโทเค็นแล้ว');
+            } catch {
+                toast.error('คัดลอกไม่สำเร็จ กรุณาคัดลอกด้วยตนเอง');
+            }
+        };
+
+
+
+
+
+        const filteredPROVIDER = provider.filter((m) => {
+            const matchesQuery = (
+                getFullName(m).toLowerCase().includes(searchTerm.toLowerCase())
+                || m.email.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+            if (!matchesQuery) return false;
+            if (filterRole === 'ALL') return true;
+            const memberCanonical = normalizeRole(m.role);
+            const filterCanonical = normalizeRole(filterRole);
+            if (memberCanonical && filterCanonical) {
+                return memberCanonical === filterCanonical;
+            }
+            return m.role === filterRole;
+        });
+
+        const totalPages = Math.max(1, Math.ceil(filteredPROVIDER.length / ITEMS_PER_PAGE));
+        const currentPageIndex = Math.max(0, Math.min(currentPage - 1, totalPages - 1));
+        const paginatedPROVIDER = filteredPROVIDER.slice(currentPageIndex * ITEMS_PER_PAGE, (currentPageIndex + 1) * ITEMS_PER_PAGE);
+
+        useEffect(() => {
+            setCurrentPage(1);
+        }, [searchTerm, filterRole]);
+
+        if (loading) {
+            return <ProviderLayout title=\"จัดการพนักงาน\"><div className=\"flex items-center justify-center p-6\"><p>กำลังโหลด...</p></div></ProviderLayout>;
+        }
+
+        return (
+            <ProviderLayout title=\"จัดการพนักงาน\" subtitle=\"จัดการบัญชีพนักงานในระบบ GACP\">
+                {}
+                <div className=\"mb-4 rounded-lg border border-border bg-card p-4\">
+                    <div className=\"flex flex-wrap items-center\">
+                        <TextInput
+                            placeholder=\"ค้นหาชื่อหรืออีเมล...\"
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.currentTarget.value)}
+                            leftSection={<IconSearch size={16} />}
+                            style={{ flex: 1 }}
+                        />
+                        {}
+                        <Select
+                            value={filterRole}
+                            onChange={(val) => setFilterRole(val || 'ALL')}
+                            data={ADMIN_ROLE_OPTIONS_WITH_ALL_PREFIX
+                                .filter((opt) => !opt.hidden && opt.value !== 'HEALTH')
+                                .map((opt) => ({ value: opt.value, label: opt.label }))}
+                        />
+                        {}
+                        <Button leftSection={<IconPlus size={16} />} onClick={handleOpenCreate}>เพิ่มพนักงาน</Button>
+                    </div>
+                </div>
+
+                {}
+                <SimpleGrid cols={6} spacing=\"md\">
+                    {[
+                        { label: \"พนักงานทั้งหมด\", value: provider.length, color: \"primary\" },
+                        { label: \"ผู้ตรวจสอบ\", value: provider.filter(s => s.role === 'document_reviewer').length, color: \"blue\" },
+                        { label: \"ผู้จัดตาราง\", value: provider.filter(s => s.role === 'dispatcher').length, color: \"grape\" },
+                        { label: \"บัญชี\", value: provider.filter(s => s.role === 'finance_officer_platform').length, color: \"green\" },
+
+
+                        { label: \"บัญชีที่ถูกล็อก\", value: provider.filter(s => s.isLocked).length, color: \"red\" },
+
+
+
+
+                        { label: \"เปิดใช้งาน 2FA\", value: provider.filter(s => s.twoFactorEnabled).length, color: \"primary\" },
+                    ].map((stat, i) => (
+                        <div className=\"rounded-lg border border-border bg-card p-4 text-center\" key={i}>
+                            <p className=\"text-xl font-semibold tabular-nums\">{stat.value}</p>
+                            <p className=\"text-sm text-muted-foreground\">{stat.label}</p>
+                        </div>
+                    ))}
+                </SimpleGrid>
+
+                {}
+                <div className=\"overflow-hidden rounded-lg border border-border bg-card\">
+                    <Table.ScrollContainer>
+                        <Table>
+                            <Table.Thead>
+                                <Table.Tr>
+                                    <Table.Th>ชื่อ</Table.Th>
+                                    <Table.Th>อีเมล</Table.Th>
+                                    <Table.Th>ตำแหน่ง</Table.Th>
+                                    <Table.Th>สถานะ</Table.Th>
+                                    <Table.Th>เข้าสู่ระบบล่าสุด</Table.Th>
+                                    <Table.Th>ความปลอดภัย</Table.Th>
+                                    <Table.Th className=\"text-center\">จัดการ</Table.Th>
+                                </Table.Tr>
+                            </Table.Thead>
+                            <Table.Tbody>
+                                {paginatedPROVIDER.length > 0 ? (
+                                    paginatedPROVIDER.map(member => (
+                                        <Table.Tr key={member.id}>
+                                            <Table.Td>
+                                                <div className=\"flex flex-wrap items-center gap-3\">
+                                                    <Avatar color=\"primary\">
+                                                        {(member.firstName || member.username || '?').charAt(0)}
+                                                    </Avatar>
+                                                    <div>
+                                                        <p className=\"font-medium\">{getFullName(member)}</p>
+                                                        <p className=\"text-xs text-muted-foreground\">@{member.username}</p>
+                                                    </div>
+                                                </div>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <p className=\"text-sm text-muted-foreground\">{member.email}</p>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge color={getRoleColor(member.role)}>
+                                                    {getRoleLabelTH(member.role)}
+                                                </Badge>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <Badge tone={member.isActive ? 'primary' : 'neutral'}>
+                                                    {member.isActive ? 'ใช้งาน' : 'ปิดใช้งาน'}
+                                                </Badge>
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <p className=\"text-sm text-muted-foreground\">
+                                                    {formatLastLogin(member.lastLoginAt)}
+                                                </p>
+                                                {(member.loginAttempts ?? 0) > 0 && (
+                                                    <p className=\"text-xs text-warning\">
+                                                        ล็อกอินผิดพลาด {member.loginAttempts} ครั้ง
+                                                    </p>
+                                                )}
+                                            </Table.Td>
+                                            <Table.Td>
+                                                <div className=\"flex flex-wrap items-center gap-1.5\">
+                                                    {member.isLocked ? (
+                                                        <Badge color=\"red\">
+                                                            <span className=\"inline-flex items-center gap-1\">
+                                                                <IconLock size={12} />
+                                                                ถูกล็อก
+                                                            </span>
+                                                        </Badge>
+                                                    ) : null}
+                                                    {member.twoFactorEnabled ? (
+                                                        <Badge tone=\"primary\">
+                                                            <span className=\"inline-flex items-center gap-1\">
+                                                                <IconShieldCheck size={12} />
+                                                                2FA
+                                                            </span>
+                                                        </Badge>
+                                                    ) : null}
+                                                    {!member.isLocked && !member.twoFactorEnabled && (
+                                                        <span className=\"text-xs text-muted-foreground\">-</span>
+                                                    )}
+                                                </div>
+                                            </Table.Td>
+                                            <Table.Td className=\"text-center\">
+                                                <div className=\"flex flex-wrap items-center justify-center gap-2\">
+                                                    <ActionIcon
+
+                                                        color=\"violet\"
+                                                        aria-label={`Manage groups for ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => router.push(`/provider/management/users/${member.id}/groups`)}
+                                                    >
+                                                        <IconUsers size={16} />
+                                                    </ActionIcon>
+                                                    {}
+                                                    <ActionIcon
+
+                                                        color=\"grape\"
+                                                        aria-label={`Manage permissions for ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => router.push(`/provider/management/users/${member.id}/permissions`)}
+                                                    >
+                                                        <IconShieldLock size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+
+                                                        color=\"blue\"
+                                                        aria-label={`แก้ไขพนักงาน ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => handleOpenEdit(member)}
+                                                    >
+                                                        <IconEdit size={16} />
+                                                    </ActionIcon>
+                                                    {}
+                                                    {member.isLocked && (
+                                                        <ActionIcon
+
+                                                            color=\"orange\"
+                                                            aria-label={`Unlock account for ${member.firstName} ${member.lastName}`}
+                                                            onClick={() => handleUnlock(member)}
+                                                        >
+                                                            <IconLockOpen size={16} />
+                                                        </ActionIcon>
+                                                    )}
+                                                    {member.twoFactorEnabled && (
+                                                        <ActionIcon
+
+                                                            color=\"orange\"
+                                                            aria-label={`Disable 2FA for ${member.firstName} ${member.lastName}`}
+                                                            onClick={() => handleDisable2FA(member)}
+                                                        >
+                                                            <IconShieldOff size={16} />
+                                                        </ActionIcon>
+                                                    )}
+                                                    <ActionIcon
+
+
+
+                                                        color=\"yellow\"
+                                                        aria-label={`Force password reset for ${member.firstName} ${member.lastName}`}
+                                                        onClick={() => handleForceReset(member)}
+                                                    >
+                                                        <IconKey size={16} />
+                                                    </ActionIcon>
+                                                    <ActionIcon
+
+                                                        color=\"red\"
+                                                        aria-label={`ลบพนักงาน ${member.firstName} ${member.lastName}`}
+                                                        data-testid={`mgmt-delete-${member.id}`}
+                                                        onClick={() => handleDelete(member)}
+                                                    >
+                                                        <IconTrash size={16} />
+                                                    </ActionIcon>
+                                                </div>
+                                            </Table.Td>
+                                        </Table.Tr>
+                                    ))
+                                ) : (
+                                    <Table.Tr>
+                                        <Table.Td colSpan={7}>
+                                            {dirError ? (
+                                                <div role=\"alert\" aria-live=\"polite\" className=\"flex flex-col items-center justify-center gap-3 p-6 text-center\">
+                                                    <p className=\"text-sm text-destructive\">{dirError}</p>
+                                                    <Button variant=\"outline\" size=\"sm\" className=\"min-h-[44px]\" onClick={fetchPROVIDER}>
+                                                        ลองอีกครั้ง
+                                                    </Button>
+                                                </div>
+                                            ) : (
+                                                <div className=\"flex items-center justify-center p-6\"><p className=\"text-muted-foreground\">ไม่พบข้อมูลพนักงาน</p></div>
+                                            )}
+                                        </Table.Td>
+                                    </Table.Tr>
+                                )}
+                            </Table.Tbody>
+                        </Table>
+                    </Table.ScrollContainer>
+                </div>
+
+                {}
+                {totalPages > 1 && (
+                    <div className=\"mt-4 flex flex-col items-center justify-between gap-4 rounded-lg border border-border bg-card p-4 sm:flex-row\">
+                        <p className=\"text-sm text-muted-foreground\">
+                            แสดง {(currentPageIndex * ITEMS_PER_PAGE) + 1} ถึง {Math.min((currentPageIndex + 1) * ITEMS_PER_PAGE, filteredPROVIDER.length)} จากทั้งหมด {filteredPROVIDER.length} รายการ
+                        </p>
+                        <div className=\"flex items-center gap-2\">
+                            <Button 
+     
+                                disabled={currentPage === 1} 
+                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            >
+                                ก่อนหน้า
+                            </Button>
+                            <div className=\"flex items-center gap-1.5 px-2\">
+                                {Array.from({ length: totalPages }).map((_, i) => {
+                                    const pageNumber = i + 1;
+
+                                    if (
+                                        totalPages <= 7 ||
+                                        pageNumber === 1 ||
+                                        pageNumber === totalPages ||
+                                        Math.abs(currentPage - pageNumber) <= 1
+                                    ) {
+                                        return (
+                                            <button
+                                                key={i}
+                                                onClick={() => setCurrentPage(pageNumber)}
+                                                className={`flex h-8 min-h-[44px] w-8 min-w-[44px] items-center justify-center rounded-md text-sm font-medium transition-colors sm:min-h-0 sm:min-w-0 ${
+                                                    currentPage === pageNumber
+                                                        ? 'bg-primary text-primary-foreground'
+                                                        : 'text-muted-foreground hover:bg-muted'
+                                                }`}
+                                            >
+                                                {pageNumber}
+                                            </button>
+                                        );
+                                    }
+                                    if (
+                                        (pageNumber === 2 && currentPage > 3) ||
+                                        (pageNumber === totalPages - 1 && currentPage < totalPages - 2)
+                                    ) {
+                                        return <span key={i} className=\"px-1 text-muted-foreground\">...</span>;
+                                    }
+                                    return null;
+                                })}
+                            </div>
+                            <Button 
+     
+                                disabled={currentPage === totalPages} 
+                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            >
+                                ถัดไป
+                            </Button>
+                        </div>
+                    </div>
+                )}
+
+                {}
+                <Modal
+                    opened={!!resetTokenInfo}
+                    onClose={() => setResetTokenInfo(null)}
+                    title=\"โทเค็นรีเซ็ตรหัสผ่าน\"
+                    centered
+                    size=\"md\"
+                >
+                    {resetTokenInfo && (
+                        <div className=\"flex flex-col gap-3\">
+                            <p className=\"text-sm\">
+                                ออกโทเค็นรีเซ็ตรหัสผ่านสำหรับ <strong>{resetTokenInfo.memberName}</strong> สำเร็จ
+                            </p>
+                            <p className=\"text-xs text-warning\">
+                                ⚠ คัดลอกโทเค็นนี้ตอนนี้ จะแสดงเพียงครั้งเดียวเท่านั้น
+                            </p>
+                            <div className=\"break-all rounded-md bg-muted p-3 font-mono text-xs\">
+                                {resetTokenInfo.token}
+                            </div>
+                            <p className=\"text-xs text-muted-foreground\">
+                                หมดอายุ: {new Date(resetTokenInfo.expiresAt).toLocaleString('th-TH')}
+                            </p>
+                            <div className=\"mt-2 flex justify-end gap-2\">
+                                <Button
+
+                                    leftSection={<IconCopy size={16} />}
+                                    onClick={() => copyResetToken(resetTokenInfo.token)}
+                                >
+                                    คัดลอกโทเค็น
+                                </Button>
+                                <Button onClick={() => setResetTokenInfo(null)}>
+                                    ปิด
+                                </Button>
+                            </div>
+                        </div>
+                    )}
+                </Modal>
+
+                {}
+                <Modal
+                    opened={showModal}
+                    onClose={() => setShowModal(false)}
+                    title={editingPROVIDER ? 'แก้ไขข้อมูลพนักงาน' : 'เพิ่มพนักงานใหม่'}
+                    centered
+                    size=\"md\"
+                >
+                    <div className=\"flex flex-col\">
+                        {editingPROVIDER ? (
+                            <TextInput
+                                label=\"ชื่อผู้ใช้ (Username)\"
+                                placeholder=\"ชื่อผู้ใช้\"
+                                value={formData.username}
+                                onChange={(e) => setFormData({ ...formData, username: e.currentTarget.value })}
+                                required
+                                disabled
+                            />
+                        ) : (
+                            <TextInput
+                                label=\"เลขบัตรประชาชน (13 หลัก)\"
+                                placeholder=\"1234567890123\"
+                                description=\"เจ้าหน้าที่ใช้เลขนี้เข้าสู่ระบบคู่กับรหัสผ่าน\"
+                                value={formData.providerId}
+                                onChange={(e) => setFormData({ ...formData, providerId: e.currentTarget.value.replace(/\\D/g, '').slice(0, 13) })}
+                                required
+                                inputMode=\"numeric\"
+                            />
+                        )}
+                        <div className=\"flex flex-wrap items-center\">
+                            <TextInput
+                                label=\"ชื่อจริง\"
+                                placeholder=\"ชื่อ\"
+                                value={formData.firstName}
+                                onChange={(e) => setFormData({ ...formData, firstName: e.currentTarget.value })}
+                            />
+                            <TextInput
+                                label=\"นามสกุล\"
+                                placeholder=\"นามสกุล\"
+                                value={formData.lastName}
+                                onChange={(e) => setFormData({ ...formData, lastName: e.currentTarget.value })}
+                            />
+                        </div>
+                        <TextInput
+                            label=\"อีเมล\"
+                            placeholder=\"email@example.com\"
+                            value={formData.email}
+                            onChange={(e) => setFormData({ ...formData, email: e.currentTarget.value })}
+                            required
+                        />
+                        <PasswordInput
+                            label={editingPROVIDER ? 'รหัสผ่านใหม่ (เว้นว่างถ้าไม่เปลี่ยน)' : 'รหัสผ่าน'}
+                            placeholder=\"********\"
+                            description={editingPROVIDER ? undefined : 'อย่างน้อย 10 ตัวอักษร'}
+                            value={formData.password}
+                            onChange={(e) => setFormData({ ...formData, password: e.currentTarget.value })}
+                            required={!editingPROVIDER}
+                        />
+                        {}
+                        <Select
+                            label=\"ตำแหน่ง\"
+                            value={formData.role}
+                            onChange={val => setFormData({ ...formData, role: ((val || CANONICAL_ROLES.DOCUMENT_REVIEWER) as CanonicalRole) })}
+                            data={ADMIN_ROLE_OPTIONS_FOR_NEW_USER
+                                .filter((opt) => opt.canonical !== 'health')
+                                .map((opt) => ({ value: opt.canonical, label: opt.label }))}
+                        />
+                        <div className=\"mt-4 flex flex-wrap items-center\">
+                            <Button onClick={() => setShowModal(false)}>ยกเลิก</Button>
+                            <Button onClick={handleSubmit} loading={submitting} leftSection={<IconCheck size={16} />}>
+                                {editingPROVIDER ? 'บันทึก' : 'เพิ่มพนักงาน'}
+                            </Button>
+                        </div>
+                    </div>
+                </Modal>
+
+                {}
+                {pendingDialogCopy ? (
+                    <ConfirmDialog
+                        open={pendingAction !== null}
+                        onOpenChange={(open) => {
+                            if (!open) setPendingAction(null);
+                        }}
+                        onConfirm={performPendingAction}
+                        title={pendingDialogCopy.title}
+                        description={pendingDialogCopy.description}
+                        confirmLabel={pendingDialogCopy.confirmLabel}
+                        variant={pendingDialogCopy.variant}
+                    />
+                ) : null}
+            </ProviderLayout>
+        );
+    }
+    "
+
+      84 |         expect(MGMT_PAGE).toContain("kind: 'unlock'");
+      85 |         expect(MGMT_PAGE).toContain("kind: 'disable2fa'");
+    > 86 |         expect(MGMT_CODE).not.toContain("kind: 'forceReset'");
+         |                               ^
+      87 |     });
+      88 |
+      89 |     it('renders a <ConfirmDialog ...> element in the JSX tree', () => {
+
+      at Object.<anonymous> (src/app/provider/management/__tests__/x5-fix-c-confirm-dialog.test.ts:86:31)
+
+FAIL src/app/provider/management/__tests__/no-password-reset-action.test.tsx
+  /provider/management — no password-reset action (no account recovery)
+    ✕ the officer row has no reset button, only the staff-administration actions (223 ms)
+    ✕ pressing and confirming every row action never asks for a reset token or shows one (597 ms)
+
+  ● /provider/management — no password-reset action (no account recovery) › the officer row has no reset button, only the staff-administration actions
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "Force password reset for สมชาย ใจดี",
+    + ]
+
+      135 |             `ลบพนักงาน ${OFFICER.firstName} ${OFFICER.lastName}`,
+      136 |         ]));
+    > 137 |         expect(labels.filter((label) => RESET_WORDS.test(label || ''))).toEqual([]);
+          |                                                                         ^
+      138 |     });
+      139 |
+      140 |     it('pressing and confirming every row action never asks for a reset token or shows one', async () => {
+
+      at Object.<anonymous> (src/app/provider/management/__tests__/no-password-reset-action.test.tsx:137:73)
+
+  ● /provider/management — no password-reset action (no account recovery) › pressing and confirming every row action never asks for a reset token or shows one
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 2
+
+      Array [
+        "ปลดล็อกบัญชี",
+        "ปิด 2FA",
+    -   "ยืนยันการลบพนักงาน",
+    +   "ออกโทเค็นรีเซ็ตรหัสผ่าน",
+    +   "โทเค็นรีเซ็ตรหัสผ่าน",
+      ]
+
+      165 |
+      166 |         // each confirmation the row offers, and nothing else
+    > 167 |         expect(dialogTitles.sort()).toEqual(['ปลดล็อกบัญชี', 'ปิด 2FA', 'ยืนยันการลบพนักงาน'].sort());
+          |                                     ^
+      168 |         const posted = mockPost.mock.calls.map(([url]) => url);
+      169 |         expect(posted).toEqual(expect.arrayContaining([
+      170 |             `/provider/directory/${OFFICER.id}/unlock`,
+
+      at Object.<anonymous> (src/app/provider/management/__tests__/no-password-reset-action.test.tsx:167:37)
+
+FAIL src/app/health/profile/security/__tests__/page.test.tsx
+  HealthSecurityPage
+    ✓ names หมอพร้อม / ThaID and offers no email 2FA (32 ms)
+    ✓ promises nothing the system does not do (3 ms)
+    ✕ says there is no account recovery and sends no one to staff to get back in (3 ms)
+    ✓ does not claim หมอพร้อม / ThaID already verify the applicant (2 ms)
+    ✓ imports no API client: there is nothing to enrol or check any more (1 ms)
+
+  ● HealthSecurityPage › says there is no account recovery and sends no one to staff to get back in
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "ระบบนี้ไม่มีการกู้บัญชี"
+    Received string:    "<div class=\"w-full space-y-6 p-4 pb-20 md:p-6 md:pb-6\"><section class=\"rounded-xl border border-border bg-card p-6\"><div class=\"flex flex-col gap-6 md:flex-row md:items-start md:justify-between\"><div class=\"max-w-3xl space-y-2\"><p class=\"text-xs text-muted-foreground\">ผู้ขอรับรอง · ความปลอดภัย</p><h2 class=\"text-2xl font-semibold text-foreground\">การยืนยันตัวตน</h2><p class=\"max-w-2xl text-sm leading-relaxed text-muted-foreground\">ระบบนี้ไม่มีรหัสยืนยันทางอีเมล และไม่มีการรีเซ็ตรหัสผ่านทางอีเมลหรือ SMS</p></div><div class=\"flex w-full flex-wrap gap-2 md:w-auto md:justify-end\"><button class=\"inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 text-foreground hover:bg-mint-soft h-11 px-4 rounded-xl\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-chevron-left mr-1 h-4 w-4\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"></path></svg>กลับ</button></div></div></section><div class=\"text-card-foreground shadow-leaf-card rounded-2xl border-border bg-card shadow-sm\"><div class=\"flex flex-col space-y-1.5 p-5 sm:p-6 border-b border-border/50 bg-muted/30 px-6 py-4\"><h3 class=\"tracking-tight flex items-center gap-2 text-sm font-bold text-muted-foreground\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check h-4 w-4 text-primary\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>ความปลอดภัยของบัญชี</h3></div><div class=\"sm:p-6 space-y-3 p-6 text-sm text-muted-foreground sm:pt-6\"><p>ตอนนี้ผู้ขอรับรองเข้าสู่ระบบด้วยเลขบัตรประชาชนและรหัสผ่าน การเข้าสู่ระบบด้วย <span class=\"font-semibold text-foreground\">หมอพร้อม</span> และ <span class=\"font-semibold text-foreground\">ThaID</span> ยังไม่เปิดใช้</p><p>ระบบนี้ไม่มีการยืนยันตัวตนสองขั้นตอนทางอีเมล และไม่มีการรีเซ็ตรหัสผ่านทางอีเมลหรือ SMS จึงไม่มีสิ่งใดให้ตั้งค่าในหน้านี้</p><p>หากเข้าสู่ระบบไม่ได้หรือสงสัยว่ามีผู้อื่นใช้บัญชีของคุณ กรุณาติดต่อเจ้าหน้าที่ DTAM</p></div></div></div>"
+
+      47 |   it('says there is no account recovery and sends no one to staff to get back in', () => {
+      48 |     const html = renderToStaticMarkup(<HealthSecurityPage />);
+    > 49 |     expect(html).toContain('ระบบนี้ไม่มีการกู้บัญชี');
+         |                  ^
+      50 |     expect(html).not.toContain('หากเข้าสู่ระบบไม่ได้');
+      51 |     expect(html).not.toContain('ติดต่อเจ้าหน้าที่');
+      52 |     // "no reset by email or SMS" implied a reset some other way
+
+      at Object.<anonymous> (src/app/health/profile/security/__tests__/page.test.tsx:49:18)
+
+FAIL src/app/health/profile/privacy/__tests__/no-recovery-promise.test.tsx
+  HealthPrivacyPage — delete warning
+    ✕ says a deleted account cannot be recovered, with no grace-period promise (24 ms)
+
+  ● HealthPrivacyPage — delete warning › says a deleted account cannot be recovered, with no grace-period promise
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "30 วันแรก"
+    Received string:        "<div class=\"w-full space-y-6 p-4 pb-20 md:p-6 md:pb-6\"><section class=\"rounded-xl border border-border bg-card p-6\"><div class=\"flex flex-col gap-6 md:flex-row md:items-start md:justify-between\"><div class=\"max-w-3xl space-y-2\"><p class=\"text-xs text-muted-foreground\">ผู้ขอรับรอง · ความเป็นส่วนตัว</p><h2 class=\"text-2xl font-semibold text-foreground\">ความเป็นส่วนตัว (PDPA)</h2><p class=\"max-w-2xl text-sm leading-relaxed text-muted-foreground\">สิทธิตามพระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562</p></div><div class=\"flex w-full flex-wrap gap-2 md:w-auto md:justify-end\"><button class=\"inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 text-foreground hover:bg-mint-soft h-11 px-4 rounded-xl\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-chevron-left mr-1 h-4 w-4\" aria-hidden=\"true\"><path d=\"m15 18-6-6 6-6\"></path></svg>กลับ</button></div></div></section><div class=\"text-card-foreground shadow-leaf-card rounded-2xl border-border bg-card\"><div class=\"flex flex-col space-y-1.5 p-5 sm:p-6 border-b border-border/50 px-5 py-4\"><h3 class=\"tracking-tight flex items-center gap-2 text-sm font-bold text-foreground\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-download h-4 w-4 text-primary\" aria-hidden=\"true\"><path d=\"M12 15V3\"></path><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"></path><path d=\"m7 10 5 5 5-5\"></path></svg>ดาวน์โหลดข้อมูลของคุณ (มาตรา 30)</h3></div><div class=\"sm:p-6 sm:pt-0 space-y-4 p-5\"><p class=\"text-sm text-muted-foreground\">สำเนาข้อมูลส่วนบุคคลทั้งหมดที่ระบบเก็บไว้เกี่ยวกับคุณ รวมถึงโปรไฟล์ คำขอ ฟาร์ม ใบรับรอง ใบแจ้งหนี้ และประวัติการแจ้งเตือน ส่งออกเป็นไฟล์ JSON มาตรฐาน</p><p class=\"text-xs text-muted-foreground\">ข้อมูลที่ดาวน์โหลดได้จะไม่รวมรหัสผ่านหรือข้อมูล MFA (ไม่ต้องการให้ผู้รับไฟล์เข้าระบบแทนคุณได้)</p><button class=\"inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 bg-leaf-700 text-white shadow-leaf-btn hover:bg-leaf-800 h-12 px-5 rounded-xl\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-download mr-2 h-4 w-4\" aria-hidden=\"true\"><path d=\"M12 15V3\"></path><path d=\"M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4\"></path><path d=\"m7 10 5 5 5-5\"></path></svg>ดาวน์โหลดเป็น JSON</button></div></div><div class=\"text-card-foreground shadow-leaf-card rounded-2xl border-primary/30 bg-card\"><div class=\"flex flex-col space-y-1.5 p-5 sm:p-6 border-b border-primary/20 px-5 py-4\"><h3 class=\"tracking-tight flex items-center gap-2 text-sm font-bold text-primary\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check h-4 w-4\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>วิธีใหม่ (2 ขั้นตอน แนะนำ)</h3></div><div class=\"sm:p-6 sm:pt-0 space-y-3 p-5\"><p class=\"text-sm text-muted-foreground\">ปลอดภัยขึ้น ส่งคำขอแล้วยืนยันด้วยลิงก์อีเมล (มาตรา 32 PDPA) ระบบจะแสดงผลกระทบที่ชัดเจนก่อนยืนยัน พร้อมหน้าต่างยืนยัน 24 ชั่วโมงเพื่อป้องกันการคลิกผิดพลาด</p><a class=\"inline-flex items-center gap-2 rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90\" href=\"/health/account/erasure\">ไปที่ขั้นตอนใหม่<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-arrow-right h-4 w-4\" aria-hidden=\"true\"><path d=\"M5 12h14\"></path><path d=\"m12 5 7 7-7 7\"></path></svg></a></div></div><div class=\"text-card-foreground shadow-leaf-card rounded-2xl border-destructive/30 bg-card\"><div class=\"flex flex-col space-y-1.5 p-5 sm:p-6 border-b border-destructive/20 px-5 py-4\"><h3 class=\"tracking-tight flex items-center gap-2 text-sm font-bold text-destructive\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-trash2 lucide-trash-2 h-4 w-4\" aria-hidden=\"true\"><path d=\"M10 11v6\"></path><path d=\"M14 11v6\"></path><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"></path><path d=\"M3 6h18\"></path><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"></path></svg>วิธีเดิม (1 ขั้นตอน) ลบบัญชีของฉัน (มาตรา 33)</h3></div><div class=\"sm:p-6 sm:pt-0 space-y-4 p-5\"><div class=\"flex items-start gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-triangle-alert mt-0.5 h-4 w-4 shrink-0\" aria-hidden=\"true\"><path d=\"m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3\"></path><path d=\"M12 9v4\"></path><path d=\"M12 17h.01\"></path></svg><div class=\"space-y-1\"><p class=\"font-bold\">ก่อนตัดสินใจลบบัญชี</p><ul class=\"list-disc space-y-1 pl-4 text-xs\"><li>หากคุณมี <strong>ใบรับรอง GACP ที่ออกแล้ว</strong> ระบบจะเก็บประวัติคำขอตามกฎหมาย (5 ปีหลังจากใบรับรองหมดอายุ) เพื่อรองรับการตรวจสอบของกรมการแพทย์แผนไทย</li><li>ข้อมูลส่วนบุคคล (ชื่อ อีเมล เบอร์โทร) จะถูกซ่อนจากการค้นหาทันที</li><li>หลังจากผ่าน 30 วันแรก คุณ <strong>จะไม่สามารถกู้คืนบัญชีได้อีก</strong></li><li>หากระบบทำเครื่องหมาย <code>legal hold</code> ไว้กับบัญชีของคุณ การลบจะถูกปฏิเสธ ติดต่อเจ้าหน้าที่ DTAM</li></ul></div></div><button class=\"inline-flex items-center justify-center whitespace-nowrap text-sm font-semibold transition-all duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-leaf focus-visible:ring-offset-2 focus-visible:ring-offset-background active:scale-[0.97] disabled:pointer-events-none disabled:opacity-50 bg-destructive text-destructive-foreground hover:bg-destructive/90 h-12 px-5 rounded-xl\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-trash2 lucide-trash-2 mr-2 h-4 w-4\" aria-hidden=\"true\"><path d=\"M10 11v6\"></path><path d=\"M14 11v6\"></path><path d=\"M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6\"></path><path d=\"M3 6h18\"></path><path d=\"M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2\"></path></svg>เริ่มขั้นตอนลบบัญชี</button></div></div><div class=\"text-card-foreground shadow-leaf-card rounded-2xl border-border bg-muted/30\"><div class=\"sm:p-6 sm:pt-0 space-y-2 p-5\"><div class=\"flex items-center gap-2 text-sm font-bold text-foreground\"><svg xmlns=\"http://www.w3.org/2000/svg\" width=\"24\" height=\"24\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\" stroke-linecap=\"round\" stroke-linejoin=\"round\" class=\"lucide lucide-shield-check h-4 w-4 text-primary\" aria-hidden=\"true\"><path d=\"M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z\"></path><path d=\"m9 12 2 2 4-4\"></path></svg>อ้างอิงทางกฎหมาย</div><p class=\"text-xs leading-relaxed text-muted-foreground\">พระราชบัญญัติคุ้มครองข้อมูลส่วนบุคคล พ.ศ. 2562 (PDPA) มาตรา 30 ให้สิทธิเจ้าของข้อมูลขอเข้าถึงและรับสำเนาข้อมูลส่วนบุคคล มาตรา 33 ให้สิทธิขอให้ลบหรือทำลายข้อมูล หรือทำให้ข้อมูลส่วนบุคคลไม่สามารถระบุตัวบุคคลได้ สำหรับคำถามเกี่ยวกับการคุ้มครองข้อมูลส่วนบุคคล ติดต่อเจ้าหน้าที่ DTAM</p></div></div></div>"
+
+      22 |     // positive control: this is the delete section
+      23 |     expect(html).toContain('ก่อนตัดสินใจลบบัญชี');
+    > 24 |     expect(html).not.toContain('30 วันแรก');
+         |                      ^
+      25 |     expect(html).not.toContain('จะไม่สามารถกู้คืนบัญชีได้อีก');
+      26 |     expect(html).toContain('ระบบไม่มีการกู้บัญชี');
+      27 |   });
+
+      at Object.<anonymous> (src/app/health/profile/privacy/__tests__/no-recovery-promise.test.tsx:24:22)
+
+Test Suites: 5 failed, 5 total
+Tests:       6 failed, 26 passed, 32 total
+Snapshots:   0 total
+Time:        3.989 s
+Ran all test suites matching src/app/health/profile/privacy/__tests__/no-recovery-promise.test.tsx|src/app/health/profile/security/__tests__/page.test.tsx|src/app/provider/management/__tests__/no-password-reset-action.test.tsx|src/app/provider/management/__tests__/x5-fix-c-confirm-dialog.test.ts|src/components/admin/__tests__/x5-fix-b.test.tsx.

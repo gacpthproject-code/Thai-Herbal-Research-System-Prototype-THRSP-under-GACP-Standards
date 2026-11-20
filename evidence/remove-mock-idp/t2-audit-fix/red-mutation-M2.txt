@@ -1,0 +1,62 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/auth-idp-routes.test.js
+  POST /api/auth/idp/:provider/authorize-url
+    √ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (59 ms)
+    √ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (22 ms)
+    √ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (14 ms)
+    √ thaid enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (19 ms)
+    √ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (22 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    √ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (38 ms)
+    √ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (24 ms)
+    √ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (49 ms)
+    √ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (21 ms)
+    √ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (21 ms)
+    √ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (21 ms)
+  POST /api/auth/idp/thaid/callback — เส้น session จริง (แปลงพาหนะจาก mock — coverage เดิมครบ)
+    √ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR + audit reason CODE_MISSING จากการ์ดของ route (34 ms)
+    √ code ไม่ใช่สตริง (number) → 400 VALIDATION_ERROR ก่อนถึง adapter (ไม่ยิง IdP) (27 ms)
+    √ happy → 200: mint ผ่าน issueTokensForAuthenticatedUser + provider_token httpOnly cookie (23 ms)
+    √ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (21 ms)
+    × ทะเบียนปฏิเสธ fail-closed (auto-provision ปิด) → catalog status + ไม่มี create/upsert/mint + audit FAILURE (36 ms)
+    √ บัญชีที่ผูกเลข 13 หลักเป็นเจ้าหน้าที่ → 403 ไม่ auto-link ไม่ create/upsert/mint + audit FAILURE (24 ms)
+    √ บัญชี status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (20 ms)
+    √ ผู้ใช้กดปฏิเสธที่ IdP → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (21 ms)
+    √ code ถูก IdP ปฏิเสธ → 401 AUTH_IDP_CODE_INVALID (ใช้ไม่ได้ = ปฏิเสธก่อน mint) (28 ms)
+    √ id_token ไม่มี subject → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (21 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    √ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (28 ms)
+    √ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (20 ms)
+  POST /api/auth/idp/thaid/callback — state anti-CSRF ยังบังคับกับ provider ThaID
+    √ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session (20 ms)
+    √ ไม่มี state ใน body → 400 AUTH_STATE_INVALID (single-use/anti-CSRF ครอบ thaid ด้วย) (22 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    √ thaid happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(subject) ไม่มีค่าดิบใน metadata (19 ms)
+    √ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (53 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    √ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (6 ms)
+    √ routes/api/index.js mount /auth/idp (2 ms)
+    √ server.js ครอบ /auth/idp ด้วย idp-rate-limit factory ที่รับ authLimiter จริง (2 ms)
+
+  ● POST /api/auth/idp/thaid/callback — เส้น session จริง (แปลงพาหนะจาก mock — coverage เดิมครบ) › ทะเบียนปฏิเสธ fail-closed (auto-provision ปิด) → catalog status + ไม่มี create/upsert/mint + audit FAILURE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "e1316e5c9434348359a1dcdfb88500db60a2228f88435f3c07210c78136a5d52"
+    Received: undefined
+
+    [0m [90m 430 |[39m         [36mconst[39m failure [33m=[39m findAuditCall([32m'FAILURE'[39m[33m,[39m [32m'AUTH_AUTOPROVISION_DISABLED'[39m)[33m;[39m
+     [90m 431 |[39m         expect(failure)[33m.[39mtoBeTruthy()[33m;[39m
+    [31m[1m>[22m[39m[90m 432 |[39m         expect(failure[[35m6[39m][33m.[39msubjectHash)[33m.[39mtoBe(sha256([32m'thaid-subject-1'[39m))[33m;[39m
+     [90m     |[39m                                        [31m[1m^[22m[39m
+     [90m 433 |[39m         expect([33mJSON[39m[33m.[39mstringify(failure[[35m6[39m]))[33m.[39mnot[33m.[39mtoContain([32m'thaid-subject-1'[39m)[33m;[39m
+     [90m 434 |[39m     })[33m;[39m
+     [90m 435 |[39m[0m
+
+      at Object.toBe (__tests__/unit/auth-idp-routes.test.js:432:40)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 29 passed, 30 total
+Snapshots:   0 total
+Time:        3.293 s, estimated 4 s
+Ran all test suites matching /__tests__\\unit\\auth-idp-routes.test.js/i.

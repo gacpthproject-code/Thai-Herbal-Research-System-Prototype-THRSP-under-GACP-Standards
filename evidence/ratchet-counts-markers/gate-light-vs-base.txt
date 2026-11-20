@@ -1,0 +1,74 @@
+# gate-light-vs-base.txt: bash scripts/ci/local-gate.sh (light layer: no LOCAL_GATE_FULL) on the base and on this branch
+# base   = origin/main 5828c0b0ea8834ad3e38d2312e949679dfa54a11 (clean detached checkout)
+# branch = af9893bdfce710e0821cce7bbfad2e3bdfe5c9f5 (the tree the gate ran on); the tip when this pack was built is 03e15ef13585d03973482eed4837f92688a30bcb
+# The gate is red on main itself; the question is whether this change adds a failure.
+
+steps
+  step                   base     branch  
+  architecture-doc       FAIL     FAIL    
+  architecture-selftest  PASS     PASS    
+  banned-terms           PASS     PASS    
+  green-mask             FAIL     FAIL    
+  mojibake               PASS     PASS    
+  probe-gate             FAIL     FAIL    
+  unit-suite             SKIPPED  SKIPPED 
+
+probes run by probe-gate
+  probe                    base     branch  
+  dependency-audit         FAIL     FAIL    
+  deploy-drift             FAIL     FAIL    
+  deps-health              FAIL     FAIL    
+  dockerignore-secrets     PASS     PASS    
+  fee-single-source        PASS     PASS    
+  gate-attestation         PASS     PASS    
+  holder-read-scope        PASS     PASS    
+  holiday-single-source    PASS     PASS    
+  main-attestation-audit   FAIL     FAIL    
+  nginx-config-drift       FAIL     FAIL    
+  no-secret                FAIL     FAIL    
+  no-skip                  PASS     PASS    
+  ratchet                  PASS     PASS    
+  report-integrity         PENDING  PENDING 
+  retired-words            PASS     PASS    
+  schema-arg-resolves      PASS     PASS    
+  settle-webhook-only      PASS     PASS    
+  status-vocab             FAIL     FAIL    
+  stripe-sdk-isolated      PASS     PASS    
+  themed-surface-tokens    PASS     PASS    
+  tier-check               PASS     PASS    
+  webhook-idempotent       PASS     PASS    
+
+status differences: probes 0, steps 0  (0 and 0 = no new failure and no new pass)
+
+probes whose detail text differs although the status is the same
+  gate-attestation
+    base  : PASS     PASS: no gated path changed vs origin/main (0 file(s) changed, none matching: ^apps/) — a full-gate attestation is not required for this commit
+    branch: PASS     PASS: no gated path changed vs origin/main (5 file(s) changed, none matching: ^apps/) — a full-gate attestation is not required for this commit
+  ratchet
+    base  : PASS     PASS: no counter above baseline — current: hardcode=26 todo=51 env-direct=99 dup-source=0 (evidence/ratchet-current.txt)
+    branch: PASS     PASS: no counter above baseline — current: hardcode=26 todo=40 env-direct=99 dup-source=0 (evidence/ratchet-current.txt)
+  tier-check
+    base  : PASS     TIER=B
+    branch: PASS     TIER=C
+  (gate-attestation and tier-check describe the diff against origin/main, which is empty on the base checkout;
+   ratchet is the counter this change moves.)
+
+changed since the gated tree (af9893bdfce710e0821cce7bbfad2e3bdfe5c9f5..03e15ef13585d03973482eed4837f92688a30bcb):
+  HARNESS.md
+  HARNESS_LOG.md
+  evidence/ratchet-counts-markers/gate-light-vs-base.txt
+  evidence/ratchet-counts-markers/negative-controls.sh
+  evidence/ratchet-counts-markers/negative-controls.txt
+  evidence/ratchet-counts-markers/probe-results.json
+  evidence/ratchet-counts-markers/ratchet-before-after.txt
+  evidence/ratchet-counts-markers/red-output.txt
+  evidence/ratchet-counts-markers/test-output.txt
+  scripts/probes/ratchet.sh
+the checks those files can affect, run directly on 03e15ef13585d03973482eed4837f92688a30bcb:
+  banned-terms : [banned-terms] Repository scan passed
+  mojibake     : [encoding-check] PASS: no mojibake markers or UTF-8 BOM files found
+  retired-words: PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 �
+  ratchet      : PASS: no counter above baseline — current: hardcode=26 todo=40 env-direct=99 dup-source=0
+  tier-check   : TIER=C
+  gitleaks     : 10:13PM INF 5 commits scanned. 10:13PM INF scanned ~60300 bytes (60.30 KB) in 207ms 10:13PM INF no leaks found 
+  (green-mask and architecture-doc read nothing these files change; no-secret is red on the base for older leaks, see the row above)

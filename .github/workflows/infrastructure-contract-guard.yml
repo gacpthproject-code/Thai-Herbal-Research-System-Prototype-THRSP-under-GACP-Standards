@@ -1,0 +1,45 @@
+name: Infrastructure Contract Guard
+
+on:
+  pull_request:
+    paths:
+      - 'infra/**'
+      - 'docs/provider-*.md'
+      - 'docs/provider-*.csv'
+      - 'docs/infrastructure-migration-blueprint.md'
+      - 'docs/standards/production-infrastructure-standard.md'
+      - 'scripts/ci/check-infra-contracts.js'
+      - 'scripts/tools/summarize-provider-evaluation.js'
+      - 'package.json'
+  push:
+    branches:
+      - main
+    paths:
+      - 'infra/**'
+      - 'docs/provider-*.md'
+      - 'docs/provider-*.csv'
+      - 'docs/infrastructure-migration-blueprint.md'
+      - 'docs/standards/production-infrastructure-standard.md'
+      - 'scripts/ci/check-infra-contracts.js'
+      - 'scripts/tools/summarize-provider-evaluation.js'
+      - 'package.json'
+
+jobs:
+  infrastructure-contract-guard:
+    name: Infrastructure Contract Guard
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Validate infrastructure contracts
+        run: node scripts/ci/check-infra-contracts.js
+
+      - name: Print provider scorecard summary
+        run: node scripts/tools/summarize-provider-evaluation.js docs/deployment/provider-evaluation-scorecard.csv

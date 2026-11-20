@@ -1,0 +1,112 @@
+# host|port|visitor ip|extra curl args|request|expected
+# ---- staging, blocked visitor: the six reported, then what else differs from the routed path
+staging.gacpth.com|443|8.8.8.8||/login|403
+staging.gacpth.com|443|8.8.8.8||/|403
+staging.gacpth.com|443|8.8.8.8||/api/v1/health|403
+staging.gacpth.com|443|8.8.8.8||/uploads/x|403
+staging.gacpth.com|443|8.8.8.8||/__gate/../login|403
+staging.gacpth.com|443|8.8.8.8||/__access-check/../api/v1/health|403
+staging.gacpth.com|443|8.8.8.8||/.well-known/acme-challenge/../../api/v1/health|403
+staging.gacpth.com|443|8.8.8.8||/__gate/%2e%2e/api/v1/health|403
+staging.gacpth.com|443|8.8.8.8||/__gate%2f..%2fapi/v1/health|403
+staging.gacpth.com|443|8.8.8.8||/__gatefoo|403
+staging.gacpth.com|443|8.8.8.8||/__gate/|403
+staging.gacpth.com|443|8.8.8.8||/__gate/x|403
+staging.gacpth.com|443|8.8.8.8||/__access-check/|403
+staging.gacpth.com|443|8.8.8.8||/__access-check/x|403
+staging.gacpth.com|443|8.8.8.8||/__access-checks|403
+staging.gacpth.com|443|8.8.8.8||/__gate;x=1|403
+staging.gacpth.com|443|8.8.8.8||/__gate;/../login|403
+staging.gacpth.com|443|8.8.8.8||/__access-check;x|403
+staging.gacpth.com|443|8.8.8.8||/__gate%0a|403
+staging.gacpth.com|443|8.8.8.8||/__access-check%0a|403
+staging.gacpth.com|443|8.8.8.8||/api/webhooks/stripe%0a|403
+staging.gacpth.com|443|8.8.8.8||/api/v1/health/../../../__gate%0a|403
+staging.gacpth.com|443|8.8.8.8||/__gate%20|403
+staging.gacpth.com|443|8.8.8.8||/__GATE|403
+staging.gacpth.com|443|8.8.8.8||/__Access-Check|403
+staging.gacpth.com|443|8.8.8.8||/API/webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/api/webhooks/stripe/|403
+staging.gacpth.com|443|8.8.8.8||/api/webhooks/stripe/extra|403
+staging.gacpth.com|443|8.8.8.8||/api/webhooks/stripe;x|403
+staging.gacpth.com|443|8.8.8.8||/api/v1/webhooks/stripe-test|403
+staging.gacpth.com|443|8.8.8.8||//api/webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/api//webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/api/webhooks/%73tripe|403
+staging.gacpth.com|443|8.8.8.8||/api/v1/health/../webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/login/../api/webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/login%2f..%2fapi/webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/api/v1/applications/x%2f..%2f..%2f..%2fwebhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/uploads/../api/webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||/api/webhooks/stripe?x=1|403
+staging.gacpth.com|443|8.8.8.8||/login?/__gate|403
+staging.gacpth.com|443|8.8.8.8||/api/v1/health?p=/api/webhooks/stripe|403
+staging.gacpth.com|443|8.8.8.8||//__gate?t=x|403
+staging.gacpth.com|443|8.8.8.8||/__g%61te?t=x|403
+staging.gacpth.com|443|8.8.8.8|--request-target http://staging.gacpth.com/login|/absolute-form-login|403
+staging.gacpth.com|443|8.8.8.8|--request-target http://x/__gate/../login|/absolute-form-traversal|403
+staging.gacpth.com|443|8.8.8.8||/.well-known/acme-challenge/tok-EN_123/x|403
+staging.gacpth.com|443|8.8.8.8||/.well-known/acme-challenge/|403
+staging.gacpth.com|443|8.8.8.8||/nginx-health|403
+staging.gacpth.com|443|8.8.8.8|--request-target /__gate#/../login|/fragment-in-request-line|403
+staging.gacpth.com|443|8.8.8.8|--http2|/__gate/../login|403
+staging.gacpth.com|443|8.8.8.8|--http2|/api/v1/health/../webhooks/stripe|403
+# ---- staging, must stay open
+staging.gacpth.com|443|8.8.8.8||/__gate?/../login|302 -> https://staging.gacpth.com/ cookie:gacp_gate
+staging.gacpth.com|443|8.8.8.8|--http2|/__gate?t=x|302 -> https://staging.gacpth.com/ cookie:gacp_gate
+staging.gacpth.com|443|8.8.8.8|--http2 -X POST|/api/webhooks/stripe|200 STAGING-UPSTREAM
+staging.gacpth.com|443|8.8.8.8||/__gate?t=x|302 -> https://staging.gacpth.com/ cookie:gacp_gate
+staging.gacpth.com|443|8.8.8.8||/__gate|302 -> https://staging.gacpth.com/ cookie:gacp_gate
+staging.gacpth.com|443|8.8.8.8||/__gate?t=x/../login|302 -> https://staging.gacpth.com/ cookie:gacp_gate
+staging.gacpth.com|443|8.8.8.8||/__access-check|200 check
+staging.gacpth.com|443|8.8.8.8||/__access-check?x=1|200 check
+staging.gacpth.com|443|8.8.8.8|-X POST|/api/webhooks/stripe|200 STAGING-UPSTREAM
+staging.gacpth.com|443|8.8.8.8|-X POST|/api/v1/webhooks/stripe|200 STAGING-UPSTREAM
+staging.gacpth.com|443|8.8.8.8|-H Cookie:gacp_gate=testtoken|/login|200 STAGING-UPSTREAM
+staging.gacpth.com|443|8.8.8.8|-H Cookie:gacp_gate=wrong|/login|403
+staging.gacpth.com|443|8.8.8.8|-H Cookie:gacp_demo_gate=demotoken|/login|403
+staging.gacpth.com|443|49.49.216.1||/login|200 STAGING-UPSTREAM
+# ---- staging on :80
+staging.gacpth.com|80|8.8.8.8||/.well-known/acme-challenge/tok-EN_123|200 acme
+staging.gacpth.com|80|8.8.8.8||/.well-known/acme-challenge/missing|404
+staging.gacpth.com|80|8.8.8.8||/.well-known/acme-challenge/../../login|403
+staging.gacpth.com|80|8.8.8.8||/.well-known/acme-challenge/%2e%2e/%2e%2e/login|403
+staging.gacpth.com|80|8.8.8.8||/.well-known/acme-challenge/tok-EN_123;x|403
+staging.gacpth.com|80|8.8.8.8||/login|403
+staging.gacpth.com|80|8.8.8.8||/__access-check|200 check
+staging.gacpth.com|80|8.8.8.8||/__gate?t=x|301 -> https://staging.gacpth.com/__gate?t=x
+staging.gacpth.com|80|49.49.216.1||/login|301 -> https://staging.gacpth.com/login
+# ---- demo: its deny map has no deny row, so it answers everyone by design
+demo.gacpth.com|443|8.8.8.8||/login|200 DEMO-UPSTREAM
+demo.gacpth.com|443|8.8.8.8||/api/v1/health|200 DEMO-UPSTREAM
+demo.gacpth.com|443|8.8.8.8||/__gate/../login|200 DEMO-UPSTREAM fwd=/__gate/../login
+demo.gacpth.com|443|8.8.8.8||/__gate?t=x|302 -> https://demo.gacpth.com/ cookie:gacp_demo_gate
+demo.gacpth.com|443|8.8.8.8||/__access-check|200 check
+demo.gacpth.com|443|8.8.8.8|-X POST|/api/webhooks/stripe|200 DEMO-UPSTREAM
+demo.gacpth.com|443|8.8.8.8|-H Cookie:gacp_demo_gate=demotoken|/login|200 DEMO-UPSTREAM
+demo.gacpth.com|80|8.8.8.8||/.well-known/acme-challenge/tok-EN_123|200 acme
+demo.gacpth.com|80|8.8.8.8||/login|301 -> https://demo.gacpth.com/login
+# ---- gacpth.com: the apex answers before the gate; only /verify/ leaves it
+gacpth.com|443|8.8.8.8||/login|200 notice
+gacpth.com|443|8.8.8.8||/__gate/../login|200 notice
+gacpth.com|443|8.8.8.8||/__gate%2f..%2fapi/v1/health|200 notice
+gacpth.com|443|8.8.8.8||/api/webhooks/stripe|200 notice
+gacpth.com|443|8.8.8.8||/__access-check|200 notice
+gacpth.com|443|8.8.8.8||/verify/abc|302 -> https://demo.gacpth.com/verify/abc
+gacpth.com|443|8.8.8.8||/verify/abc?x=1|302 -> https://demo.gacpth.com/verify/abc?x=1
+gacpth.com|443|8.8.8.8||/verify/../login|200 notice
+gacpth.com|80|8.8.8.8||/verify/abc|302 -> https://demo.gacpth.com/verify/abc
+gacpth.com|80|8.8.8.8||/login|200 notice
+gacpth.com|80|8.8.8.8||/.well-known/acme-challenge/tok-EN_123|200 notice
+www.gacpth.com|443|8.8.8.8||/verify/abc|302 -> https://demo.gacpth.com/verify/abc
+# ---- same server block by any other Host (default server, proxies to demo's 8080)
+other.example|443|8.8.8.8||/login|403
+other.example|443|8.8.8.8||/__gate/../login|403
+other.example|443|8.8.8.8||/__gate%2f..%2fapi/v1/health|403
+other.example|443|8.8.8.8||/__gatefoo|403
+other.example|443|8.8.8.8||/api/v1/health/../webhooks/stripe|403
+other.example|443|8.8.8.8||/__access-check|200 check
+other.example|443|8.8.8.8|-X POST|/api/webhooks/stripe|200 DEMO-UPSTREAM
+other.example|443|49.49.216.1||/login|200 DEMO-UPSTREAM
+other.example|80|8.8.8.8||/.well-known/acme-challenge/tok-EN_123|200 acme
+other.example|80|8.8.8.8||/login|403

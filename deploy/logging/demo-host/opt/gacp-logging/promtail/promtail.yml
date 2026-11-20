@@ -1,0 +1,44 @@
+# Promtail 2.9.6: ship every gacp-* container's stdout/stderr to Loki with
+# container and compose-service labels. Container logs only; host files
+# (syslog, auth.log, nginx files) are not read.
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+  log_level: warn
+
+positions:
+  filename: /promtail/positions.yaml
+
+clients:
+  - url: http://loki:3100/loki/api/v1/push
+
+scrape_configs:
+  - job_name: docker
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 15s
+        filters:
+          - name: name
+            values: ["gacp-"]
+    relabel_configs:
+      - source_labels: [__meta_docker_container_name]
+        regex: "/(gacp-.*)"
+        action: keep
+      - source_labels: [__meta_docker_container_name]
+        regex: "/(.*)"
+        target_label: container
+      - source_labels: [__meta_docker_container_label_com_docker_compose_service]
+        target_label: service
+      - source_labels: [__meta_docker_container_label_com_docker_compose_project]
+        target_label: compose_project
+      - source_labels: [__meta_docker_container_log_stream]
+        target_label: stream
+      - target_label: host
+        replacement: demo
+    pipeline_stages:
+      # The backend logs through winston colorize + simple: "\e[32minfo\e[39m: ...".
+      - decolorize: {}
+      - regex:
+          expression: '^(?P<level>error|warn|info|http|verbose|debug|silly): '
+      - labels:
+          level:

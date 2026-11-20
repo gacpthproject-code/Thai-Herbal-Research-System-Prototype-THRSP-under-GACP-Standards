@@ -1,0 +1,373 @@
+# GREEN — wave1/input-limits (BACK-01, SECU-02) — 2026-09-17
+# base: RED commit 294e076e on top of b4d7bc06 (production). Production fix applied in the working tree of the commit that carries this file.
+# cwd: apps/backend
+# cmd: npx jest __tests__/unit/sanitize-input-linear-time.test.js __tests__/unit/body-parser-limits.test.js __tests__/unit/register-refuses-multipart.test.js __tests__/unit/upload-doors-declare-multipart-limits.test.js
+# Result: Test Suites 4 passed / 4; Tests 126 passed / 126; jest exit 0
+#   (RED was 48 failed / 67 passed / 115: body-parser-limits could not load then; it now has 11 tests,
+#    including 2 added after RED that run the real body-parsing block sliced out of server.js)
+# Headline: the 200 KB 'onon…' string now takes 3 ms (was 21.5 s); the worst 512 KB at-cap shape takes 16 ms (budget 250 ms);
+#   the GHSA-wc9g crash payload is answered with LIMIT_FIELD_NESTING on all 7 multer doors.
+# Appendices at the end of this file:
+#   A. mutation check: server.js reverted to b4d7bc06 -> the server.js wiring test fails (1 failed / 10 passed)
+#   B. 56 neighbouring suites (sanitize, error catalogue, server.js-slicing, auth router, every upload door): 618/618 pass
+#   C. scripts/probes/ratchet.sh: PASS (hardcode=25 todo=53 env-direct=102 dup-source=0)
+#   D. extract-error-codes --validate: OK (382 entries); eslint on every changed file: exit 0
+
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/body-parser-limits.test.js
+  BACK-01 — ordinary API paths read at most 1 MB of JSON or form data
+    ✓ a 1.5 MB JSON body is refused with 413 before it is parsed (28 ms)
+    ✓ a 900 KB JSON body is parsed, and its exact bytes are kept for webhook signatures (10 ms)
+    ✓ a 1.5 MB urlencoded body is refused with 413 (5 ms)
+    ✓ a small urlencoded form still parses (6 ms)
+    ✓ the larger allowance is not reachable from a neighbouring herb path (13 ms)
+  BACK-01 — the herb bulk import keeps the room its 2,000-row cap needs
+    ✓ /api/herbs/TURMERIC/entries/import parses a 2,000-row import (over 1 MB) (17 ms)
+    ✓ /api/v1/herbs/TURMERIC/entries/import parses a 2,000-row import (over 1 MB) (21 ms)
+    ✓ but not an unbounded one: 6 MB is refused with 413 (27 ms)
+  server.js runs these parsers
+    ✓ a 1.5 MB JSON body is refused with 413 (11 ms)
+    ✓ a Stripe-sized JSON body is parsed with its raw bytes kept (5 ms)
+  multipart is left to multer
+    ✓ a multipart body is not read by these parsers at all (4 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/applications/applications-car.js:16:32)
+      at require (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:41)
+      at load (__tests__/unit/upload-doors-declare-multipart-limits.test.js:46:20)
+      at instancesCreatedBy (__tests__/unit/upload-doors-declare-multipart-limits.test.js:51:25)
+      at onlyInstance (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:22)
+      at Object.build (__tests__/unit/upload-doors-declare-multipart-limits.test.js:167:31)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/applications/applications-car.js:16:32)
+      at require (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:41)
+      at load (__tests__/unit/upload-doors-declare-multipart-limits.test.js:46:20)
+      at instancesCreatedBy (__tests__/unit/upload-doors-declare-multipart-limits.test.js:51:25)
+      at onlyInstance (__tests__/unit/upload-doors-declare-multipart-limits.test.js:97:22)
+      at Object.build (__tests__/unit/upload-doors-declare-multipart-limits.test.js:167:31)
+
+PASS __tests__/unit/upload-doors-declare-multipart-limits.test.js
+  SECU-02 — storage-service createUploader (avatar, farm photo, /documents/verify, draft documents, lab results)
+    ✓ declares every multipart limit as a finite number (2 ms)
+    ✓ refuses a body of 200 text fields (10 ms)
+    ✓ refuses a single 256 KB text field (10 ms)
+    ✓ refuses a field name longer than 100 characters (3 ms)
+    ✓ answers the published two-field crash with a refusal, not a dead process (4 ms)
+    ✓ still accepts the text fields its real client sends (6 ms)
+  SECU-02 — upload-middleware fallback (when storage-service has no createUploader)
+    ✓ declares every multipart limit as a finite number (2 ms)
+    ✓ refuses a body of 200 text fields (14 ms)
+    ✓ refuses a single 256 KB text field (11 ms)
+    ✓ refuses a field name longer than 100 characters (14 ms)
+    ✓ answers the published two-field crash with a refusal, not a dead process (5 ms)
+    ✓ still accepts the text fields its real client sends (5 ms)
+  SECU-02 — POST /applications/:id/car
+    ✓ declares every multipart limit as a finite number (1 ms)
+    ✓ refuses a body of 200 text fields (4 ms)
+    ✓ refuses a single 256 KB text field (6 ms)
+    ✓ refuses a field name longer than 100 characters (3 ms)
+    ✓ answers the published two-field crash with a refusal, not a dead process (2 ms)
+    ✓ still accepts the text fields its real client sends (3 ms)
+  SECU-02 — POST /post-audit/tasks/:taskId/upload
+    ✓ declares every multipart limit as a finite number (2 ms)
+    ✓ refuses a body of 200 text fields (6 ms)
+    ✓ refuses a single 256 KB text field (3 ms)
+    ✓ refuses a field name longer than 100 characters (2 ms)
+    ✓ answers the published two-field crash with a refusal, not a dead process (3 ms)
+    ✓ still accepts the text fields its real client sends (3 ms)
+  SECU-02 — POST /audit/onsite/:auditId/photo
+    ✓ declares every multipart limit as a finite number (1 ms)
+    ✓ refuses a body of 200 text fields (10 ms)
+    ✓ refuses a single 256 KB text field (3 ms)
+    ✓ refuses a field name longer than 100 characters (3 ms)
+    ✓ answers the published two-field crash with a refusal, not a dead process (3 ms)
+    ✓ still accepts the text fields its real client sends (7 ms)
+  SECU-02 — POST /image-assessment/assess
+    ✓ declares every multipart limit as a finite number (1 ms)
+    ✓ refuses a body of 200 text fields (4 ms)
+    ✓ refuses a single 256 KB text field (3 ms)
+    ✓ refuses a field name longer than 100 characters (3 ms)
+    ✓ answers the published two-field crash with a refusal, not a dead process (4 ms)
+    ✓ still accepts the text fields its real client sends (2 ms)
+  SECU-02 — photo-upload-service getMulterConfig
+    ✓ declares every multipart limit as a finite number (1 ms)
+    ✓ refuses a body of 200 text fields (4 ms)
+    ✓ refuses a single 256 KB text field (3 ms)
+    ✓ refuses a field name longer than 100 characters (5 ms)
+    ✓ answers the published two-field crash with a refusal, not a dead process (4 ms)
+    ✓ still accepts the text fields its real client sends (6 ms)
+  SECU-02 — the table above is every multer instance in the backend
+    ✓ no other production file requires multer (26 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/sanitize-input-linear-time.test.js
+  BACK-01 — one anonymous request cannot stall the event loop
+    ✓ a ~200 KB "onon…" string passes through the middleware in under 200 ms (3 ms)
+    ✓ the same string in the query string and a path param is just as cheap (2 ms)
+  BACK-01 — strings over the cap are not scanned, and the log says so
+    ✓ the cap is a real number, big enough for ordinary long text and far below the body limit (2 ms)
+    ✓ a string one character over the cap is passed through unscanned and recorded as such (1 ms)
+    ✓ a string exactly at the cap is still inspected (6 ms)
+    ✓ the middleware logs the oversize string with its path and length, and still calls next (2 ms)
+  BACK-01 — at the cap, every adversarial shape is linear
+    ✓ on\w+\s*= on "onon…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (4 ms)
+    ✓ on\w+\s*= on "_on_on…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (3 ms)
+    ✓ <script\b[^>]*> on "<script <script …" — a ~512 KB body of cap-sized strings inspects in under 250 ms (13 ms)
+    ✓ /*…*/ on "/*x/*x…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (12 ms)
+    ✓ javascript\s*: on long whitespace runs — a ~512 KB body of cap-sized strings inspects in under 250 ms (6 ms)
+    ✓ UNION\s+SELECT on long whitespace runs — a ~512 KB body of cap-sized strings inspects in under 250 ms (6 ms)
+    ✓ on\w+\s*= on "a=a=a=…" — a ~512 KB body of cap-sized strings inspects in under 250 ms (16 ms)
+  BACK-01 — the linear detectors flag exactly what the old patterns flagged
+    ✓ "<script>alert(1)</script>" (1 ms)
+    ✓ "<SCRIPT src=x>" (1 ms)
+    ✓ "<script" (1 ms)
+    ✓ "<scripts>" (1 ms)
+    ✓ "<script\n>" (1 ms)
+    ✓ "x<script y" (1 ms)
+    ✓ "javascript:alert(1)" (1 ms)
+    ✓ "JavaScript :x"
+    ✓ "javascript\t\n:" (1 ms)
+    ✓ "javascrip:" (1 ms)
+    ✓ "<img onerror=alert(1)>" (1 ms)
+    ✓ "onsite=ตรวจแล้ว" (1 ms)
+    ✓ "online=yes" (1 ms)
+    ✓ "one=1"
+    ✓ "on=1" (1 ms)
+    ✓ "button=1" (1 ms)
+    ✓ "buttons=1" (1 ms)
+    ✓ "xonx =" (1 ms)
+    ✓ "ON_X\t=" (1 ms)
+    ✓ "onn"
+    ✓ "สวน onclick = x" (1 ms)
+    ✓ "oné=1" (1 ms)
+    ✓ "_on_=" (1 ms)
+    ✓ "o n=1"
+    ✓ "on1 \n =" (1 ms)
+    ✓ "data:text/html,<h1>" (1 ms)
+    ✓ "DATA : TEXT/HTML" (1 ms)
+    ✓ "data:text/plain" (2 ms)
+    ✓ "vbscript:msgbox" (1 ms)
+    ✓ "expression(alert(1))"
+    ✓ "expression (x)"
+    ✓ "Robert'; DROP TABLE users; --" (1 ms)
+    ✓ ";DROP " (1 ms)
+    ✓ "; delete  from x" (1 ms)
+    ✓ "; UPDATE users SET x" (1 ms)
+    ✓ ";UPDATE u  SET\t" (1 ms)
+    ✓ "; update a set"
+    ✓ "; UPDATE  SET "
+    ✓ "x; TRUNCATE t" (1 ms)
+    ✓ "1 UNION SELECT" (1 ms)
+    ✓ "union all select" (1 ms)
+    ✓ "UNIONSELECT"
+    ✓ "admin'/* comment */" (1 ms)
+    ✓ "/*/" (1 ms)
+    ✓ "/**/" (1 ms)
+    ✓ "a */ b /* c"
+    ✓ "ปุ๋ยสูตร 15-15-15 /* ใช้ตามฉลาก */" (1 ms)
+    ✓ "สวนพงษ์ภูวนาท -- แปลงที่ 1" (1 ms)
+    ✓ "ค่า pH 6.5--7.0" (1 ms)
+    ✓ "--\n" (2 ms)
+    ✓ "" (1 ms)
+    ✓ "John Doe" (1 ms)
+    ✓ agrees on 20,000 generated strings built from the patterns' own pieces (133 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/register-refuses-multipart.test.js
+  SECU-02 — POST /register refuses multipart before anything reads it
+    ✓ multipart/form-data; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached (3 ms)
+    ✓ Multipart/Form-Data; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached (2 ms)
+    ✓ multipart/mixed; boundary=gacp-boundary → 415 UNSUPPORTED_MEDIA_TYPE, body untouched, controller not reached (1 ms)
+    ✓ the route table no longer runs an upload handler on /register (1 ms)
+  SECU-02 — the JSON registration the web page sends still works
+    ✓ application/json with a valid body reaches the controller (4 ms)
+    ✓ application/json with a missing consent is still a 400 from the schema (2 ms)
+
+Test Suites: 4 passed, 4 total
+Tests:       126 passed, 126 total
+Snapshots:   0 total
+Time:        2.983 s, estimated 5 s
+Ran all test suites matching /__tests__\/unit\/sanitize-input-linear-time.test.js|__tests__\/unit\/body-parser-limits.test.js|__tests__\/unit\/register-refuses-multipart.test.js|__tests__\/unit\/upload-doors-declare-multipart-limits.test.js/i.
+jest exit=0
+
+
+
+===== APPENDIX A — mutation: apps/backend/server.js replaced by the b4d7bc06 version, body-parsers.js present =====
+    ✓ a 1.5 MB JSON body is refused with 413 before it is parsed (34 ms)
+    ✓ a 900 KB JSON body is parsed, and its exact bytes are kept for webhook signatures (10 ms)
+    ✓ a 1.5 MB urlencoded body is refused with 413 (6 ms)
+    ✓ a small urlencoded form still parses (8 ms)
+    ✓ the larger allowance is not reachable from a neighbouring herb path (26 ms)
+    ✓ /api/herbs/TURMERIC/entries/import parses a 2,000-row import (over 1 MB) (19 ms)
+    ✓ /api/v1/herbs/TURMERIC/entries/import parses a 2,000-row import (over 1 MB) (22 ms)
+    ✓ but not an unbounded one: 6 MB is refused with 413 (28 ms)
+    ✕ a 1.5 MB JSON body is refused with 413 (18 ms)
+    ✓ a Stripe-sized JSON body is parsed with its raw bytes kept (4 ms)
+    ✓ a multipart body is not read by these parsers at all (4 ms)
+  ● server.js runs these parsers › a 1.5 MB JSON body is refused with 413
+Tests:       1 failed, 10 passed, 11 total
+jest exit=1
+
+===== APPENDIX B — neighbouring suites (npx jest <56 files>) =====
+PASS __tests__/unit/provider-legacy-alias-flag.test.js
+PASS __tests__/unit/auth-idp-routes.test.js
+PASS __tests__/unit/server-boot-signing-key-guard.test.js
+PASS __tests__/unit/audit-onsite-photo-content-guard.test.js
+PASS __tests__/unit/audit-onsite-routes.test.js
+PASS __tests__/unit/register-consent-not-user-column.test.js
+PASS __tests__/unit/error-codes-catalog.test.js
+PASS __tests__/unit/draft-document-upload-content-guard.test.js
+PASS __tests__/unit/audit-onsite-rbac.test.js
+PASS __tests__/unit/stripe-checkout-engine.test.js
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+PASS __tests__/unit/image-assessment-routes.test.js
+PASS __tests__/unit/draft-document-reupload-replaces-slot.test.js
+PASS __tests__/unit/uploads-access-signed.test.js
+PASS __tests__/unit/media-services-path-confinement.test.js
+PASS __tests__/unit/the-upload-door-refuses-an-accepted-slot.test.js
+PASS __tests__/unit/idp-rate-limit.test.js
+PASS __tests__/unit/notification-bodies-escape-what-they-interpolate.test.js
+PASS __tests__/unit/oauth-clientid-hardcode-guard.test.js
+PASS __tests__/unit/uploads-signed-url-route.test.js
+PASS __tests__/integration/storage-service-extension-guard.test.js
+PASS __tests__/contract/security-headers.test.js
+PASS __tests__/unit/coa-upload-door-wire.test.js
+PASS __tests__/unit/the-farmer-can-answer-the-defect-list.test.js
+PASS __tests__/unit/no-self-service-password-reset.test.js
+PASS __tests__/unit/car-late-submission-expiry-attribution.test.js
+PASS __tests__/unit/farm-permission-gates.test.js
+PASS __tests__/unit/audit-onsite-wire-contract.test.js
+PASS __tests__/unit/wizard-draft-document-path-confinement.test.js
+PASS __tests__/unit/uploads-access.test.js
+PASS __tests__/unit/pdf-generator-warmup.test.js
+PASS __tests__/unit/csrf-middleware.test.js
+PASS __tests__/unit/second-factor-is-totp-only.test.js
+PASS __tests__/integration/storage-service-reject-status.test.js
+PASS __tests__/unit/onsite-evidence-distinct-photos.test.js
+PASS __tests__/unit/input-survives-the-round-trip.test.js
+PASS __tests__/unit/documents-token-scope.test.js
+PASS __tests__/unit/api-response.test.js
+PASS __tests__/unit/stripe-webhook-dedup.test.js
+PASS __tests__/deep_qa/security.test.js
+PASS __tests__/unit/server-staging-debug-surfaces.test.js
+PASS __tests__/unit/payment-limiter-covers-checkout.test.js
+PASS __tests__/unit/sanitize-input.test.js
+PASS __tests__/unit/server-boot-receipt-assert.test.js
+PASS __tests__/unit/password-reset-routes-behaviour.test.js
+PASS __tests__/unit/wizard-blocked-by-missing-personal-entity.test.js
+PASS __tests__/unit/onsite-photo-decoder-unavailable.test.js
+PASS __tests__/unit/the-flag-cannot-be-on-before-the-columns-are-filled.test.js
+PASS __tests__/unit/storage-service-no-silent-downgrade.test.js
+PASS __tests__/unit/pdf-warmup-boot-hook.test.js
+PASS __tests__/unit/storage-decode-filename.test.js
+PASS __tests__/unit/planting-open-cycle-status-vocabulary.test.js
+PASS __tests__/unit/log-redact.test.js
+PASS __tests__/unit/provider-e2e-low-fixes.test.js
+PASS __tests__/unit/reject-bad-upload.test.js
+Test Suites: 56 passed, 56 total
+Tests:       618 passed, 618 total
+jest exit=0
+
+===== APPENDIX C — bash scripts/probes/ratchet.sh (exit 0) =====
+hardcode: 25
+todo: 53
+env-direct: 102
+dup-source: 0
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=25 todo=53 env-direct=102 dup-source=0 (/home/ubuntu/work/GACP-Certification-Application/.claude/worktrees/wf_ea04694b-dff-1/evidence/ratchet-current.txt)
+
+===== APPENDIX D — catalogue + lint =====
+VALIDATION OK - catalog has 382 entries; 382 codes reconciled.
+validate exit=0
+eslint (20 changed files) exit=0

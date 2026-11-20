@@ -1,0 +1,1819 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/correction-round.test.js
+  per-stage round counter (FINAL ข้อ 2: นับเลขครั้งต่อ stage)
+    ✕ roundNo = prior rounds of (application, stage) + 1, counted through the SAME tx (9 ms)
+    ✕ DOC_REVIEW round 3 does NOT bleed into FIELD_AUDIT round 1 (independent counters) (4 ms)
+    ✕ วนไม่จำกัดครั้ง — round 42 is minted without any cap (D-2: เพดาน 3 ครั้ง ถูกยกเลิก) (3 ms)
+    ✕ round record carries decidedAt + dueAt of the decision (3 ms)
+  unique round key — concurrent decisions
+    ✕ P2002 on the round key rejects with a CLEAR error (no swallow, no silent skip) (4 ms)
+    ✕ non-P2002 round-write failure propagates as-is (atomic — tx ทั้งก้อนล้ม) (3 ms)
+  letter round number (M2 template, 5th mandatory element)
+    ✕ buildCorrectionLetter emits "การแก้ไขครั้งที่ N ของขั้นตอน..." + metadata.roundNo (3 ms)
+    ✕ a letter WITHOUT its round number is REFUSED (throw — D-8: no letter, no transition) (3 ms)
+    ✕ mintCorrectionLetter always sends the round number into the letter (2 ms)
+    ✓ the round-line Thai copy is defined ONLY in the letter template SSOT (Law 3.5/3.6) (131 ms)
+  round-stage vocabulary SSOT
+    ✕ exports the frozen DOC_REVIEW/FIELD_AUDIT vocabulary (22 ms)
+    ✕ maps the M2 letter stages: DOC_REVIEW→DOC_REVIEW, FIELD_AUDIT_CAR→FIELD_AUDIT; unknown → throw (2 ms)
+  append-only round ledger (FINAL ข้อ 4)
+    ✓ no backend .js file mutates correctionRound (update/upsert/delete are forbidden) (42 ms)
+    ✕ the ONLY correctionRound writer is decision-letter-service (the M2 mint point) (47 ms)
+    ✕ CorrectionRound is registered tenant-scoped (services/tenant-prisma-extension.js) (2 ms)
+  schema EXPAND — CorrectionRound
+    ✕ correction-round.prisma declares the append ledger with the per-stage unique key (2 ms)
+    ✓ RevisionDeadline stays untouched (EXPAND, not contract — Law 3.10) (1 ms)
+    ✕ exactly one add_correction_rounds migration exists, EXPAND-only, timestamp not colliding (2 ms)
+  SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว
+    ✓ canonical value unchanged: PAYMENT.REVISION_DEADLINE_BUSINESS_DAYS === 5 (5 ms)
+    ✕ workflow-handler-deps reads config — no REVISION_SLA_DAYS = 5 literal (3 ms)
+    ✕ workflow-transitions-handler: CAR_SLA_DAYS is derived, not re-spelled (3 ms)
+    ✕ PATCH /reject surface reads config — no addWorkingDays(now, 5) / revisionSlaDays: 5 (2 ms)
+    ✕ car-deadline-service reads config directly — no `?? 5` shadow source (2 ms)
+    ✕ grep-pin: no `SLA_DAYS = <n>` literal in services/routes/jobs outside the waiver family (L4) (28 ms)
+
+  ● per-stage round counter (FINAL ข้อ 2: นับเลขครั้งต่อ stage) › roundNo = prior rounds of (application, stage) + 1, counted through the SAME tx
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: {"where": {"applicationId": "app-1", "stage": "DOC_REVIEW"}}
+
+    Number of calls: 0
+
+      114 |         await mintCorrectionLetter(mintArgs(tx));
+      115 |
+    > 116 |         expect(tx.correctionRound.count).toHaveBeenCalledWith({
+          |                                          ^
+      117 |             where: { applicationId: 'app-1', stage: DOC },
+      118 |         });
+      119 |         expect(tx.correctionRound.create).toHaveBeenCalledTimes(1);
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/correction-round.test.js:116:42)
+
+  ● per-stage round counter (FINAL ข้อ 2: นับเลขครั้งต่อ stage) › DOC_REVIEW round 3 does NOT bleed into FIELD_AUDIT round 1 (independent counters)
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 2
+    Received length: 0
+    Received array:  []
+
+      140 |
+      141 |         const rows = tx.correctionRound.create.mock.calls.map((c) => c[0].data);
+    > 142 |         expect(rows).toHaveLength(2);
+          |                      ^
+      143 |         expect(rows[0]).toMatchObject({ stage: DOC, roundNo: 3 });
+      144 |         // Letter-stage FIELD_AUDIT_CAR (M2 vocab) lands as round-stage FIELD_AUDIT.
+      145 |         expect(rows[1]).toMatchObject({ stage: FIELD, roundNo: 1 });
+
+      at Object.toHaveLength (__tests__/unit/correction-round.test.js:142:22)
+
+  ● per-stage round counter (FINAL ข้อ 2: นับเลขครั้งต่อ stage) › วนไม่จำกัดครั้ง — round 42 is minted without any cap (D-2: เพดาน 3 ครั้ง ถูกยกเลิก)
+
+    TypeError: Cannot read properties of undefined (reading '0')
+
+      152 |         await mintCorrectionLetter(mintArgs(tx));
+      153 |
+    > 154 |         expect(tx.correctionRound.create.mock.calls[0][0].data.roundNo).toBe(42);
+          |                                                       ^
+      155 |         // The letter carries the same round number.
+      156 |         const letterArgs = mockCreateOfficialLetter.mock.calls[0][0];
+      157 |         expect(letterArgs.message).toContain('การแก้ไขครั้งที่ 42');
+
+      at Object.<anonymous> (__tests__/unit/correction-round.test.js:154:55)
+
+  ● per-stage round counter (FINAL ข้อ 2: นับเลขครั้งต่อ stage) › round record carries decidedAt + dueAt of the decision
+
+    TypeError: Cannot read properties of undefined (reading '0')
+
+      162 |         const tx = makeTx();
+      163 |         await mintCorrectionLetter(mintArgs(tx));
+    > 164 |         const data = tx.correctionRound.create.mock.calls[0][0].data;
+          |                                                             ^
+      165 |         expect(data.decidedAt).toBeInstanceOf(Date);
+      166 |         expect(new Date(data.dueAt).toISOString()).toBe(DUE.toISOString());
+      167 |     });
+
+      at Object.<anonymous> (__tests__/unit/correction-round.test.js:164:61)
+
+  ● unique round key — concurrent decisions › P2002 on the round key rejects with a CLEAR error (no swallow, no silent skip)
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"id": "letter-1", "message": "เรียน ผู้ยื่นคำขอ·
+    ตามที่ท่านได้ยื่นคำขอรับรองมาตรฐาน GACP คำขอเลขที่ GACP-001 นั้น ผลการพิจารณาขั้นตอนการตรวจสอบเอกสาร สรุปว่า ไม่ผ่านการพิจารณา·
+    รายการประเด็นที่ต้องแก้ไข
+    1. เอกสารหมวดที่ 3 ไม่ครบถ้วน·
+    กำหนดส่งการแก้ไข: ภายในวันที่ 11 สิงหาคม 2569
+    ช่องทางการส่งการแก้ไข: ดำเนินการแก้ไขและส่งผ่านระบบออนไลน์ GACP ในเมนูคำขอของท่าน·
+    หากไม่ดำเนินการภายในกำหนด ระบบจะปิดคำขอโดยอัตโนมัติ", "metadata": {"applicationId": "app-1", "applicationNumber": "GACP-001", "channel": "ONLINE_SYSTEM", "dueAt": "2026-08-11T09:59:59.000Z", "items": ["เอกสารหมวดที่ 3 ไม่ครบถ้วน"], "result": "FAIL", "stage": "DOC_REVIEW"}, "organizationId": "org-farm", "priority": "HIGH", "title": "หนังสือแจ้งผลการพิจารณา คำขอเลขที่ GACP-001", "tx": {"correctionRound": {"count": [Function mockConstructor], "create": [Function mockConstructor]}}, "type": "WARNING", "userId": "farmer-1"}
+
+      178 |         tx.correctionRound.create.mockRejectedValue(p2002);
+      179 |
+    > 180 |         await expect(mintCorrectionLetter(mintArgs(tx))).rejects.toThrow(/concurrent|refused/i);
+          |               ^
+      181 |     });
+      182 |
+      183 |     test('non-P2002 round-write failure propagates as-is (atomic — tx ทั้งก้อนล้ม)', async () => {
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/correction-round.test.js:180:15)
+
+  ● unique round key — concurrent decisions › non-P2002 round-write failure propagates as-is (atomic — tx ทั้งก้อนล้ม)
+
+    expect(received).rejects.toThrow()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"id": "letter-1", "message": "เรียน ผู้ยื่นคำขอ·
+    ตามที่ท่านได้ยื่นคำขอรับรองมาตรฐาน GACP คำขอเลขที่ GACP-001 นั้น ผลการพิจารณาขั้นตอนการตรวจสอบเอกสาร สรุปว่า ไม่ผ่านการพิจารณา·
+    รายการประเด็นที่ต้องแก้ไข
+    1. เอกสารหมวดที่ 3 ไม่ครบถ้วน·
+    กำหนดส่งการแก้ไข: ภายในวันที่ 11 สิงหาคม 2569
+    ช่องทางการส่งการแก้ไข: ดำเนินการแก้ไขและส่งผ่านระบบออนไลน์ GACP ในเมนูคำขอของท่าน·
+    หากไม่ดำเนินการภายในกำหนด ระบบจะปิดคำขอโดยอัตโนมัติ", "metadata": {"applicationId": "app-1", "applicationNumber": "GACP-001", "channel": "ONLINE_SYSTEM", "dueAt": "2026-08-11T09:59:59.000Z", "items": ["เอกสารหมวดที่ 3 ไม่ครบถ้วน"], "result": "FAIL", "stage": "DOC_REVIEW"}, "organizationId": "org-farm", "priority": "HIGH", "title": "หนังสือแจ้งผลการพิจารณา คำขอเลขที่ GACP-001", "tx": {"correctionRound": {"count": [Function mockConstructor], "create": [Function mockConstructor]}}, "type": "WARNING", "userId": "farmer-1"}
+
+      185 |         tx.correctionRound.create.mockRejectedValue(new Error('round write refused'));
+      186 |
+    > 187 |         await expect(mintCorrectionLetter(mintArgs(tx))).rejects.toThrow('round write refused');
+          |               ^
+      188 |         // The letter row went in first through the SAME tx — its write is
+      189 |         // rolled back together with the round by the caller's transaction.
+      190 |         expect(mockCreateOfficialLetter).toHaveBeenCalledTimes(1);
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/correction-round.test.js:187:15)
+
+  ● letter round number (M2 template, 5th mandatory element) › buildCorrectionLetter emits "การแก้ไขครั้งที่ N ของขั้นตอน..." + metadata.roundNo
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "การแก้ไขครั้งที่ 3 ของขั้นตอน"
+    Received string:    "เรียน ผู้ยื่นคำขอ·
+    ตามที่ท่านได้ยื่นคำขอรับรองมาตรฐาน GACP คำขอเลขที่ GACP-001 นั้น ผลการพิจารณาขั้นตอนการตรวจสอบเอกสาร สรุปว่า ไม่ผ่านการพิจารณา·
+    รายการประเด็นที่ต้องแก้ไข
+    1. รายการที่หนึ่ง·
+    กำหนดส่งการแก้ไข: ภายในวันที่ 11 สิงหาคม 2569
+    ช่องทางการส่งการแก้ไข: ดำเนินการแก้ไขและส่งผ่านระบบออนไลน์ GACP ในเมนูคำขอของท่าน·
+    หากไม่ดำเนินการภายในกำหนด ระบบจะปิดคำขอโดยอัตโนมัติ"
+
+      209 |             roundNo: 3,
+      210 |         });
+    > 211 |         expect(letter.message).toContain('การแก้ไขครั้งที่ 3 ของขั้นตอน');
+          |                                ^
+      212 |         expect(letter.metadata.roundNo).toBe(3);
+      213 |     });
+      214 |
+
+      at Object.toContain (__tests__/unit/correction-round.test.js:211:32)
+
+  ● letter round number (M2 template, 5th mandatory element) › a letter WITHOUT its round number is REFUSED (throw — D-8: no letter, no transition)
+
+    expect(received).toThrow(expected)
+
+    Expected pattern: /roundNo/
+
+    Received function did not throw
+
+      222 |                 dueAt: DUE,
+      223 |                 ...missing,
+    > 224 |             })).toThrow(/roundNo/);
+          |                 ^
+      225 |         }
+      226 |     });
+      227 |
+
+      at Object.toThrow (__tests__/unit/correction-round.test.js:224:17)
+
+  ● letter round number (M2 template, 5th mandatory element) › mintCorrectionLetter always sends the round number into the letter
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "การแก้ไขครั้งที่ 1 ของขั้นตอน"
+    Received string:    "เรียน ผู้ยื่นคำขอ·
+    ตามที่ท่านได้ยื่นคำขอรับรองมาตรฐาน GACP คำขอเลขที่ GACP-001 นั้น ผลการพิจารณาขั้นตอนการตรวจสอบเอกสาร สรุปว่า ไม่ผ่านการพิจารณา·
+    รายการประเด็นที่ต้องแก้ไข
+    1. เอกสารหมวดที่ 3 ไม่ครบถ้วน·
+    กำหนดส่งการแก้ไข: ภายในวันที่ 11 สิงหาคม 2569
+    ช่องทางการส่งการแก้ไข: ดำเนินการแก้ไขและส่งผ่านระบบออนไลน์ GACP ในเมนูคำขอของท่าน·
+    หากไม่ดำเนินการภายในกำหนด ระบบจะปิดคำขอโดยอัตโนมัติ"
+
+      233 |
+      234 |         const letterArgs = mockCreateOfficialLetter.mock.calls[0][0];
+    > 235 |         expect(letterArgs.message).toContain('การแก้ไขครั้งที่ 1 ของขั้นตอน');
+          |                                    ^
+      236 |         expect(letterArgs.metadata.roundNo).toBe(1);
+      237 |     });
+      238 |
+
+      at Object.toContain (__tests__/unit/correction-round.test.js:235:36)
+
+  ● round-stage vocabulary SSOT › exports the frozen DOC_REVIEW/FIELD_AUDIT vocabulary
+
+    Cannot find module '../../shared/correction-round-stage' from '__tests__/unit/correction-round.test.js'
+
+      253 | describe('round-stage vocabulary SSOT', () => {
+      254 |     test('exports the frozen DOC_REVIEW/FIELD_AUDIT vocabulary', () => {
+    > 255 |         const vocab = require('../../shared/correction-round-stage');
+          |                       ^
+      256 |         expect(vocab.CORRECTION_ROUND_STAGE).toEqual({ DOC_REVIEW: DOC, FIELD_AUDIT: FIELD });
+      257 |         expect(Object.isFrozen(vocab.CORRECTION_ROUND_STAGE)).toBe(true);
+      258 |     });
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/correction-round.test.js:255:23)
+
+  ● round-stage vocabulary SSOT › maps the M2 letter stages: DOC_REVIEW→DOC_REVIEW, FIELD_AUDIT_CAR→FIELD_AUDIT; unknown → throw
+
+    Cannot find module '../../shared/correction-round-stage' from '__tests__/unit/correction-round.test.js'
+
+      259 |
+      260 |     test('maps the M2 letter stages: DOC_REVIEW→DOC_REVIEW, FIELD_AUDIT_CAR→FIELD_AUDIT; unknown → throw', () => {
+    > 261 |         const { roundStageForLetterStage } = require('../../shared/correction-round-stage');
+          |                                              ^
+      262 |         expect(roundStageForLetterStage(CORRECTION_LETTER_STAGE.DOC_REVIEW)).toBe(DOC);
+      263 |         expect(roundStageForLetterStage(CORRECTION_LETTER_STAGE.FIELD_AUDIT_CAR)).toBe(FIELD);
+      264 |         expect(() => roundStageForLetterStage('SOMETHING_ELSE')).toThrow();
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/correction-round.test.js:261:46)
+
+  ● append-only round ledger (FINAL ข้อ 4) › the ONLY correctionRound writer is decision-letter-service (the M2 mint point)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 3
+    + Received  + 1
+
+    - Array [
+    -   "services/decision-letter-service.js",
+    - ]
+    + Array []
+
+      283 |             .filter((f) => /correctionRound\s*\.\s*create/.test(fs.readFileSync(f, 'utf8')))
+      284 |             .map((f) => path.relative(BACKEND, f));
+    > 285 |         expect(writers).toEqual([path.join('services', 'decision-letter-service.js')]);
+          |                         ^
+      286 |     });
+      287 |
+      288 |     test('CorrectionRound is registered tenant-scoped (services/tenant-prisma-extension.js)', () => {
+
+      at Object.toEqual (__tests__/unit/correction-round.test.js:285:25)
+
+  ● append-only round ledger (FINAL ข้อ 4) › CorrectionRound is registered tenant-scoped (services/tenant-prisma-extension.js)
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /'CorrectionRound',\s*\/\/\s*correction_rounds/
+    Received string:  "/**
+     * Prisma Client Extension — auto-inject organizationId on writes (ADR-014).
+     *
+     * Behavior:
+     *   - On `create` / `createMany` / `upsert.create` against a tenant-scoped
+     *     model, if the caller did not provide organizationId, inject it from
+     *     the current tenant context.
+     *   - If no tenant context is bound (e.g., scripts, migrations, tests, or
+     *     code wrapped in `withoutTenantScope`), the extension is a no-op and
+     *     the underlying call proceeds unchanged. This preserves backward
+     *     compatibility — existing call sites that already pass organizationId,
+     *     or that legitimately don't need one, are unaffected.
+     *   - If the caller passed an explicit organizationId, it is left as-is and
+     *     verified to match the current tenant context. A mismatch is treated
+     *     as a programmer error and throws — this is the cross-tenant write
+     *     guard.
+     *
+     * NOT implemented in this commit (deferred to Phase 3):
+     *   - read filtering on findMany / findFirst / findUnique. RLS will be the
+     *     primary read defense; the application layer will not duplicate it.
+     *   - update/delete tenant scoping. Those operations target rows by id and
+     *     will be guarded by RLS; if the row is in a different tenant, RLS
+     *     hides it and the operation becomes a no-op rather than a leak.
+     */·
+    const { getTenantContext } = require('./tenant-context');
+    const { getEntityContext } = require('./entity-context');·
+    /**
+     * Tenant-scoped Prisma model names. Kept in sync by hand with the
+     * @@map names in apps/backend/prisma/schema/*.prisma. The Prisma model
+     * name (capitalized, used in the extension API) is on the left; the
+     * underlying table name (for human reference only) is in the comment.
+     *
+     * Adding a new tenant-scoped model? Add it both here AND to the backfill
+     * verification list in
+     * apps/backend/prisma/migrations/20260427120200_backfill_default_organization
+     * /migration.sql.
+     */
+    const TENANT_SCOPED_MODELS = new Set([
+      // auth
+      'User',                  // users
+      'UserConsent',           // user_consents
+      // application
+      'Application',           // applications
+      'ApplicationComment',    // application_comments
+      'ApplicationDraft',      // application_drafts
+      'ApplicationBundle',     // application_bundles
+      // farm + cultivation
+      'Farm',                  // farms
+      'SiteAnalysis',          // site_analyses
+      'TrainingRecord',        // training_records
+      'Plot',                  // plots
+      'PlantingCycle',         // planting_cycles
+      'PlantingCyclePlot',     // planting_cycle_plots
+      'PlantUnit',             // plant_units
+      'PlantUnitEditHistory',  // plant_unit_edit_history
+      'CareLog',               // care_logs
+      'CultivationLog',        // cultivation_logs
+      // gacp compliance
+      'WaterSource',           // water_sources
+      'GrowingMedium',         // growing_media
+      'SeedSource',            // seed_sources
+      'FertilizerRecord',      // fertilizer_records
+      'ControlledEnvironment', // controlled_environments
+      // harvest + trace
+      'HarvestBatch',          // harvest_batches
+      'DryingTemperature',     // drying_temperatures
+      'DryingHumidity',        // drying_humidity
+      'DryingDarkRoom',        // drying_dark_rooms
+      'CuringProcess',         // curing_processes
+      'PackagingDetail',       // packaging_details
+      'DryingProcess',         // drying_processes
+      'Lot',                   // lots
+      'TraceQrSecurity',       // trace_qr_security
+      'TraceQrScan',           // trace_qr_scans
+      'ConsumerFeedback',      // consumer_feedback
+      // certification
+      'Certificate',           // certificates
+      // billing
+      'Invoice',               // invoices
+      'InvoiceLineItem',       // invoice_line_items
+      'Quote',                 // quotes
+      'PaymentTransaction',    // payment_transactions
+      'CheckoutOrder',         // checkout_orders (Wave 1 — single-checkout engine)
+      'DtamRemittanceBatch',   // dtam_remittance_batches
+      'CheckoutDocument',      // checkout_documents
+      'PaymentReminderLog',    // payment_reminder_logs (W3-41 Q2-D2 — reminder dedup
+      //                       // ledger; NEW table created empty, so the 20260427120200
+      //                       // backfill-verification list does not apply — every write
+      //                       // carries the invoice's organizationId explicitly)
+      // StripeWebhookEvent is deliberately NOT tenant-scoped: events arrive with
+      // no tenant context; org resolves through the order they reference.
+      // audit
+      'AuditLog',              // audit_logs
+      'PostAuditTask',         // post_audit_tasks
+      'RevisionDeadline',      // revision_deadlines
+      'WaiverReopenRequest',   // waiver_reopen_requests (owner ruling 2026-07-08)
+      // system / provider (tenant-scoped parts)
+      'Notification',          // notifications
+      'ReportSubmission',      // report_submissions
+      'SOPDocument',           // sop_documents
+      'ScopeOfWork',           // scope_of_works
+      'AuditChecklist',        // audit_checklists
+      'MeetingRoom',           // meeting_rooms
+      // ADR-016 Phase 1A — BPMN-aligned work activities
+      'WorkActivity',          // work_activities
+      // ADR-016 Phase 1C — multi-group user memberships
+      'UserGroupMembership',   // user_group_memberships
+      // Wave 2 — per-permission GRANT/REVOKE overrides
+      'UserPermissionGrant',   // user_permission_grants
+      // Farm-worker Wave B — per-member entity permission GRANT/REVOKE overrides
+      'EntityMemberPermissionGrant', // entity_member_permission_grants
+      // Wave A Phase 32 / G1 — polymorphic attachments
+      'Attachment',            // attachments
+      // Support tickets (persisted; was in-memory). TicketMessage is scoped via its
+      // parent Ticket and has no organizationId column, so it is intentionally omitted.
+      'Ticket',                // tickets
+      // Survey module (C05F680149 ต้นแบบที่ 2 — ระบบสำรวจความต้องการ)
+      'SurveyTemplate',        // survey_templates
+      'SurveyQuestion',        // survey_questions
+      'SurveyResponse',        // survey_responses
+      'SurveyAnswer',          // survey_answers
+      'ExpertInterview',       // expert_interviews
+    ]);·
+    function isTenantScoped(modelName) {
+      return TENANT_SCOPED_MODELS.has(modelName);
+    }·
+    /**
+     * Entity-scoped Prisma model names — Wave C, PR C-2.
+     *
+     * Models that carry an `entityId` FK pointing at the legal-applicant
+     * Entity (separate dimension from Organization). The Prisma extension
+     * auto-filters reads on these models by `entityId = activeEntity.id`
+     * when an active-entity context is bound to the request — a row-level
+     * read filter for the entity dimension.
+     *
+     * Conservative first pass: only Application and Farm. Certificate is
+     * transitively scoped via Application.entityId so doesn't need direct
+     * filtering. EntityMembership is intentionally NOT scoped because the
+     * picker UI lists memberships across entities by design. TraceQrSecurity
+     * has an `entityId` column but it's polymorphic
+     * (entityType=HARVEST_BATCH/PACKAGING_LOT/PLANT_UNIT) — different sense
+     * of \"entity\", not the legal-applicant Entity, so left out.
+     *
+     * Adding a new model here? Make sure every existing call site that
+     * reads it is OK with implicit entityId filtering — handlers that
+     * legitimately need to read across entities must wrap their Prisma
+     * calls in withoutEntityScope().
+     */
+    const ENTITY_SCOPED_MODELS = new Set([
+      'Application', // applications
+      'Farm',        // farms
+    ]);·
+    function isEntityScoped(modelName) {
+      return ENTITY_SCOPED_MODELS.has(modelName);
+    }·
+    /**
+     * Mutates the data object to add organizationId if missing, or verifies
+     * that an existing organizationId matches the current tenant. Returns the
+     * (possibly modified) data object.
+     *
+     * @param {object} data — single record or undefined
+     * @param {string} expectedOrgId
+     */
+    function applyToRecord(data, expectedOrgId) {
+      if (!data) {return data;}
+      if (data.organizationId === undefined || data.organizationId === null) {
+        data.organizationId = expectedOrgId;
+        return data;
+      }
+      if (data.organizationId !== expectedOrgId) {
+        const err = new Error(
+          `Cross-tenant write blocked: data.organizationId=${data.organizationId} ` +
+            `does not match current tenant context ${expectedOrgId}. ` +
+            `If this is intentional, wrap the call in withoutTenantScope().`,
+        );
+        err.code = 'CROSS_TENANT_WRITE';
+        throw err;
+      }
+      return data;
+    }·
+    /**
+     * ENT-01 data-layer read backstop — env flag (default OFF).
+     * Set TENANT_READ_ORG_SCOPE=true to enable organizationId injection on reads.
+     * Off → reads behave exactly as before (no-op), so the change is safe to ship
+     * and roll out gradually (staging 2-org verification first).
+     */
+    function orgReadScopeEnabled() {
+      return process.env.TENANT_READ_ORG_SCOPE === 'true';
+    }·
+    /**
+     * Inject row-level read filters into a read op's `args`, per dimension.
+     * Both dimensions fail-open: if their context is null, nothing is added.
+     * @param {string} model — Prisma model name
+     * @param {object} args — read op args (findMany/findFirst/count)
+     * @returns {object} the (possibly modified) args
+     */
+    function applyReadScopes(model, args) {
+      const next = args || {};
+      // 1. entity dimension (Wave C — unchanged behaviour, always on)
+      if (isEntityScoped(model)) {
+        const ectx = getEntityContext();
+        if (ectx) {
+          next.where = { ...(next.where || {}), entityId: ectx.entityId };
+        }
+      }
+      // 2. organization dimension (ENT-01 backstop — flag-gated)
+      if (orgReadScopeEnabled() && isTenantScoped(model)) {
+        const tctx = getTenantContext();
+        if (tctx) {
+          next.where = { ...(next.where || {}), organizationId: tctx.organizationId };
+        }
+      }
+      return next;
+    }·
+    const tenantInjectExtension = {
+      name: 'tenant-inject',
+      query: {
+        $allModels: {
+          async create({ model, args, query }) {
+            if (!isTenantScoped(model)) {return query(args);}
+            const ctx = getTenantContext();
+            if (!ctx) {return query(args);}
+            args.data = applyToRecord(args.data, ctx.organizationId);
+            return query(args);
+          },·
+          async createMany({ model, args, query }) {
+            if (!isTenantScoped(model)) {return query(args);}
+            const ctx = getTenantContext();
+            if (!ctx) {return query(args);}
+            if (Array.isArray(args.data)) {
+              args.data = args.data.map((r) => applyToRecord(r, ctx.organizationId));
+            } else {
+              args.data = applyToRecord(args.data, ctx.organizationId);
+            }
+            return query(args);
+          },·
+          async upsert({ model, args, query }) {
+            if (!isTenantScoped(model)) {return query(args);}
+            const ctx = getTenantContext();
+            if (!ctx) {return query(args);}
+            // Upsert's create branch always runs when no row matches `where`;
+            // make sure it carries organizationId. The update branch is left
+            // untouched because by-id updates rely on RLS in Phase 3.
+            args.create = applyToRecord(args.create, ctx.organizationId);
+            return query(args);
+          },·
+          // Read-side scoping (findMany / findFirst / count). Two INDEPENDENT
+          // dimensions, both fail-open when their context is absent (scripts,
+          // withoutTenantScope, public/unauthenticated reads → getXContext()=null):
+          //   1. entity (entityId)  — Wave C, PR C-2. Always on for ENTITY_SCOPED_MODELS.
+          //   2. organization (organizationId) — ENT-01 data-layer backstop for
+          //      TENANT_SCOPED_MODELS. FLAG-GATED via env TENANT_READ_ORG_SCOPE so it
+          //      can be enabled + verified on staging (2-org data) before prod. When
+          //      the flag is off this is a strict no-op → behaviour identical to before.
+          //
+          // SAFE BY CONSTRUCTION: platform-admin + cron + system code already run
+          // inside withoutTenantScope() (getTenantContext()=null), and public reads
+          // have no tenant context — so the org filter only ever narrows reads that
+          // run inside a bound single-tenant request, which is exactly the leak class.
+          //
+          // findUnique / update / delete are intentionally left alone (by-id; deferred
+          // to RLS phase). aggregate / groupBy ARE hooked below: they accept the same
+          // top-level `where`, so they route through the IDENTICAL applyReadScopes
+          // fail-open org-injection. Leaving them unhooked leaked _sum/groupBy stats
+          // cross-org while sibling counts were scoped (see invoice-service.js#getSummary).
+          async findMany({ model, args, query }) {
+            return query(applyReadScopes(model, args));
+          },·
+          async findFirst({ model, args, query }) {
+            return query(applyReadScopes(model, args));
+          },·
+          async count({ model, args, query }) {
+            return query(applyReadScopes(model, args));
+          },·
+          async aggregate({ model, args, query }) {
+            return query(applyReadScopes(model, args));
+          },·
+          async groupBy({ model, args, query }) {
+            return query(applyReadScopes(model, args));
+          },
+        },
+      },
+    };·
+    module.exports = {
+      tenantInjectExtension,
+      isTenantScoped,
+      TENANT_SCOPED_MODELS,
+      isEntityScoped,
+      ENTITY_SCOPED_MODELS,
+      applyReadScopes,
+      orgReadScopeEnabled,
+    };
+    "
+
+      290 |             path.join(BACKEND, 'services', 'tenant-prisma-extension.js'), 'utf8',
+      291 |         );
+    > 292 |         expect(src).toMatch(/'CorrectionRound',\s*\/\/\s*correction_rounds/);
+          |                     ^
+      293 |     });
+      294 | });
+      295 |
+
+      at Object.toMatch (__tests__/unit/correction-round.test.js:292:21)
+
+  ● schema EXPAND — CorrectionRound › correction-round.prisma declares the append ledger with the per-stage unique key
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      304 |     test('correction-round.prisma declares the append ledger with the per-stage unique key', () => {
+      305 |         const pslPath = path.join(SCHEMA_DIR, 'correction-round.prisma');
+    > 306 |         expect(fs.existsSync(pslPath)).toBe(true);
+          |                                        ^
+      307 |         const psl = fs.readFileSync(pslPath, 'utf8');
+      308 |         expect(psl).toMatch(/model CorrectionRound \{/);
+      309 |         expect(psl).toMatch(/@@unique\(\[applicationId, stage, roundNo\]\)/);
+
+      at Object.toBe (__tests__/unit/correction-round.test.js:306:40)
+
+  ● schema EXPAND — CorrectionRound › exactly one add_correction_rounds migration exists, EXPAND-only, timestamp not colliding
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      325 |         const dirs = fs.readdirSync(MIGRATIONS_DIR)
+      326 |             .filter((d) => /^\d{14}_add_correction_rounds$/.test(d));
+    > 327 |         expect(dirs).toHaveLength(1);
+          |                      ^
+      328 |
+      329 |         // Timestamp collision guard: two 20260803120000_* dirs already exist —
+      330 |         // the M3 migration must own a UNIQUE 14-digit prefix.
+
+      at Object.toHaveLength (__tests__/unit/correction-round.test.js:327:22)
+
+  ● SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว › workflow-handler-deps reads config — no REVISION_SLA_DAYS = 5 literal
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /REVISION_SLA_DAYS\s*=\s*PAYMENT\.REVISION_DEADLINE_BUSINESS_DAYS/
+    Received string:  "const {
+        prisma,
+        authenticateProvider,
+        logger,
+        PERMISSIONS,
+        requireCanonicalPermission,
+        obj, arr,
+        resolveUserIdFromHealthId,
+    } = require('./shared');
+    const workflowTransitionService = require('../../../../services/workflow-transition-service');
+    const certificateService = require('../../../../services/certificate-service');
+    const invoiceService = require('../../../../services/invoice-service');
+    const applicationService = require('../../../../services/application-service');
+    const { getRequestIp } = require('../../../../utils/client-ip');
+    const { getRevisionDueAt } = require('./queue-utils');
+    const {
+        computePhaseSettlement,
+    } = require('../../../../services/phase-billing-service');
+    const {
+        auditLogger,
+        AuditCategory,
+        AuditSeverity,
+        ResourceType,
+    } = require('../../../../middleware/audit-logger');
+    // Blocker F (full-system audit 2026-07-07): this barrel previously exported
+    // services/working-days-service.addWorkingDays + loadHolidaySet — holiday-
+    // CAPABLE but holiday-BLIND in practice (its sources, env TH_PUBLIC_HOLIDAYS +
+    // systemConfig `public_holidays_th`, were never seeded) and evaluated in
+    // server-local time. The 5-working-day reject deadline it stamped was too
+    // short whenever the window spanned a Thai public holiday → early auto-EXPIRE
+    // → the farmer forfeits งวดที่ 1 and must re-file. Export the canonical
+    // Asia/Bangkok + Thai-calendar engine instead — the SAME one the sibling
+    // paths already use (services/car-deadline-service.js,
+    // application-review-revision-methods.js). Its Thai calendar is built in, so
+    // loadHolidaySet is intentionally NOT re-exported (signature also differs:
+    // canonical addWorkingDays(start, days[, timeZone]) — passing a holiday Set
+    // as the 3rd arg would be read as a timezone).
+    const { addWorkingDays } = require('../../../../utils/working-days');
+    const REVISION_SLA_DAYS = 5;
+    // Re-exported from shared/phase2-schedule-gate rather than defined here — see
+    // the note in scheduler-handler-deps.js. Three copies of the round-2 payment
+    // predicate existed; the write path that skipped it entirely is what let an
+    // unpaid application be scheduled for a field inspection.
+    const { isPhase2PaymentConfirmed } = require('../../../../shared/phase2-schedule-gate');
+    // Replaces inline prisma.invoice.findMany at workflow-handler-deps.js:52
+    // — same invoice-service.listSettlementsForApplication call site.
+    async function isPhase2ReceiptIssued(applicationId) {
+        const invoices = await invoiceService.listSettlementsForApplication(applicationId);
+        const phase2Settlement = computePhaseSettlement(invoices, 'PHASE_2');
+        return phase2Settlement.phaseReceiptIssued;
+    }
+    async function ensureCertificateIssuedForApplication(applicationId, actorIdentity) {
+        return certificateService.generateCertificate(
+            applicationId,
+            actorIdentity || 'SYSTEM',
+            { skipInitialAssets: true },
+        );
+    }·
+    module.exports = {
+        // `prisma` is exported only as the transaction handle threaded into
+        // `writeApplicationStatus` by downstream workflow handlers
+        // (workflow-revision-expirations-handler.js, etc.) — same exception
+        // pattern as `applications/applications-car.js` (batch 9).
+        prisma,
+        applicationService,
+        invoiceService,
+        authenticateProvider,
+        logger,
+        PERMISSIONS,
+        requireCanonicalPermission,
+        safeObject: obj,
+        safeArray: arr,
+        obj,
+        arr,
+        resolveUserIdFromHealthId,
+        workflowTransitionService,
+        getRequestIp,
+        getRevisionDueAt,
+        computePhaseSettlement,
+        auditLogger,
+        AuditCategory,
+        AuditSeverity,
+        ResourceType,
+        REVISION_SLA_DAYS,
+        addWorkingDays,
+        isPhase2PaymentConfirmed,
+        isPhase2ReceiptIssued,
+        ensureCertificateIssuedForApplication,
+    };
+    "
+
+      367 |     test('workflow-handler-deps reads config — no REVISION_SLA_DAYS = 5 literal', () => {
+      368 |         const src = read('routes/api/provider/handlers/workflow-handler-deps.js');
+    > 369 |         expect(src).toMatch(/REVISION_SLA_DAYS\s*=\s*PAYMENT\.REVISION_DEADLINE_BUSINESS_DAYS/);
+          |                     ^
+      370 |         expect(src).not.toMatch(/REVISION_SLA_DAYS\s*=\s*5/);
+      371 |     });
+      372 |
+
+      at Object.toMatch (__tests__/unit/correction-round.test.js:369:21)
+
+  ● SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว › workflow-transitions-handler: CAR_SLA_DAYS is derived, not re-spelled
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /CAR_SLA_DAYS\s*=\s*REVISION_SLA_DAYS/
+    Received string:  "const {
+        authenticateProvider,
+        logger,
+        PERMISSIONS,
+        requireCanonicalPermission,
+        obj,
+        arr,
+        prisma,
+        workflowTransitionService,
+        getRequestIp,
+        auditLogger,
+        AuditCategory,
+        AuditSeverity,
+        ResourceType,
+        resolveUserIdFromHealthId,
+        getRevisionDueAt,
+        REVISION_SLA_DAYS,
+        // Blocker F: the Thai-holiday-aware Asia/Bangkok engine (utils/working-days
+        // via the deps barrel) — its calendar is built in, no holiday Set needed.
+        addWorkingDays,
+        ensureCertificateIssuedForApplication,
+    } = require('./workflow-handler-deps');
+    const { writeApplicationStatus } = require('../../../../services/application-status-writer');
+    const { statusTransitionAuditHook } = require('../../../../middleware/audit-logger');
+    // A2 (integrity-audit 2026-07-06): void the auto-issued certificate when a pass
+    // is reversed on this canonical endpoint (AUDIT_PASSED -> CAR_REVIEWING). Mirrors
+    // the auditor.js reject-to-auditor path — required directly (not via
+    // workflow-handler-deps) so the reversal void stays co-located with its caller.
+    const certificateService = require('../../../../services/certificate-service');
+    const { withVisibility } = require('../../../../shared/application-visibility');
+    // Batch 10 — Prisma bypass cleanup. The workflow handler's direct entity
+    // reads (application lookup + re-fetch, comment insert, revisionDeadline
+    // updateMany) now route through application-service + admin-application-service.
+    // `prisma` is preserved only as the transaction handle for canonical writers
+    // (writeApplicationStatus) and passed-through helpers.
+    const applicationService = require('../../../../services/application-service');
+    const adminApplicationService = require('../../../../services/admin-application-service');·
+    const CAR_SLA_DAYS = 5;·
+    const getCarDueAt = (formData) => {
+        const payload = obj(formData);
+        const value = payload.carDueAt || payload.car_due_at || payload.carRequest?.dueAt || null;
+        if (!value) {
+            return null;
+        }
+        const parsed = new Date(value);
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    };·
+    const applicationsWorkflowTransitions = [
+        authenticateProvider,
+        requireCanonicalPermission(PERMISSIONS.APPLICATION_WORKFLOW_TRANSITION),
+        async (req, res) => {
+            try {
+                const idOrNumber = String(req.params.id || '').trim();
+                const toState = String(req.body?.toState || '').trim().toUpperCase();
+                const comment = req.body?.comment || null;
+                const reasonCode = req.body?.reasonCode || null;
+                const metadata = obj(req.body?.metadata);
+                const revisionCategory = String(req.body?.revisionCategory || metadata.revisionCategory || '').trim() || null;
+                const revisionMessage = String(req.body?.revisionMessage || metadata.revisionMessage || '').trim() || null;
+                const revisionItems = arr(req.body?.revisionItems || metadata.revisionItems)
+                    .map((item) => String(item || '').trim())
+                    .filter(Boolean);
+                const force = !!req.body?.force;
+                const requestedState = workflowTransitionService.normalizeWorkflowStateInput(toState) || toState;
+                const effectiveComment = comment || revisionMessage || null;
+                const transitionMetadata = {
+                    ...metadata,
+                    ...(requestedState === 'REVISION_REQUESTED'
+                        ? {
+                            revisionCategory,
+                            revisionMessage: revisionMessage || effectiveComment,
+                            revisionItems,
+                        }
+                        : {}),
+                };
+                if (!idOrNumber || !toState) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'application id and toState are required',
+                    });
+                }
+                if (force && (!reasonCode || !comment)) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'force transition requires reasonCode and comment',
+                    });
+                }
+                if (!force && requestedState === 'REVISION_REQUESTED' && !effectiveComment) {
+                    return res.status(400).json({
+                        success: false,
+                        error: 'revisionMessage or comment is required when requesting revision',
+                    });
+                }
+                // Wave A Phase 28 — gate workflow transitions by application
+                // visibility. The existing REV-11 inline ownership check at
+                // line ~107 only fires for REVISION_REQUESTED and DOC_APPROVED;
+                // other transitions weren't gated. The visibility helper
+                // narrows auditors to their assigned applications across ALL
+                // transition targets. Non-auditor roles fall through unchanged
+                // (helper returns null).
+                // applicationService.findFirstWithWhere — replaces
+                // prisma.application.findFirst with the visibility-wrapped
+                // OR(id, applicationNumber) predicate.
+                const application = await applicationService.findFirstWithWhere({
+                    where: withVisibility(
+                        {
+                            OR: [{ id: idOrNumber }, { applicationNumber: idOrNumber }],
+                            isDeleted: false,
+                        },
+                        req.user,
+                    ),
+                    select: {
+                        id: true,
+                        applicationNumber: true,
+                        healthId: true,
+                        status: true,
+                        formData: true,
+                        workflowHistory: true,
+                        reviewerId: true,
+                        // auditorId retained for queue/visibility context (the former
+                        // ISO 17065 §7.6 two-person check was removed 2026-06-05).
+                        auditorId: true,
+                    },
+                });
+                if (!application) {
+                    return res.status(404).json({
+                        success: false,
+                        error: 'Application not found',
+                    });
+                }
+                const healthUserId = await resolveUserIdFromHealthId(application.healthId);
+                const currentState = workflowTransitionService.resolveStateFromApplication(application);
+                const currentFormData = obj(application.formData);·
+                // REV-11: Ownership check — only the assigned reviewer can approve/revision.
+                //
+                // Reads the canonical Application.reviewerId column (the single source
+                // of truth for reviewer assignment). The legacy
+                // formData.PROVIDERAssignment.reviewerId fallback was removed once the
+                // column was backfilled for pre-Phase-44 rows
+                // (scripts/backfill-reviewer-id.js). A null column = unassigned.
+                if (!force && ['REVISION_REQUESTED', 'DOC_APPROVED'].includes(requestedState)) {
+                    if (application.reviewerId && application.reviewerId !== req.user.id) {
+                        return res.status(403).json({
+                            success: false,
+                            error: 'ไม่มีสิทธิ์ดำเนินการ คุณไม่ใช่ผู้ตรวจที่ได้รับมอบหมายสำหรับคำขอนี้',
+                        });
+                    }
+                }·
+                // REV-12 (the all-9-steps approve gate) was DROPPED 2026-06-23 (owner
+                // decision, pilot-simplify): the per-step review-progress UI was never
+                // wired (its writer had no FE caller), so the gate could only ever block.
+                // Document review is a holistic approve / request-revision decision gated
+                // by reviewer-ownership (REV-11) + the mandatory comment on revision + the
+                // role/edge checks. The 9 sections remain a reference checklist in the UI.·
+                const markAsCancelledExpired = async (expiredReason, fromState) => {
+                    const ts = new Date().toISOString();
+                    await writeApplicationStatus({
+                        prisma,
+                        applicationId: application.id,
+                        fromStatus: application.status,
+                        toStatus: 'EXPIRED',
+                        actorId: req.user.id,
+                        actorRole: req.user.canonicalRole || req.user.role || null,
+                        reason: expiredReason === 'REVISION_OVERDUE' ? 'REVISION_DEADLINE_EXPIRED' : 'CAR_DEADLINE_EXPIRED',
+                        additionalData: {
+                            updatedBy: req.user.id,
+                            formData: {
+                                ...currentFormData,
+                                workflowState: 'EXPIRED',
+                                workflowStateUpdatedAt: ts,
+                                canceledExpiredAt: ts,
+                                cancelReason: expiredReason,
+                            },
+                            workflowHistory: [
+                                ...arr(application.workflowHistory),
+                                {
+                                    timestamp: ts,
+                                    action: expiredReason === 'REVISION_OVERDUE'
+                                        ? 'REVISION_DEADLINE_EXPIRED'
+                                        : 'CAR_DEADLINE_EXPIRED',
+                                    fromState,
+                                    toState: 'EXPIRED',
+                                    actorId: req.user.id,
+                                    actorRole: req.user.canonicalRole || req.user.role || null,
+                                },
+                            ],
+                        },
+                    });·
+                    if (expiredReason === 'REVISION_OVERDUE') {
+                        // adminApplicationService.bulkUpdateRevisionDeadlineStatus —
+                        // replaces prisma.revisionDeadline.updateMany.
+                        await adminApplicationService.bulkUpdateRevisionDeadlineStatus({
+                            applicationId: application.id,
+                            fromStatuses: ['PENDING', 'EXTENDED'],
+                            data: { status: 'FAILED', updatedBy: req.user.id },
+                        });
+                    }
+                };·
+                if (!force && currentState === 'REVISION_REQUESTED' && requestedState === 'ASSIGNED_FOR_REVIEW') {
+                    const dueAt = getRevisionDueAt(currentFormData);
+                    if (dueAt && new Date() > dueAt) {
+                        await markAsCancelledExpired('REVISION_OVERDUE', currentState);
+                        return res.status(400).json({
+                            success: false,
+                            error: 'Revision deadline exceeded. Application has been cancelled.',
+                        });
+                    }
+                }·
+                if (!force && currentState === 'CAR_PENDING' && requestedState === 'CAR_REVIEWING') {
+                    const carDueAt = getCarDueAt(currentFormData);
+                    if (carDueAt && new Date() > carDueAt) {
+                        await markAsCancelledExpired('CAR_OVERDUE', currentState);
+                        return res.status(400).json({
+                            success: false,
+                            error: 'CAR deadline exceeded. Application has been cancelled.',
+                        });
+                    }
+                }·
+                const transition = workflowTransitionService.buildTransitionUpdate({
+                    application,
+                    toState,
+                    actorId: req.user.id,
+                    actorRole: req.user.canonicalRole,
+                    reasonCode,
+                    comment: effectiveComment,
+                    metadata: transitionMetadata,
+                    force,
+                });·
+                if (transition.nextState === 'REVISION_REQUESTED') {
+                    const requestedAt = new Date();
+                    // Blocker F: Thai-holiday-aware + Asia/Bangkok (utils/working-days).
+                    // The old services/working-days-service path counted Thai public
+                    // holidays as working days (its holiday sources were never seeded)
+                    // → too-short deadline → early auto-EXPIRE → farmer forfeits งวด 1.
+                    const dueAt = addWorkingDays(requestedAt, REVISION_SLA_DAYS);
+                    transition.updateData.formData = {
+                        ...transition.updateData.formData,
+                        revisionRequestedAt: requestedAt.toISOString(),
+                        revisionDueAt: dueAt.toISOString(),
+                        revisionSlaDays: REVISION_SLA_DAYS,
+                        revision_requested_at: requestedAt.toISOString(),
+                        revision_due_at: dueAt.toISOString(),
+                        revision_sla_days: REVISION_SLA_DAYS,
+                        revisionRequest: {
+                            category: revisionCategory,
+                            message: revisionMessage || effectiveComment,
+                            items: revisionItems,
+                            requestedAt: requestedAt.toISOString(),
+                            dueAt: dueAt.toISOString(),
+                            requestedBy: req.user.providerId || req.user.id,
+                            requestedByRole: req.user.canonicalRole || req.user.role || null,
+                        },
+                    };
+                    transition.transitionEvent.metadata = {
+                        ...(obj(transition.transitionEvent.metadata)),
+                        revisionRequestedAt: requestedAt.toISOString(),
+                        revisionDueAt: dueAt.toISOString(),
+                        revisionSlaDays: REVISION_SLA_DAYS,
+                        revision_requested_at: requestedAt.toISOString(),
+                        revision_due_at: dueAt.toISOString(),
+                        revision_sla_days: REVISION_SLA_DAYS,
+                        revisionCategory,
+                        revisionMessage: revisionMessage || effectiveComment,
+                        revisionItems,
+                    };
+                } else if (transition.nextState === 'CAR_PENDING') {
+                    const requestedAt = new Date();
+                    // Blocker F: same Thai-holiday-aware engine as the REVISION path
+                    // above (and as car-deadline-service.js on the sibling surfaces).
+                    const dueAt = addWorkingDays(requestedAt, CAR_SLA_DAYS);
+                    transition.updateData.formData = {
+                        ...transition.updateData.formData,
+                        carRequestedAt: requestedAt.toISOString(),
+                        carDueAt: dueAt.toISOString(),
+                        carSlaDays: CAR_SLA_DAYS,
+                        car_requested_at: requestedAt.toISOString(),
+                        car_due_at: dueAt.toISOString(),
+                        car_sla_days: CAR_SLA_DAYS,
+                        carRequest: {
+                            message: effectiveComment,
+                            requestedAt: requestedAt.toISOString(),
+                            dueAt: dueAt.toISOString(),
+                            requestedBy: req.user.providerId || req.user.id,
+                            requestedByRole: req.user.canonicalRole || req.user.role || null,
+                        },
+                    };
+                    transition.transitionEvent.metadata = {
+                        ...(obj(transition.transitionEvent.metadata)),
+                        carRequestedAt: requestedAt.toISOString(),
+                        carDueAt: dueAt.toISOString(),
+                        carSlaDays: CAR_SLA_DAYS,
+                        car_requested_at: requestedAt.toISOString(),
+                        car_due_at: dueAt.toISOString(),
+                        car_sla_days: CAR_SLA_DAYS,
+                    };
+                }·
+                if (['REVISION_REQUESTED', 'DOC_APPROVED'].includes(transition.nextState)) {
+                    const reviewHistory = arr(currentFormData.reviewHistory);
+                    transition.updateData.formData = {
+                        ...transition.updateData.formData,
+                        reviewHistory: [
+                            ...reviewHistory,
+                            {
+                                timestamp: new Date().toISOString(),
+                                action: transition.nextState === 'DOC_APPROVED' ? 'approve' : 'revision',
+                                category: revisionCategory,
+                                comment: effectiveComment,
+                                items: revisionItems,
+                                by: req.user.providerId || req.user.id,
+                                byRole: req.user.canonicalRole || req.user.role || null,
+                            },
+                        ],
+                    };
+                }·
+                // Use the canonical writer instead of a direct prisma.update so
+                // every transition spawns its corresponding work-activity row
+                // (ADR-016 Phase 1A) and cancels open activities on terminal
+                // states (REJECTED / EXPIRED / CERTIFIED). Bypassing this
+                // wrapper meant the work queue stayed populated with rows for
+                // applications that had already moved on, and the new-stage
+                // owner saw nothing in their queue for the freshly-arrived
+                // transition. transition.updateData already has the right
+                // shape; we just split status off so writeApplicationStatus
+                // gets toStatus separately.
+                const { status: toStatus, ...transitionExtras } = transition.updateData;
+                // A1 (integrity-audit 2026-07-06): an ADMIN `force` transition bypasses
+                // the role/edge gate, so a FORCED landing on AUDIT_PASSED (or APPROVED)
+                // must NOT let the writer's cert hook auto-mint a certificate with no
+                // fresh audit — that is the single-auditor SoD back-door. This is the
+                // 4th sibling of the 3 admin force/revert paths that already pass
+                // autoIssueCertificate:false (admin.js, admin/applications.js,
+                // admin-application-service.js force+revert). A LEGITIMATE (non-force)
+                // auditor AUDIT_PASSED still auto-issues, and the legitimate APPROVED
+                // issuance still runs via handleCertificateIssuance below regardless of
+                // this flag (it is gated on transition.nextState === 'APPROVED').
+                const writeArgs = {
+                    applicationId: application.id,
+                    fromStatus: application.status,
+                    toStatus,
+                    actorId: req.user.id,
+                    actorRole: req.user.canonicalRole || req.user.role || null,
+                    reason: reasonCode || `WORKFLOW_${transition.nextState}`,
+                    additionalData: transitionExtras,
+                    autoIssueCertificate: !force,
+                };·
+                // Full-system audit area H (2026-07-11): this canonical DOCUMENT_REVIEWER
+                // + admin-force transition path previously wrote its ONLY AuditLog row
+                // AFTER commit, best-effort (workflow-side-effects.logTransitionAudit,
+                // swallows failure) — so a DOC_APPROVED/REVISION_REQUESTED/APPROVED/force
+                // transition could commit with NO immutable hash-chained attribution on a
+                // transient fault. Wire the same in-$transaction onAudit hook every
+                // consequential sibling uses (auditor cert path #646 audits.js, admin
+                // force/revert admin-application-service.js) so the transition row is
+                // written through the tx, atomic with the status flip. (The post-commit
+                // rich WORKFLOW_TRANSITION event below is kept as extra operational
+                // context — additive, no behavior removed.)
+                const transitionAuditMetadata = {
+                    applicationNumber: application.applicationNumber,
+                    previousWorkflowState: transition.previousState,
+                    nextWorkflowState: transition.nextState,
+                    reasonCode: reasonCode || null,
+                    comment: effectiveComment || null,
+                    force,
+                };·
+                // A2 (integrity-audit 2026-07-06): reversing a pass (AUDIT_PASSED ->
+                // CAR_REVIEWING) on this canonical endpoint must VOID the certificate
+                // that was auto-issued on the pass — otherwise the public QR keeps
+                // reporting the cert VALID for a farm now under corrective action.
+                // Mirror the auditor.js reject-to-auditor void: run the status write +
+                // cert void (which also invalidates the audit-pass record, #15) in ONE
+                // transaction so we never leave a live cert for a reverted application
+                // and a re-pass can mint a fresh one. Keyed on the transition EDGE so it
+                // covers BOTH the auditor (non-force) and the ADMIN (force) reversal.
+                // revokeCertificateForApplication is a no-op when no live cert exists.
+                // A2 (integrity-audit 2026-07-06): void on EVERY reversal off a cert-live
+                // state, not just the one AUDIT_PASSED->CAR_REVIEWING edge. A cert is live
+                // after AUDIT_PASSED (writer hook auto-issues) and stays live through
+                // APPROVED/CERTIFIED. The narrow predicate missed ADMIN force reversals
+                // (AUDIT_PASSED->REJECTED, CERTIFIED->REJECTED, APPROVED->CAR_REVIEWING) —
+                // admins WILL use force for AUDIT_PASSED->REJECTED (no non-force edge
+                // exists) — leaving a public-VALID cert on /verify + QR for a
+                // rejected/reverted farm. Void when LEAVING a cert-live state and NOT
+                // staying on the cert track (APPROVED/CERTIFIED). Forward edges
+                // AUDIT_PASSED->APPROVED and APPROVED->CERTIFIED stay on-track (next ∈
+                // CERT_KEEP) → not voided. revokeCertificateForApplication is a no-op
+                // when no live cert exists, so this is safe on all covered edges.
+                const CERT_LIVE = new Set(['AUDIT_PASSED', 'APPROVED', 'CERTIFIED']);
+                const CERT_KEEP = new Set(['APPROVED', 'CERTIFIED']);
+                const isCertVoidingReversal =
+                    CERT_LIVE.has(transition.previousState) && !CERT_KEEP.has(transition.nextState);·
+                // R2 M2 (operator decision D-8, 2026-08-03 — evidence/R2-special-
+                // reopen/decisions-final.md): a correction decision
+                // (REVISION_REQUESTED / CAR_PENDING) must mint its official letter
+                // (จดหมายราชการในระบบ, M1 official-letter kind) INSIDE the same
+                // transaction as the status write — the 5-working-day clock starts
+                // at \"บันทึกผล+ออกจดหมาย\" as ONE atomic event, so a letter that
+                // cannot be written must fail the whole transition. The plain
+                // in-app/email notices in workflow-side-effects stay best-effort
+                // AFTER commit (side channels must not fire inside an uncommitted
+                // tx). decision-letter-service is required lazily (mirrors the
+                // side-effects require below) so transitions that never mint a
+                // letter don't load the notification stack.
+                const isCorrectionDecision = ['REVISION_REQUESTED', 'CAR_PENDING'].includes(transition.nextState);
+                const mintDecisionLetter = async (tx) => {
+                    if (!isCorrectionDecision) { return; }
+                    const { mintCorrectionLetter, CORRECTION_LETTER_STAGE } = require('../../../../services/decision-letter-service');
+                    const decidedFormData = obj(transition.updateData.formData);
+                    const isCar = transition.nextState === 'CAR_PENDING';
+                    await mintCorrectionLetter({
+                        tx,
+                        healthId: application.healthId,
+                        applicationId: application.id,
+                        applicationNumber: application.applicationNumber,
+                        stage: isCar ? CORRECTION_LETTER_STAGE.FIELD_AUDIT_CAR : CORRECTION_LETTER_STAGE.DOC_REVIEW,
+                        items: isCar ? [] : revisionItems,
+                        message: isCar ? effectiveComment : (revisionMessage || effectiveComment),
+                        dueAt: isCar ? decidedFormData.carDueAt : decidedFormData.revisionDueAt,
+                    });
+                };·
+                if (isCertVoidingReversal) {
+                    await prisma.$transaction(async (tx) => {
+                        await writeApplicationStatus({
+                            ...writeArgs,
+                            prisma: tx,
+                            onAudit: statusTransitionAuditHook({ tx, metadata: transitionAuditMetadata }),
+                        });
+                        await certificateService.revokeCertificateForApplication(application.id, {
+                            revokedBy: req.user.id,
+                            reason: `Audit pass reversed: ${effectiveComment || reasonCode || 'CAR review'}`,
+                            prisma: tx,
+                        });
+                        await mintDecisionLetter(tx);
+                    });
+                } else {
+                    await prisma.$transaction(async (tx) => {
+                        await writeApplicationStatus({
+                            ...writeArgs,
+                            prisma: tx,
+                            onAudit: statusTransitionAuditHook({ tx, metadata: transitionAuditMetadata }),
+                        });
+                        await mintDecisionLetter(tx);
+                    });
+                }
+                // Re-fetch with the original select shape since writeApplicationStatus
+                // returns the full row. Downstream side-effects below
+                // (handleRevisionDeadlines, sendTransitionNotifications,
+                // handleCertificateIssuance, logTransitionAudit) all read from
+                // this `updated` reference.
+                // applicationService.getById — replaces prisma.application.findUnique
+                // re-fetch after writeApplicationStatus.
+                const updated = await applicationService.getById(application.id, {
+                    select: {
+                        id: true,
+                        applicationNumber: true,
+                        status: true,
+                        formData: true,
+                        updatedAt: true,
+                        updatedBy: true,
+                    },
+                });·
+                // Persist ApplicationComment for revision/CAR transitions (audit trail)
+                if (['REVISION_REQUESTED', 'CAR_PENDING'].includes(transition.nextState) && effectiveComment) {
+                    // applicationService.isApplicationCommentModelAvailable +
+                    // applicationService.createApplicationCommentIfAvailable —
+                    // replaces direct prisma.applicationComment.create. Split into
+                    // two calls so the \"model unavailable\" branch still emits the
+                    // same dedicated warning as before.
+                    if (applicationService.isApplicationCommentModelAvailable()) {
+                        await applicationService.createApplicationCommentIfAvailable({
+                            applicationId: application.id,
+                            authorId: req.user.id,
+                            role: req.user.canonicalRole || req.user.role || 'PROVIDER',
+                            // commentType (DOC_REVISION/FIELD_CAR) + revisionItems are
+                            // persisted in the transition metadata/formData; the comment
+                            // row carries the human-readable text.
+                            content: effectiveComment,
+                        }).catch((commentErr) => {
+                            logger.warn('[provider] ApplicationComment creation failed', {
+                                message: commentErr.message,
+                                applicationId: application.id,
+                            });
+                        });
+                    } else {
+                        logger.warn('[provider] ApplicationComment model unavailable, skip comment persistence', {
+                            applicationId: application.id,
+                            transition: transition.nextState,
+                        });
+                    }
+                }
+                // ─── Side Effects (extracted to workflow-side-effects.js) ───
+                const sideEffects = require('./workflow-side-effects');·
+                await sideEffects.handleRevisionDeadlines(prisma, {
+                    application, transition, reqUser: req.user, getRevisionDueAt,
+                    updated, arr, logger,
+                });·
+                let issuedCertificate = null;
+                // A1 (integrity-audit 2026-07-06): force-gate this SECOND cert-mint path
+                // too. buildTransitionUpdate lets ADMIN+force land APPROVED from ANY state
+                // (incl. CERTIFIED), and revokeCertificate does NOT clear the audit-pass
+                // record, so a compromised ADMIN force→APPROVED after a revoke would mint a
+                // FRESH active cert off the surviving pass = a hidden un-revoke (public
+                // /verify + QR flip back to VALID). The writer's auto-issue hook is already
+                // force-gated (autoIssueCertificate:!force above); this path must match.
+                if (transition.nextState === 'APPROVED' && !force) {
+                    try {
+                        issuedCertificate = await sideEffects.handleCertificateIssuance(prisma, logger, {
+                            application, transition, reqUser: req.user, healthUserId: healthUserId,
+                            ensureCertificateIssuedForApplication,
+                        });
+                    } catch (certificateError) {
+                        logger.error('[provider] certificate issuance failed on APPROVED', {
+                            applicationId: application.id,
+                            message: certificateError.message,
+                        });
+                        return res.status(409).json({
+                            success: false,
+                            error: 'Certificate issuance failed',
+                            message: certificateError.message,
+                        });
+                    }
+                }·
+                await sideEffects.sendTransitionNotifications(prisma, logger, {
+                    application, transition, healthUserId,
+                    getRevisionDueAt, revisionCategory, revisionMessage, effectiveComment, revisionItems,
+                });·
+                await sideEffects.logTransitionAudit(auditLogger, logger, {
+                    AuditCategory, AuditSeverity, ResourceType,
+                    application, transition, reqUser: req.user,
+                    reasonCode, effectiveComment, force, issuedCertificate,
+                    getRequestIp, req,
+                });·
+                return res.json({
+                    success: true,
+                    data: {
+                        application: updated,
+                        transition: {
+                            fromState: transition.previousState,
+                            toState: transition.nextState,
+                            fromStatus: application.status,
+                            toStatus: transition.nextLegacyStatus,
+                        },
+                        certificate: issuedCertificate ? {
+                            id: issuedCertificate.id,
+                            number: issuedCertificate.certificateNumber,
+                        } : null,
+                    },
+                });
+            } catch (error) {
+                // Workflow transition-guard errors (buildTransitionUpdate throws plain
+                // Errors with these messages, no .status/.code) → 422 INVALID_TRANSITION,
+                // matching the cert-workflow contract + the sibling auditor.js handler.
+                // A genuine server fault (unmatched message) stays 500.
+                const msg = String(error.message || '');
+                const isTransitionGuard = /cannot transition|Invalid transition|already in workflow state|Only admin can force|Unknown actor role|Invalid workflow state|requires a mandatory comment/i.test(msg);
+                const statusCode = error.status || (isTransitionGuard ? 422 : 500);
+                logger.error('[provider] workflow transition failed', { message: error.message });
+                // Surface the transition-guard reason (422 INVALID_TRANSITION) — the FE
+                // error-translator keys off this string. On a genuine 500, return a
+                // generic message so an internal/Prisma error never leaks to the client
+                // (the real cause is logged above).
+                return res.status(statusCode).json({
+                    success: false,
+                    error: 'Workflow transition failed',
+                    code: error.code || (isTransitionGuard ? 'INVALID_TRANSITION' : undefined),
+                    message: statusCode >= 500 ? 'Workflow transition failed' : error.message,
+                });
+            }
+        },
+    ];·
+    module.exports = {
+        applicationsWorkflowTransitions,
+    };
+    "
+
+      373 |     test('workflow-transitions-handler: CAR_SLA_DAYS is derived, not re-spelled', () => {
+      374 |         const src = read('routes/api/provider/handlers/workflow-transitions-handler.js');
+    > 375 |         expect(src).toMatch(/CAR_SLA_DAYS\s*=\s*REVISION_SLA_DAYS/);
+          |                     ^
+      376 |         expect(src).not.toMatch(/CAR_SLA_DAYS\s*=\s*5/);
+      377 |     });
+      378 |
+
+      at Object.toMatch (__tests__/unit/correction-round.test.js:375:21)
+
+  ● SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว › PATCH /reject surface reads config — no addWorkingDays(now, 5) / revisionSlaDays: 5
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /addWorkingDays\(now,\s*PAYMENT\.REVISION_DEADLINE_BUSINESS_DAYS\)/
+    Received string:  "/**
+     * Application Workflow Routes
+     * Extracted from applications.js for readability.
+     *
+     * Routes: PATCH /:id/reject, GET /:id, PUT /:id/revision, GET /:id/pdf
+     *
+     * @module routes/api/applications/application-workflow-handlers
+     */·
+    const express = require('express');
+    const { respondError } = require('../../../shared/api-response');
+    const router = express.Router();
+    const applicationService = require('../../../services/application-service');
+    const { authenticateAny: authenticateHealth, authenticateProvider } = require('../../../middleware/auth-middleware');
+    const { prisma } = require('../../../services/prisma-database');
+    const logger = require('../../../shared/logger');
+    const { normalizeRole } = require('../../../shared/canonical-rbac');
+    // Blocker F (adversarial-verify MUST, 2026-07-07): this reject surface stamps
+    // the SAME revisionDueAt/carDueAt + RevisionDeadline.revisionDue keys the
+    // auto-expire cron enforces, so it must use the SAME Thai-holiday-aware
+    // Asia/Bangkok engine as the canonical provider surface — not the holiday-
+    // blind services/working-days-service (its holiday sources are never seeded).
+    const { addWorkingDays } = require('../../../utils/working-days');
+    const {
+        getHealthScopeOptions,
+        getActorIdentity,
+    } = require('../helpers/applications-helpers');
+    const {
+        AUDITOR_ROLES,
+        REJECTABLE_STATUSES,
+        REVISION_DECISION_TYPES,
+        asObject,
+        asArray,
+        isMissingApplicationCommentsTableError,
+    } = require('../helpers/application-constants');
+    const { writeApplicationStatus } = require('../../../services/application-status-writer');
+    const workflowTransitionService = require('../../../services/workflow-transition-service');
+    const {
+        buildApplicationDetailPayload,
+    } = require('../helpers/application-payload-builders');
+    const { buildWorkflowEvent } = require('../../../shared/workflow-event-builder');·
+    // WORKFLOW: REJECT, GET BY ID, REVISION, PDF·
+    router.patch('/:id/reject', authenticateProvider, async (req, res) => {
+        try {
+            const actorRole = normalizeRole(req.user?.canonicalRole || req.user?.role);
+            if (!actorRole || !AUDITOR_ROLES.has(actorRole)) {
+                return res.status(403).json({ success: false, error: 'Forbidden', message: 'Only auditor roles can request revision' });
+            }·
+            const payload = asObject(req.body);
+            const comment = String(payload.comment || '').trim();
+            if (!comment) {
+                return res.status(400).json({ success: false, error: 'COMMENT_REQUIRED', message: 'Comment is mandatory for revision requests' });
+            }·
+            const decisionTypeRaw = String(payload.type || 'DOC_REVISION').trim().toUpperCase();
+            const decisionType = REVISION_DECISION_TYPES.has(decisionTypeRaw) ? decisionTypeRaw : 'DOC_REVISION';
+            const targetStatus = decisionType === 'FIELD_CAR' ? 'CAR_PENDING' : 'REVISION_REQUESTED';
+            const historyAction = decisionType === 'FIELD_CAR' ? 'CAR_REQUESTED' : 'REVISION_REQUESTED';
+            const dueFieldCamel = decisionType === 'FIELD_CAR' ? 'carDueAt' : 'revisionDueAt';
+            const dueFieldSnake = decisionType === 'FIELD_CAR' ? 'car_due_at' : 'revision_due_at';·
+            const application = await prisma.application.findFirst({ where: { id: req.params.id, isDeleted: false } });
+            if (!application) { return res.status(404).json({ success: false, error: 'Application not found' }); }·
+            // PENTEST B2 — SoD assignment-ownership (mirror the canonical surface REV-11
+            // at provider/handlers/workflow-transitions-handler.js:145-150). Only the
+            // assigned reviewer (DOC_REVISION) / auditor (FIELD_CAR) may drive their own
+            // case; a null column means unassigned = allowed. Without this, any reviewer/
+            // auditor in the org could request revision/CAR on a colleague's application.
+            const assignedOwnerId = decisionType === 'FIELD_CAR' ? application.auditorId : application.reviewerId;
+            if (assignedOwnerId && String(assignedOwnerId) !== String(req.user.id)) {
+                return res.status(403).json({
+                    success: false,
+                    error: 'FORBIDDEN_NOT_ASSIGNED',
+                    message: 'ไม่มีสิทธิ์ดำเนินการ คุณไม่ใช่ผู้ตรวจที่ได้รับมอบหมายสำหรับคำขอนี้',
+                });
+            }·
+            if (!REJECTABLE_STATUSES.has(String(application.status || '').toUpperCase())) {
+                return res.status(409).json({ success: false, error: 'INVALID_STATUS_TRANSITION', message: `Application status ${application.status} cannot be rejected` });
+            }·
+            // Canonical edge guard (audit 2.10): REJECTABLE_STATUSES gates the FROM
+            // state but not the specific FROM→TO edge, so a DOC_REVISION on a
+            // CAR_REVIEWING app (or FIELD_CAR on ASSIGNED_FOR_REVIEW) would write an
+            // illegal transition — ASSIGNED_FOR_REVIEW→CAR_PENDING and
+            // CAR_REVIEWING→REVISION_REQUESTED are NOT in ALLOWED_TRANSITIONS. Validate
+            // the edge against the canonical map (state dimension only; role gating
+            // already happened via AUDITOR_ROLES above). The two legitimate edges
+            // (ASSIGNED_FOR_REVIEW→REVISION_REQUESTED, CAR_REVIEWING→CAR_PENDING) pass.
+            const currentCanonicalState = workflowTransitionService.resolveStateFromApplication(application);
+            const legalTargets = workflowTransitionService.ALLOWED_TRANSITIONS[currentCanonicalState];
+            if (!legalTargets || !legalTargets.has(targetStatus)) {
+                return res.status(409).json({
+                    success: false,
+                    error: 'INVALID_STATUS_TRANSITION',
+                    message: `Cannot apply ${decisionType}: ${currentCanonicalState} → ${targetStatus} is not a valid transition`,
+                });
+            }·
+            const now = new Date();
+            // Blocker F: Thai-holiday-aware + ICT; returns end-of-business-day.
+            const dueDate = addWorkingDays(now, 5);
+            const nowIso = now.toISOString();
+            const dueIso = dueDate.toISOString();
+            const formData = asObject(application.formData);
+            const workflowHistory = asArray(application.workflowHistory);
+            // actorUserId = the User UUID (req.user.id). EVERY scalar audit/identity
+            // column below (applications.updatedBy via writeApplicationStatus,
+            // application_comments.authorId, revision_deadlines.createdBy/updatedBy)
+            // MUST receive this UUID — NOT req.user.providerId, which is the DECRYPTED
+            // plaintext provider national ID (auth-middleware.js:193-197) and would
+            // land a 13-digit PII value in an un-hooked scalar column. See
+            // shared/fk-token.js for which req.user field is plaintext vs token vs UUID.
+            const actorUserId = String(req.user?.id || '').trim() || null;
+            // actorId stays the providerId ONLY for the encrypted JSON workflowHistory
+            // payload below, where the staff identity is value-net + hook encrypted
+            // (#603 APPLICATION_JSON_PII_COLUMNS includes workflowHistory) and the
+            // history row is conventionally a staff identity. The scalar columns use
+            // actorUserId exclusively.
+            const actorId = String(req.user?.providerId || req.user?.id || '').trim() || null;
+            const actorRoleValue = req.user?.canonicalRole || req.user?.role || actorRole;·
+            const nextFormData = {
+                ...formData,
+                workflowState: targetStatus,
+                workflowStateUpdatedAt: nowIso,
+                [dueFieldCamel]: dueIso,
+                [dueFieldSnake]: dueIso,
+                revisionSlaDays: 5,
+                revision_sla_days: 5,
+                lastReviewerComment: comment,
+                lastReviewerDecisionType: decisionType,
+            };·
+            if (decisionType === 'DOC_REVISION') {
+                nextFormData.revisionRequestedAt = nowIso;
+                nextFormData.revision_requested_at = nowIso;
+                nextFormData.revisionReminder48hSentAt = null;
+                nextFormData.revisionReminder24hSentAt = null;
+            }
+            if (decisionType === 'FIELD_CAR') {
+                nextFormData.carRequestedAt = nowIso;
+                nextFormData.car_requested_at = nowIso;
+                nextFormData.carReminder48hSentAt = null;
+                nextFormData.carReminder24hSentAt = null;
+            }·
+            const transitionEvent = buildWorkflowEvent({
+                action: historyAction,
+                fromState: formData.workflowState || application.status,
+                toState: targetStatus,
+                fromStatus: application.status,
+                toStatus: targetStatus,
+                actorId,
+                actorRole: actorRoleValue,
+                comment,
+                metadata: { type: decisionType, deadline: dueIso },
+            });·
+            const updated = await prisma.$transaction(async (tx) => {
+                await writeApplicationStatus({
+                    prisma: tx,
+                    applicationId: application.id,
+                    fromStatus: application.status,
+                    toStatus: targetStatus,
+                    // actorId here is stamped into the scalar applications.updatedBy
+                    // column (application-status-writer.js:319) → must be the UUID.
+                    actorId: actorUserId || 'SYSTEM',
+                    actorRole: actorRoleValue,
+                    reason: historyAction,
+                    additionalData: {
+                        // Scalar applications.updatedBy override → UUID, never providerId.
+                        updatedBy: actorUserId || undefined,
+                        formData: nextFormData,
+                        workflowHistory: [...workflowHistory, transitionEvent],
+                    },
+                });
+                const updatedApplication = await tx.application.findUnique({ where: { id: application.id } });·
+                // R2 M2 (operator decision D-8, 2026-08-03 — evidence/R2-special-
+                // reopen/decisions-final.md): this surface previously sent NOTHING
+                // to the farmer (gap-report ข้อ 3ค). The correction decision must
+                // carry its official Thai letter (จดหมายราชการในระบบ, M1
+                // official-letter kind — ผลไม่ผ่าน + รายการประเด็น + กำหนดส่ง +
+                // ช่องทาง) atomically: a failed letter write aborts this
+                // transaction, so the status flip AND the RevisionDeadline clock
+                // below never land without their letter. Lazy require keeps the
+                // router's module load free of the notification stack.
+                const { mintCorrectionLetter, CORRECTION_LETTER_STAGE } = require('../../../services/decision-letter-service');
+                await mintCorrectionLetter({
+                    tx,
+                    healthId: application.healthId,
+                    applicationId: application.id,
+                    applicationNumber: application.applicationNumber,
+                    stage: decisionType === 'FIELD_CAR'
+                        ? CORRECTION_LETTER_STAGE.FIELD_AUDIT_CAR
+                        : CORRECTION_LETTER_STAGE.DOC_REVIEW,
+                    items: [],
+                    message: comment,
+                    dueAt: dueDate,
+                });·
+                try {
+                    // C-class: ApplicationComment columns are authorId/role/content
+                    // (not auditorId/commentText/type/attachments). The old payload
+                    // threw PrismaClientValidationError → rolled back the whole reject
+                    // transaction (status flip + revisionDeadline). decisionType +
+                    // attachments are preserved in the transition metadata/formData.
+                    // organizationId is injected by the tenant extension (same as the
+                    // revisionDeadline upsert below).
+                    // authorId is a scalar String column (no FK) → stamp the User UUID,
+                    // never req.user.providerId (plaintext national ID).
+                    await tx.applicationComment.create({ data: { applicationId: application.id, authorId: actorUserId || 'SYSTEM', role: actorRoleValue, content: comment } });
+                } catch (commentError) {
+                    if (!isMissingApplicationCommentsTableError(commentError)) { throw commentError; }
+                    logger.warn('[Applications Reject] application_comments table missing; skip comment persistence');
+                }·
+                if (decisionType === 'DOC_REVISION' || decisionType === 'FIELD_CAR') {
+                    const existing = await tx.revisionDeadline.findUnique({ where: { applicationId: application.id }, select: { revisionCount: true } });
+                    await tx.revisionDeadline.upsert({
+                        where: { applicationId: application.id },
+                        // createdBy/updatedBy are scalar String columns (no FK) → User UUID.
+                        create: { applicationId: application.id, revisionDue: dueDate, revisionCount: 1, status: 'PENDING', createdBy: actorUserId || 'SYSTEM', updatedBy: actorUserId || 'SYSTEM' },
+                        update: { revisionDue: dueDate, revisionCount: (existing?.revisionCount || 0) + 1, status: 'PENDING', updatedBy: actorUserId || 'SYSTEM' },
+                    });
+                }·
+                return updatedApplication;
+            });·
+            return res.json({ success: true, data: { applicationId: updated.id, applicationNumber: updated.applicationNumber, status: updated.status, deadlineAt: dueIso, type: decisionType } });
+        } catch (error) {
+            logger.error('[Applications Reject] Error:', error);
+            return respondError(res, req, error, { message: 'Failed to reject application' });
+        }
+    });·
+    router.get('/:id', authenticateHealth, async (req, res) => {
+        try {
+            const identity = await applicationService.resolveHealthIdentity(req.user.id, getHealthScopeOptions(req.user));
+            const where = { id: req.params.id, healthId: identity.healthId, isDeleted: false };
+            let app;
+            try {
+                // P1-G leak-guard: applicant reads must never include internal
+                // staff notes (ApplicationComment.internalOnly). Latent until the
+                // chatter composer ships — guard the WHERE before writes can exist.
+                app = await prisma.application.findFirst({ where, include: { comments: { where: { internalOnly: false }, orderBy: { createdAt: 'asc' } } } });
+            } catch (error) {
+                if (!isMissingApplicationCommentsTableError(error)) { throw error; }
+                logger.warn('[Get By Id] application_comments table missing; fallback without comments');
+                app = await prisma.application.findFirst({ where });
+                if (app) { app.comments = []; }
+            }
+            if (!app) { return res.status(404).json({ success: false, error: 'Not Found' }); }
+            return res.json({ success: true, data: buildApplicationDetailPayload(app) });
+        } catch (error) {
+            logger.error('[Get By Id] Error:', error);
+            return respondError(res, req, error);
+        }
+    });·
+    // HEALTH-side activity timeline (ADR-016 Phase 6).
+    // Same applicationId scope as GET /:id (the user must own the application),
+    // but the response is REDACTED — no assignee names, no internal notes,
+    // no candidateGroup. Just \"what stage of work is happening, and when\".
+    //
+    // Existing /api/provider/applications/:id/activities returns the full
+    // internal view for staff. This endpoint is the public-facing twin.
+    router.get('/:id/activities', authenticateHealth, async (req, res) => {
+        try {
+            const identity = await applicationService.resolveHealthIdentity(req.user.id, getHealthScopeOptions(req.user));
+            const owned = await prisma.application.findFirst({
+                where: { id: req.params.id, healthId: identity.healthId, isDeleted: false },
+                select: { id: true },
+            });
+            if (!owned) {
+                return res.status(404).json({ success: false, error: 'Application not found' });
+            }·
+            const rows = await prisma.workActivity.findMany({
+                where: { applicationId: req.params.id },
+                orderBy: [{ createdAt: 'asc' }],
+                select: {
+                    id: true,
+                    workType: true,
+                    state: true,
+                    createdAt: true,
+                    claimedAt: true,
+                    completedAt: true,
+                    cancelledAt: true,
+                    dueAt: true,
+                },
+            });·
+            const WORK_TYPE_LABEL_TH = {
+                SLIP_REVIEW: 'ตรวจสลิปการชำระเงิน',
+                SCHEDULING: 'จัดคิวมอบหมายเจ้าหน้าที่',
+                DOC_REVIEW: 'ตรวจเอกสารใบสมัคร',
+                FIELD_AUDIT: 'ตรวจประเมินภาคสนาม',
+                CAR_REVIEW: 'ตรวจการแก้ไขข้อบกพร่อง',
+                FINAL_APPROVAL: 'อนุมัติออกใบรับรอง',
+                // RECEIPT_ISSUE omitted — issuance is automatic (auto-issue +
+                // auto-sign on slip approval), never a spawned work-activity.
+            };·
+            // Map internal state → coarser public status. The applicant
+            // doesn't need to distinguish CLAIMED vs IN_PROGRESS — just
+            // \"someone is working on it\".
+            function publicStatus(state) {
+                switch (state) {
+                    case 'TODO': return 'pending';
+                    case 'CLAIMED':
+                    case 'IN_PROGRESS': return 'in_progress';
+                    case 'DONE': return 'done';
+                    case 'CANCELLED': return 'cancelled';
+                    default: return 'pending';
+                }
+            }·
+            const now = new Date();
+            const data = rows.map((r) => ({
+                id: r.id,
+                workType: r.workType,
+                workTypeLabel: WORK_TYPE_LABEL_TH[r.workType] || r.workType,
+                status: publicStatus(r.state),
+                createdAt: r.createdAt,
+                startedAt: r.claimedAt,
+                completedAt: r.completedAt,
+                cancelledAt: r.cancelledAt,
+                // Show \"approaching deadline\" hint without leaking the exact
+                // SLA hours — just a boolean for the badge.
+                isOverdue: r.dueAt && r.dueAt < now && !['DONE', 'CANCELLED'].includes(r.state),
+            }));·
+            return res.json({ success: true, data });
+        } catch (error) {
+            logger.error('[Health Get Activities] Error:', error);
+            return respondError(res, req, error);
+        }
+    });·
+    router.put('/:id/revision', authenticateHealth, async (req, res) => {
+        try {
+            const { formData, notes } = req.body;
+            const actorIdentity = getActorIdentity(req.user);
+            const healthIdentity = await applicationService.resolveHealthIdentity(req.user.id, getHealthScopeOptions(req.user));
+            const result = await applicationService.submitRevision(req.params.id, { formData, notes }, {
+                userId: healthIdentity.userId,
+                healthId: healthIdentity.healthId,
+                actorIdentity,
+                actorRole: req.user.canonicalRole || req.user.role || null,
+            });
+            return res.status(result.status).json(result.body);
+        } catch (error) {
+            logger.error('[Revision] Error:', error);
+            return respondError(res, req, error);
+        }
+    });·
+    router.get('/:id/pdf', authenticateHealth, async (req, res) => {
+        try {
+            const applicationId = req.params.id;
+            const identity = await applicationService.resolveHealthIdentity(req.user.id, getHealthScopeOptions(req.user));
+            // Application has no `documents` Prisma relation — uploaded
+            // documents live as JSON in `formData.documents`. The PDF
+            // template-service reads them from there directly. Including
+            // `documents: true` here used to 500 every PDF download
+            // request (UAT 2026-05-03).
+            const app = await prisma.application.findFirst({
+                where: { id: applicationId, healthId: identity.healthId, isDeleted: false },
+                include: { applicant: true, entity: true, invoices: { orderBy: { createdAt: 'asc' } } },
+            });
+            if (!app) { return res.status(404).json({ success: false, error: 'Application not found' }); }·
+            const { generateApplicationSummaryPdf } = require('../../../services/pdf/application-template-service');
+            const buffer = await generateApplicationSummaryPdf(app);
+            const filename = `Application-${app.applicationNumber || app.id}.pdf`;
+            res.setHeader('Content-Type', 'application/pdf');
+            res.setHeader('Content-Disposition', `attachment; filename=\"${filename}\"`);
+            res.setHeader('Content-Length', buffer.length);
+            return res.send(buffer);
+        } catch (error) {
+            logger.error('[Applications PDF] Error:', error);
+            return respondError(res, req, error, { message: 'Failed to generate PDF' });
+        }
+    });·
+    module.exports = router;
+    "
+
+      379 |     test('PATCH /reject surface reads config — no addWorkingDays(now, 5) / revisionSlaDays: 5', () => {
+      380 |         const src = read('routes/api/applications/application-workflow-handlers.js');
+    > 381 |         expect(src).toMatch(/addWorkingDays\(now,\s*PAYMENT\.REVISION_DEADLINE_BUSINESS_DAYS\)/);
+          |                     ^
+      382 |         expect(src).not.toMatch(/addWorkingDays\(\s*now,\s*5\s*\)/);
+      383 |         expect(src).not.toMatch(/revision_?sla_?days['"]?\s*:\s*5\b/i);
+      384 |     });
+
+      at Object.toMatch (__tests__/unit/correction-round.test.js:381:21)
+
+  ● SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว › car-deadline-service reads config directly — no `?? 5` shadow source
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /\?\?\s*5\b/
+    Received string:      "'use strict';
+
+    /**
+     * CAR / corrective-action deadline helper (workflow audit 2026-06-11, HIGH).
+     *
+     * A CAR raised by an auditor (MINOR/MAJOR → CAR_PENDING on the Job Sheet path,
+     * or FAIL on the field-tool path) must start the canonical 5-working-day clock:
+     *   - stamp `formData.carDueAt` so the /auto-cancel cron + the applicant-facing
+     *     CAR enforcement can read the due date, and
+     *   - upsert a RevisionDeadline row so the hourly revision-deadline-checker cron
+     *     can EXPIRE it.
+     * Previously the auditor decision handlers wrote the decision but set NEITHER,
+     * so a CAR raised through the real auditor surfaces never auto-expired — the
+     * applicant could sit in CAR_PENDING indefinitely (SLA unenforced). This
+     * centralises the proven logic from workflow-side-effects.js so every CAR
+     * writer uses the SAME, Thai-holiday-aware due-date math.
+     */
+
+    const { addWorkingDays } = require('../utils/working-days');
+    const businessRules = require('../config/business-rules');
+    const adminApplicationService = require('./admin-application-service');
+
+    // Source of truth for the window length (config/business-rules.js).
+    const CAR_DEADLINE_BUSINESS_DAYS =
+        businessRules?.PAYMENT?.REVISION_DEADLINE_BUSINESS_DAYS ?? 5;
+
+    /**
+     * The canonical CAR/revision due date = `from` + N working days, computed with
+     * the Asia/Bangkok + Thai-public-holiday calendar (utils/working-days, NOT the
+     * holiday-blind services/working-days-service).
+     * @param {Date} [from]
+     * @returns {Date}
+     */
+    function computeCarDueDate(from = new Date()) {
+        return addWorkingDays(from, CAR_DEADLINE_BUSINESS_DAYS);
+    }
+
+    /**
+     * Upsert the RevisionDeadline row that the hourly cron scans, mirroring the
+     * CAR_PENDING branch of workflow-side-effects.js. Bumps revisionCount on an
+     * existing row (a fresh CAR loop) or creates the first one. No-op on missing
+     * args. Best-effort by contract — the caller must not block the decision write
+     * on a deadline-seed failure, but it SHOULD log it (this is the SLA clock).
+     * @param {{ applicationId: string, dueAt: Date, actorId?: string }} args
+     */
+    async function seedCarRevisionDeadline({ applicationId, dueAt, actorId = null } = {}) {
+        if (!applicationId || !(dueAt instanceof Date) || Number.isNaN(dueAt.getTime())) {
+            return null;
+        }
+        const existing = await adminApplicationService.findRevisionDeadlineByApplicationId(
+            applicationId,
+            { select: { revisionCount: true } },
+        );
+        const nextRevisionCount = (existing?.revisionCount || 0) + 1;
+        return adminApplicationService.upsertRevisionDeadline({
+            applicationId,
+            update: {
+                revisionDue: dueAt,
+                status: 'PENDING',
+                revisionCount: nextRevisionCount,
+                updatedBy: actorId,
+            },
+            create: {
+                applicationId,
+                revisionDue: dueAt,
+                status: 'PENDING',
+                revisionCount: 1,
+                createdBy: actorId,
+            },
+        });
+    }
+
+    module.exports = {
+        computeCarDueDate,
+        seedCarRevisionDeadline,
+        CAR_DEADLINE_BUSINESS_DAYS,
+    };
+    "
+
+      387 |         const src = read('services/car-deadline-service.js');
+      388 |         expect(src).toMatch(/REVISION_DEADLINE_BUSINESS_DAYS/);
+    > 389 |         expect(src).not.toMatch(/\?\?\s*5\b/);
+          |                         ^
+      390 |     });
+      391 |
+      392 |     test('grep-pin: no `SLA_DAYS = <n>` literal in services/routes/jobs outside the waiver family (L4)', () => {
+
+      at Object.toMatch (__tests__/unit/correction-round.test.js:389:25)
+
+  ● SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว › grep-pin: no `SLA_DAYS = <n>` literal in services/routes/jobs outside the waiver family (L4)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "routes/api/provider/handlers/workflow-handler-deps.js",
+    +   "routes/api/provider/handlers/workflow-transitions-handler.js",
+    + ]
+
+      403 |             }
+      404 |         }
+    > 405 |         expect(offenders).toEqual([]);
+          |                           ^
+      406 |     });
+      407 | });
+      408 |
+
+      at Object.toEqual (__tests__/unit/correction-round.test.js:405:27)
+
+Test Suites: 1 failed, 1 total
+Tests:       20 failed, 4 passed, 24 total
+Snapshots:   0 total
+Time:        1.952 s
+Ran all test suites matching /__tests__\/unit\/correction-round.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

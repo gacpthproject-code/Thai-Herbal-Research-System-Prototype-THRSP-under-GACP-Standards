@@ -1,0 +1,35 @@
+# late-event-proof.sh output, Stripe TEST mode + real webhook door, 2026-09-27 (client secrets shown only as sha256[:12])
+All migrations have been successfully applied.
+accept quotation: True
+payment-terms consent: True
+== press 1 (first mint)
+{"success": true, "error": null, "order": "655439eb-4331-4a82-a271-bb26d6af63b2", "intent": "pi_3UKA5AQ4HsQ2Gmd50AO5FkKQ", "status": "requires_payment_method", "clientSecretSha256_12": "5aa664fdad09"}
+== press 2 (re-entry)
+{"success": true, "error": null, "order": "655439eb-4331-4a82-a271-bb26d6af63b2", "intent": "pi_3UKA5AQ4HsQ2Gmd50AO5FkKQ", "status": "requires_payment_method", "clientSecretSha256_12": "5aa664fdad09"}
+stripe list (created since start, metadata.checkoutOrderId=order) → 1 intent(s): pi_3UKA5AQ4HsQ2Gmd50AO5FkKQ=requires_payment_method
+== confirm PI_A server-side with PromptPay (a QR now exists)
+PI_A after confirm: requires_action promptpay_display_qr_code livemode=False
+== press 3 (re-entry while a QR is live)
+{"success": true, "error": null, "order": "655439eb-4331-4a82-a271-bb26d6af63b2", "intent": "pi_3UKA5AQ4HsQ2Gmd50AO5FkKQ", "status": "requires_action", "clientSecretSha256_12": "5aa664fdad09"}
+stripe list (created since start, metadata.checkoutOrderId=order) → 1 intent(s): pi_3UKA5AQ4HsQ2Gmd50AO5FkKQ=requires_action
+== cancel PI_A in Stripe (webhook NOT delivered: no stripe listen in this proof)
+PI_A: canceled
+== press 4 (the one replacement)
+{"success": true, "error": null, "order": "655439eb-4331-4a82-a271-bb26d6af63b2", "intent": "pi_3UKA5DQ4HsQ2Gmd51snpoHCx", "status": "requires_payment_method", "clientSecretSha256_12": "10a2ced791ad"}
+== press 5 (retry of the replacement: idempotent)
+{"success": true, "error": null, "order": "655439eb-4331-4a82-a271-bb26d6af63b2", "intent": "pi_3UKA5DQ4HsQ2Gmd51snpoHCx", "status": "requires_payment_method", "clientSecretSha256_12": "10a2ced791ad"}
+stripe list (created since start, metadata.checkoutOrderId=order) → 2 intent(s): pi_3UKA5AQ4HsQ2Gmd50AO5FkKQ=canceled, pi_3UKA5DQ4HsQ2Gmd51snpoHCx=requires_payment_method
+order 655439eb-4331-4a82-a271-bb26d6af63b2 status=PENDING_PAYMENT intent=pi_3UKA5DQ4HsQ2Gmd51snpoHCx
+== LATE delivery of Stripe's canceled event for superseded PI_A (order now holds pi_3UKA5DQ4HsQ2Gmd51snpoHCx)
+delivered evt_3UKA5AQ4HsQ2Gmd50JPIm6gi (payment_intent.canceled for pi_3UKA5AQ4HsQ2Gmd50AO5FkKQ) -> HTTP 200
+order status=PENDING_PAYMENT current_intent=pi_3UKA5DQ4HsQ2Gmd51snpoHCx
+event evt_3UKA5AQ4HsQ2Gmd50JPIm6gi payment_intent.canceled status=PROCESSED error=IGNORED:SUPERSEDED_INTENT
+== cancel the CURRENT intent PI_B in Stripe, deliver its canceled event
+PI_B: canceled
+delivered evt_3UKA5DQ4HsQ2Gmd51fTTmgmR (payment_intent.canceled for pi_3UKA5DQ4HsQ2Gmd51snpoHCx) -> HTTP 200
+order status=CANCELLED current_intent=pi_3UKA5DQ4HsQ2Gmd51snpoHCx
+event evt_3UKA5AQ4HsQ2Gmd50JPIm6gi payment_intent.canceled status=PROCESSED error=IGNORED:SUPERSEDED_INTENT
+event evt_3UKA5DQ4HsQ2Gmd51fTTmgmR payment_intent.canceled status=PROCESSED error=-
+== money-equation probe against this database
+PASS: 0 rows violate the money equation
+checkout_orders rows: 1

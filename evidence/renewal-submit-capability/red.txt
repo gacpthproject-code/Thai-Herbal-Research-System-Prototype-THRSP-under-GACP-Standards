@@ -1,0 +1,314 @@
+# RED — renewal requires SUBMIT_APPLICATION on the certificate holder
+# code: main 34b2d924 (services/renewal-service.js + routes/api/applications/renewals.js stashed back to main)
+# test: apps/backend/__tests__/integration/renewal-requires-submit-capability-real-postgres.test.js
+# db: scratch postgres:17 on 127.0.0.1:55440 (prisma migrate deploy), jest -i, SIGNING_KEY_DIR=mktemp
+
+## Run A — witness mode 'shadow' (the deployed default on staging/demo): the authz gap itself
+## (only for this run the test's beforeEach was sed'd from 'throw' to 'shadow', then restored)
+    ✕ VIEWER who filed the certificate is refused 403 and nothing is written (283 ms)
+    ✕ MANAGER without a SUBMIT_APPLICATION grant who filed the certificate is refused 403 and nothing is written (86 ms)
+    ✕ a non-member is refused (the existing owner check) and nothing is written (29 ms)
+    ✕ OWNER who filed the certificate gets 201 with exactly one new application and one new quotation (69 ms)
+    ✕ MANAGER with a SUBMIT_APPLICATION GRANT gets 201 (65 ms)
+    - Expected  - 4
+    + Received  + 4
+    -     "applications": 4,
+    +     "applications": 5,
+    -     "quotations": 0,
+    +     "quotations": 1,
+    -   "error": "ENTITY_PERMISSION_DENIED",
+    -   "status": 403,
+    +   "error": undefined,
+    +   "status": 201,
+    - Expected  - 4
+    + Received  + 4
+    -     "applications": 5,
+    +     "applications": 6,
+    -     "quotations": 1,
+    +     "quotations": 2,
+    -   "error": "ENTITY_PERMISSION_DENIED",
+    -   "status": 403,
+    +   "error": undefined,
+    +   "status": 201,
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "Certificate.findFirst",
+
+## Run A2 — same mode, the null-holder case alone (-t 'no holder'): main answers 500 after the cert read, never a clean 400
+    ✕ a certificate with no holder is refused 400 APPLICANT_ENTITY_MISSING and nothing is written (171 ms)
+    - Expected  - 2
+    + Received  + 2
+    -   "error": "APPLICANT_ENTITY_MISSING",
+    -   "status": 400,
+    +   "error": "SOURCE_APP_NOT_FOUND",
+    +   "status": 500,
+Tests:       1 failed, 5 skipped, 6 total
+
+## Run B — witness mode 'throw' (the test default): every renewal read is unscoped, so every case is 500 HEALTH_READ_UNSCOPED
+    ✕ VIEWER who filed the certificate is refused 403 and nothing is written (185 ms)
+    ✕ MANAGER without a SUBMIT_APPLICATION grant who filed the certificate is refused 403 and nothing is written (29 ms)
+    ✕ a non-member is refused (the existing owner check) and nothing is written (66 ms)
+    ✕ OWNER who filed the certificate gets 201 with exactly one new application and one new quotation (21 ms)
+    ✕ MANAGER with a SUBMIT_APPLICATION GRANT gets 201 (27 ms)
+    - Expected  - 2
+    + Received  + 2
+    -   "error": "ENTITY_PERMISSION_DENIED",
+    -   "status": 403,
+    +   "error": "HEALTH_READ_UNSCOPED",
+    +   "status": 500,
+    - Expected  - 2
+    + Received  + 2
+    -   "error": "ENTITY_PERMISSION_DENIED",
+    -   "status": 403,
+    +   "error": "HEALTH_READ_UNSCOPED",
+    +   "status": 500,
+    - Expected  - 2
+    + Received  + 2
+    -   "error": "FORBIDDEN_NOT_OWNER",
+    -   "status": 403,
+    +   "error": "HEALTH_READ_UNSCOPED",
+    +   "status": 500,
+Tests:       5 failed, 5 total
+
+## Reading
+- Run A: VIEWER and MANAGER-without-grant filers get 201 and each writes 1 application + 1 quotation (applications 4->5, quotations 0->1; 5->6, 1->2). That is the gap.
+- Run A, witness lines: the main renewal path does 6 unscoped health reads: Certificate.findFirst, Application.findFirst, Application.findUnique, Quotation.findMany x2, Application.findUnique.
+
+# ===== ROUND 1 (review CRITICAL: wizard renewal door) — RED on b7ffb7f0 =====
+# test: apps/backend/__tests__/integration/renewal-wizard-holder-gate-real-postgres.test.js (real PG, only auth mocked)
+
+## R1-A witness 'shadow' (deployed mode): draft door judges a P-draft a RENEWAL of company C's cert; submit jumps to PENDING_AUDIT_FEE with a quotation
+    ✕ X is a MANAGER of C without the grant: the C draft is not judged a renewal (42 ms)
+    ✕ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a renewal (53 ms)
+    ✕ X is OWNER of C, draft under C: renewal accepted, and submit takes the renewal path (81 ms)
+      ✕ the draft door does not judge the P draft a renewal of C's certificate (169 ms)
+      ✕ a P draft already classified as a renewal of C's certificate is refused at submit: no state change, no quotation (220 ms)
+      ✕ the draft door does not judge the P draft a renewal of C's certificate (34 ms)
+      ✕ a P draft already classified as a renewal of C's certificate is refused at submit: no state change, no quotation (108 ms)
+    - Expected  - 4
+    + Received  + 4
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    -   "requestType": "NEW",
+    +   "notice": null,
+    +   "requestType": "RENEWAL",
+    -     "renewalOf": null,
+    -     "requestType": "NEW",
+    +     "renewalOf": "c8b37a4e-1aa0-4e1e-b311-e95ae13bf5f7",
+    +     "requestType": "RENEWAL",
+    - Expected  - 5
+    + Received  + 5
+    -   "code": "RENEWAL_HOLDER_MISMATCH",
+    -   "deniedAudit": 1,
+    -   "status": 422,
+    -   "stored": "DRAFT",
+    +   "code": null,
+    +   "deniedAudit": 0,
+    +   "status": 200,
+    +   "stored": "PENDING_AUDIT_FEE",
+    -     "quotations": 0,
+    +     "quotations": 1,
+    - Expected  - 4
+    + Received  + 4
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    -   "requestType": "NEW",
+    +   "notice": null,
+    +   "requestType": "RENEWAL",
+    -     "renewalOf": null,
+    -     "requestType": "NEW",
+    +     "renewalOf": "c8b37a4e-1aa0-4e1e-b311-e95ae13bf5f7",
+    +     "requestType": "RENEWAL",
+    - Expected  - 5
+    + Received  + 5
+    -   "code": "RENEWAL_HOLDER_MISMATCH",
+    -   "deniedAudit": 1,
+    -   "status": 422,
+    -   "stored": "DRAFT",
+    +   "code": null,
+    +   "deniedAudit": 0,
+    +   "status": 200,
+    +   "stored": "PENDING_AUDIT_FEE",
+    -     "quotations": 0,
+    +     "quotations": 1,
+    - Expected  - 4
+    + Received  + 4
+    -   "notice": "PREVIOUS_CERTIFICATE_NO_SUBMIT_RIGHT",
+    -   "requestType": "NEW",
+    +   "notice": null,
+    +   "requestType": "RENEWAL",
+    -     "renewalOf": null,
+    -     "requestType": "NEW",
+    +     "renewalOf": "c8b37a4e-1aa0-4e1e-b311-e95ae13bf5f7",
+
+## R1-B witness 'throw' (test default): the draft door's cert read is unscoped -> UNVERIFIABLE masks the gap; submit still jumps
+    ✕ X is a MANAGER of C without the grant: the C draft is not judged a renewal (33 ms)
+    ✕ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a renewal (31 ms)
+    ✕ X is OWNER of C, draft under C: renewal accepted, and submit takes the renewal path (33 ms)
+      ✕ the draft door does not judge the P draft a renewal of C's certificate (204 ms)
+      ✕ a P draft already classified as a renewal of C's certificate is refused at submit: no state change, no quotation (309 ms)
+      ✕ the draft door does not judge the P draft a renewal of C's certificate (32 ms)
+      ✕ a P draft already classified as a renewal of C's certificate is refused at submit: no state change, no quotation (110 ms)
+    - Expected  - 1
+    + Received  + 1
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    +   "notice": "PREVIOUS_CERTIFICATE_UNVERIFIABLE",
+    - Expected  - 5
+    + Received  + 5
+    -   "code": "RENEWAL_HOLDER_MISMATCH",
+    -   "deniedAudit": 1,
+    -   "status": 422,
+    -   "stored": "DRAFT",
+    +   "code": null,
+    +   "deniedAudit": 0,
+    +   "status": 200,
+    +   "stored": "PENDING_AUDIT_FEE",
+    -     "quotations": 0,
+    +     "quotations": 1,
+    - Expected  - 1
+    + Received  + 1
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    +   "notice": "PREVIOUS_CERTIFICATE_UNVERIFIABLE",
+    - Expected  - 5
+    + Received  + 5
+    -   "code": "RENEWAL_HOLDER_MISMATCH",
+
+## R1-C item 3: renewals-door refusals wrote no APPLICATION_SUBMIT_DENIED row (stashed fix, new audit asserts)
+    ✕ VIEWER who filed the certificate is refused 403 and nothing is written (136 ms)
+    ✕ MANAGER without a SUBMIT_APPLICATION grant who filed the certificate is refused 403 and nothing is written (32 ms)
+    ✓ a non-member is refused (the existing owner check) and nothing is written (42 ms)
+    ✕ a certificate with no holder is refused 400 APPLICANT_ENTITY_MISSING and nothing is written (36 ms)
+    ✓ OWNER who filed the certificate gets 201 with exactly one new application and one new quotation (166 ms)
+    ✓ MANAGER with a SUBMIT_APPLICATION GRANT gets 201 (125 ms)
+    - Expected  - 6
+    + Received  + 1
+    - Array [
+    -   Object {
+    -     "errorCode": "ENTITY_PERMISSION_DENIED",
+    -     "result": "FAILURE",
+    -   },
+    - ]
+    + Array []
+    - Expected  - 6
+    + Received  + 1
+    - Array [
+    -   Object {
+    -     "errorCode": "ENTITY_PERMISSION_DENIED",
+    -     "result": "FAILURE",
+    -   },
+    - ]
+    + Array []
+    - Expected  - 6
+    + Received  + 1
+    - Array [
+    -   Object {
+    -     "errorCode": "APPLICANT_ENTITY_MISSING",
+    -     "result": "FAILURE",
+    -   },
+    - ]
+    + Array []
+Tests:       3 failed, 3 passed, 6 total
+
+## R1-D web: renewal page refusal rendered no message at all (error card only on an unreachable default arm)
+    ✕ FORBIDDEN_NOT_OWNER renders its own message, not the generic retry line (46 ms)
+    ✕ ENTITY_PERMISSION_DENIED renders its own message, not the generic retry line (12 ms)
+    ✕ APPLICANT_ENTITY_MISSING renders its own message, not the generic retry line (18 ms)
+    ✕ an unknown refusal keeps the generic line (9 ms)
+Tests:       4 failed, 4 total
+
+# ===== ROUND 1b (REPLACEMENT: same cross-holder hole) — RED on 73962100 =====
+# test: renewal-wizard-holder-gate-real-postgres.test.js, now RENEWAL x REPLACEMENT, witness throw
+      ✓ X is a MANAGER of C without the grant: the C draft is not judged a RENEWAL (50 ms)
+      ✓ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a RENEWAL (88 ms)
+      ✓ X is OWNER of C, draft under C: RENEWAL accepted, and submit takes its path (352 ms)
+        ✓ the draft door does not judge the P draft a RENEWAL of C's certificate (254 ms)
+        ✓ a P draft already judged a RENEWAL of C's certificate is refused at submit: no state change, no quotation (152 ms)
+        ✓ the draft door does not judge the P draft a RENEWAL of C's certificate (43 ms)
+        ✓ a P draft already judged a RENEWAL of C's certificate is refused at submit: no state change, no quotation (64 ms)
+      ✕ X is a MANAGER of C without the grant: the C draft is not judged a REPLACEMENT (45 ms)
+      ✓ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a REPLACEMENT (49 ms)
+      ✓ X is OWNER of C, draft under C: REPLACEMENT accepted, and submit takes its path (237 ms)
+        ✕ the draft door does not judge the P draft a REPLACEMENT of C's certificate (52 ms)
+        ✕ a P draft already judged a REPLACEMENT of C's certificate is refused at submit: no state change, no quotation (154 ms)
+        ✕ the draft door does not judge the P draft a REPLACEMENT of C's certificate (76 ms)
+        ✕ a P draft already judged a REPLACEMENT of C's certificate is refused at submit: no state change, no quotation (153 ms)
+    - Expected  - 4
+    + Received  + 4
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    -   "requestType": "NEW",
+    +   "notice": null,
+    +   "requestType": "REPLACEMENT",
+    -     "linked": null,
+    -     "requestType": "NEW",
+    +     "linked": "7c8f3e27-ccca-4733-a36d-468746131f7c",
+    +     "requestType": "REPLACEMENT",
+    - Expected  - 5
+    + Received  + 5
+    -   "code": "RENEWAL_HOLDER_MISMATCH",
+    -   "deniedAudit": 1,
+    -   "status": 422,
+    -   "stored": "DRAFT",
+    +   "code": null,
+    +   "deniedAudit": 0,
+    +   "status": 200,
+    +   "stored": "PENDING_DOC_FEE",
+    -     "quotations": 0,
+    +     "quotations": 1,
+    - Expected  - 4
+    + Received  + 4
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    -   "requestType": "NEW",
+## reading: a P draft (X OWNER of P, VIEWER of / revoked from C) is judged REPLACEMENT of C's cert and submits to PENDING_DOC_FEE with a quotation on two papers; MANAGER without grant also judged REPLACEMENT.
+
+# ===== ROUND 2 (review IMPORTANT: bundle door + /prepare) — RED on c12752d7 =====
+      ✕ /prepare to P re-judges a RENEWAL of C's certificate; the bundle then cannot file it as one (230 ms)
+      ✕ a P draft still carrying a RENEWAL of C's certificate is refused at BUNDLE submit: 422, no state change, audit row (152 ms)
+      ✕ /prepare to P re-judges a REPLACEMENT of C's certificate; the bundle then cannot file it as one (70 ms)
+      ✕ a P draft still carrying a REPLACEMENT of C's certificate is refused at BUNDLE submit: 422, no state change, audit row (114 ms)
+    - Expected  - 5
+    + Received  + 5
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    -   "status": 200,
+    +   "notice": null,
+    +   "status": 404,
+    -     "entityId": "P",
+    -     "linked": null,
+    -     "requestType": "NEW",
+    +     "entityId": "C",
+    +     "linked": "438c3ff7-59b3-48ce-bb11-b5a4f55c5466",
+    +     "requestType": "RENEWAL",
+    - Expected  - 4
+    + Received  + 4
+    -   "code": "RENEWAL_HOLDER_MISMATCH",
+    -   "deniedAudit": 1,
+    -   "status": 422,
+    -   "stored": "DRAFT",
+    +   "code": null,
+    +   "deniedAudit": 0,
+    +   "status": 200,
+    +   "stored": "SUBMITTED",
+    - Expected  - 5
+    + Received  + 5
+    -   "notice": "PREVIOUS_CERTIFICATE_OTHER_HOLDER",
+    -   "status": 200,
+    +   "notice": null,
+    +   "status": 404,
+    -     "entityId": "P",
+    -     "linked": null,
+    -     "requestType": "NEW",
+    +     "entityId": "C",
+    +     "linked": "438c3ff7-59b3-48ce-bb11-b5a4f55c5466",
+    +     "requestType": "REPLACEMENT",
+    - Expected  - 4
+    + Received  + 4
+    -   "code": "RENEWAL_HOLDER_MISMATCH",
+    -   "deniedAudit": 1,
+    -   "status": 422,
+    -   "stored": "DRAFT",
+    +   "code": null,
+    +   "deniedAudit": 0,
+    +   "status": 200,
+    +   "stored": "SUBMITTED",
+Tests:       4 failed, 14 skipped, 18 total
+## reading: bundle submit filed a P draft carrying RENEWAL/REPLACEMENT of C's cert to SUBMITTED, no audit row.
+## /prepare with the P header answered 404 for the C draft (R1 entity dimension hides it), so the reviewer's re-point is not reachable under R1; it becomes reachable when Task 12 removes the intersection.

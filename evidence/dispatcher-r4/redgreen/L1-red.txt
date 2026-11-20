@@ -1,0 +1,98 @@
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T06:34:53.519Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T06:34:53.523Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T06:34:53.524Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:18:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:45:47)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:18:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:45:47)
+
+warn: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-10-09T06:34:58.886Z"}
+warn: [signature-service] DEV KEY GENERATED — there is no signing key in /tmp/dispatcher-r4/signing-keys, so a THROWAWAY development key pair was created. Certificates signed with it cannot be verified by anyone else, and deleting it invalidates them. This path is refused in production and wherever REQUIRE_SIGNING_KEY=true. Cause: ENOENT: no such file or directory, open '/tmp/dispatcher-r4/signing-keys/public.pem' {"service":"signature-service","timestamp":"2026-10-09T06:34:58.889Z"}
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+info: [provider] reviewer edited application form fields {"actorId":"4908b622-bc3d-4290-9303-9b9575105606","applicationId":"1a39165a-bb52-43c5-989f-591c80264bb3","changedFields":2,"service":"gacp-backend","timestamp":"2026-10-09T06:34:59.053Z"}
+info: Keys saved to: /tmp/dispatcher-r4/signing-keys {"service":"signature-service","timestamp":"2026-10-09T06:34:59.136Z"}
+info: Signature service initialized {"service":"signature-service","timestamp":"2026-10-09T06:34:59.137Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T06:34:59.233Z"}
+FAIL __tests__/integration/staff-doors-hardening-real-postgres.test.js (7.115 s)
+  staff doors hold (real Postgres)
+    a value typed over what the screen showed masked (L1)
+      ✕ a partial edit of a juristic registration number the screen showed masked is refused, and nothing changes (191 ms)
+      ✕ a stored ID that itself carries an X (a passport number) is sent back unchanged and does not block the save (47 ms)
+
+  ● staff doors hold (real Postgres) › a value typed over what the screen showed masked (L1) › a partial edit of a juristic registration number the screen showed masked is refused, and nothing changes
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+    -   400,
+    -   "NATIONAL_ID_MASKED_VALUE",
+    +   200,
+    +   undefined,
+      ]
+
+      61 |             expect(shown).toBe(`0-XXXX-XXXX-X-${registrationNumber.slice(9)}`);
+      62 |             const saved = await formFields(row.id, { applicantData: { phone: '0899999999', registrationNumber: `${shown.slice(0, -1)}9` } });
+    > 63 |             expect([saved.status, saved.body.code]).toEqual([400, 'NATIONAL_ID_MASKED_VALUE']);
+         |                                                     ^
+      64 |             const stored = (await world.rowOf(row.id)).formData.applicantData;
+      65 |             expect([stored.registrationNumber, stored.phone]).toEqual([registrationNumber, '0812345678']);
+      66 |         });
+
+      at Object.toEqual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:63:53)
+
+  ● staff doors hold (real Postgres) › a value typed over what the screen showed masked (L1) › a stored ID that itself carries an X (a passport number) is sent back unchanged and does not block the save
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 400
+
+      74 |             const shown = (await request(app).get(`/api/provider/applications/${row.id}`)).body.data.formData.applicantData;
+      75 |             const saved = await formFields(row.id, { applicantData: { ...shown, phone: '0899999999' } });
+    > 76 |             expect(saved.status).toBe(200);
+         |                                  ^
+      77 |             const stored = (await world.rowOf(row.id)).formData.applicantData;
+      78 |             expect([stored.idCard, stored.phone]).toEqual(['AX1234567', '0899999999']);
+      79 |         });
+
+      at Object.toBe (__tests__/integration/staff-doors-hardening-real-postgres.test.js:76:34)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        7.207 s
+Ran all test suites matching __tests__/integration/staff-doors-hardening-real-postgres.test.js.

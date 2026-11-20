@@ -1,0 +1,70 @@
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+FAIL __tests__/unit/zz-i6-probe-new-assertion.test.js
+  H17 verify A — the fix did not lock out a role that used to work
+    ○ skipped every canonical PROVIDER role lands in a bucket that is not a blanket deny
+    ○ skipped legacy raw token role system_admin_dtam still resolves to a working scope
+    ○ skipped legacy raw token role system_admin_platform still resolves to a working scope
+    ○ skipped legacy raw token role dispatcher still resolves to a working scope
+    ○ skipped legacy raw token role finance_officer_platform still resolves to a working scope
+    ○ skipped legacy raw token role finance_officer_dtam still resolves to a working scope
+    ○ skipped legacy raw token role finance_officer_platform still resolves to a working scope
+    ○ skipped legacy raw token role field_inspector still resolves to a working scope
+    ○ skipped legacy raw token role field_inspector still resolves to a working scope
+    ○ skipped โทเคนการเงินจริง (role=ACCOUNTANT ไม่มี canonicalRole) ยังเห็นหน้าต่างการชำระเงินของตัวเองที่หน้ารายละเอียด
+    ○ skipped a real scheduler token (role=SCHEDULER, no canonicalRole) still sees its pool
+    ○ skipped the provider list endpoint still answers 200 for account/scheduler (narrowed, not broken)
+  H17 verify B — POST /:id/comments (a surface the report did not list)
+    ○ skipped accountant can no longer comment on a DRAFT application
+    ○ skipped scheduler can no longer comment on a CERTIFIED application
+    ○ skipped การเงินยังคอมเมนต์บนคำขอที่ตัวเองกระทบยอดได้
+    ○ skipped CONTROL — pre-fix, the same accountant comment on DRAFT was accepted
+  H17 verify C — control: pre-fix filter still leaks through this router
+    detail
+      ○ skipped finance_officer_platform reads a DRAFT application pre-fix
+      ○ skipped dispatcher reads a DRAFT application pre-fix
+      ○ skipped the pre-fix detail body carries the filing (its national id masked since order 10)
+    activities
+      ○ skipped dispatcher reads a DRAFT application pre-fix
+      ○ skipped the pre-fix detail body carries the filing (its national id masked since order 10)
+    audit-timelines
+      ○ skipped dispatcher reads a DRAFT application pre-fix
+      ○ skipped the pre-fix detail body carries the filing (its national id masked since order 10)
+    detail — post-fix the same request is refused
+      ✓ finance_officer_platform is denied on DRAFT (48 ms)
+      ✕ dispatcher is denied on DRAFT (15 ms)
+      ○ skipped finance_officer_platform is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED
+      ○ skipped dispatcher is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED
+    activities — post-fix the same request is refused
+      ✓ finance_officer_platform is denied on DRAFT (22 ms)
+      ✓ dispatcher is denied on DRAFT (18 ms)
+      ○ skipped finance_officer_platform is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED
+      ○ skipped dispatcher is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED
+    audit-timelines — post-fix the same request is refused
+      ✓ finance_officer_platform is denied on DRAFT (19 ms)
+      ✓ dispatcher is denied on DRAFT (12 ms)
+      ○ skipped finance_officer_platform is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED
+      ○ skipped dispatcher is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED
+
+  ● H17 verify C — control: pre-fix filter still leaks through this router › detail — post-fix the same request is refused › dispatcher is denied on DRAFT
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected substring: not "99/9"
+    Received string:        "{\"success\":true,\"data\":{\"id\":\"app-draft\",\"applicationNumber\":\"NUM-app-draft\",\"status\":\"DRAFT\",\"createdAt\":\"2026-08-01T00:00:00.000Z\",\"updatedAt\":\"2026-08-02T00:00:00.000Z\",\"submittedAt\":\"2026-08-01T00:00:00.000Z\",\"rejectCount\":0,\"reviewComment\":null,\"phase1Status\":\"PENDING\",\"phase2Status\":\"PENDING\",\"assignment\":null,\"formData\":{\"applicantInfo\":{\"nationalId\":\"1-XXXX-XXXX-X-0123\",\"address\":\"99/9\"}},\"workflowHistory\":[],\"comments\":[],\"health\":{\"firstName\":\"ส\",\"lastName\":\"ก\",\"email\":\"a@b.co\",\"phone\":\"0800000000\"},\"Applicant\":{\"firstName\":\"ส\",\"lastName\":\"ก\",\"email\":\"a@b.co\",\"phone\":\"0800000000\"}}}"
+
+      360 |         it.each(['finance_officer_platform', 'dispatcher'])('%s is denied on DRAFT', async (role) => {
+      361 |             const res = await get(leakyApp, role, pathFor('app-draft'));
+    > 362 |             expect(JSON.stringify(res.body)).not.toContain('99/9');
+          |                                                  ^
+      363 |         });
+      364 |
+      365 |         it.each(['finance_officer_platform', 'dispatcher'])('%s is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED', async (role) => {
+
+      at toContain (__tests__/unit/zz-i6-probe-new-assertion.test.js:362:50)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 29 skipped, 5 passed, 35 total
+Snapshots:   0 total
+Time:        1.395 s
+Ran all test suites matching __tests__/unit/zz-i6-probe-new-assertion.test.js with tests matching "is denied on DRAFT".

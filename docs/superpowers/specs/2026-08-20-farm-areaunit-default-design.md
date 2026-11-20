@@ -1,0 +1,24 @@
+# Farm areaUnit Silent-Default Fix — Design Spec (follow-up (g) of F-PLOT-AREAUNIT)
+
+> Applies the council precedent of 2026-08-19 (wf_1ccad24b, ruling C unanimous: **reject silent defaults** on area units — the ×1,600 rai/sqm ambiguity class; enforce at source + heal data + keep readers strict). Three council seats flagged the farm side explicitly; this mission executes the same ruling on the farm surface. No new council needed — this is precedent application, recorded as such.
+> Operator instruction 2026-08-20: proceed with farm-default after the merge check.
+
+## Facts (probed live 2026-08-20)
+- **19 applications** have `formData.farmData` with `totalAreaSize` present but `totalAreaUnit` NULL — statuses: DRAFT 2 · SUBMITTED 1 · PENDING_DOC_FEE 6 · PHASE_1_SLIP_UNDER_REVIEW 2 · DOC_FEE_PAID 5 · PENDING_AUDIT_FEE 1 · AUDIT_CONFIRMED 1 · **CERTIFIED 1** (the walk-2 app — its cert was minted with the silent Sqm default, which matches the wizard invariant, so the issued cert is correct; note honestly, no re-issue).
+- Generator has THREE standards in one file (`services/certificate-service.js`): `:722` farm→plot seeding is already STRICT (`submittedAreaSqm(…, farm.areaUnit, …)`, the hardcoded-'rai' guess was removed); `:398` display/farmSize uses `farm.areaUnit || AREA_UNIT` (Farm TABLE read — rows are written with an explicit unit at `:561/:611/:679`, so the fallback is defensive, near-dead); `:561` farm CREATE at mint reads `farmData.totalAreaUnit || productionData.areaUnit || AREA_UNIT` — **this is the live silent default**: a unit-less formData farm gets interpreted as Sqm at issuance with no trace.
+- Wizard sets `totalAreaUnit:'Sqm'` on new submissions (`farm-info-step.tsx:75`, "DTAM: default to ตร.ม."); the canonical validator maps `total_area_size` (`canonical-application-validator.js:146`) but has NO unit field. The revision door now runs full canonical validation (plot mission, main 479f8d2e-lineage) — adding the farm field to the canonical schema covers BOTH doors automatically.
+- Heal tooling exists: `scripts/maintenance/heal-plot-area-unit.js` (FOR UPDATE tx, updatedAt guard, post-write verify, audit via real auditLogger) — proven live 18/18 on 2026-08-20.
+
+## The work (3 tasks, sequencing = data heals BEFORE the strict flip deploys)
+1. **T1 — heal script covers farms**: extend `heal-plot-area-unit.js` with `--target farm` (default stays `plot`): heals `formData.farmData.totalAreaUnit` ONLY when absent/empty, same guards verbatim (one --app per run, closed enum via canonicalise, never defaults, reason+source required, deep integrity assert = only that one key differs, audit_logs `FARM_AREA_UNIT_HEALED` + workflowHistory in the same locked tx, no status writes, post-write verify). Runbook section appended to `docs/operations/heal-plot-areaunit-runbook.md` (rename NOT needed — extend the doc) with the 19 ids by status; CERTIFIED app included (metadata correctness) with an explicit note that its issued cert is unaffected.
+2. **T2 — validator both doors**: canonical step-N schema (locate the farm step) requires `farmData.totalAreaUnit` ∈ the same closed enum, case-insensitive, all the same 422/`errorsByStep` contract and Thai actionable message (same honest wording as the plot one — no false "fix it in the form" claim unless the form REALLY has the field: check whether the wizard exposes a farm-unit control; farm-info-step sets it programmatically, so the message should say the system sets it and staff heal legacy rows).
+3. **T3 — strict flip at the generator**: `certificate-service.js:561` loses the `|| productionData.areaUnit || AREA_UNIT` silent default → strict read via the same thrown-error class as plots (CERT_AUTO_GEN_FAILED path — fail LOUD at mint like plots do, which after T1+T2 is unreachable for honest data); `:398`'s Farm-TABLE fallback may stay ONLY if the implementer proves every Farm row carries a unit (probe the table; if any row lacks it, strict there too + heal those rows in T1's scope). RED-first: pin that a unit-less farmData now throws at mint instead of silently minting Sqm.
+
+## Deploy/run order (binding, in the runbook + report)
+Heal the 19 (operator-instructed run, step-0 rehearsal on a DRAFT) → THEN deploy/merge the strict flip. If merged before healing, apps reaching issuance with unit-less farms dead-end exactly like F-PLOT — the runbook states this and the branch report hands the operator the order explicitly.
+
+## Out of scope
+Plot-side anything (done) · FE farm-unit control (BACKLOG with the plot FE gap) · re-issuing the CERTIFIED app's cert (its default was correct; noted) · `submitted-area.js`/`area-utils` internals (unchanged).
+
+## DoD
+RED-first per task; suites green no new failures; ratchet flat-or-down (baseline 36/56/122/2); tier by tier-check (certificate-service = expect C, operator merges); heal executed on the real DB with evidence (same pattern as 2026-08-20 plot heal); report ≤40 lines each.

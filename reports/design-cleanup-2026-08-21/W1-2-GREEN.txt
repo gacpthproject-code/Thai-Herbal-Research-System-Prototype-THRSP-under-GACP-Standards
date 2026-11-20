@@ -1,0 +1,191 @@
+PASS __tests__/unit/uploads-access-signed.test.js (25.318 s)
+  W1-2 — /uploads with a signed URL (no Authorization header)
+    √ no session AND no signature → 401 (unchanged) (242 ms)
+    √ a valid signature serves the file with the right content type — no auth header (30 ms)
+    √ an EXPIRED signature → 401 (15 ms)
+    √ a TAMPERED signature → 401 (11 ms)
+    √ a signature minted for ONE object does not unlock another (11 ms)
+    √ existing session-based access still works (no signature needed) (14 ms)
+    √ a signature cannot smuggle a traversal past the path guard (16 ms)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+    [0m [90m 110 |[39m
+     [90m 111 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mHEALTH_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mJWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 112 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 113 |[39m   }
+     [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (middleware/uploads-access.js:2:29)
+      at Object.require (__tests__/unit/uploads-access.test.js:18:34)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m   }
+     [90m 118 |[39m
+     [90m 119 |[39m   [36mconst[39m providerConfig [33m=[39m {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (middleware/uploads-access.js:2:29)
+      at Object.require (__tests__/unit/uploads-access.test.js:18:34)
+
+PASS __tests__/unit/uploads-access.test.js
+  SEC-AUDIT-002 — sensitive /uploads paths require auth
+    √ anonymous CANNOT fetch a root-level file (ID card / avatar) → 401 (61 ms)
+    √ anonymous CANNOT fetch a payment slip → 401 (13 ms)
+    √ a forged token on a sensitive path is still rejected → 401 (14 ms)
+  B-DOC-01 — applicant draft documents now require auth
+    √ anonymous CANNOT fetch an application-drafts asset → 401 (32 ms)
+    √ anonymous CANNOT fetch a wizard-drafts asset → 401 (11 ms)
+  SEC-AUDIT-002 — intended-public /uploads assets stay anonymous
+    √ a public lab-report subfolder asset is served anonymously (consumer trace) (11 ms)
+
+PASS __tests__/unit/uploads-signed-url.test.js
+  storage-service — signed object URLs (local provider / HMAC)
+    √ mints a URL for the object path with an expiry + signature, and no secret in it (336 ms)
+    √ a freshly minted signature verifies for its own object (79 ms)
+    √ an EXPIRED signature does not verify (69 ms)
+    √ a TAMPERED signature does not verify (65 ms)
+    √ extending the expiry without re-signing does not verify (377 ms)
+    √ a signature minted for ONE object does not unlock another (88 ms)
+    √ a missing signature is not "valid by omission" (64 ms)
+    √ the lifetime is capped in minutes, not hours (64 ms)
+    √ the signing key is derived from the secret manager, never a literal in code (67 ms)
+  storage-service — signed object URLs (minio provider / native presign)
+    √ delegates to MinIO presignedGetObject instead of the local HMAC scheme (42 ms)
+
+PASS __tests__/unit/uploads-slip-idor.test.js
+  RD-UPLOADS-IDOR — /uploads/slips object-level authorization
+    √ (a) HEALTH owner CAN fetch their own slip → 200 (13 ms)
+    √ (b) a DIFFERENT HEALTH user CANNOT fetch the slip → 403/404 (IDOR closed) (11 ms)
+    √ (c) ACCOUNT_DTAM CANNOT fetch a PLATFORM-side slip → 403/404 (side-wall) (12 ms)
+    √ (d) ACCOUNT_PLATFORM CAN fetch a PLATFORM-side slip → 200 (correct side) (21 ms)
+    √ (c2) ACCOUNT_PLATFORM CANNOT fetch a STATE-side slip → 403/404 (side-wall) (10 ms)
+    √ (d2) ACCOUNT_DTAM CAN fetch a STATE-side slip → 200 (correct side) (11 ms)
+    √ ADMIN CAN fetch any slip (break-glass, both sides) → 200 (10 ms)
+    √ (e) an unknown / unmapped slip file is denied (fail-closed) → 403/404 (10 ms)
+    √ (f) a reviewer from a DIFFERENT org cannot fetch the slip → 403/404 (tenancy) (11 ms)
+    √ anonymous (no token) still 401 on a slip path (11 ms)
+
+[32minfo[39m: [files] signed-url minted for slips/slip-owned.pdf (SLIP_ACL) {"service":"gacp-backend","timestamp":"2026-08-22T03:46:59.121Z"}
+[32minfo[39m: [files] signed-url minted for my-avatar.png (OWN_AVATAR) {"service":"gacp-backend","timestamp":"2026-08-22T03:46:59.156Z"}
+[32minfo[39m: [files] signed-url minted for application-drafts/doc.pdf (OBJECT_ACL) {"service":"gacp-backend","timestamp":"2026-08-22T03:46:59.189Z"}
+[32minfo[39m: [files] signed-url minted for my-avatar.png (OWN_AVATAR) {"service":"gacp-backend","timestamp":"2026-08-22T03:46:59.211Z"}
+[32minfo[39m: [files] signed-url minted for lab-reports/report.pdf (PUBLIC) {"service":"gacp-backend","timestamp":"2026-08-22T03:46:59.222Z"}
+PASS __tests__/unit/uploads-signed-url-route.test.js
+  POST /api/files/signed-url — authentication
+    √ anonymous → 401 (295 ms)
+    √ a non-/uploads path → 400 INVALID_PATH (131 ms)
+    √ a traversal path → 400 INVALID_PATH (13 ms)
+  POST /api/files/signed-url — entitlement (slips reuse canSeeSlip)
+    √ the slip owner gets a URL that verifies for that exact object (17 ms)
+    √ a caller who fails canSeeSlip → 404 (no existence leak), no URL minted (9 ms)
+    √ an unknown slip file → 404 (10 ms)
+  POST /api/files/signed-url — entitlement (avatar root file)
+    √ the avatar owner can mint (12 ms)
+    √ another user cannot mint for someone else's avatar → 404 (9 ms)
+  POST /api/files/signed-url — entitlement (application draft documents)
+    √ the document owner can mint (23 ms)
+    √ a stranger in another tenant → 404 (10 ms)
+  POST /api/files/signed-url — the mint never logs or echoes a secret
+    √ the response carries only url + expiresAt (10 ms)
+  public /uploads assets do not need a mint
+    √ a lab-report path mints without an object lookup (already anonymous) (10 ms)
+
+PASS __tests__/unit/uploads-access-traversal.test.js
+  C1 — raw-URI path traversal onto slips is rejected (authenticated stranger)
+    √ un-normalized .. → 400 and never streams the slip bytes (121 ms)
+    √ encoded slash + .. → 400 and never streams the slip bytes (15 ms)
+    √ encoded dots %2e%2e → 400 and never streams the slip bytes (12 ms)
+    √ anonymous raw traversal is also rejected → 400 (before auth even runs) (10 ms)
+  C1 — regression: legit paths keep working
+    √ a legit /uploads/slips/<uuid> reaches the slip ACL (allowed for owner-side) (10 ms)
+    √ a legit /uploads/slips/<uuid> the caller may NOT see → 404 (11 ms)
+    √ a public lab-report asset is still served anonymously (10 ms)
+    √ anonymous slip request (no traversal) is still auth-gated → 401 (10 ms)
+
+PASS __tests__/unit/log-redact.test.js
+  redactUrlForLog
+    √ leaves a plain path untouched (2 ms)
+    √ keeps harmless query params readable (1 ms)
+    √ redacts the local signed-URL signature but keeps the shape debuggable (1 ms)
+    √ redacts a MinIO / S3 presigned signature too (1 ms)
+    √ redacts bearer-ish params regardless of case (1 ms)
+    √ never throws on a malformed target (1 ms)
+    √ the sensitive key list covers the signature params this repo mints (1 ms)
+  server.js wires the redaction into morgan
+    √ the :url token is overridden before the morgan middleware is mounted (2 ms)
+
+PASS __tests__/unit/uploads-access-draft-acl.test.js
+  C2 — application-drafts object-ACL
+    √ owner (by FK token / canonicalId) is served → 200 (58 ms)
+    √ owner (by uploader UUID) is served → 200 (13 ms)
+    √ a DIFFERENT authenticated applicant → 404 (anti-enumeration, not served) (10 ms)
+    √ a cross-TENANT provider → 404 (not served) (11 ms)
+    √ a same-tenant provider reviewer → 200 (may view application docs) (10 ms)
+  C2 — wizard-drafts object-ACL (owner-only)
+    √ owner (ApplicationDraft.userId UUID) → 200 (9 ms)
+    √ a different authenticated user → 404 (10 ms)
+  C2 — interim + regression
+    √ an UNRESOLVED application-draft keeps the session gate (served, no availability regression) (18 ms)
+    √ anonymous draft request is still auth-gated → 401 (10 ms)
+
+PASS __tests__/unit/secrets-catalog.test.js
+  [Iter 27] secrets catalog — shape + new entries
+    √ SECRETS_CATALOG is frozen and contains Iter-27 bank-account entries (4 ms)
+    √ exports SUPPORTED_BACKENDS including stubs (vault/aws/azure) (1 ms)
+    √ exports the PENDING_FINANCE_CONFIRMATION sentinel string (1 ms)
+  [Iter 27] getSecret — env backend
+    √ returns the value when set in process.env (3 ms)
+    √ throws when asked for a name not in the catalog (250 ms)
+    √ treats PENDING_FINANCE_CONFIRMATION as missing (falls back to dev or null) (4 ms)
+  [Iter 27] validateSecretsForEnvironment — fail-closed gate
+    √ returns MISSING_OR_PENDING for production-required secrets that are unset (5 ms)
+    √ flags PENDING_FINANCE_CONFIRMATION as MISSING_OR_PENDING (3 ms)
+    √ returns no errors when all production-required secrets are supplied (3 ms)
+    √ returns no errors in production WITHOUT any retired notification-transport vars set (3 ms)
+    √ the retired notification-transport + legacy SMS_API_KEY rows no longer exist in the catalog (2 ms)
+    √ reports TOO_SHORT when a value is set but below minLength (3 ms)
+    √ does not enforce production-required when validating against development (4 ms)
+  [Iter 27] Backend abstraction — pluggable transports
+    √ vault backend stub throws a descriptive error (3 ms)
+    √ aws backend stub throws a descriptive error (2 ms)
+    √ azure backend stub throws a descriptive error (2 ms)
+    √ unknown backend throws with the list of supported backends (2 ms)
+    √ getActiveBackend reports the configured backend (2 ms)
+  [Iter 27] getSecretAsync — async-friendly API
+    √ resolves to the same value as getSecret (2 ms)
+  [Iter 27] check-secrets CLI helper — formatting
+    √ formatHuman renders an OK banner when there are no errors (673 ms)
+    √ formatHuman renders an itemized FAIL block when there are errors (1 ms)
+    √ parseArgs handles --env=production and --json (2 ms)
+
+PASS __tests__/unit/uploads-security-headers.test.js
+  uploadsSecurityHeaders middleware
+    √ exports a function with a stable name (for testability + audit grep) (5 ms)
+    √ sets X-Content-Type-Options: nosniff (anti MIME-sniff XSS) (4 ms)
+    √ sets Content-Disposition: attachment (force download, no referrer leak) (3 ms)
+    √ sets Cross-Origin-Resource-Policy: same-site (block cross-origin embed) (2 ms)
+    √ sets Cache-Control: private, no-store, max-age=0 (no shared cache of PII) (2 ms)
+    √ calls next() exactly once so express.static can serve the body (2 ms)
+    √ sets all 4 required headers in a single invocation (2 ms)
+    √ is deterministic — repeated calls produce identical header set (2 ms)
+
+Test Suites: 10 passed, 10 total
+Tests:       100 passed, 100 total
+Snapshots:   0 total
+Time:        39.543 s, estimated 50 s
+Ran all test suites matching /__tests__\\unit\\uploads-signed-url.test.js|__tests__\\unit\\uploads-access-signed.test.js|__tests__\\unit\\uploads-signed-url-route.test.js|__tests__\\unit\\log-redact.test.js|__tests__\\unit\\uploads-access.test.js|__tests__\\unit\\uploads-access-draft-acl.test.js|__tests__\\unit\\uploads-access-traversal.test.js|__tests__\\unit\\uploads-slip-idor.test.js|__tests__\\unit\\uploads-security-headers.test.js|__tests__\\unit\\secrets-catalog.test.js/i.

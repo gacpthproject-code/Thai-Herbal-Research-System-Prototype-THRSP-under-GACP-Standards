@@ -1,0 +1,25 @@
+fix/fee-line-descriptions — round 3 (operator 2026-10-03: prices are real costs, shown completely and correctly)
+
+RED first: red-output-backend.txt (10 failed: no isRenewal on list/tracking/detail payloads; context-free labels
+  named งวดที่ 2 / "audit fee"), red-output-web.txt (18 failed: context-free labels, no stageLabelFor, renewal
+  detail page showed the phase-2 name and 32,100 per-type figure).
+1. Renewal detail page: card + pay button = "ค่าบริการต่ออายุใบรับรอง" and the renewal amount — invoice total,
+   else the application's quotation (acceptedPhaseAmount PHASE_2), else served renewalTotalPerScope x stored
+   cultivation types. No งวดที่ 1 card for a renewal. Display only; nothing charged differently.
+2. isRenewal on GET /applications/my items, /:id/status and the detail payload (+ cultivationScopeCount).
+   With the application: stageLabelFor / stageDescriptionFor / stageNextActionFor / stepperStepsFor (detail,
+   list, dashboard). Without it: neutral "รอชำระค่าบริการ" family (status machine, workflow-states, th-core,
+   stage-map, status-mapping, ACTION_META, admin/staff labels, notification preference, tracking step/titles);
+   mobile stage label kept in parity.
+3. Mobile payment screen: one quotation, one charge per instalment — ค่าบริการ + VAT (served VAT name) + ยอดรวม,
+   catalogue name + coverage from copy.services; renewal names the renewal. Removed the DTAM/platform split and
+   the slip/bank-account calls (those backend routes no longer exist). Intro screen no longer prints the
+   stale "35,000+/5,000+" amounts. Flutter tests updated (payment_models_test.dart, health_dashboard_stage_test.dart)
+   but NOT RUN: no Flutter/Dart SDK in this environment.
+4. Detail page dark mode: text-slate-* -> text-foreground / text-muted-foreground; comment box -> bg-muted.
+   Screenshots opened: detail3-{renewal,new-audit-fee}-{390,1280}-{light,dark}.png; overflow measured: none.
+Amounts: amounts-before-after.txt — 4 documents + 3 notes rendered from the branch, every figure and amount in
+  words IDENTICAL to base 31dd3196.
+Tests: web 451 suites / 3724 tests pass, 0 skipped, tsc 0. Backend full suite on scratch postgres:17 :55444:
+  same 11 failing suites / 33 tests as base, 0 new; 54 skipped = the two pre-existing skips. Container removed.
+Probes: probes.txt (7 PASS, ratchet 26/53/101/0). Signing key mtime unchanged (2026-09-05 22:50:35).

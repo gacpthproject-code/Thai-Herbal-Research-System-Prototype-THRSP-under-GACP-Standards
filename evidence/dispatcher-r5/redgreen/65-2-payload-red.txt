@@ -1,0 +1,73 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T14:10:04.755Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-09T14:10:04.760Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T14:10:04.761Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/applicant-keeps-the-site-contact-current-real-postgres.test.js:19:25)
+      at Object.require (routes/api/applications/application-site-contact.js:21:32)
+      at Object.require (__tests__/integration/applicant-keeps-the-site-contact-current-real-postgres.test.js:52:38)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/applicant-keeps-the-site-contact-current-real-postgres.test.js:19:25)
+      at Object.require (routes/api/applications/application-site-contact.js:21:32)
+      at Object.require (__tests__/integration/applicant-keeps-the-site-contact-current-real-postgres.test.js:52:38)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-10-09T14:10:05.536Z"}
+[32minfo[39m: Loaded existing signing keys {"service":"signature-service","timestamp":"2026-10-09T14:10:05.543Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-10-09T14:10:05.544Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T14:10:06.028Z"}
+FAIL __tests__/integration/applicant-keeps-the-site-contact-current-real-postgres.test.js
+  the applicant keeps the on-site contact current until the visit (real Postgres)
+    ✕ the application page is told the contact, whether it is missing, and whether it can still be changed (354 ms)
+    ○ skipped waiting to be booked: someone else, confirmed as told, replaces the contact; the dispatcher reads it; the log keeps no value
+    ○ skipped a contact the rule refuses is not written: no name, a phone that is not Thai, someone else not confirmed as told
+    ○ skipped a booked visit still ahead can take a new contact; after the visit, or once inspected, it cannot
+    ○ skipped another holder's application is not found
+
+  ● the applicant keeps the on-site contact current until the visit (real Postgres) › the application page is told the contact, whether it is missing, and whether it can still be changed
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: {"editable": true, "missing": true, "siteContactIsApplicant": false, "siteContactName": null, "sitePhone": null}
+    Received: undefined
+
+      116 |             milestones: ['M1', 'M2'], reviewerId: fx.reviewerA.id, auditorId: fx.inspectorA.id, scheduledDate: new Date(Date.now() - DAY), formData: { farmData: SITE },
+      117 |         });
+    > 118 |         expect(await read(missing.id)).toEqual({ siteContactName: null, sitePhone: null, siteContactIsApplicant: false, missing: true, editable: true });
+          |                                        ^
+      119 |         expect(await read(given.id)).toEqual({ siteContactName: 'สมชาย ใจดี', sitePhone: '0812345678', siteContactIsApplicant: true, missing: false, editable: true });
+      120 |         expect(await read(passedVisit.id)).toMatchObject({ missing: false, editable: false });
+      121 |     });
+
+      at Object.toEqual (__tests__/integration/applicant-keeps-the-site-contact-current-real-postgres.test.js:118:40)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 4 skipped, 5 total
+Snapshots:   0 total
+Time:        2.37 s, estimated 3 s
+Ran all test suites matching __tests__/integration/applicant-keeps-the-site-contact-current-real-postgres.test.js with tests matching "application page is told".

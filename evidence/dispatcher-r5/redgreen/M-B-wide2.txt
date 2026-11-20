@@ -1,0 +1,116 @@
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+PASS __tests__/unit/h17-verify-adversarial.test.js
+  H17 verify A — the fix did not lock out a role that used to work
+    ✓ every canonical PROVIDER role lands in a bucket that is not a blanket deny (4 ms)
+    ✓ legacy raw token role system_admin_dtam still resolves to a working scope (1 ms)
+    ✓ legacy raw token role system_admin_platform still resolves to a working scope (1 ms)
+    ✓ legacy raw token role dispatcher still resolves to a working scope (1 ms)
+    ✓ legacy raw token role finance_officer_platform still resolves to a working scope (1 ms)
+    ✓ legacy raw token role finance_officer_dtam still resolves to a working scope
+    ✓ legacy raw token role finance_officer_platform still resolves to a working scope (1 ms)
+    ✓ legacy raw token role field_inspector still resolves to a working scope (1 ms)
+    ✓ legacy raw token role field_inspector still resolves to a working scope (1 ms)
+    ✓ โทเคนการเงินจริง (role=ACCOUNTANT ไม่มี canonicalRole) ยังเห็นหน้าต่างการชำระเงินของตัวเองที่หน้ารายละเอียด (48 ms)
+    ✓ a real scheduler token (role=SCHEDULER, no canonicalRole) still sees its pool (42 ms)
+    ✓ the provider list endpoint still answers 200 for account/scheduler (narrowed, not broken) (24 ms)
+  H17 verify B — POST /:id/comments (a surface the report did not list)
+    ✓ accountant can no longer comment on a DRAFT application (15 ms)
+    ✓ scheduler can no longer comment on a CERTIFIED application (8 ms)
+    ✓ การเงินยังคอมเมนต์บนคำขอที่ตัวเองกระทบยอดได้ (9 ms)
+    ✓ CONTROL — pre-fix, the same accountant comment on DRAFT was accepted (11 ms)
+  H17 verify C — control: pre-fix filter still leaks through this router
+    detail
+      ✓ finance_officer_platform reads a DRAFT application pre-fix (29 ms)
+      ✓ dispatcher reads a DRAFT application pre-fix (7 ms)
+      ✓ the pre-fix detail body carries the filing (its national id masked since order 10) (7 ms)
+    activities
+      ✓ dispatcher reads a DRAFT application pre-fix (7 ms)
+      ✓ the pre-fix detail body carries the filing (its national id masked since order 10)
+    audit-timelines
+      ✓ dispatcher reads a DRAFT application pre-fix (8 ms)
+      ✓ the pre-fix detail body carries the filing (its national id masked since order 10) (2 ms)
+    detail — post-fix the same request is refused
+      ✓ finance_officer_platform is denied on DRAFT (9 ms)
+      ✓ dispatcher is denied on DRAFT (9 ms)
+      ✓ finance_officer_platform is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED (35 ms)
+      ✓ dispatcher is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED (55 ms)
+    activities — post-fix the same request is refused
+      ✓ finance_officer_platform is denied on DRAFT (9 ms)
+      ✓ dispatcher is denied on DRAFT (8 ms)
+      ✓ finance_officer_platform is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED (18 ms)
+      ✓ dispatcher is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED (36 ms)
+    audit-timelines — post-fix the same request is refused
+      ✓ finance_officer_platform is denied on DRAFT (7 ms)
+      ✓ dispatcher is denied on DRAFT (5 ms)
+      ✓ finance_officer_platform is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED (20 ms)
+      ✓ dispatcher is denied on CERTIFIED / APPROVED / AUDIT_PASSED / SUBMITTED (19 ms)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T13:19:37.982Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-09T13:19:37.985Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T13:19:37.986Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:50:47)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:50:47)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-10-09T13:19:38.491Z"}
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[31merror[39m: Failed to initialize signature service: [signature-service] FATAL: the certificate signing key in /tmp/dispatcher-r5/signing-keys could not be loaded and used (expected private.pem + public.pem, decryptable with RSA_PRIVATE_KEY_PASSPHRASE). Refusing to start: generating a replacement key here would silently invalidate every certificate already signed with the previous key, and overwrite the only copy of that key. Mount the existing key (read-only secret mount), or set the passphrase it was encrypted with, and restart. If this box is scratch and you truly want a new key, remove /tmp/dispatcher-r5/signing-keys/private.pem and public.pem by hand first — that is a deliberate act, and it is meant to be. Cause: error:1C800064:Provider routines::bad decrypt {"service":"signature-service","stack":"Error: [signature-service] FATAL: the certificate signing key in /tmp/dispatcher-r5/signing-keys could not be loaded and used (expected private.pem + public.pem, decryptable with RSA_PRIVATE_KEY_PASSPHRASE). Refusing to start: generating a replacement key here would silently invalidate every certificate already signed with the previous key, and overwrite the only copy of that key. Mount the existing key (read-only secret mount), or set the passphrase it was encrypted with, and restart. If this box is scratch and you truly want a new key, remove /tmp/dispatcher-r5/signing-keys/private.pem and public.pem by hand first — that is a deliberate act, and it is meant to be. Cause: error:1C800064:Provider routines::bad decrypt\n    at SignatureService.ensureLocalKeys (/home/ubuntu/work/wt-dispatcher/apps/backend/services/crypto/signature-service.js:570:15)\n    at SignatureService.initialize (/home/ubuntu/work/wt-dispatcher/apps/backend/services/crypto/signature-service.js:144:9)","timestamp":"2026-10-09T13:19:38.512Z"}
+[31merror[39m: [signature-service] initialization failed: [signature-service] FATAL: the certificate signing key in /tmp/dispatcher-r5/signing-keys could not be loaded and used (expected private.pem + public.pem, decryptable with RSA_PRIVATE_KEY_PASSPHRASE). Refusing to start: generating a replacement key here would silently invalidate every certificate already signed with the previous key, and overwrite the only copy of that key. Mount the existing key (read-only secret mount), or set the passphrase it was encrypted with, and restart. If this box is scratch and you truly want a new key, remove /tmp/dispatcher-r5/signing-keys/private.pem and public.pem by hand first — that is a deliberate act, and it is meant to be. Cause: error:1C800064:Provider routines::bad decrypt {"service":"signature-service","timestamp":"2026-10-09T13:19:38.513Z"}
+[32minfo[39m: [provider] reviewer edited application form fields {"actorId":"a4c0f186-8a8c-4af8-89e6-9158087b7287","applicationId":"74026463-fbc4-4f24-9a21-4f87d8838588","changedFields":4,"service":"gacp-backend","timestamp":"2026-10-09T13:19:38.889Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T13:19:39.605Z"}
+PASS __tests__/integration/applicant-contact-withheld-real-postgres.test.js
+  the applicant's contact is withheld from the dispatcher and the field inspector (real Postgres)
+    the application detail door
+      ✓ the dispatcher reads the filing without any contact of the applicant or of the site (191 ms)
+      ✓ the field inspector assigned to the visit reads it the same way (57 ms)
+      ✓ an older filing's contact keys, and keys no screen knows, never reach the dispatcher or the inspector (L-A) (75 ms)
+      ✓ the document reviewer still reads the applicant's contact (28 ms)
+    the audit timeline (security re-review M-B)
+      ✓ a reviewer's correction of contact fields reaches the dispatcher and the inspector as the field's name only (104 ms)
+    the field inspector's own action doors (security re-review M-A)
+      ✓ starting the inspection and recording the decision answer the number and status only (181 ms)
+    the on-site contact door
+      ✓ the dispatcher reads the name and phone of the person on site while booking, and every view is logged (74 ms)
+      ✓ the field inspector assigned to the visit reads it on its audit pages; an inspector not assigned does not (56 ms)
+      ✓ outside the booking stages, in another organization, or for another role, nothing is read and nothing is logged (112 ms)
+      ✓ a view that cannot be logged shows nothing (57 ms)
+      ✓ a filing that names no one on site says so (68 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       46 passed, 46 total
+Snapshots:   0 total
+Time:        3.602 s, estimated 5 s
+Ran all test suites matching __tests__/unit/h17-verify-adversarial.test.js|__tests__/integration/applicant-contact-withheld-real-postgres.test.js.

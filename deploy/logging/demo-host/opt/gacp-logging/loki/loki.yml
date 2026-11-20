@@ -1,0 +1,55 @@
+# Loki 2.9.6, single binary, filesystem storage, for the demo host only.
+# Retention is the privacy control: backend access lines carry client IPs and
+# upload lines carry file names, so nothing older than retention_period is kept.
+auth_enabled: false
+
+server:
+  http_listen_port: 3100
+  grpc_listen_port: 9096
+  log_level: warn
+
+common:
+  path_prefix: /loki
+  storage:
+    filesystem:
+      chunks_directory: /loki/chunks
+      rules_directory: /loki/rules
+  replication_factor: 1
+  ring:
+    kvstore:
+      store: inmemory
+
+schema_config:
+  configs:
+    - from: 2026-10-01
+      store: tsdb
+      object_store: filesystem
+      schema: v12
+      index:
+        prefix: index_
+        period: 24h
+
+compactor:
+  working_directory: /loki/compactor
+  shared_store: filesystem
+  compaction_interval: 10m
+  retention_enabled: true
+  retention_delete_delay: 2h
+  retention_delete_worker_count: 50
+
+limits_config:
+  retention_period: 720h
+  reject_old_samples: true
+  reject_old_samples_max_age: 720h
+  ingestion_rate_mb: 4
+  ingestion_burst_size_mb: 8
+  max_query_lookback: 720h
+  # 2.9's default split (30m) fans a 7-day Grafana query into hundreds of
+  # sub-queries and the scheduler answers "too many outstanding requests".
+  split_queries_by_interval: 24h
+
+query_scheduler:
+  max_outstanding_requests_per_tenant: 2048
+
+analytics:
+  reporting_enabled: false

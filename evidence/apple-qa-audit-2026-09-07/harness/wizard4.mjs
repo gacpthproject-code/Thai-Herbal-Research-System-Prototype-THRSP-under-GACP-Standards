@@ -1,0 +1,13 @@
+import { chromium } from './lib.mjs';
+const B='https://demo.gacpth.com';
+const b=await chromium.launch();
+const ctx=await b.newContext({storageState:process.env.AUTH_STATE, viewport:{width:1440,height:900},locale:'th-TH'});
+const p=await ctx.newPage(); p.setDefaultTimeout(20000);
+const net=[];
+p.on('response', r=>{ if(r.url().includes('/api/')) net.push(`${r.status()} ${r.request().method()} ${r.url().replace(B,'').slice(0,120)}`); });
+p.on('requestfailed', rq=>{ net.push('FAILED '+rq.method()+' '+rq.url().slice(0,150)+' :: '+(rq.failure()&&rq.failure().errorText)); });
+await p.goto(B+'/health/applications/new',{waitUntil:'networkidle',timeout:60000});
+await p.waitForTimeout(3000);
+console.log('=== ALL requests on wizard load ===');
+net.forEach(x=>console.log('  ', x));
+await b.close();

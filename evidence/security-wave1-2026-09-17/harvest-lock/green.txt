@@ -1,0 +1,474 @@
+# harvest-lock GREEN — 2026-09-17T11:03:27+07:00
+# branch wave1/harvest-lock, base 1f1ae758 (fix/security-wave1 tip) + working-tree fix:
+#   M apps/backend/services/harvest-service.js   (qualityGrade frozen; lockBatchRow in updateBatch + recordHarvest)
+#   M apps/backend/shared/error-codes.js + docs/api/error-codes.md (HARVEST_FROZEN_AFTER_PACKING copy/source)
+#   M 3 existing tests (prisma mocks gain $transaction/$queryRaw; one body changed, see commit)
+#   ?? 2 new tests (same files as red.txt)
+
+## 1. the RED suites + adapted suites
+# cmd: npx jest --config jest.config.cjs <6 files>
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/harvest-freeze-holds-the-lot-lock.test.js
+  harvest-lock (b) — the freeze check and the write share lot issuance's row lock
+    ✓ lot issuance itself starts its transaction with that lock (the reference this mirrors) (5 ms)
+    ✓ PUT /:id: lock first, then count, then write — all inside one transaction (3 ms)
+    ✓ POST /:id/harvest: lock first, then the batch read, the count and the write — one transaction (2 ms)
+    ✓ both doors take exactly the statement lot issuance takes, on the same row (2 ms)
+    ✓ PUT /:id: a lot issued while the edit waits for the row lock is seen, and the edit is refused (5 ms)
+    ✓ POST /:id/harvest: a lot issued while the edit waits for the row lock is seen, and the edit is refused (2 ms)
+    ✓ a batch that is gone by the time the lock is taken is 404, with nothing counted or written (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/harvest-batch-update-is-an-allowlist.test.js
+  BACK-02 — PUT /:id writes only what a farmer may edit
+    ✓ a nested labResults write (forge officer verification) is refused 400 and nothing is written (3 ms)
+    ✓ a nested labResults write (erase COA history) is refused 400 and nothing is written (3 ms)
+    ✓ a nested labResults write (attach a file past the upload guard) is refused 400 and nothing is written (2 ms)
+    ✓ a nested labResults write (re-point another batch's COA) is refused 400 and nothing is written (3 ms)
+    ✓ non-allowlisted field qcPassed is refused 400 and nothing is written (2 ms)
+    ✓ non-allowlisted field qcBy is refused 400 and nothing is written (3 ms)
+    ✓ non-allowlisted field qcNotes is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field id is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field uuid is refused 400 and nothing is written (5 ms)
+    ✓ non-allowlisted field batchNumber is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field qrCode is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field trackingUrl is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field farmId is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field cycleId is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field plantCode is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field organizationId is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field recordedBy is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field isDeleted is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field createdAt is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field updatedAt is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field farm is refused 400 and nothing is written (5 ms)
+    ✓ non-allowlisted field cycle is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field plant is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field organization is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field lots is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field packagingDetails is refused 400 and nothing is written (2 ms)
+    ✓ non-allowlisted field dryingProcesses is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field plantingDate is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field expectedHarvestDate is refused 400 and nothing is written (1 ms)
+    ✓ non-allowlisted field somethingElse is refused 400 and nothing is written (1 ms)
+    ✓ an object value on an editable field (prisma atomic op / nested input) is refused (1 ms)
+    ✓ status is a closed set — an invented status is refused 400 (1 ms)
+    ✓ the farmer-editable fields still save, and only those reach the database (5 ms)
+    ✓ the existing freeze still answers 409 on this door once lots exist (1 ms)
+  BACK-X01 — POST /:id/harvest obeys the same freeze once lots exist
+    ✓ a harvest weight change after a lot was issued is refused 409 and nothing is written (1 ms)
+    ✓ it cannot move the frozen harvest date either — explicitly or by defaulting to now (1 ms)
+    ✓ before any lot exists the door still records the harvest (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/harvest-trace-published-fields-freeze.test.js
+  harvest-lock (a) — what the public scan shows stops moving once a lot exists
+    ✓ the public doors show grade, harvest date, fresh weight and status — not moisture or drying (1 ms)
+    ✓ every field a scanner can see is refused 409 on PUT /:id after a lot was issued (status aside) (2 ms)
+    ✓ a grade change after packing is refused with the weight-freeze code, in Thai that names the grade (1 ms)
+    ✓ a note riding along with a grade change does not sneak through — the whole edit is refused (1 ms)
+    ✓ POST /:id/harvest cannot re-grade a packed batch either (2 ms)
+    ✓ before any lot exists the grade is still the farmer's to set (1 ms)
+    ✓ fields no scanner sees, the lifecycle status and the note still save after packing (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/harvest-weights-freeze-once-lots-exist.test.js
+  updateBatch — quantities freeze once a lot has been issued
+    ✓ refuses to change dryWeight when a lot already exists (18 ms)
+    ✓ refuses to change freshWeight or harvestDate when a lot already exists (2 ms)
+    ✓ still allows the weights to be corrected while no lot exists
+    ✓ still allows non-quantity edits after a lot exists, so the guard is narrow
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/prisma-write-payload-fixes.test.js
+  HIGH-1/2 — quote-service write payloads
+    ✓ markAcceptedWithInvoice does NOT write a (non-existent) invoiceId column (2 ms)
+    ✓ markRejected writes `notes` (not the non-existent ApplicantNotes) (4 ms)
+  MEDIUM — harvest-service.recordHarvest maps yield to freshWeight
+    ✓ writes freshWeight (kg) and NOT actualYield/yieldUnit (1 ms)
+  HIGH-5 — auditor-workload counts filter on auditorId (not assignedAuditorId)
+    ✓ countAuditorCompletedAuditsSince uses auditorId (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/the-freeze-refusal-reaches-the-farmer.test.js
+  การแช่แข็งน้ำหนักหลังบรรจุ ต้องบอกเกษตรกรว่าเกิดอะไรขึ้น
+    ✓ บริการยังปฏิเสธด้วยรหัสและสถานะของมันเอง (1 ms)
+    ✓ ประตูส่งสถานะและรหัสของบริการต่อ ไม่กลืนเป็น 500
+    ✓ ข้อความที่เกษตรกรได้อ่านเป็นภาษาไทย และบอกว่าต้องทำอะไรต่อ
+    ✓ รหัสนี้อยู่ในสารบบข้อผิดพลาด พร้อมวิธีแก้ (6 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       63 passed, 63 total
+Snapshots:   0 total
+Time:        2.639 s, estimated 3 s
+Ran all test suites matching /__tests__\/unit\/harvest-trace-published-fields-freeze.test.js|__tests__\/unit\/harvest-freeze-holds-the-lot-lock.test.js|__tests__\/unit\/harvest-batch-update-is-an-allowlist.test.js|__tests__\/unit\/harvest-weights-freeze-once-lots-exist.test.js|__tests__\/unit\/prisma-write-payload-fixes.test.js|__tests__\/unit\/the-freeze-refusal-reaches-the-farmer.test.js/i.
+EXIT 0
+
+## 2. every suite that mentions harvest / lot quota / trace-service / traceability-service (grep -rlE over __tests__), 103 of 104
+# excluded: integration/both-public-scan-paths-agree.test.js — DB-gated (skips here) and exits 1 on its own with
+#   'ReferenceError: You are trying to import a file after the Jest environment has been torn down'.
+#   Same exit 1 with harvest-service.js + error-codes.js restored to fix/security-wave1 (checked in this session): pre-existing.
+# summary lines only (full log kept in the session scratchpad):
+PASS __tests__/unit/public-plot-page-redacts-controlled-species.test.js
+PASS __tests__/unit/account-side-cross-boundary.test.js
+PASS __tests__/unit/submit-materialises-the-farm-the-certificate-names.test.js
+PASS __tests__/unit/auditor-routes-rbac.test.js
+PASS __tests__/unit/interop-resolve.test.js
+PASS __tests__/integration/provider-application-form-fields.test.js
+PASS __tests__/unit/provider-legacy-alias-flag.test.js
+PASS __tests__/unit/applications-draft-formdata-allowlist.test.js
+PASS __tests__/unit/plot-sign-says-the-certificate-state.test.js
+PASS __tests__/unit/cultivation-twin-routers-permission-gates.test.js
+PASS __tests__/unit/quotation-issuance-submit-doors-wiring.test.js
+PASS __tests__/unit/harvest-freeze-holds-the-lot-lock.test.js
+PASS __tests__/unit/applications-step-prerequisite-door.test.js
+PASS __tests__/unit/admin-positive-bypass.test.js
+PASS __tests__/unit/application-status-writer-cert-hook-evidence-gate.test.js
+PASS __tests__/unit/dataset-export-service.test.js
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+PASS __tests__/unit/traceability-lot-quota-toctou.test.js
+PASS __tests__/integration/provider-admin-planting-integrity.test.js
+PASS __tests__/unit/cultivation-farm-access-routes.test.js
+PASS __tests__/unit/lot-lab-values-are-not-typed.test.js
+PASS __tests__/unit/planting-one-open-cycle-per-plot.test.js
+PASS __tests__/unit/lots-utility-routes-rbac.test.js
+PASS __tests__/unit/upload-slot-canonicalisation.test.js
+PASS __tests__/unit/coa-upload-door-wire.test.js
+PASS __tests__/unit/planting-open-cycle-status-vocabulary.test.js
+PASS __tests__/integration/interoperability-track.test.js
+PASS __tests__/unit/auditor-scope-correctness.test.js
+PASS __tests__/unit/pdpa-retention-job.test.js
+PASS __tests__/unit/status-enum-write-allowlists.test.js
+PASS __tests__/unit/no-per-plant-source-references.test.js
+PASS __tests__/unit/lot-number-suffix-race.test.js
+PASS __tests__/unit/harvest-batch-update-is-an-allowlist.test.js
+PASS __tests__/unit/harvest-batch-cross-farm-create.test.js
+PASS __tests__/unit/canonical-application-validator.test.js
+PASS __tests__/integration/trace-batch-lot-cross-farm-cert.test.js
+PASS __tests__/unit/harvest-weights-freeze-once-lots-exist.test.js
+PASS __tests__/integration/planting-plot-trace.test.js
+PASS __tests__/unit/interoperability-partner-auth.test.js
+PASS __tests__/unit/interoperability-error-sanitization.test.js
+PASS __tests__/unit/traceability-public-projection-cycle-farmid.test.js
+PASS __tests__/unit/harvest-trace-published-fields-freeze.test.js
+PASS __tests__/unit/detect-double-booked-plots.test.js
+PASS __tests__/unit/standards-analyzer-service.test.js
+PASS __tests__/integration/cycle-create-mints-zero-plant-units.test.js
+PASS __tests__/unit/application-schemas.test.js
+PASS __tests__/unit/lot-quota-counts-printed-tombstones.test.js
+PASS __tests__/unit/planting-cycle-error-sanitization.test.js
+PASS __tests__/unit/entity-permission-cycle-route-wiring.test.js
+PASS __tests__/unit/m1-interop-holder-additive.test.js
+PASS __tests__/integration/planting-plot-trace-harvest-guards.test.js
+PASS __tests__/unit/lot-test-status.test.js
+PASS __tests__/unit/harvest-identifiers-ssot.test.js
+PASS __tests__/unit/closing-review-fixes.test.js
+PASS __tests__/unit/application-review-revision-farm-areaunit.test.js
+PASS __tests__/unit/submit-doors-answer-every-gate-refusal.test.js
+PASS __tests__/unit/trace-resolves-plot-code.test.js
+PASS __tests__/unit/application-review-revision-plot-areaunit.test.js
+PASS __tests__/unit/certificate-no-cultivation-auto-seed.test.js
+PASS __tests__/unit/public-urls-are-configured-not-guessed.test.js
+PASS __tests__/unit/m2a-revision-formdata-ownership.test.js
+PASS __tests__/unit/a-frozen-cycle-cannot-rewrite-what-the-scan-says.test.js
+PASS __tests__/unit/submit-judges-the-filing-the-wizard-actually-writes.test.js
+PASS __tests__/unit/trace-generic-pii-redaction.test.js
+PASS __tests__/unit/standards-signal-merged-evidence.test.js
+PASS __tests__/unit/coa-upload-door.test.js
+PASS __tests__/unit/public-scan-shows-the-farm-address.test.js
+PASS __tests__/unit/wizard-step-prerequisites.test.js
+PASS __tests__/unit/trace-generic-lab-privacy.test.js
+PASS __tests__/integration/phase-amount-canonical.test.js
+PASS __tests__/unit/image-assessment-service.test.js
+PASS __tests__/unit/lab-evidence-for-the-scan.test.js
+PASS __tests__/unit/harvest-does-not-require-plant-units.test.js
+PASS __tests__/unit/area-migration-targets-real-tables.test.js
+PASS __tests__/integration/batch-lot-route-cert-gate.test.js
+PASS __tests__/unit/public-scan-shows-the-lab-report.test.js
+PASS __tests__/unit/trace-integrity-payload-fail-closed.test.js
+PASS __tests__/unit/trace-plot-cycle-plant-count-ssot.test.js
+PASS __tests__/unit/carpet-500-fixes.test.js
+PASS __tests__/unit/trace-generic-no-projected-yield.test.js
+PASS __tests__/unit/performed-by-never-reaches-a-public-scan.test.js
+PASS __tests__/unit/cultivation-viewer-mutation-floor.test.js
+PASS __tests__/unit/trace-generic-resolves-plot-cycle-fallback.test.js
+PASS __tests__/unit/public-trace-hands-out-no-internal-ids.test.js
+PASS __tests__/unit/the-lot-screen-asks-for-the-species-it-prints.test.js
+PASS __tests__/unit/application-draft-submit-notify.test.js
+PASS __tests__/unit/public-plant-projection.test.js
+PASS __tests__/unit/trace-resolve-legacy-batch-number-format.test.js
+PASS __tests__/unit/one-qr-id-format.test.js
+PASS __tests__/unit/harvest-batch-number-race.test.js
+PASS __tests__/unit/auto-trace-actor-identity-mask.test.js
+PASS __tests__/integration/harvest-cross-farm-cert-read.test.js
+PASS __tests__/unit/pre-harvest-interval.test.js
+PASS __tests__/integration/generic-trace-cert-gate.test.js
+PASS __tests__/unit/interop-trace-revoked-reason-mask.test.js
+PASS __tests__/unit/coa-is-optional-but-visible.test.js
+PASS __tests__/unit/prisma-write-payload-fixes.test.js
+PASS __tests__/unit/public-farm-projection.test.js
+PASS __tests__/unit/the-freeze-refusal-reaches-the-farmer.test.js
+Test Suites: 4 skipped, 99 passed, 99 of 103 total
+Tests:       61 skipped, 1054 passed, 1115 total
+EXIT 1
+
+## 2a. why section 2 exits 1 with 0 FAIL: a pre-existing import after teardown, not this change
+# section 2's log names it:
+#   ReferenceError: You are trying to `import` a file after the Jest environment has been torn down. From __tests__/integration/generic-trace-cert-gate.test.js.
+#     at SignatureService.initialize (services/crypto/signature-service.js:144:9)
+# generic-trace-cert-gate loads the real trace-service/common -> qrcode-service -> signature-service. Its async key
+# check requires config/dev-signing-passphrase after the suite has finished. Both new suites mock qrcode-service.
+# Same 101 suites (section 2 minus the two new files), base production code vs this change:
+#   base (harvest-service.js + error-codes.js taken from fix/security-wave1):
+#     Test Suites: 4 skipped, 97 passed, 97 of 101 total
+#     Tests:       61 skipped, 1040 passed, 1101 total
+#     EXIT 0
+#   this change:
+#     Test Suites: 4 skipped, 97 passed, 97 of 101 total
+#     Tests:       61 skipped, 1040 passed, 1101 total
+#     EXIT 0
+# Adding the two new files changes suite order, and with it which suite's async init outlives its environment.
+# both-public-scan-paths-agree alone: EXIT 1 on base AND on this change (same ReferenceError, 6 skipped).
+# generic-trace-cert-gate alone on this change: 7 passed, EXIT 0.
+
+## 2b. section 2 again without the two suites that race teardown (102 suites, incl. both new files)
+PASS __tests__/unit/public-plot-page-redacts-controlled-species.test.js
+PASS __tests__/unit/auditor-routes-rbac.test.js
+PASS __tests__/unit/plot-sign-says-the-certificate-state.test.js
+PASS __tests__/unit/provider-legacy-alias-flag.test.js
+PASS __tests__/unit/account-side-cross-boundary.test.js
+PASS __tests__/integration/trace-batch-lot-cross-farm-cert.test.js
+PASS __tests__/unit/traceability-lot-quota-toctou.test.js
+PASS __tests__/unit/admin-positive-bypass.test.js
+PASS __tests__/integration/provider-application-form-fields.test.js
+PASS __tests__/unit/trace-generic-pii-redaction.test.js
+PASS __tests__/unit/cultivation-twin-routers-permission-gates.test.js
+PASS __tests__/unit/submit-materialises-the-farm-the-certificate-names.test.js
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+PASS __tests__/unit/application-status-writer-cert-hook-evidence-gate.test.js
+PASS __tests__/unit/applications-draft-formdata-allowlist.test.js
+PASS __tests__/unit/auditor-scope-correctness.test.js
+PASS __tests__/unit/applications-step-prerequisite-door.test.js
+PASS __tests__/unit/interop-resolve.test.js
+PASS __tests__/unit/quotation-issuance-submit-doors-wiring.test.js
+PASS __tests__/integration/provider-admin-planting-integrity.test.js
+PASS __tests__/unit/m1-interop-holder-additive.test.js
+PASS __tests__/unit/lot-lab-values-are-not-typed.test.js
+PASS __tests__/unit/cultivation-farm-access-routes.test.js
+PASS __tests__/unit/no-per-plant-source-references.test.js
+PASS __tests__/unit/coa-upload-door-wire.test.js
+PASS __tests__/unit/harvest-trace-published-fields-freeze.test.js
+PASS __tests__/unit/traceability-public-projection-cycle-farmid.test.js
+PASS __tests__/integration/interoperability-track.test.js
+PASS __tests__/unit/lot-number-suffix-race.test.js
+PASS __tests__/unit/lots-utility-routes-rbac.test.js
+PASS __tests__/unit/status-enum-write-allowlists.test.js
+PASS __tests__/unit/canonical-application-validator.test.js
+PASS __tests__/unit/upload-slot-canonicalisation.test.js
+PASS __tests__/unit/m2a-revision-formdata-ownership.test.js
+PASS __tests__/integration/cycle-create-mints-zero-plant-units.test.js
+PASS __tests__/unit/harvest-batch-cross-farm-create.test.js
+PASS __tests__/unit/interoperability-error-sanitization.test.js
+PASS __tests__/unit/auto-trace-actor-identity-mask.test.js
+PASS __tests__/unit/submit-judges-the-filing-the-wizard-actually-writes.test.js
+PASS __tests__/integration/planting-plot-trace-harvest-guards.test.js
+PASS __tests__/unit/interoperability-partner-auth.test.js
+PASS __tests__/integration/planting-plot-trace.test.js
+PASS __tests__/unit/public-scan-shows-the-farm-address.test.js
+PASS __tests__/integration/batch-lot-route-cert-gate.test.js
+PASS __tests__/unit/harvest-batch-update-is-an-allowlist.test.js
+PASS __tests__/unit/planting-cycle-error-sanitization.test.js
+PASS __tests__/unit/application-schemas.test.js
+PASS __tests__/unit/application-review-revision-plot-areaunit.test.js
+PASS __tests__/unit/lot-quota-counts-printed-tombstones.test.js
+PASS __tests__/unit/entity-permission-cycle-route-wiring.test.js
+PASS __tests__/unit/submit-doors-answer-every-gate-refusal.test.js
+PASS __tests__/unit/detect-double-booked-plots.test.js
+PASS __tests__/unit/certificate-no-cultivation-auto-seed.test.js
+PASS __tests__/unit/planting-one-open-cycle-per-plot.test.js
+PASS __tests__/unit/pdpa-retention-job.test.js
+PASS __tests__/unit/lot-test-status.test.js
+PASS __tests__/unit/harvest-identifiers-ssot.test.js
+PASS __tests__/unit/dataset-export-service.test.js
+PASS __tests__/unit/a-frozen-cycle-cannot-rewrite-what-the-scan-says.test.js
+PASS __tests__/unit/harvest-freeze-holds-the-lot-lock.test.js
+PASS __tests__/unit/harvest-does-not-require-plant-units.test.js
+PASS __tests__/unit/public-urls-are-configured-not-guessed.test.js
+PASS __tests__/unit/application-review-revision-farm-areaunit.test.js
+PASS __tests__/unit/standards-analyzer-service.test.js
+PASS __tests__/unit/trace-generic-lab-privacy.test.js
+PASS __tests__/unit/performed-by-never-reaches-a-public-scan.test.js
+PASS __tests__/unit/image-assessment-service.test.js
+PASS __tests__/unit/closing-review-fixes.test.js
+PASS __tests__/unit/trace-resolves-plot-code.test.js
+PASS __tests__/unit/standards-signal-merged-evidence.test.js
+PASS __tests__/integration/phase-amount-canonical.test.js
+PASS __tests__/unit/wizard-step-prerequisites.test.js
+PASS __tests__/unit/public-scan-shows-the-lab-report.test.js
+PASS __tests__/unit/harvest-weights-freeze-once-lots-exist.test.js
+PASS __tests__/unit/coa-upload-door.test.js
+PASS __tests__/unit/cultivation-viewer-mutation-floor.test.js
+PASS __tests__/integration/harvest-cross-farm-cert-read.test.js
+PASS __tests__/unit/trace-resolve-legacy-batch-number-format.test.js
+PASS __tests__/unit/trace-generic-resolves-plot-cycle-fallback.test.js
+PASS __tests__/unit/trace-generic-no-projected-yield.test.js
+PASS __tests__/unit/public-trace-hands-out-no-internal-ids.test.js
+PASS __tests__/unit/lab-evidence-for-the-scan.test.js
+PASS __tests__/unit/area-migration-targets-real-tables.test.js
+PASS __tests__/unit/trace-integrity-payload-fail-closed.test.js
+PASS __tests__/unit/the-lot-screen-asks-for-the-species-it-prints.test.js
+PASS __tests__/unit/harvest-batch-number-race.test.js
+PASS __tests__/unit/coa-is-optional-but-visible.test.js
+PASS __tests__/unit/public-plant-projection.test.js
+PASS __tests__/unit/pre-harvest-interval.test.js
+PASS __tests__/unit/one-qr-id-format.test.js
+PASS __tests__/unit/public-farm-projection.test.js
+PASS __tests__/unit/application-draft-submit-notify.test.js
+PASS __tests__/unit/trace-plot-cycle-plant-count-ssot.test.js
+PASS __tests__/unit/prisma-write-payload-fixes.test.js
+PASS __tests__/unit/the-freeze-refusal-reaches-the-farmer.test.js
+PASS __tests__/unit/planting-open-cycle-status-vocabulary.test.js
+PASS __tests__/unit/interop-trace-revoked-reason-mask.test.js
+PASS __tests__/unit/carpet-500-fixes.test.js
+Test Suites: 4 skipped, 98 passed, 98 of 102 total
+Tests:       61 skipped, 1047 passed, 1108 total
+EXIT 0
+
+## 3. eslint on every changed .js file (apps/backend)
+ESLINT EXIT 0
+
+## 4. error-code catalog (node scripts/extract-error-codes.js --validate; docs regenerated with --markdown)
+VALIDATION OK - catalog has 385 entries; 385 codes reconciled.
+VALIDATE EXIT 0
+
+## 5. probes: ratchet / no-skip / green-mask
+hardcode: 25
+todo: 53
+env-direct: 102
+dup-source: 0
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=25 todo=53 env-direct=102 dup-source=0 (/home/ubuntu/work/GACP-Certification-Application/.claude/worktrees/wf_e09fe3bf-8e2-2/evidence/ratchet-current.txt)
+PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+[green-mask] PASS — 1322 file(s) scanned; no net-new masks (baseline 15, burn-down tracked for UAT-01).
+
+## 6. the tests catch a partial revert (file restored afterwards)
+## 6a. mutation: updateBatch counts lots BEFORE taking the lock (same transaction)
+    ✓ lot issuance itself starts its transaction with that lock (the reference this mirrors) (5 ms)
+    ✕ PUT /:id: lock first, then count, then write — all inside one transaction (6 ms)
+    ✓ POST /:id/harvest: lock first, then the batch read, the count and the write — one transaction (3 ms)
+    ✓ both doors take exactly the statement lot issuance takes, on the same row (2 ms)
+    ✕ PUT /:id: a lot issued while the edit waits for the row lock is seen, and the edit is refused (7 ms)
+    ✓ POST /:id/harvest: a lot issued while the edit waits for the row lock is seen, and the edit is refused (4 ms)
+    ✕ a batch that is gone by the time the lock is taken is 404, with nothing counted or written (4 ms)
+Tests:       3 failed, 4 passed, 7 total
+## 6b. mutation: qualityGrade removed from FROZEN_ONCE_PACKED (lock kept)
+    ✓ the public doors show grade, harvest date, fresh weight and status — not moisture or drying (3 ms)
+    ✕ every field a scanner can see is refused 409 on PUT /:id after a lot was issued (status aside) (7 ms)
+    ✕ a grade change after packing is refused with the weight-freeze code, in Thai that names the grade (2 ms)
+    ✕ a note riding along with a grade change does not sneak through — the whole edit is refused (1 ms)
+    ✕ POST /:id/harvest cannot re-grade a packed batch either (2 ms)
+    ✓ before any lot exists the grade is still the farmer's to set (1 ms)
+    ✓ fields no scanner sees, the lifecycle status and the note still save after packing (3 ms)
+Tests:       4 failed, 3 passed, 7 total
+## 6. harvest-service.js restored to the fix after each mutation (section 1 re-run below)
+Test Suites: 6 passed, 6 total
+Tests:       63 passed, 63 total
+EXIT 0
+
+## 7. real-Postgres concurrency test: PENDING (not written, not claimed)
+# A real-DB harness for harvest exists: __tests__/integration/farmer-tnt-flow.test.js
+# (describeIfTestDatabase from test-support/test-database.js). No database was reachable in this session:
+#   [jest-globalsetup] local test database is NOT reachable: ... Can't reach database server at `127.0.0.1:5432`
+#   (printed at the top of red.txt; `ss -ltn` showed nothing on 5432/5433/5434/6432; no postgres container running)
+# A throwaway container would need `prisma migrate deploy`, which this task's rules forbid, so no test was
+# added that has never been seen to run. What the concurrency test should do once a DB is available:
+#   seed farm + batch (freshWeight 10); open tx A = prisma.$transaction(tx => lock the row with the same
+#   SELECT ... FOR UPDATE, create a lot, then wait on a latch); start harvestService.updateBatch(id,{freshWeight:99})
+#   in parallel and assert it has not resolved while A holds the row; release A;
+#   expect 409 HARVEST_FROZEN_AFTER_PACKING and freshWeight still 10. Same for recordHarvest.

@@ -1,0 +1,32 @@
+scripts/backfill-certificate-scopes.js dry run on the same walk data, before (1fde0d67d) and after (19d971bb9).
+Data: three certificates without scope rows. TH-GACP 21/2569 declares GREENHOUSE in farmData.areaTypes;
+22/2569 declares nothing (applications.areaType column OUTDOOR only); 23/2569 declares nothing (column UNDECLARED).
+The three info lines come from the app logger when the script loads services/prisma-database; they carry no data.
+
+== before: standard output
+  info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"…"}
+  info:    URL: {"service":"prisma-database","timestamp":"…"}
+  info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"…"}
+  mode: dry run (nothing written; pass --apply to write)
+  certificates without a scope row: 3
+  scope rows to write: 2 {"GREENHOUSE":1,"OUTDOOR":1}
+  scope rows written: 0
+  certificates whose application declares no cultivation type (left without a row): 1
+    TH-GACP 23/2569
+
+== after: standard output
+  info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"…"}
+  info:    URL: {"service":"prisma-database","timestamp":"…"}
+  info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"…"}
+  mode: dry run (nothing written; pass --apply to write)
+  certificates without a scope row: 3
+  scope rows to write: 1 {"GREENHOUSE":1}
+  scope rows written: 0
+  type from the column only, skipped: 1
+  no cultivation type at all, skipped: 1
+  skipped certificates listed in (0600): /tmp/backfill-certificate-scopes-oXrtys/skipped.tsv
+
+== after: the listed file (directory mode 700, file mode 600 measured with stat)
+  reason	certificateNumber	applications.areaType
+  type from the column only	TH-GACP 22/2569	OUTDOOR
+  no cultivation type at all	TH-GACP 23/2569	UNDECLARED

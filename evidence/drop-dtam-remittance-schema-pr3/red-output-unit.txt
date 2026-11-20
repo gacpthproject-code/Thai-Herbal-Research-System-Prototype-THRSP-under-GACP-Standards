@@ -1,0 +1,3682 @@
+RED — unit guard, tree = 07a3aa60 + this test only · node v24.21.0
+cmd: npx jest --config jest.config.cjs __tests__/unit/dtam-remittance-schema-dropped.test.js
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/dtam-remittance-schema-dropped.test.js
+  schema: ไม่มีชั้นนำส่งกรมฯ เหลือ
+    ✕ ไม่มี model DtamRemittanceBatch และไม่มีตาราง dtam_remittance_batches (4 ms)
+    ✕ CheckoutOrder ไม่มีคอลัมน์ส่วนของกรมฯ / สถานะนำส่ง / batch (4 ms)
+    ✕ Organization ไม่มี relation dtamRemittanceBatches (1 ms)
+    ✕ TENANT_SCOPED_MODELS ไม่มี DtamRemittanceBatch (116 ms)
+  โค้ด: ไม่อ่าน/เขียนคอลัมน์ที่ดรอปแล้ว
+    ✕ stripe-checkout-service ไม่เขียน dtamPayableAmount และไม่มีตัวปลด order ที่มีส่วนของกรมฯ (2 ms)
+    ✕ checkout-settlement-service ไม่อ่านส่วนของกรมฯ และไม่มีการปฏิเสธ CHECKOUT_ORDER_HAS_DTAM_PORTION (2 ms)
+    ✕ ไม่มีรหัส CHECKOUT_ORDER_HAS_DTAM_PORTION และไม่มีเหตุผล DTAM_PORTION_RETIRED (146 ms)
+    ✕ ไม่มีไฟล์ใน services/routes/jobs/shared/scripts ที่ยังอ้างคอลัมน์หรือตารางที่ดรอป (32 ms)
+  migration ใหม่: DESTRUCTIVE, ปฏิเสธก่อนดรอป, CHECK ยอดรวม = ค่าบริการรวม
+    ✕ มี migration ดรอปอยู่ใบเดียว และอยู่หลัง migration ที่สร้างตาราง (29 ms)
+    ✕ หัวไฟล์ติดป้าย DESTRUCTIVE และมี rollback SQL ในคอมเมนต์ (1 ms)
+    ✕ ปฏิเสธ (RAISE EXCEPTION) ก่อนดรอปเมื่อมี order ที่มีส่วนของกรมฯ และยังไม่ CANCELLED (1 ms)
+    ✕ CHECK ยอดรวมใหม่: total = platform gross (ยกเว้นแถว CANCELLED) และคง CHECK ค่าไม่ติดลบของค่าบริการ (1 ms)
+    ✕ ตัวตรวจก่อน deploy (อ่านอย่างเดียว) อยู่ที่ scripts/ops (1 ms)
+  fixtures: reset-uat-data ไม่ truncate ตารางที่ไม่มีแล้ว
+    ✕ ไม่มี dtamRemittanceBatch ในรายการล้าง (1 ms)
+
+  ● schema: ไม่มีชั้นนำส่งกรมฯ เหลือ › ไม่มี model DtamRemittanceBatch และไม่มีตาราง dtam_remittance_batches
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /model DtamRemittanceBatch\b/
+    Received string:      "// Domain: Billing & Payment
+
+    model Invoice {
+      id        String   @id @default(uuid())
+      uuid      String   @unique @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+
+      // Invoice Number
+      invoiceNumber String @unique
+
+      // ใบแจ้งหนี้ผูกกับคำขอเสมอ — DB บังคับด้วย CHECK `invoices_billable_application_chk`
+      // เดิมเป็น XOR ระหว่างคำขอกับแพ็กเกจสมาชิก ตั้งแต่แพ็กเกจถูกปลดระวาง 2026-09-11
+      // กติกาจึงเหลือทางเดียว (เข้มขึ้น ไม่ใช่ผ่อนลง)
+      applicationId  String?
+      application    Application?  @relation(fields: [applicationId], references: [id])
+      healthId       String
+      applicant      User          @relation(fields: [healthId], references: [canonicalId])
+      quoteId        String?
+      quote          Quote?        @relation(fields: [quoteId], references: [id])
+
+      // Service Type
+      serviceType String
+
+      // Billing
+      billingName       String?
+      billingAddress    String?
+      certificateNumber String?
+
+      // Items (JSON) — LEGACY: kept for backward compat with old invoices
+      items Json?
+
+      // Structured Line Items — NEW: itemized billing for DTAM compliance
+      lineItems InvoiceLineItem[]
+
+      // Totals
+      // Iter 24 (Ralph Loop, 2026-05-16) — Decimal type unification (audit-gap P0 #3).
+      // Migrated from Float → Decimal(15,2) so money math is exact across the system.
+      // Float (IEEE-754 binary64) accumulates rounding errors that compound through
+      // sum/diff operations and produce ฿0.01 drift after dozens of invoices —
+      // forbidden under TFRS for NPAEs ch.18 (revenue) and ม.86/4 ป.รัษฎากร
+      // (sequential tax-invoice numbering with exact taxable-amount column).
+      // Quotation / JournalLine / CreditNote / DebitNote already Decimal(15,2);
+      // this change brings Invoice into lockstep. Migration:
+      //   20260517000000_decimal_unification (additive USING-cast, no data loss).
+      // Service callers wrap reads with `Number(invoice.totalAmount)` for JS math
+      // (Prisma marshals Decimal as Decimal.js — `.toLocaleString()` is NOT on
+      // its prototype, so any direct interpolation site got a small fix).
+      subtotal        Decimal @db.Decimal(15, 2)
+      vat             Decimal @default(0) @db.Decimal(15, 2)
+      totalAmount     Decimal @db.Decimal(15, 2)
+      totalAmountText String?
+
+      // Payment
+      dueDate              DateTime
+      status               String              @default(\"pending\") // pending, paid, overdue, cancelled
+      paidAt               DateTime?
+      paymentTransactionId String?
+      // T-010 (subtask 1) — promote loose paymentTransactionId scalar into a
+      // proper FK so reconciliation can `include: { paymentTransaction: true }`
+      // without the second findFirst, and so dangling references are caught at
+      // INSERT time instead of silently ignored at JOIN time. The migration
+      // (20260505_invoice_payment_transaction_fk) uses ON DELETE SET NULL to
+      // preserve the invoice when a transaction row is purged — same policy
+      // as the *ProviderId promotions in 20260430200000_add_application_role_fks.
+      paymentTransaction   PaymentTransaction? @relation(fields: [paymentTransactionId], references: [id], onDelete: SetNull, onUpdate: Cascade)
+      paymentMethod        String? // QR_CASH, BANK_TRANSFER, CREDIT_CARD
+
+      // Receipt (Issued by Accountant)
+      receiptNumber   String?   @unique
+      receiptIssuedAt DateTime?
+      receiptIssuedBy String?
+
+      // Receipt auto-issue tracking (B-RCPT-STATUS, 2026-06-04). ใบเสร็จออกอัตโนมัติ
+      // แบบ ASYNCHRONOUS เมื่อชำระเงินสำเร็จ (นอก tx ของการรับชำระ เพื่อไม่ให้ปัญหาเรื่อง
+      // เลขที่ใบเสร็จไปขวางการรับชำระ — decision A)
+      //
+      // สัญญาณที่จุดชนวนคือ **Stripe webhook** ไม่ใช่ \"อนุมัติสลิป\" ตามที่คอมเมนต์เดิมเขียน —
+      // รางสลิปถูกปลดระวางแล้ว (มติ operator 2026-09-06) และตาราง payment_slips ถูกลบ
+      // 2026-09-11 · ตัวเงินตัดสินที่ checkout-settlement-service เท่านั้น
+      // Before this, a failed auto-issue was swallowed (\"non-fatal\") and invisible.
+      // These columns make a PENDING/FAILED auto-issue visible to the ACCOUNT queue
+      // (listReceiptFailures) and retryable (retryReceiptIssue).
+      receiptStatus        String? // null | \"PENDING\" | \"ISSUED\" | \"FAILED\"
+      receiptError         String? // last failure message (truncated to 500 chars)
+      receiptAttempts      Int       @default(0)
+      receiptLastAttemptAt DateTime?
+
+      // Digital signature metadata (B16-A, column landed 2026-06-04). Written by
+      // receipt-auto-sign-service on approval: { signerUserId, signerRole, signedAt,
+      // signatureAlgorithm, signatureBase64, pdfHash, keyNamespace, issuerSide }.
+      signatureMetadata    Json?
+
+      // Notes
+      notes String?
+
+      // Structured ops metadata (hold reason, release notes, finance flags, ...)
+      // Used by holdInvoice / releaseHold in services/invoice/invoice-finance-ops.js
+      metadata Json?
+
+      // Audit Trail
+      createdBy   String?
+      updatedBy   String?
+      createdByIp String?
+
+      // Soft Delete
+      isDeleted    Boolean   @default(false)
+      deletedAt    DateTime?
+      deletedBy    String?
+      deleteReason String?
+
+      // Legal Retention (7 years for tax)
+      retainUntil DateTime @default(dbgenerated(\"(now() + '7 years'::interval)\"))
+      legalHold   Boolean  @default(false)
+
+      // Tenancy (ADR-014, Phase 1)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      // Wave 1: the single-checkout order this invoice belongs to (one-to-one).
+      checkoutOrder CheckoutOrder? @relation(\"CheckoutOrderInvoice\")
+
+      // W3-41 Q2-D2: dedup ledger rows for the daily payment-reminder sweep
+      // (jobs/payment-reminder-job.js) — one row per (type, intended send day).
+      paymentReminderLogs PaymentReminderLog[]
+
+      // NOTE: the `journalEntries JournalEntry[]` back-relation was removed during
+      // migration-drift reconciliation. Its FK (journal_entries.invoiceId → invoices.id)
+      // was never enforced in the DB because the columns are type-incompatible
+      // (journal_entries.invoiceId is uuid; invoices.id is text). No backend code
+      // traversed this relation. journal_entries.invoiceId remains as a scalar.
+
+      // Credit-note / debit-note back-relations (B20-A, 2026-05-16). A paid
+      // PLATFORM-side ใบกำกับภาษี can be amended by zero, one, or many
+      // CreditNote / DebitNote rows over its lifetime (ม.86/10 และ ม.86/9
+      // ป.รัษฎากร). Both are issued by the PLATFORM only — STATE-fee invoices
+      // are corrected via Treasury's refund process, not via CN/DN on the
+      // platform's books.
+      creditNotes CreditNote[]
+      debitNotes  DebitNote[]
+
+      @@index([applicationId])
+      @@index([healthId])
+      @@index([status])
+      @@index([invoiceNumber])
+      @@index([isDeleted])
+      @@index([organizationId])
+      // Phase 2 #2.8: webhook reconciliation joins Invoice → PaymentTransaction
+      // by paymentTransactionId. Without this index, every webhook hit causes
+      // a sequential scan on `invoices`.
+      @@index([paymentTransactionId])
+      // DB-06: index FK columns
+      @@index([quoteId])
+      @@map(\"invoices\")
+    }
+
+    // NEW: INVOICE LINE ITEM (Itemized billing for DTAM compliance)
+
+    model InvoiceLineItem {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+
+      // Parent Invoice
+      invoiceId String
+      invoice   Invoice @relation(fields: [invoiceId], references: [id])
+
+      // Item Details
+      lineNumber  Int // ลำดับ (1, 2, 3...)
+      code        String // \"DOC_REVIEW\", \"FIELD_AUDIT\", \"PLATFORM_FEE\", \"VAT\"
+      description String // \"ค่าอ่าน/พิจารณาเอกสาร\"
+      quantity    Int    @default(1)
+      // BE-DB-05: Decimal(15,2) per TFRS for NPAEs (exact decimal math) — the
+      // parent Invoice.{subtotal,vat,totalAmount} are already Decimal (Iter 24,
+      // 20260517000000); line items were left as Float. A sum of Float line items
+      // can drift from the Decimal parent total by sub-satang once non-integer
+      // amounts appear. Migrated to match the Invoice family.
+      unitPrice   Decimal @db.Decimal(15, 2) // 5000.00
+      amount      Decimal @db.Decimal(15, 2) // quantity × unitPrice
+
+      // Category
+      phase     String? // \"PHASE_1\", \"PHASE_2\"
+      isTaxable Boolean @default(false)
+
+      // Tenancy (ADR-014, Phase 1)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      @@index([invoiceId])
+      @@index([organizationId])
+      @@map(\"invoice_line_items\")
+    }
+
+    // แพ็กเกจสมาชิก (Subscription) ถูกปลดระวาง 2026-09-11 — คำสั่ง operator: แพลตฟอร์มไม่มี
+    // บริการนี้ขาย · ขาที่พาไป ACTIVE ไม่มีตัวจุดชนวนอยู่จริงมาตั้งแต่ถอดรางสลิปออก และตาราง
+    // มีศูนย์แถว · ประตู entitlement ที่เคยกั้นการสร้างล็อตไว้ที่ PREMIUM ถูกถอดด้วย
+    // (operator: \"ตอนนี้เราเปิดสร้างล็อตแบบ open\") — ด่านจริงของประตูนั้นคือความเป็นเจ้าของรุ่น
+    // ซึ่งยังอยู่ครบ
+    // migration: 20260911140000_retire_subscriptions_and_slips
+
+    model Quote {
+      id        String   @id @default(uuid())
+      uuid      String   @unique @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+
+      // Quote Number
+      quoteNumber String @unique
+
+      // Relations
+      applicationId String
+      application   Application @relation(fields: [applicationId], references: [id])
+
+      // Items (JSON)
+      items Json?
+
+      // Totals — BE-DB-05: Decimal(15,2) per TFRS for NPAEs (exact decimal math),
+      // matching Quotation/Invoice. Quote is the legacy quote model; its amounts
+      // feed downstream invoice math, so Float drift here propagates.
+      subtotal    Decimal @db.Decimal(15, 2)
+      vat         Decimal @default(0) @db.Decimal(15, 2)
+      totalAmount Decimal @db.Decimal(15, 2)
+
+      // Status
+      status     String    @default(\"pending\") // pending, accepted, rejected, expired
+      validUntil DateTime
+      acceptedAt DateTime?
+      rejectedAt DateTime?
+
+      // Notes
+      notes String?
+
+      // Soft Delete
+      isDeleted Boolean   @default(false)
+      deletedAt DateTime?
+
+      // Relations
+      invoices Invoice[]
+
+      // Tenancy (ADR-014, Phase 1)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      @@index([applicationId])
+      @@index([status])
+      @@index([isDeleted])
+      @@index([organizationId])
+      @@map(\"quotes\")
+    }
+
+    model PaymentTransaction {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+
+      // Reference
+      applicationId String
+      application   Application @relation(fields: [applicationId], references: [id])
+
+      // Payment Phase
+      phase String // PHASE_1 (5,000), PHASE_2 (25,000)
+
+      // Gateway Info
+      gateway    String // STRIPE, PROMPTPAY, TRUEMONEY, etc.
+      gatewayRef String? @unique // Reference ID from gateway (M-017: unique for idempotent webhook)
+
+      // Amount
+      /// Amount in SATANG (1 baht = 100 satang). Stripe-style integer to avoid
+      /// floating-point. Convert to/from baht via Math.round(amount / 100) for
+      /// display.
+      /// IMPORTANT: this is in SATANG. By contrast, Application.phase1Amount /
+      /// phase2Amount are in BAHT. Same conceptual value (the gateway-charged
+      /// amount), different units — so writers that bridge the two fields must
+      /// multiply or divide by 100. Existing call sites:
+      ///   - payment-service-phase-flow.js:139,273  amount: phase{1,2}Amount * 100  (baht->satang)
+      ///   - payment-service-webhook-flow.js:257,283 amount: transactionAmount || application.phase{1,2}Amount  (mixed; verify each caller)
+      amount   Int
+      currency String @default(\"THB\")
+
+      // Status
+      status String @default(\"PENDING\") // PENDING, PROCESSING, SUCCESS, FAILED, CANCELLED, EXPIRED, REFUNDED
+
+      // Payment Details
+      paymentMethod String? // CREDIT_CARD, PROMPTPAY, etc.
+      paymentData   Json? // { cardLast4, bank, etc. }
+
+      // Timestamps
+      paidAt      DateTime?
+      failedAt    DateTime?
+      cancelledAt DateTime?
+      expiredAt   DateTime?
+
+      // Error Info (if failed)
+      errorCode    String?
+      errorMessage String?
+
+      // Webhook
+      webhookReceivedAt DateTime?
+      webhookData       Json?
+
+      // Idempotency
+      idempotencyKey String? @unique
+
+      // Tenancy (ADR-014, Phase 1)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      // T-010 (subtask 1) — back-relation for the FK added on Invoice.paymentTransactionId.
+      // One PaymentTransaction can settle multiple superseded Invoice rows
+      // (e.g., re-billing scenarios with the same gateway capture).
+      invoices Invoice[]
+
+      // Wave 1: the checkout order this charge settles (one-to-one).
+      checkoutOrder CheckoutOrder? @relation(\"CheckoutOrderCharge\")
+
+      @@index([applicationId])
+      @@index([status])
+      @@index([gatewayRef])
+      @@index([createdAt])
+      @@index([organizationId])
+      @@map(\"payment_transactions\")
+    }
+
+    // NEW: PAYMENT AUDIT (Raw Webhook Data)
+
+    // Wave 0 purge (docs/payment-refactor/legacy-payment-audit.md): the orphan
+    // PaymentAudit (raw gateway webhook store — no mounted webhook since the
+    // 2026-04-29 slip-flow cutover) and PaymentReconciliation (Float money,
+    // never written) models were dropped. The single-checkout redesign gets a
+    // NEW remittance/reconciliation model — those two were not a usable base.
+
+    // BANK ACCOUNT (slip-flow Phase 1 — destination account for off-platform
+    // transfers; ACCOUNT-team manages via /provider/accounting/bank-accounts)
+
+    model BankAccount {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+
+      // Bank fields (Thai)
+      bankCode      String // SCB, KBANK, BBL, KTB, BAY, GSB, KKP, TTB, etc.
+      bankName      String // Human-readable, e.g. \"ธนาคารกรุงเทพ\"
+      accountNumber String // Formatted \"xxx-x-xxxxx-x\" or contiguous digits
+      accountHolder String // Legal name of the receiving entity
+      branchName    String?
+
+      // PromptPay (optional — applicant-facing screen renders QR if set)
+      promptpayId String? // 13-digit national ID OR 10-digit phone number
+
+      // Lifecycle
+      isActive        Boolean   @default(true) // Applicant-visible candidate
+      isDefault       Boolean   @default(false) // One-per-(org, defaultForPhase) enforced in service
+      defaultForPhase String? // null = default for all phases; \"PHASE_1\" / \"PHASE_2\" / \"SUBSCRIPTION\" = phase-scoped
+      // Two-money-flow issuer side (B-PAY-SIDE, 2026-06-04). Each phase produces
+      // a STATE-fee invoice (→ DTAM/Treasury account) AND a PLATFORM-fee+VAT
+      // invoice (→ company account); the applicant must transfer each to its own
+      // account. The slip-upload modal derives the side from the invoice's
+      // serviceType (PHASE_x_STATE_FEE / PHASE_x_PLATFORM_FEE) and asks /active
+      // for that side. null = legacy single/side-agnostic account.
+      issuerType      String? // null | \"STATE\" (DTAM) | \"PLATFORM\"
+      effectiveFrom   DateTime  @default(now())
+      effectiveUntil  DateTime?
+
+      // Operational (not shown to applicants)
+      notes String?
+
+      // Audit
+      createdBy String? // ACCOUNT/ADMIN user id
+      updatedBy String?
+
+      // Tenancy (ADR-014)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      // Back-link
+
+      @@unique([organizationId, bankCode, accountNumber])
+      @@index([organizationId, isActive, defaultForPhase, effectiveFrom, effectiveUntil])
+      @@index([organizationId, isActive])
+      @@index([organizationId, issuerType, isActive])
+      @@map(\"bank_accounts\")
+    }
+
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // DOUBLE-ENTRY ACCOUNTING (B16, 2026-05-16)
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Persists the journal-entry stream emitted by services/journal-entry-service.js
+    // every time an Invoice transitions to PAID. Conforms to Thai accounting
+    // requirements:
+    //   - TFRS for NPAEs (Thai Financial Reporting Standards for Non-Publicly
+    //     Accountable Entities) — mandatory double-entry bookkeeping.
+    //   - TAS 1 (Presentation of Financial Statements) — chronological audit
+    //     trail with traceable references to source documents.
+    //   - Revenue Code §86/4 (ภ.พ.30) — VAT remittance requires a separable
+    //     \"VAT Payable (Output)\" credit line on every platform-fee receipt.
+    //   - 7-year retention — see Invoice.retainUntil; journal entries inherit
+    //     the same retention window (enforced at the application layer).
+    //
+    // Design notes:
+    //   - Decimal(15,2) for money (NOT Float / Int satang) — accounting requires
+    //     exact decimal math at the schema boundary; Prisma marshals to JS
+    //     Decimal.js, services round via round2() before persistence.
+    //   - lines cascade-delete with entry (a journal entry without its lines is
+    //     a torn write; treat as a single aggregate).
+    //   - metadata Json? on lines is forward-compat: withholding tax (WHT),
+    //     foreign-currency amounts (currency, fxRate), multi-entity splits
+    //     (subsidiary code), and reversal markers can land here without a
+    //     migration. See docs/architecture/journal-entry-schema-2026-05-16.md.
+    //   - Soft delete via isDeleted only on JournalEntry (the aggregate root) —
+    //     lines are immutable once the entry is written; corrections must be
+    //     posted as a REVERSING entry, not by editing lines (standard
+    //     accounting practice — preserves the audit trail).
+
+    model JournalEntry {
+      id             String        @id @default(dbgenerated(\"gen_random_uuid()\")) @db.Uuid
+      entryDate      DateTime // accounting date (typically invoice.paidAt)
+      reference      String // free-form, usually invoice.invoiceNumber
+      invoiceId      String?       @db.Uuid
+      // NOTE: Invoice relation removed (migration-drift reconcile): invoiceId (uuid) and
+      // invoices.id (text) are type-incompatible, so the declared FK could never be created
+      // or enforced. invoiceId is kept as a plain scalar reference (no @relation).
+      description    String // e.g. \"Payment received for INV-…\"
+      totalDebit     Decimal       @db.Decimal(15, 2) // must equal totalCredit
+      totalCredit    Decimal       @db.Decimal(15, 2)
+      organizationId String?       @db.Uuid
+      createdAt      DateTime      @default(now())
+      createdBy      String? // canonical user id of the actor
+      sourceType     String? // e.g. CHECKOUT_SETTLEMENT — the idempotency class of this entry
+      sourceId       String? // the order id for a settlement — one live settlement entry per order
+      isDeleted      Boolean       @default(false) // soft-delete; reversing entries preferred
+      lines          JournalLine[]
+
+      @@index([entryDate])
+      @@index([reference])
+      @@index([invoiceId])
+      @@index([organizationId])
+      @@map(\"journal_entries\")
+    }
+
+    model JournalLine {
+      id          String       @id @default(dbgenerated(\"gen_random_uuid()\")) @db.Uuid
+      entryId     String       @db.Uuid
+      entry       JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+      lineNumber  Int // 1-based ordinal within the entry
+      accountCode String // chart-of-accounts code (e.g. \"1112-001\")
+      accountName String // Thai-language account name from journal-entry-service.ACCOUNTS
+      debit       Decimal      @default(0) @db.Decimal(15, 2)
+      credit      Decimal      @default(0) @db.Decimal(15, 2)
+      issuer      String? // 'DTAM' | 'PLATFORM' — splits state vs platform revenue
+      // Taxable amount under Revenue Code ม.79 — the VAT base for this line.
+      // Distinct from `credit` because the VAT-bearing portion of a multi-line
+      // invoice is the platform-fee subtotal, NOT the total cash captured.
+      // Used by ภ.พ.30 (monthly VAT remittance) to filter only VAT-bearing rows
+      // without re-parsing accountCode. Optional — non-VAT lines leave it null.
+      taxableAmount Decimal?   @db.Decimal(15, 2)
+      metadata    Json? // forward-compat: WHT, FX, multi-entity, reversal markers
+      createdAt   DateTime     @default(now())
+
+      @@index([entryId])
+      @@index([accountCode])
+      @@map(\"journal_lines\")
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // RECEIPT SEQUENCE ALLOCATOR (B16, 2026-05-16; extended 2026-05-16 batch B16-A)
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Per-issuer + per-document-type + per-year monotonic counter for canonical
+    // receipt / quotation / invoice numbers. Issued numbers must be unique across
+    // the entire program — duplicates would be a legal defect under DTAM and
+    // Revenue Department audit. Allocation runs inside a SERIALIZABLE Prisma
+    // transaction:
+    //   - findUnique → capture current `nextNumber`
+    //   - update     → bump nextNumber by 1 (or upsert with nextNumber=2 on first
+    //                  allocation, returning 1)
+    // PostgreSQL's serializable isolation plus the compound unique index ensures
+    // two concurrent allocators cannot mint the same number.
+    //
+    // Shape history:
+    //   - 2026-05-16 (B16-original): single (prefix, year, counter) tuple.
+    //     prefix encoded both issuer + document via string concat ('RCP-DTAM').
+    //   - 2026-05-16 (B16-A extension, this migration): added structured columns
+    //     (issuerType, documentType, yearBE, yearAD, nextNumber) so:
+    //       1. the receipt-sequence-service can query by issuer+doctype directly
+    //          without parsing the prefix string;
+    //       2. PLATFORM rows carry the actual CE year (yearAD) and the storage
+    //          BE year (yearBE) side-by-side — the render layer no longer has
+    //          to translate between calendars;
+    //       3. new document types (QUOTATION, INVOICE, FULL_TAX_INVOICE, etc.)
+    //          can extend the table without touching the legacy prefix column.
+    //
+    //     Legacy columns (prefix, year, counter) are kept NULLABLE so existing
+    //     B16 rows survive and the receipt-numbering-service.js fallback path
+    //     stays functional through the transition. Once all consumers migrate
+    //     to the new columns, B16-D drops the legacy trio.
+    //
+    // Compliance basis: TFRS for NPAEs ch.2 (financial reporting framework),
+    //   Revenue Code §86/4 (sequential tax-invoice numbering), §87/3 (7-year
+    //   document retention).
+    //
+    // Concurrency note for DBAs:
+    //   Two unique indexes coexist during the transition window:
+    //     `receipt_sequences_prefix_year_key`              (legacy)
+    //     `receipt_sequences_issuer_doc_be_ad_key`         (new)
+    //   Both protect against duplicate buckets. A row created via the new path
+    //   leaves `prefix`/`year` NULL; the legacy unique index is partial-friendly
+    //   (PostgreSQL treats multiple NULLs as distinct, so legacy and new rows
+    //   coexist without collision).
+
+    model ReceiptSequence {
+      id              String   @id @default(dbgenerated(\"gen_random_uuid()\")) @db.Uuid
+      // ── Legacy shape (B16-original, kept nullable through transition) ─────
+      prefix          String?  // 'RCP-DTAM' | 'TAX-PRD' — legacy, kept for back-compat
+      year            Int?     // legacy year column (CE for PLATFORM, BE for DTAM)
+      counter         Int      @default(0) // last-allocated value; nextval = counter + 1
+      // ── New shape (B16-A extension) ───────────────────────────────────────
+      issuerType      String?  // 'DTAM' | 'PLATFORM' — populated on new rows
+      documentType    String?  // 'QUOTATION' | 'INVOICE' | 'GOVERNMENT_REVENUE_RECEIPT'
+      //                       // | 'FULL_TAX_INVOICE'
+      yearBE          Int?     // Buddhist Era year (2568, 2569 …); 0 if irrelevant
+      yearAD          Int?     // Anno Domini year (2025, 2026 …); 0 if irrelevant
+      nextNumber      Int      @default(1) // next value to mint (NOT last allocated)
+      // ── Audit ──────────────────────────────────────────────────────────────
+      lastAllocatedAt DateTime @default(now())
+      updatedAt       DateTime @updatedAt
+
+      @@unique([prefix, year], map: \"receipt_sequences_prefix_year_key\")
+      @@unique([issuerType, documentType, yearBE, yearAD], map: \"receipt_sequences_issuer_doc_be_ad_key\")
+      @@index([prefix])
+      @@index([issuerType, documentType])
+      @@map(\"receipt_sequences\")
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // QUOTATION (B16-A extension, 2026-05-16) — DTAM-side / PLATFORM-side split
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Adds a structured Quotation row decoupled from the legacy `Quote` model:
+    //   - The legacy Quote stays in place (consumed by finance routes from
+    //     batch 11) — DO NOT delete or migrate Quote rows here. Batch B16-A
+    //     introduces Quotation as the canonical home for the new two-issuer
+    //     billing flow.
+    //   - Each Application now generates TWO Quotation rows per phase:
+    //       • issuerType='DTAM'     — state fee transferred to Treasury
+    //       • issuerType='PLATFORM' — platform service fee + VAT to platform bank
+    //     The applicant accepts both via the same UI step; the system mints
+    //     two Invoice rows + two Receipt rows downstream.
+    //   - `installments` is a JSON array of phase splits, e.g.:
+    //       [{ \"phase\": \"PHASE_1\", \"amount\": 5000 },
+    //        { \"phase\": \"PHASE_2\", \"amount\": 25000 }]
+    //     This lets one Quotation describe BOTH phase fees up-front while still
+    //     billing them separately when the applicant reaches each gate.
+    //
+    // Compliance basis:
+    //   - Revenue Code §86 — formal quotation is not a tax document but, when
+    //     it precedes a full tax invoice, the same identity/address fields
+    //     must reconcile (§86/4 trace requirement).
+    //   - TFRS for NPAEs ch. 18 (รายได้) — revenue is recognised at invoice
+    //     time, NOT quotation; this table holds estimates only.
+    //
+    // Quote vs Quotation decision (recorded for auditors):
+    //   Existing Quote has applicationId + subtotal/vat/totalAmount, so it
+    //   COULD have been extended with issuerType + installments. However the
+    //   two-issuer flow needs a clean break:
+    //     • Quote.quoteNumber is shared across legacy single-issuer documents
+    //       (QT-20260516-0001 style) — re-using it would conflate the two
+    //       numbering streams and break batch-11 quote-service uniqueness.
+    //     • The new flow's `quotationNumber` is allocated via ReceiptSequence
+    //       (documentType='QUOTATION') with separate DTAM / PLATFORM buckets.
+    //   → DECISION: ADD a new Quotation model alongside Quote. Quote rows are
+    //     read-only legacy; new finance code writes Quotation.
+
+    model Quotation {
+      id              String   @id @default(dbgenerated(\"gen_random_uuid()\")) @db.Uuid
+      createdAt       DateTime @default(now())
+      updatedAt       DateTime @updatedAt
+
+      // Linkage — every quotation belongs to exactly one application; an
+      // application has TWO quotations (DTAM + PLATFORM).
+      applicationId   String
+      application     Application @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+
+      // Issuer — splits the document stream into DTAM (state fee) and
+      // PLATFORM (service fee + VAT).
+      issuerType      String   // 'DTAM' | 'PLATFORM'
+
+      // Canonical number (e.g. 'QT-DTAM-2569-000001' or 'QT-PRD-2026-000001').
+      // Allocated via receipt-sequence-service with documentType='QUOTATION'.
+      quotationNumber String   @unique
+
+      // Money (Decimal(15,2) per TFRS for NPAEs — exact decimal math).
+      subtotal        Decimal  @db.Decimal(15, 2)
+      vat             Decimal  @default(0) @db.Decimal(15, 2)
+      totalAmount     Decimal  @db.Decimal(15, 2)
+
+      // Per-phase installment breakdown, e.g.
+      //   [{ \"phase\":\"PHASE_1\",\"amount\":5000 },{ \"phase\":\"PHASE_2\",\"amount\":25000 }]
+      // for the DTAM quotation, or
+      //   [{ \"phase\":\"PHASE_1\",\"amount\":535 },{ \"phase\":\"PHASE_2\",\"amount\":2675 }]
+      // for the PLATFORM quotation. Each phase becomes an Invoice when the
+      // applicant clears the phase gate.
+      installments    Json?
+
+      // Lifecycle
+      status          String   @default(\"DRAFT\") // DRAFT | SENT | ACCEPTED | REJECTED | EXPIRED | INVOICED
+      validUntil      DateTime?
+      acceptedAt      DateTime?
+      rejectedAt      DateTime?
+
+      // F-G4-64 — the acceptance record. `acceptedSnapshot` is the document the
+      // applicant actually saw at the instant of acceptance, built from THIS row's
+      // installments (never from a live fee calculation), with every money value a
+      // 2-decimal string. `acceptedSnapshotHash` is sha256 over its canonical
+      // (key-sorted) JSON; a checkout order copies it so the charge can be proved
+      // to have been checked against those exact figures. `acceptedBy` is the
+      // acting User id — `updatedBy` already carried it, but that column also moves
+      // for reasons that are not acceptance.
+      acceptedSnapshot     Json?
+      acceptedSnapshotHash String?
+      acceptedBy           String?
+
+      // Per-instalment billing stamps. Under W14 ONE quotation prices BOTH phases,
+      // so `status = INVOICED` may only be written once EVERY instalment this
+      // quotation prices has been billed. A renewal prices PHASE_2 only, so for a
+      // renewal phase2InvoicedAt alone closes the quotation.
+      phase1InvoicedAt DateTime?
+      phase2InvoicedAt DateTime?
+
+      // Notes (provider note, applicant note)
+      notes           String?
+      applicantNotes  String?
+
+      // Audit
+      createdBy       String?
+      updatedBy       String?
+
+      // Soft delete
+      isDeleted       Boolean   @default(false)
+      deletedAt       DateTime?
+      deletedBy       String?
+      deleteReason    String?
+
+      // Tenancy (ADR-014, Phase 1) — keep parity with Quote.
+      organizationId  String
+      organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      // Lookup index only. The UNIQUENESS of a live quotation per
+      // (applicationId, issuerType) is enforced by a PARTIAL unique index that
+      // lives in SQL and nowhere else, because Prisma's schema language cannot
+      // express `WHERE \"isDeleted\" = false`:
+      //
+      //   quotations_application_issuer_live_uq
+      //     — prisma/migrations/20260828100000_quotation_acceptance_snapshot_expand
+      //
+      // It is what actually stops two concurrent issuances from minting two priced
+      // documents and burning two QT-PRD numbers for one application; the service
+      // reads its violation as \"somebody else already issued it\" and re-reads
+      // (quotation-service.issueQuotationsForApplication). Partial so a
+      // soft-deleted row never blocks a re-issue, and so a pre-W14 application can
+      // keep its legitimate DTAM + PLATFORM pair.
+      @@index([applicationId, issuerType])
+      @@index([status])
+      @@index([organizationId])
+      @@index([isDeleted])
+      @@map(\"quotations\")
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // ISSUER BANK ACCOUNT (B16-A extension, 2026-05-16)
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Canonical destination bank account per issuer side (DTAM / PLATFORM). The
+    // applicant's payment UI renders these two accounts side-by-side so they can
+    // make BOTH transfers in the same session: state fee → Treasury (DTAM),
+    // platform fee + VAT → platform bank (PLATFORM).
+    //
+    // NOT to be confused with the existing `BankAccount` model above. The
+    // existing BankAccount is org-scoped + phase-scoped — applicable per
+    // organization. This new IssuerBankAccount is GLOBAL — one row per issuer
+    // type total, representing the platform-level canonical destinations.
+    //
+    // Compliance basis:
+    //   - กฎกระทรวงการคลังเรื่องเงินรายได้แผ่นดิน — state revenue must land in
+    //     a Treasury-controlled (กรมบัญชีกลาง) account, NOT a private bank
+    //     account. The DTAM row records that destination so the slip-flow
+    //     reconciler knows where to expect the bank credit.
+    //   - Revenue Code §82 — VAT-registered entity (the platform) must maintain
+    //     a single canonical bank account for VAT receipts so the monthly
+    //     ภ.พ.30 reconciliation has a single source of truth.
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // CREDIT NOTE (ใบลดหนี้) — ม.86/10 ป.รัษฎากร  (B20-A, 2026-05-16)
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Issued by the PLATFORM (Predictive AI Solution Co., Ltd.) when a previously
+    // issued full tax invoice (ใบกำกับภาษีเต็มรูป) must be amended downward —
+    // cancellation, price reduction, partial return, billing-error correction.
+    //
+    // Legal basis:
+    //   - ป.รัษฎากร ม.86/10 — A VAT-registered seller that issues a tax invoice
+    //     and later reduces the taxable amount MUST issue a \"ใบลดหนี้\" to the
+    //     buyer in the same VAT period (ภ.พ.30 month) where the change occurs.
+    //   - ม.86/4 — Sequential numbering rules carry over (CN must reference the
+    //     ORIGINAL invoice number + state the reason).
+    //   - ม.87/3 — 7-year retention applies to all tax-bearing documents.
+    //   - TFRS for NPAEs ch. 18 (รายได้) — reduces revenue at the period the
+    //     CN is recognised; the original revenue entry is not edited, a
+    //     REVERSING entry is posted instead.
+    //
+    // Scope: PLATFORM only. DTAM (state-fee) invoices are corrected via the
+    // กรมบัญชีกลาง refund process — NOT via CN/DN here. Enforced at the service
+    // layer (createCreditNote rejects when originalInvoice.serviceType maps to
+    // the DTAM issuer).
+    model CreditNote {
+      id                String   @id @default(uuid())
+      createdAt         DateTime @default(now())
+      updatedAt         DateTime @updatedAt
+
+      // Canonical document number: CN-PRD-{yearAD}-{seq6}
+      //   e.g. \"CN-PRD-2026-000001\". Allocated via receipt-sequence-service /
+      //   receipt-numbering-service with documentType='CREDIT_NOTE_PLATFORM'
+      //   and issuerType='PLATFORM' (Arabic numerals + CE year per platform
+      //   convention — matches TAX-PRD-* tax-invoice numbering).
+      /// null while DRAFT — allocated at ISSUE (number year = printed year, 2026-09-26)
+      creditNoteNumber  String?  @unique
+
+      // Reference to the original ใบกำกับภาษี (mandatory under ม.86/10).
+      originalInvoiceId String
+      originalInvoice   Invoice  @relation(fields: [originalInvoiceId], references: [id])
+
+      // Reason for the credit note — free-text Thai description that prints on
+      // the PDF, plus a coded enum for analytics / VAT report categorisation.
+      //   'CANCELLATION'      — service cancelled by buyer
+      //   'PRICE_REDUCTION'   — agreed price discount post-invoice
+      //   'CORRECTION'        — over-billing / arithmetic error
+      //   'RETURN'            — partial return of supplied service
+      reason            String
+      reasonCode        String
+
+      // Money — Decimal(15,2) per TFRS for NPAEs (exact decimal math). All
+      // values are POSITIVE numbers; the \"downward\" semantics are implicit in
+      // the document type. The journal entry posted at POSTED status will
+      // Dr Revenue + Dr Output VAT and Cr the offsetting cash / refund-payable
+      // line — see services/credit-note-service.js for the reversing shape.
+      subtotal          Decimal  @db.Decimal(15, 2)
+      vat               Decimal  @db.Decimal(15, 2)
+      totalAmount       Decimal  @db.Decimal(15, 2)
+
+      // Lifecycle:
+      //   DRAFT   → ISSUED   (allocate number, freeze financials, generate PDF)
+      //   ISSUED  → POSTED   (write the reversing JournalEntry, mark immutable)
+      //   any     → CANCELLED (soft-cancel before POSTED; POSTED state is
+      //                        immutable — corrections require another CN/DN
+      //                        per standard accounting practice).
+      status            String
+      issuedAt          DateTime?
+      issuedBy          String?
+      postedAt          DateTime?
+      postedBy          String?
+
+      // Tenancy (ADR-014) — optional because legacy seed/test rows may exist
+      // without an organisation but every production row will carry one.
+      organizationId    String?
+
+      // Soft delete
+      isDeleted         Boolean  @default(false)
+
+      @@index([originalInvoiceId])
+      @@index([status])
+      @@index([organizationId])
+      @@map(\"credit_notes\")
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // DEBIT NOTE (ใบเพิ่มหนี้) — ม.86/9 ป.รัษฎากร  (B20-A, 2026-05-16)
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Mirror of CreditNote — issued when a previously billed amount must be
+    // adjusted UPWARD (additional charge, billing-error correction in the
+    // over-charge direction, late fee). Same period-locking rule (same ภ.พ.30
+    // month) and same retention. Reason codes differ:
+    //   'ADDITIONAL_CHARGE' — extra scope of work billed after the fact
+    //   'CORRECTION'        — under-billing / arithmetic error
+    //   'LATE_FEE'          — penalty added per the service agreement
+    model DebitNote {
+      id                String   @id @default(uuid())
+      createdAt         DateTime @default(now())
+      updatedAt         DateTime @updatedAt
+
+      // Canonical document number: DN-PRD-{yearAD}-{seq6}
+      /// null while DRAFT — allocated at ISSUE (number year = printed year, 2026-09-26)
+      debitNoteNumber   String?  @unique
+
+      originalInvoiceId String
+      originalInvoice   Invoice  @relation(fields: [originalInvoiceId], references: [id])
+
+      reason            String
+      reasonCode        String
+
+      subtotal          Decimal  @db.Decimal(15, 2)
+      vat               Decimal  @db.Decimal(15, 2)
+      totalAmount       Decimal  @db.Decimal(15, 2)
+
+      status            String
+      issuedAt          DateTime?
+      issuedBy          String?
+      postedAt          DateTime?
+      postedBy          String?
+
+      organizationId    String?
+      isDeleted         Boolean  @default(false)
+
+      @@index([originalInvoiceId])
+      @@index([status])
+      @@index([organizationId])
+      @@map(\"debit_notes\")
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // MANUAL JOURNAL ENTRY DRAFT (B20-C, 2026-05-16) — workflow row
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Owns the draft → approval → posting workflow for journal entries that
+    // are NOT triggered by a slip approval (bank charges, FX gain/loss,
+    // accrual reversals, manual corrections after approval).
+    //
+    // State machine:
+    //   DRAFT     → APPROVED  (ADMIN; separation-of-duties — approver ≠ creator)
+    //   APPROVED  → POSTED    (ADMIN; writes JournalEntry + JournalLine atomically)
+    //   DRAFT|APPROVED → REJECTED (records reason, terminal)
+    //   POSTED    → (terminal — TFRS for NPAEs ch.18 immutability; corrections
+    //                via a separate reversing entry)
+    //
+    // Compliance basis:
+    //   - TFRS for NPAEs ch.2 — internal controls require segregation of
+    //     incompatible functions: the staff member who creates a journal
+    //     entry cannot be the one who approves it.
+    //   - TFRS for NPAEs ch.18 — once posted, a journal entry is part of the
+    //     chronological accounting record and is immutable. Corrections via
+    //     reversing entries.
+    //   - ป.รัษฎากร ม.86/4 — sequential numbering on tax-bearing documents;
+    //     draftNumber MJE-{yearAD}-{seq6} preserves the audit trail even for
+    //     rejected drafts (gap is meaningful — auditor can see \"MJE-2026-
+    //     000005 was rejected\" rather than wondering whether it existed).
+    //   - ป.รัษฎากร ม.87/3 — 7-year retention.
+    //
+    // Schema notes:
+    //   - linesJson stores the validated debit/credit lines in array form
+    //     so the draft is self-contained even before posting. On post, the
+    //     lines are materialised into JournalLine rows linked to the freshly
+    //     created JournalEntry; `postedJournalEntryId` back-pointer lets the
+    //     auditor jump from this row to the GL entry.
+    //   - description on the posted JournalEntry is prefixed with `[MANUAL]`
+    //     so the trial-balance + financial-statements aggregators can filter
+    //     manual vs auto entries without a dedicated entryType column. A
+    //     future migration can promote that prefix into an explicit column.
+    //   - organizationId is nullable to mirror existing CreditNote/DebitNote
+    //     models (legacy seed rows may lack a tenant).
+    //   - linesJson uses Json not Json? — the lines array is mandatory.
+
+    model ManualJournalEntryDraft {
+      id                   String   @id @default(uuid())
+      // Canonical draft number — MJE-{yearAD}-{seq6}. Allocated by the
+      // service via a count+1 pattern (concurrency note: low-volume manual
+      // entries make this acceptable; promote to receipt-sequence-service
+      // when volume grows).
+      draftNumber          String   @unique
+
+      description          String
+      postingDate          DateTime
+      reason               String
+
+      // Lifecycle status — DRAFT | APPROVED | POSTED | REJECTED. POSTED is
+      // terminal; REJECTED is also terminal (corrections via a fresh draft).
+      status               String
+
+      // Validated lines as JSON: [{ lineNumber, accountCode, accountName,
+      // debit, credit }]. accountCode MUST exist in the canonical chart of
+      // accounts (chart-of-accounts-service); validated at create and again
+      // at post.
+      linesJson            Json
+
+      // Totals — Decimal(15,2) per TFRS for NPAEs exact-decimal-math rule.
+      // Stored on the row so list views can show the totals without parsing
+      // linesJson; reconciliation re-derives + compares at post time.
+      totalDebit           Decimal  @db.Decimal(15, 2)
+      totalCredit          Decimal  @db.Decimal(15, 2)
+
+      // Creator (mandatory — segregation-of-duties requires identifying the
+      // maker so the approver check can compare ids).
+      createdBy            String
+      createdAt            DateTime @default(now())
+
+      // Approval — populated when DRAFT → APPROVED. approvedBy MUST differ
+      // from createdBy; service-layer enforced (SELF_APPROVAL_FORBIDDEN).
+      approvedBy           String?
+      approvedAt           DateTime?
+
+      // Posting — populated when APPROVED → POSTED. The journalEntryId
+      // points to the freshly written GL row so auditors can hop draft → GL.
+      postedAt             DateTime?
+      // DB-02: typed @db.Uuid to match journal_entries.id (uuid). Value written is a
+      // real JournalEntry id (manual-journal-entry-service.js:441). A real FK is
+      // deferred to a change that can be tested against the posting flow.
+      postedJournalEntryId String?              @db.Uuid
+
+      // Rejection — populated when DRAFT|APPROVED → REJECTED. Reason is
+      // required and must be ≥ 10 chars (service-layer enforced).
+      rejectedBy           String?
+      rejectedAt           DateTime?
+      rejectionReason      String?
+
+      // Tenancy (ADR-014) — optional to match CreditNote / DebitNote.
+      organizationId       String?
+
+      updatedAt            DateTime @updatedAt
+
+      @@index([status])
+      @@index([organizationId])
+      @@index([createdBy])
+      @@index([postingDate])
+      @@map(\"manual_journal_entry_drafts\")
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // PERIOD CLOSE (Iter 24, 2026-05-16) — TFRS for NPAEs Ch.5 monthly close
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Persists the monthly accounting-period close that finance staff perform
+    // at the start of the following calendar month (e.g., May 2026 closes in
+    // early June 2026). Once a period is CLOSED the journal-entry layer
+    // REJECTS new entries whose `entryDate` falls inside that period — this
+    // prevents back-dating fraud and seals the ภ.พ.30 / TFRS NPAEs financial
+    // statements for the period.
+    //
+    // State machine:
+    //
+    //   ┌──────┐  closePeriod  ┌────────┐  reopenPeriod (ADMIN)  ┌──────────┐
+    //   │ OPEN │ ────────────▶ │ CLOSED │ ─────────────────────▶ │ REOPENED │
+    //   └──────┘               └────────┘                        └──────────┘
+    //                                                                 │
+    //                                                                 │ closePeriod
+    //                                                                 ▼
+    //                                                            ┌────────┐
+    //                                                            │ CLOSED │
+    //                                                            └────────┘
+    //
+    //   - CLOSED: journal-entry insertion REJECTED for that period (entryDate
+    //     within boundaries → throws PERIOD_CLOSED unless meta.allowClosedPeriod
+    //     is set by ADMIN recovery flow).
+    //   - REOPENED: temporary unlock for late posting (e.g., audit finding).
+    //     Same period can be re-closed once corrections are posted.
+    //   - OPEN: implicit when no row exists for (organizationId, year, month).
+    //
+    // Separation of duties (TFRS for NPAEs ch.2):
+    //   - The user who CLOSED a period MUST NOT be the user who REOPENS it.
+    //     ADMIN role is required for reopen; the closer-cannot-reopen rule is
+    //     enforced at the service layer (period-close-service.js).
+    //
+    // Compliance basis:
+    //   - TFRS for NPAEs ch.5 — year-end close (period close is the monthly
+    //     equivalent that supports the year-end aggregate).
+    //   - TFRS for NPAEs ch.2 — internal controls + segregation of duties.
+    //   - ป.รัษฎากร ม.86/4 — VAT period closure aligns with monthly ภ.พ.30.
+    //   - ป.รัษฎากร ม.87/3 — 7-year retention applies to period-close rows
+    //     because they are part of the accounting audit trail.
+    //   - Thai e-Transactions Act §31 — every close + reopen audit-logged.
+
+    model PeriodClose {
+      id             String    @id @default(uuid())
+      organizationId String
+      year           Int       // calendar AD year (e.g., 2026)
+      month          Int       // 1..12 (1 = Jan)
+      closedAt       DateTime  @default(now())
+      closedBy       String    // canonical user id of the finance approver who closed
+      status         String    // 'OPEN' | 'CLOSED' | 'REOPENED'
+      reopenedAt     DateTime?
+      reopenedBy     String?
+      reopenReason   String?
+      notes          String?
+
+      @@unique([organizationId, year, month])
+      @@index([organizationId])
+      @@index([year, month])
+      @@map(\"period_closes\")
+    }
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // PURCHASE INVOICE (ใบกำกับภาษีซื้อ) — Input VAT tracking (Iter 26, 2026-05-16)
+    // ──────────────────────────────────────────────────────────────────────────
+    //
+    // Persists purchase invoices (ใบกำกับภาษีซื้อ) the platform receives from
+    // its own suppliers (office supplies, professional services, utilities,
+    // etc.). Each row represents one supplier-issued ใบกำกับภาษีเต็มรูป —
+    // the legal artefact the platform must hold on file to claim the embedded
+    // VAT as Input VAT (ภาษีซื้อ) on its monthly ภ.พ.30 filing.
+    //
+    // Legal anchors (ป.รัษฎากร):
+    //   - ม.82/3 — VAT-registered businesses may deduct Input VAT from
+    //     Output VAT before remitting; the residual is the cash payable to
+    //     the Revenue Department (or refundable if Input > Output).
+    //   - ม.82/4 — a VAT-registered buyer can claim an Input VAT credit
+    //     ONLY when the original ใบกำกับภาษีซื้อ (full tax invoice) is on
+    //     file, contains the seller's name + TIN + invoice date + invoice
+    //     number + taxable amount + VAT amount, and the purchase relates to
+    //     the business's VAT-able activities.
+    //   - ม.83/8 — the claim must be recognised in the same monthly ภ.พ.30
+    //     period (e-Filing window: the 15th of the following month).
+    //   - ม.86/4 — tax-invoice field minima (seller TIN, address, etc.).
+    //   - ม.87/3 — 7-year retention for the supplier's tax invoice.
+    //   - TFRS for NPAEs ch.2 — internal controls: every Input VAT credit
+    //     should pass a review step (PENDING_REVIEW → APPROVED) by an actor
+    //     other than the original submitter where practical.
+    //
+    // Lifecycle:
+    //   PENDING_REVIEW (default on create)
+    //      └─ approvePurchaseInvoice ──▶ APPROVED  (writes journal entry:
+    //                                                Dr Input VAT 1310,
+    //                                                Cr Cash / AP 1110 or 2110)
+    //      └─ rejectPurchaseInvoice  ──▶ REJECTED  (records rejectionReason,
+    //                                                terminal — submitter can
+    //                                                file a new row)
+    //   APPROVED row may further be markAsPaid (paidAt + actor stamp) when
+    //   the platform settles the supplier — separate from the VAT-claim event.
+    //
+    // Compliance scope:
+    //   - PLATFORM-side only (the platform is the VAT-registered buyer).
+    //     DTAM-side / state-fee purchases do not pass through this table —
+    //     กรมบัญชีกลาง procurement records live in Treasury's systems.
+    //   - Decimal(15,2) money columns per TFRS for NPAEs exact-decimal rule.
+    //   - 7-year retention is enforced at the application layer (isDeleted
+    //     soft-delete only — rows are never hard-deleted while attachmentId
+    //     points at the original supplier invoice).
+    //   - Uniqueness ([supplierTaxId, invoiceNumber]) is the practical
+    //     defense against double-claiming the same purchase: a supplier
+    //     cannot legally re-issue the same invoice number for a given TIN
+    //     (ม.86/4), so we use that pair as the de-dup key.
+
+    model PurchaseInvoice {
+      id              String   @id @default(uuid())
+      // Supplier's invoice number (e.g. \"INV-SUP-2026-001\"). Free text — the
+      // supplier sets the format, not us; we only enforce uniqueness
+      // per-supplier-TIN to prevent double-claim.
+      invoiceNumber   String
+      // Seller (supplier) identity per ม.86/4.
+      supplierName    String
+      // 13-digit TIN (ม.86/4 mandatory). PDPA close-natid-round2 (2026-06-30):
+      // this plaintext column is ENCRYPTED AT REST (random-IV AES-256-GCM via the
+      // PDPA field-encryption extension — same national-ID class as User.taxId /
+      // Entity.juristicId). Because random-IV ciphertext cannot carry a useful
+      // UNIQUE or be raw-WHERE'd, dedup + uniqueness moved to the parallel keyed
+      // `supplierTaxIdHmac` column below. Reads decrypt transparently via the B1
+      // walker.
+      supplierTaxId   String
+      // Keyed HMAC-SHA-256 (computeLookupHmac, keyed off ENCRYPTION_KEY) of
+      // supplierTaxId — the deterministic lookup column the dedup query +
+      // @@unique now use. NULLABLE + additive (legacy rows are backfilled by
+      // scripts/pdpa/backfill-encrypt-formdata-pii.js, which also encrypts the
+      // plaintext column). Postgres treats multiple NULLs as distinct, so the
+      // @@unique carries no pressure on un-backfilled rows.
+      supplierTaxIdHmac String?
+      supplierAddress String?
+      // Invoice date as issued by the supplier — drives the ภ.พ.30 period
+      // assignment (ม.83/8): an Input VAT claim lands in the period that
+      // matches invoiceDate, NOT the date the platform received the doc.
+      invoiceDate     DateTime
+      // Internal receipt timestamp (when the platform staff entered the
+      // invoice into the system) — useful for backlog reporting but does
+      // NOT drive the VAT period.
+      receivedDate    DateTime @default(now())
+      // Money — exact-decimal per TFRS for NPAEs.
+      subtotal        Decimal  @db.Decimal(15, 2)
+      // Input VAT (ภาษีซื้อ) we can claim against Output VAT.
+      vat             Decimal  @db.Decimal(15, 2)
+      totalAmount     Decimal  @db.Decimal(15, 2)
+      // Coarse category (analytics + chart-of-accounts mapping in future):
+      //   'OFFICE_SUPPLIES' | 'PROFESSIONAL_SERVICES' | 'UTILITIES' | 'OTHER'
+      category        String
+      description     String?
+      notes           String?
+      // FK to attachment row holding the photo / PDF of the supplier
+      // invoice. Optional at create time (review flow uploads later), but
+      // strongly encouraged before APPROVED — service layer warns when
+      // approving without an attachment because ม.82/4 requires the
+      // original document on file.
+      attachmentId    String?
+      organizationId  String?
+      // Lifecycle status (see file header comment).
+      //   'PENDING_REVIEW' | 'APPROVED' | 'REJECTED'
+      status          String
+      reviewedAt      DateTime?
+      reviewedBy      String?
+      rejectionReason String?
+      // Set when the platform settles the supplier (separate event from
+      // VAT-claim approval — a supplier can be approved-for-VAT before the
+      // bill is actually paid).
+      paidAt          DateTime?
+      paidBy          String?
+      // FK back to JournalEntry created on approval, populated by
+      // approvePurchaseInvoice (value is a real JournalEntry id, uuid). Nullable
+      // because PENDING_REVIEW / REJECTED rows never produce a journal entry.
+      // DB-01: typed @db.Uuid to match journal_entries.id; a real FK constraint is
+      // deferred to a change that can be tested against the approval/posting flow.
+      journalEntryId  String?       @db.Uuid
+
+      createdAt       DateTime @default(now())
+      createdBy       String
+      isDeleted       Boolean  @default(false)
+
+      // ม.86/4 dedup — a single supplier cannot legally issue duplicate
+      // invoice numbers for the same TIN. This is the practical Input-VAT
+      // double-claim guard.
+      // PDPA close-natid-round2 (2026-06-30): the dedup unique moved from the
+      // (now encrypted) plaintext `supplierTaxId` to the keyed `supplierTaxIdHmac`
+      // lookup column. A random-IV-encrypted column cannot carry a useful UNIQUE
+      // (every write of the same TIN ciphertexts differently → the constraint
+      // never trips on a real duplicate). The keyed HMAC is deterministic, so the
+      // double-claim invariant is preserved. The old
+      // `purchase_invoices_supplier_tax_invnum_key` plaintext unique is DROPPED in
+      // the same migration that adds this one.
+      @@unique([supplierTaxIdHmac, invoiceNumber], map: \"purchase_invoices_supplier_tax_hmac_invnum_key\")
+      // ภ.พ.30 monthly aggregation drives the dominant query — index by
+      // invoiceDate for the (gte, lt) window scan.
+      @@index([invoiceDate])
+      @@index([status])
+      @@index([organizationId])
+      @@map(\"purchase_invoices\")
+    }
+
+    // DOCUMENT TEMPLATE MODEL (Phase 3 — Template Versioning Registry)
+
+    // ──────────────────────────────────────────────────────────────────────────
+    // SINGLE LUMP-SUM CHECKOUT ENGINE (Wave 1 EXPAND — design v2, approved)
+    // docs/payment-refactor/step2-data-model-design.md
+    //
+    // One checkout = one order = one invoice = one Stripe charge. The itemized
+    // breakdown lives here (denormalized for O(1) reads; line items carry the
+    // same figures); the ONLY path to SETTLED is the cryptographically verified
+    // payment_intent.succeeded webhook. Vocabulary SSOT: shared/checkout-status.js
+    // + shared/dtam-remittance-status.js; the migration adds matching Postgres
+    // CHECK constraints (String + CHECK per executive decision R1).
+    // ──────────────────────────────────────────────────────────────────────────
+
+    model CheckoutOrder {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+
+      // What is being paid for. XOR — exactly one target (CHECK in migration).
+      applicationId  String?
+      application    Application?  @relation(fields: [applicationId], references: [id])
+
+      // The two payment gates of the canonical 7-step workflow: 'M1' | 'M2'.
+      milestone String
+
+      // Itemized breakdown (THB). Arithmetic enforced by CHECK constraints:
+      //   platform_fee_gross   = platform_fee_net + platform_fee_vat
+      //   total_payable_amount = dtam_fee_amount + platform_fee_gross
+      //
+      // `dtamPayableAmount` was `dtamFeeAmount` until 2026-09-05. The number never
+      // moved; the name said the wrong thing about it, in two directions at once.
+      // To the FARMER it is not a fee charged by the department: under W14 the
+      // company sells one service and this is the ราคาเต็ม portion of that service's
+      // price, which is why the receipt calls it \"ค่าบริการดำเนินการรับรองมาตรฐาน GACP
+      // (ราคาเต็ม)\". To the COMPANY it is a real debt: the operator confirmed on
+      // 2026-09-05 that the company owes DTAM an amount computed per application,
+      // which is what 2151-001 and the remittance batches track. Hence \"payable\".
+      //
+      // The COLUMN keeps its old name for now (@map) so this is a code-only rename
+      // with no migration and no data risk — expand before contract (CLAUDE.md §4).
+      // Renaming dtam_fee_amount itself is a separate change, filed in BACKLOG-FOUND.
+      dtamPayableAmount  Decimal @db.Decimal(15, 2) @map(\"dtam_fee_amount\")
+      platformFeeNet     Decimal @db.Decimal(15, 2) @map(\"platform_fee_net\")
+      platformFeeVat     Decimal @db.Decimal(15, 2) @map(\"platform_fee_vat\")
+      platformFeeGross   Decimal @db.Decimal(15, 2) @map(\"platform_fee_gross\")
+      totalPayableAmount Decimal @db.Decimal(15, 2) @map(\"total_payable_amount\")
+
+      // PENDING_PAYMENT | SETTLED | EXPIRED | CANCELLED (shared/checkout-status.js)
+      status String @default(\"PENDING_PAYMENT\")
+
+      // F-G4-64 — what this charge collects against. `quotationId` is the accepted
+      // quotation; `quotationSnapshotHash` is the hash of the snapshot the amount
+      // was compared with before the order was minted (a mismatch is refused as
+      // CHECKOUT_PRICE_DRIFT and no order is created, so a stored hash always means
+      // \"these figures matched\"). Nullable: every order settled before the gate
+      // existed has neither, and inventing one would be inventing a record.
+      // DB-03: typed @db.Uuid to match quotations.id (uuid) — a TEXT pointer cannot
+      // be joined against it (\"operator does not exist: uuid = text\") and cannot
+      // carry a @relation. A real FK constraint is deferred to a change that can be
+      // tested against the acceptance/settlement flow, as DB-01 and DB-02 were.
+      quotationId           String?   @db.Uuid @map(\"quotation_id\")
+      quotationSnapshotHash String?   @map(\"quotation_snapshot_hash\")
+
+      // Q4 pre-payment disclosure (owner ruling 2026-07-08). The slip rail records
+      // this in UserConsent; the card rail records it per ORDER as well, because
+      // the disclosure authorises THIS charge.
+      paymentTermsVersion    String?   @map(\"payment_terms_version\")
+      paymentTermsAcceptedAt DateTime? @map(\"payment_terms_accepted_at\")
+
+      // Stripe binding. One PaymentIntent per order (idempotency key
+      // `checkout:{orderId}`); amount in SATANG; statement descriptor
+      // 'PREDICTIVE AI - GACP'.
+      stripePaymentIntentId String?   @unique @map(\"stripe_payment_intent_id\")
+      expiresAt             DateTime?
+      settledAt             DateTime?
+
+      // The ONE invoice this order mints (replaces the per-phase pair×2).
+      invoiceId String?  @unique
+      invoice   Invoice? @relation(\"CheckoutOrderInvoice\", fields: [invoiceId], references: [id])
+
+      // The charge record (gateway='STRIPE', gatewayRef=PaymentIntent id).
+      paymentTransactionId String?             @unique
+      paymentTransaction   PaymentTransaction? @relation(\"CheckoutOrderCharge\", fields: [paymentTransactionId], references: [id])
+
+      // DTAM pass-through liability: NULL before settlement, then
+      // PENDING → BATCHED → REMITTED → RECONCILED (shared/dtam-remittance-status.js).
+      dtamRemittanceStatus String?              @map(\"dtam_remittance_status\")
+      remittanceBatchId    String?
+      remittanceBatch      DtamRemittanceBatch? @relation(fields: [remittanceBatchId], references: [id])
+
+      documents CheckoutDocument[]
+
+      // Tenancy (ADR-014)
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      @@index([applicationId])
+      @@index([quotationId])
+      @@index([status])
+      @@index([dtamRemittanceStatus])
+      @@index([remittanceBatchId])
+      @@index([organizationId])
+      @@map(\"checkout_orders\")
+    }
+
+    // A batch of settled checkouts whose DTAM fees are remitted to the department
+    // in one bank transfer. OPEN → REMITTED → RECONCILED; the RECONCILED leg is
+    // confirmed by bank-reconciliation matching bankReference to a statement line.
+    model DtamRemittanceBatch {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+
+      batchNumber String @unique
+
+      status String @default(\"OPEN\")
+
+      // Sum of member orders' dtamPayableAmount; the service asserts equality with
+      // the member sum inside the REMITTED transition's transaction.
+      totalAmount Decimal @db.Decimal(15, 2)
+
+      remittedAt    DateTime?
+      bankReference String?
+      reconciledAt  DateTime?
+
+      // The Dr 2151-001 / Cr 1110-001 clearing entry (journal-entry-service).
+      journalEntryId String?
+
+      orders CheckoutOrder[]
+
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      @@index([status])
+      @@index([organizationId])
+      @@map(\"dtam_remittance_batches\")
+    }
+
+    // Raw Stripe event store — the webhook idempotency lock. The handler
+    // INSERTS FIRST; a unique-violation on the Stripe event id means a
+    // redelivery and the handler returns 200 without side effects. NOT
+    // tenant-scoped: events arrive with no tenant context (org resolves through
+    // the order in event metadata).
+    model StripeWebhookEvent {
+      id          String    @id // Stripe event id (evt_...)
+      type        String
+      payload     Json
+      receivedAt  DateTime  @default(now())
+      processedAt DateTime?
+      error       String?
+      status      String    @default(\"RECEIVED\") // RECEIVED | PROCESSED | FAILED | DEAD_LETTER
+      attempts    Int       @default(0)
+      nextRetryAt DateTime?
+
+      @@index([type])
+      @@index([receivedAt])
+      @@index([status, nextRetryAt])
+      @@map(\"stripe_webhook_events\")
+    }
+
+    // W3-41 Q2-D2 EXPAND — durable dedup ledger for the daily payment-reminder
+    // sweep (jobs/payment-reminder-job.js, daily 09:00 Asia/Bangkok). One row =
+    // one reminder dispatched (or being dispatched) for a checkout invoice on its
+    // intended send day. The sweep INSERTS FIRST; a unique-violation on
+    // (invoiceId, reminderType, intendedDate) means this reminder already went
+    // out → skip silently — the same insert-first idempotency idiom as
+    // StripeWebhookEvent above. The sweep NEVER writes Invoice state: OVERDUE
+    // stays derived-only (checkout-schedule-service.overdueInvoiceWhere).
+    model PaymentReminderLog {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+
+      invoiceId String
+      invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Restrict)
+
+      // 'PRE_DUE' | 'DUE_DATE' | 'OVERDUE_NOTICE' — the keys of
+      // checkout-schedule-service.computeReminderDates (vocabulary SSOT); the
+      // migration adds a matching Postgres CHECK (String + CHECK, decision R1).
+      reminderType String
+
+      // The intended send day AFTER the working-day shift (end-of-business-day
+      // instant on the canonical Thai calendar). Deterministic from
+      // Invoice.dueDate, so a same-day re-run recomputes the identical value and
+      // dedups on it; a DUE_DATE/OVERDUE_NOTICE collision on one working day
+      // still yields two rows because reminderType is part of the key.
+      intendedDate DateTime
+
+      // Stamped after the notification service confirmed the dispatch persisted;
+      // NULL = row inserted but dispatch unconfirmed (visible to ops, still
+      // deduped — the reminder is not retried by design).
+      sentAt DateTime?
+
+      // Tenancy (ADR-014) — copied from the parent Invoice by the sweep, the
+      // same copy-from-parent pattern the Wave 1-2 settlement writes use
+      // (checkout-settlement-service stamps order.organizationId). Unlike
+      // StripeWebhookEvent — deliberately tenant-less because Stripe events
+      // arrive with no tenant context — a reminder row always knows its tenant
+      // through the invoice, so it is tenant-scoped like the other billing tables.
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      @@unique([invoiceId, reminderType, intendedDate])
+      @@index([invoiceId])
+      @@index([organizationId])
+      @@map(\"payment_reminder_logs\")
+    }
+
+    // The two split documents generated per settlement (design §5, decision R2):
+    //   PLATFORM_TAX_INVOICE    platform fee + 7% VAT, issued by
+    //                           บริษัท พรีดิกทีฟ เอไอ โซลูชัน จำกัด
+    //   DTAM_DISBURSAL_RECEIPT  DTAM fee, VAT-exempt (ม.77/1(10))
+    // documentNumber comes from the per-issuer sequences; payload is the signed
+    // contract the PDF renders from.
+    model CheckoutDocument {
+      id        String   @id @default(uuid())
+      createdAt DateTime @default(now())
+
+      checkoutOrderId String
+      checkoutOrder   CheckoutOrder @relation(fields: [checkoutOrderId], references: [id])
+
+      documentType   String // 'PLATFORM_TAX_INVOICE' | 'DTAM_DISBURSAL_RECEIPT'
+      documentNumber String @unique
+      payload        Json
+      pdfPath        String?
+      signedAt       DateTime?
+
+      organizationId String
+      organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: Cascade)
+
+      @@unique([checkoutOrderId, documentType])
+      @@index([organizationId])
+      @@map(\"checkout_documents\")
+    }
+    "
+
+      40 |
+      41 |     test('ไม่มี model DtamRemittanceBatch และไม่มีตาราง dtam_remittance_batches', () => {
+    > 42 |         expect(billing).not.toMatch(/model DtamRemittanceBatch\b/);
+         |                             ^
+      43 |         expect(billing).not.toContain('dtam_remittance_batches');
+      44 |     });
+      45 |
+
+      at Object.toMatch (__tests__/unit/dtam-remittance-schema-dropped.test.js:42:29)
+
+  ● schema: ไม่มีชั้นนำส่งกรมฯ เหลือ › CheckoutOrder ไม่มีคอลัมน์ส่วนของกรมฯ / สถานะนำส่ง / batch
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "gone": "dtamPayableAmount",
+    -   "present": false,
+    +   "present": true,
+      }
+
+      49 |         for (const gone of ['dtamPayableAmount', 'dtam_fee_amount', 'dtamRemittanceStatus',
+      50 |             'dtam_remittance_status', 'remittanceBatchId', 'remittanceBatch', 'DtamRemittanceBatch']) {
+    > 51 |             expect({ gone, present: block.includes(gone) }).toEqual({ gone, present: false });
+         |                                                             ^
+      52 |         }
+      53 |         // คอลัมน์ค่าบริการยังอยู่ครบ — PR3 ไม่เปลี่ยนชื่อ (การเปลี่ยนชื่อเป็นการตัดสินใจแยก)
+      54 |         for (const kept of ['platform_fee_net', 'platform_fee_vat', 'platform_fee_gross', 'total_payable_amount']) {
+
+      at Object.toEqual (__tests__/unit/dtam-remittance-schema-dropped.test.js:51:61)
+
+  ● schema: ไม่มีชั้นนำส่งกรมฯ เหลือ › Organization ไม่มี relation dtamRemittanceBatches
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /dtamRemittanceBatches/
+    Received string:      "// Domain: Multi-Tenancy (ADR-014)
+    //
+    // PHASE 3b status: nullable organizationId is in place on every tenant-
+    // scoped table, a FK constraint to organizations(id) exists at the DB
+    // level (migration 20260427120300_add_organization_fk_constraints), and
+    // the corresponding `@relation` declarations are wired in both directions
+    // so that `prisma generate` exposes the relation from each tenant-scoped
+    // model and the reverse collections on `Organization`.
+    //
+    // The NOT NULL alteration is the next step (Phase 3b PR D in
+    // docs/adr/ADR-014-phase-3-handoff.md). RLS is the final step (Phase 3c
+    // PR E).
+    //
+    // Source of truth for the tenant-scoped model list is
+    // apps/backend/services/tenant-prisma-extension.js → TENANT_SCOPED_MODELS.
+    //
+    // Global / platform-level models (do NOT gain organizationId):
+    //   Organization (this file), SystemConfig, MasterDataCategory,
+    //   DocumentTemplate when scope = 'PLATFORM',
+    //   SystemTerminology, PlantSpecies (reference data).
+
+    model Organization {
+      id        String   @id @default(uuid())
+      uuid      String   @unique @default(uuid())
+      createdAt DateTime @default(now())
+      updatedAt DateTime @updatedAt
+
+      // Identity
+      name String // display name, e.g. \"กรมส่งเสริมการเกษตร เชียงใหม่\"
+      slug String @unique // URL-safe, used for subdomain routing: \"doa-chiangmai\"
+      code String @unique // short internal code: \"DOA_CMI\"
+
+      // Classification
+      type String @default(\"PRIVATE_CERTIFIER\")
+      // GOVERNMENT       — รัฐ (กรมส่งเสริมฯ, อย., จังหวัด)
+      // PRIVATE_CERTIFIER — certifier เอกชน
+      // COOPERATIVE      — สหกรณ์การเกษตร
+      // FOREIGN_STANDARD — มาตรฐานต่างประเทศ (EU-GAP, ASEAN-GAP)
+      // INTERNAL         — platform's own ops tenant (default org)
+
+      // Isolation tier — see ADR-014
+      isolationTier String @default(\"SHARED\") // SHARED | DEDICATED
+
+      // Lifecycle
+      status String @default(\"ACTIVE\") // ACTIVE | SUSPENDED | ARCHIVED
+
+      // Localization
+      locale   String @default(\"th-TH\")
+      timezone String @default(\"Asia/Bangkok\")
+
+      // Contact / billing identity
+      contactEmail String?
+      legalName    String?
+      taxId        String?
+      taxIdHash    String? @unique
+
+      // Per-tenant configuration bag (branding, feature flags, workflow overrides
+      // — kept as JSON in Phase 1; promoted to dedicated tables only when usage
+      // patterns justify it)
+      settings Json @default(\"{}\")
+
+      // Audit
+      createdBy String?
+      updatedBy String?
+
+      // Soft delete + legal retention (PDPA)
+      isDeleted    Boolean   @default(false)
+      deletedAt    DateTime?
+      deletedBy    String?
+      deleteReason String?
+      retainUntil  DateTime  @default(dbgenerated(\"(now() + '5 years'::interval)\"))
+      legalHold    Boolean   @default(false)
+
+      // Tenant-scoped reverse relations (ADR-014 Phase 3b — see PR C).
+      // One entry per model in TENANT_SCOPED_MODELS in
+      // apps/backend/services/tenant-prisma-extension.js. The forward relation
+      // lives on each child model as `organization Organization?`. Pure naming
+      // collection — no behavior change. Cascade rules (RESTRICT on delete,
+      // CASCADE on update) are enforced at the SQL level by migration
+      // 20260427120300_add_organization_fk_constraints.
+
+      // auth
+      users                        User[]
+      userConsents                 UserConsent[]
+      // application
+      applications                 Application[]
+      applicationComments          ApplicationComment[]
+      applicationDrafts            ApplicationDraft[]
+      applicationBundles           ApplicationBundle[]
+      // farm + cultivation
+      farms                        Farm[]
+      siteAnalyses                 SiteAnalysis[]
+      trainingRecords              TrainingRecord[]
+      plots                        Plot[]
+      plantingCycles               PlantingCycle[]
+      plantingCyclePlots           PlantingCyclePlot[]
+      careLogs                     CareLog[]
+      cultivationLogs              CultivationLog[]
+      // gacp compliance
+      waterSources                 WaterSource[]
+      growingMedia                 GrowingMedium[]
+      seedSources                  SeedSource[]
+      fertilizerRecords            FertilizerRecord[]
+      controlledEnvironments       ControlledEnvironment[]
+      // harvest + trace
+      harvestBatches               HarvestBatch[]
+      batchLabResults           BatchLabResult[]
+      dryingTemperatures           DryingTemperature[]
+      dryingHumidities             DryingHumidity[]
+      dryingDarkRooms              DryingDarkRoom[]
+      curingProcesses              CuringProcess[]
+      packagingDetails             PackagingDetail[]
+      dryingProcesses              DryingProcess[]
+      lots                         Lot[]
+      traceQrSecurities            TraceQrSecurity[]
+      traceQrScans                 TraceQrScan[]
+      consumerFeedback             ConsumerFeedback[]
+      // survey (C05F680149 ต้นแบบที่ 2 — ระบบสำรวจความต้องการ)
+      surveyTemplates              SurveyTemplate[]
+      surveyQuestions              SurveyQuestion[]
+      surveyResponses              SurveyResponse[]
+      surveyAnswers                SurveyAnswer[]
+      expertInterviews             ExpertInterview[]
+      // certification
+      certificates                 Certificate[]
+      certificateRevisions         CertificateRevision[]
+      // billing
+      invoices                     Invoice[]
+      invoiceLineItems             InvoiceLineItem[]
+      quotes                       Quote[]
+      // Two-issuer billing (B16-A, 2026-05-16) — see prisma/schema/billing.prisma
+      quotations                   Quotation[]
+      paymentTransactions          PaymentTransaction[]
+      checkoutOrders               CheckoutOrder[]
+      dtamRemittanceBatches        DtamRemittanceBatch[]
+      checkoutDocuments            CheckoutDocument[]
+      paymentReminderLogs          PaymentReminderLog[]
+      bankAccounts                 BankAccount[]
+      // audit
+      auditLogs                    AuditLog[]
+      postAuditTasks               PostAuditTask[]
+      assignmentLedgerEntries      AssignmentLedgerEntry[]
+      revisionDeadlines            RevisionDeadline[]
+      // R2 M3 — per-stage correction round ledger
+      correctionRounds             CorrectionRound[]
+      // R2 M7 — append-only submitted-formData history per correction round (D-6)
+      correctionSubmissionVersions CorrectionSubmissionVersion[]
+      // system / provider (tenant-scoped parts)
+      notifications                Notification[]
+      reportSubmissions            ReportSubmission[]
+      sopDocuments                 SOPDocument[]
+      scopeOfWorks                 ScopeOfWork[]
+      auditChecklists              AuditChecklist[]
+      meetingRooms                 MeetingRoom[]
+      // ADR-016 Phase 1A — BPMN-aligned work activities
+      workActivities               WorkActivity[]
+      // ADR-016 Phase 1C — multi-group user memberships
+      userGroupMemberships         UserGroupMembership[]
+      // Wave 2 — per-permission GRANT/REVOKE overrides
+      userPermissionGrants         UserPermissionGrant[]
+      // Wave A Phase 32 / G1 — polymorphic attachments
+      attachments                  Attachment[]
+      // Wave B Phase 62 — legal applicant entities and memberships
+      entities                     Entity[]
+      entityMemberships            EntityMembership[]
+      // Wave C — entity context switch audit trail
+      entityContextSwitches        EntityContextSwitch[]
+      // Wave D — entity membership lifecycle audit trail
+      entityMembershipEvents       EntityMembershipEvent[]
+      // Farm-worker Wave B — per-member permission GRANT/REVOKE overrides
+      entityMemberPermissionGrants EntityMemberPermissionGrant[]
+      // Phase B (cert-integrity fix, 2026-08-16) — onsite audit photo evidence.
+      // FarmAuditChecklistItem is deliberately NOT listed: it carries no
+      // organizationId column (see prisma/schema/audit-onsite-evidence.prisma).
+      farmAuditPhotos              FarmAuditPhoto[]
+      // 2026-08-19 — GPS start-marker (F-ONSITE-GPS-CHECKIN-UNREACHABLE fix).
+      gpsVerificationLogs          GpsVerificationLog[]
+
+      @@index([status])
+      @@index([type])
+      @@index([isolationTier])
+      @@map(\"organizations\")
+
+      applicationDocumentReviews ApplicationDocumentReview[]
+
+      // Document pre-check (2026-09-27 design, §2) — Task 5.
+      documentPrechecks     DocumentPrecheck[]
+      documentPrecheckFlags DocumentPrecheckFlag[]
+    }
+    "
+
+      58 |
+      59 |     test('Organization ไม่มี relation dtamRemittanceBatches', () => {
+    > 60 |         expect(tenancy).not.toMatch(/dtamRemittanceBatches/);
+         |                             ^
+      61 |     });
+      62 |
+      63 |     test('TENANT_SCOPED_MODELS ไม่มี DtamRemittanceBatch', () => {
+
+      at Object.toMatch (__tests__/unit/dtam-remittance-schema-dropped.test.js:60:29)
+
+  ● schema: ไม่มีชั้นนำส่งกรมฯ เหลือ › TENANT_SCOPED_MODELS ไม่มี DtamRemittanceBatch
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "DtamRemittanceBatch"
+    Received array:     ["User", "UserConsent", "Application", "ApplicationComment", "ApplicationDraft", "ApplicationBundle", "Farm", "SiteAnalysis", "TrainingRecord", "Plot", "PlantingCycle", "PlantingCyclePlot", "CareLog", "CultivationLog", "WaterSource", "GrowingMedium", "SeedSource", "FertilizerRecord", "ControlledEnvironment", "HarvestBatch", "BatchLabResult", "DryingTemperature", "DryingHumidity", "DryingDarkRoom", "CuringProcess", "PackagingDetail", "DryingProcess", "Lot", "TraceQrSecurity", "TraceQrScan", "ConsumerFeedback", "Certificate", "CertificateRevision", "Invoice", "InvoiceLineItem", "Quote", "Quotation", "PaymentTransaction", "CheckoutOrder", "DtamRemittanceBatch", "CheckoutDocument", "PaymentReminderLog", "ApplicationDocumentReview", "DocumentPrecheck", "DocumentPrecheckFlag", "AuditLog", "PostAuditTask", "RevisionDeadline", "WaiverReopenRequest", "CorrectionRound", "CorrectionSubmissionVersion", "Notification", "ReportSubmission", "SOPDocument", "ScopeOfWork", "AuditChecklist", "MeetingRoom", "FarmAuditPhoto", "GpsVerificationLog", "WorkActivity", "UserGroupMembership", "UserPermissionGrant", "EntityMemberPermissionGrant", "Attachment", "Ticket", "SurveyTemplate", "SurveyQuestion", "SurveyResponse", "SurveyAnswer", "ExpertInterview"]
+
+      64 |         const { TENANT_SCOPED_MODELS } = require('../../services/tenant-prisma-extension');
+      65 |         const list = [...TENANT_SCOPED_MODELS];
+    > 66 |         expect(list).not.toContain('DtamRemittanceBatch');
+         |                          ^
+      67 |         expect(list).toContain('CheckoutOrder');
+      68 |     });
+      69 | });
+
+      at Object.toContain (__tests__/unit/dtam-remittance-schema-dropped.test.js:66:26)
+
+  ● โค้ด: ไม่อ่าน/เขียนคอลัมน์ที่ดรอปแล้ว › stripe-checkout-service ไม่เขียน dtamPayableAmount และไม่มีตัวปลด order ที่มีส่วนของกรมฯ
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /dtamPayableAmount|dtam_fee_amount|retireOrderCarryingDtamPortion|CHECKOUT_ORDER_HAS_DTAM_PORTION/
+    Received string:      "'use strict';
+
+    /**
+     * Stripe checkout intent service — Wave 2
+     * (docs/payment-refactor/step2-data-model-design.md v2, approved).
+     *
+     * One checkout = one CheckoutOrder = one Invoice = one PaymentIntent.
+     *
+     * The two milestones of the canonical 7-step workflow:
+     *   M1 — Step 1 checkout (DTAM audit fee + platform fee P1 + 7% VAT),
+     *        payable while the application is in a phase-1-payable state.
+     *   M2 — Step 4 checkout (DTAM cert fee + platform fee P2 + 7% VAT),
+     *        payable only after เอกสารผ่าน (DOC_APPROVED / PENDING_AUDIT_FEE).
+     *
+     * Idempotency, twice over:
+     *   - the Wave-1 partial unique index guarantees ONE open order per
+     *     (application, milestone); re-entry re-uses it.
+     *   - the PaymentIntent is created with idempotency key `checkout:{orderId}`,
+     *     so a retried create returns the SAME intent — never a second charge.
+     *
+     * Drain-then-purge (D2): this service is additive. The legacy slip path is
+     * untouched; routing new checkouts here is gated by STRIPE_CHECKOUT_ENABLED.
+     */
+
+    const { prisma } = require('../prisma-database');
+    const feeService = require('../fee-service');
+    const logger = require('../../shared/logger');
+    const { MILESTONES } = require('../../shared/checkout-status');
+    const { getPaymentAdapter } = require('../payment/payment-adapter');
+    const { retireCheckoutOrderInTx, RETIRE_REASONS } = require('./retire-checkout-order');
+    const { toSatang, STATEMENT_DESCRIPTOR } = require('../../config/stripe');
+    const { computeDueDate } = require('./checkout-schedule-service');
+    const { storedCultivationScopeCount } = require('../../shared/application-scope');
+    // F-G4-64: the applicant-facing sentence of every refusal below is READ FROM
+    // the catalogue, never retyped here, so the copy the applicant sees and the
+    // copy the Thai-copy review reads are the same string.
+    const { ERROR_CODES } = require('../../shared/error-codes');
+
+    /**
+     * Application states from which each milestone may be paid. M1 covers the
+     * submission window; M2 opens only when the documents have passed. Mirrors
+     * the canonical dictionary; the slip-era states stay listed so an in-flight
+     * application that switches rails mid-window can still pay (drain window).
+     *
+     * F-G4-64 — DRAFT is GONE from M1. A quotation is issued on the way OUT of
+     * DRAFT (routes/api/applications/applications.js submit doors), so a DRAFT
+     * application has no price of record to accept and, with the acceptance gate
+     * below fail-closed, every DRAFT checkout would refuse anyway. Removing it
+     * turns an unexplained quotation refusal into the accurate one
+     * (CHECKOUT_MILESTONE_NOT_PAYABLE: this milestone is not payable yet).
+     */
+    const PAYABLE_STATES = Object.freeze({
+        M1: Object.freeze(['SUBMITTED', 'PENDING_DOC_FEE']),
+        M2: Object.freeze(['DOC_APPROVED', 'PENDING_AUDIT_FEE']),
+    });
+
+    /**
+     * M2 (fix, 2026-08-23) — the milestone slot a certificate RENEWAL is billed in.
+     *
+     * A renewal is ONE charge (operator ruling 2026-08-22, HARNESS_LOG.md
+     * 67ef3612 / 8b8d581f; billing change authorised as a one-time L3 exception,
+     * eabfc020). It has no document-review stage and therefore no phase 1, and it
+     * enters the workflow already at the site-visit payment gate — renewal-service
+     * creates it at PENDING_AUDIT_FEE (services/renewal-service.js:232), which is
+     * an M2-payable state above. So M2 is the only milestone a renewal can reach
+     * this rail with, and it is the slot quotation-service already books the single
+     * charge into (services/quotation-service.js:271-300) precisely so settlement's
+     * M2 -> AUDIT_FEE_PAID mapping keeps working untouched.
+     *
+     * Hence a renewal-aware BREAKDOWN rather than a third milestone: a new
+     * milestone would have to be taught to checkout-settlement-service, and
+     * settlement is not in scope. What was wrong here was only the PRICE.
+     */
+    const RENEWAL_MILESTONE = 'M2';
+
+    /**
+     * The Invoice.serviceType this rail mints for a milestone — the ONE place the
+     * value is built.
+     *
+     * Milestone-dimensioned so M1 and M2 are distinct rows under the partial
+     * unique index uniq_invoice_app_service_active (applicationId, serviceType),
+     * and deliberately free of 'STATE_FEE' (resolveIssuerType would flip to DTAM
+     * and skip the revenue entry).
+     *
+     * Readers (e.g. the applicant preview's summarizeCheckoutInvoices) ask this
+     * function instead of typing the string again, so a reader can never drift
+     * from the minter.
+     */
+    const { isRenewalFiling } = require('../../shared/instalment-service-names');
+
+    function checkoutInvoiceServiceType(milestone) {
+        return `CERTIFICATION_CHECKOUT_${milestone}`;
+    }
+
+    function httpError(status, code, message) {
+        return Object.assign(new Error(message), { status, statusCode: status, code });
+    }
+
+    /**
+     * The catalogued refusal for a code, with its own HTTP status and its own Thai
+     * sentence (shared/error-codes.js). A code missing from the catalogue still
+     * REFUSES, as a 500, because on a money path the one outcome a broken lookup
+     * may never produce is a pass.
+     */
+    function catalogError(code) {
+        const row = ERROR_CODES[code];
+        if (!row) {
+            return httpError(500, code, ERROR_CODES.INTERNAL_SERVER_ERROR.messageTh);
+        }
+        return httpError(row.httpStatus, row.code, row.messageTh);
+    }
+
+    /**
+     * The acceptance hash to stamp on a new order (F-G4-64).
+     *
+     * The row's stored `acceptedSnapshotHash` is the acceptance record itself and
+     * wins whenever it exists. A row that carries a snapshot but no hash was
+     * accepted before that column existed; hashing the snapshot the drift check
+     * actually compared against records what this charge was checked against, which
+     * is the honest answer and is reproducible from the stored snapshot. A row with
+     * neither gets null: nothing was agreed to in a form this rail can point at, and
+     * a fabricated hash would read like evidence.
+     */
+    function quotationSnapshotHash(quotation, snapshot) {
+        if (quotation?.acceptedSnapshotHash) { return quotation.acceptedSnapshotHash; }
+        if (!snapshot) { return null; }
+        // Lazy require: quotation-service is already loaded by the gate that ran
+        // immediately above this call.
+        const { canonicalSnapshotHash } = require('../quotation-service');
+        return canonicalSnapshotHash(snapshot);
+    }
+
+    /**
+     * Money equality at two decimals (F-G4-64 R2).
+     *
+     * BOTH sides are normalised through Number before the fixed-point compare, so
+     * the answer depends on the value and not on how either side happened to be
+     * serialised. Comparing the live figure against `String(frozen)` — which this
+     * did first — answered \"different\" for any snapshot whose money fields are
+     * numbers rather than the 2-decimal strings quotation-service._thb writes,
+     * because String() of a whole-baht number carries no two-decimal tail: a
+     * self-inflicted payment outage for that applicant, plus a CRITICAL audit row
+     * asserting a mismatch that does not exist. (The literal example that used to
+     * stand here made the ratchet hardcode counter rise by one, on a comment.)
+     *
+     * A side that is not a finite number is never \"the same\": on a money path an
+     * unreadable figure is a refusal, not a pass.
+     */
+    function sameMoney(live, frozen) {
+        const liveNumber = Number(live);
+        const frozenNumber = Number(frozen);
+        if (!Number.isFinite(liveNumber) || !Number.isFinite(frozenNumber)) { return false; }
+        return liveNumber.toFixed(2) === frozenNumber.toFixed(2);
+    }
+
+    /**
+     * R2 — charge to the satang what the applicant accepted, or charge nothing.
+     *
+     * ONE implementation for BOTH doors, the mint and the re-entry (coordinator
+     * ruling 5: \"re-entry is gated too\"). A drain-window order — minted before this
+     * gate existed, so `quotation_id` is NULL — holds whatever figure was live on
+     * the day it was created; if the application was revised after issuance (open
+     * F-G4-70) that figure can be thousands of baht below the document the
+     * applicant has since accepted, and handing back its PaymentIntent would charge
+     * a price nobody agreed to. A comparison written twice is a comparison that
+     * will differ once, so there is exactly one.
+     *
+     * The formula is untouched. `figures` is whatever THIS request would charge —
+     * the fresh fee-service decomposition on a mint, the figures STORED on the
+     * order on a re-entry — and this function only ever refuses.
+     *
+     * Three cases, deliberately distinct:
+     *   - no snapshot at all: nothing to compare. The row was accepted before
+     *     snapshots existed, or closed by the repair script; inventing a comparison
+     *     would be inventing a record.
+     *   - a snapshot that does not price this instalment: CHECKOUT_PHASE_NOT_PRICED.
+     *     Skipping the check here would create a charge against a document that
+     *     never named a price for the phase being charged — a fail-open branch
+     *     inside a check whose entire purpose is to be fail-closed. It is reachable
+     *     by construction: a renewal quotation carries PHASE_2 only. The renderer
+     *     refuses the same data defect under QUOTATION_PHASE_NOT_PRICED; that row's
+     *     copy tells the applicant no DOCUMENT was issued and sends them to open a
+     *     different instalment's document, which is the wrong cause and an
+     *     unreachable next action when what was refused is a PAYMENT.
+     *   - a snapshot that prices it differently: CHECKOUT_PRICE_DRIFT.
+     *
+     * @param {object} args
+     * @param {{platformFeeNet:number, platformFeeVat:number,
+     *          totalPayableAmount:number}} args.figures — what would be charged
+     * @param {object|null} args.snapshot — the frozen document, from the gate
+     * @param {'PHASE_1'|'PHASE_2'} args.phase
+     * @param {object} args.quotation
+     * @param {object} args.application
+     * @param {'M1'|'M2'} args.milestone
+     * @param {string|null} args.actorId
+     * @param {string|null} args.actorRole — the caller's role, threaded from the
+     *   route (`req.user.canonicalRole || req.user.role`). AuditLog.actorRole is
+     *   NOT NULL (prisma/schema/audit.prisma), so omitting it dropped the whole
+     *   CRITICAL row inside auditLogger.log's catch — the refusal stood but left no
+     *   permanent trace at all (whole-branch review C6).
+     * @param {'MINT'|'RE_ENTRY'} args.entry — which door asked, recorded on the
+     *   audit row so a human can tell a stale order from a fresh charge
+     * @returns {Promise<void>} resolves having done nothing, or throws
+     * @throws {Error & {code, status, statusCode}}
+     */
+    async function assertChargeMatchesAcceptedFigures({
+        figures, snapshot, phase, quotation, application, milestone, actorId, actorRole, entry,
+    }) {
+        if (!snapshot) { return; }
+
+        const accepted = Array.isArray(snapshot.installments)
+            ? snapshot.installments.find((i) => i.phase === phase)
+            : null;
+        if (!accepted) {
+            logger.error('[checkout] the accepted document does not price this instalment, refusing', {
+                applicationId: application.id,
+                milestone,
+                phase,
+                quotationId: quotation.id,
+                quotationNumber: quotation.quotationNumber,
+            });
+            throw catalogError('CHECKOUT_PHASE_NOT_PRICED');
+        }
+
+        const matches = sameMoney(figures.platformFeeNet, accepted.serviceFeeAmount)
+            && sameMoney(figures.platformFeeVat, accepted.vatAmount)
+            && sameMoney(figures.totalPayableAmount, accepted.phaseTotal);
+        if (matches) { return; }
+
+        const acceptedPhaseTotal = Number(accepted.phaseTotal).toFixed(2);
+        const livePhaseTotal = Number(figures.totalPayableAmount).toFixed(2);
+        logger.error('[checkout] PRICE DRIFT, refusing to charge a figure the applicant did not accept', {
+            applicationId: application.id,
+            milestone,
+            entry,
+            quotationId: quotation.id,
+            quotationNumber: quotation.quotationNumber,
+            accepted,
+            live: figures,
+        });
+
+        // Two independent best-effort records, in two separate try blocks on
+        // purpose: the audit row is the permanent trace, the notification is the
+        // human. If the audit sink is down the staff alert must still go out, and
+        // neither failure may downgrade a fail-closed 409 into a 500 that reads
+        // like a bug in the applicant's request.
+        try {
+            // Lazy require: the audit chain is not needed on any successful path.
+            const { auditLogger, AuditCategory, AuditSeverity, ResourceType } =
+                require('../../middleware/audit-logger');
+            await auditLogger.log({
+                category: AuditCategory.PAYMENT,
+                action: 'CHECKOUT_PRICE_DRIFT',
+                severity: AuditSeverity.CRITICAL,
+                actorId: actorId || null,
+                // NOT NULL in schema, and the writer does not default it: a row
+                // without it is not written at all. 'UNKNOWN' is the same fallback
+                // the payments route already uses for its own audit events.
+                actorRole: actorRole || 'UNKNOWN',
+                resourceType: ResourceType.APPLICATION,
+                resourceId: application.id,
+                organizationId: application.organizationId,
+                metadata: {
+                    milestone,
+                    entry,
+                    quotationId: quotation.id,
+                    quotationNumber: quotation.quotationNumber,
+                    acceptedPhaseTotal,
+                    livePhaseTotal,
+                },
+            });
+        } catch (auditErr) {
+            logger.error('[checkout] price-drift audit row could not be written (refusal stands)', {
+                applicationId: application.id,
+                errMessage: auditErr?.message || String(auditErr),
+            });
+        }
+
+        // The refusal's copy ends \"เจ้าหน้าที่ได้รับแจ้งแล้ว\" and offers the
+        // applicant no other action. An audit row is not a person: auditLogger.log
+        // returns null when it cannot resolve the organization, and even a written
+        // row only reaches a console line. This is what makes that sentence true.
+        try {
+            const { notifyAdminCheckoutPriceDrift } = require('../notification/domain-helpers');
+            await notifyAdminCheckoutPriceDrift({
+                applicationId: application.id,
+                applicationNumber: application.applicationNumber || null,
+                quotationNumber: quotation.quotationNumber || null,
+                acceptedPhaseTotal,
+                livePhaseTotal,
+                milestone,
+            });
+        } catch (notifyErr) {
+            logger.error('[checkout] price-drift alert could not be sent (refusal stands)', {
+                applicationId: application.id,
+                errMessage: notifyErr?.message || String(notifyErr),
+            });
+        }
+
+        throw catalogError('CHECKOUT_PRICE_DRIFT');
+    }
+
+    /**
+     * modules/billing decomposition for one milestone.
+     *
+     * ROUNDING RULE (design v2 §5.5) — pinned by money-equation-property.test.js;
+     * VAT base per W14 (operator ruling 2026-08-22, HARNESS_LOG.md c28355ea):
+     * every component is rounded on its own and the total is the sum of the
+     * rounded components, never a rounded sum:
+     *
+     *   platform   = Math.round(state × PLATFORM_RATE)   ← rounded per component
+     *   serviceFee = state + platform                    ← ค่าบริการ, the VAT base
+     *   vat        = Math.round(serviceFee × VAT_RATE)   ← VAT 7% on the WHOLE
+     *                                                      ค่าบริการ, from the
+     *                                                      ROUNDED parts
+     *   total      = state + platform + vat              ← sum of rounded parts
+     *
+     * The SSOT is buildPhaseFee (modules/billing/internal/fee-service.js); this
+     * service only re-labels its output, so the equation the Wave-1 DB CHECK
+     * enforces holds by construction. Computing VAT on an unrounded base, or
+     * rounding the total, breaks that CHECK on the first odd amount.
+     *
+     * A RENEWAL takes calculateRenewalFee instead of fees.phase2 — the same
+     * buildPhaseFee at the renewal rate, so the returned shape, the rounding and
+     * the sum-check below are identical; only the rate differs (30,000 vs 25,000
+     * state per scope → 35,310 vs 29,425 payable). See RENEWAL_MILESTONE above.
+     */
+    /**
+     * 2026-09-07: the same question was answered here and again in the quotation renderer,
+     * which is how a price and the document that prints it get to disagree. One answer now —
+     * shared/instalment-service-names.isRenewalFiling.
+     */
+    const isRenewal = isRenewalFiling;
+
+    function breakdownForMilestone(application, milestone) {
+        const feeContext = {
+            ...(typeof application.formData === 'object' && application.formData ? application.formData : {}),
+            // Inert: nothing in modules/billing reads this key off the payload — a
+            // stored scope count only takes effect through `options.scopeCount`.
+            // Renamed with the column rather than made live, because making it live
+            // would change what applicants are charged (L3: an agent flags a money
+            // path, it does not mutate one). Open finding: reports/sku/design-event.md.
+            cultivationScopeCount: storedCultivationScopeCount(application),
+        };
+        let phase;
+        if (isRenewal(application)) {
+            // A renewal is not a phased application, so `fees.phase2` is the wrong
+            // price for it: 25,000 state per scope instead of 30,000 — 29,425 paid
+            // instead of 35,310, a 5,885 shortfall per scope on every renewal that
+            // reached this rail.
+            if (milestone !== RENEWAL_MILESTONE) {
+                throw httpError(409, 'CHECKOUT_RENEWAL_SINGLE_CHARGE',
+                    `A renewal is a single charge billed as ${RENEWAL_MILESTONE}; ${milestone} has no instalment to pay`);
+            }
+            phase = feeService.calculateRenewalFee(feeContext);
+        } else {
+            const fees = feeService.calculateApplicationFees(feeContext);
+            phase = milestone === 'M1' ? fees.phase1 : fees.phase2;
+        }
+        // ── ค่าบริการก้อนเดียว ลงคอลัมน์ฝั่งบริษัททั้งหมด (operator 2026-09-11) ──
+        // ไม่มีส่วนของกรมฯ: เกษตรกรซื้อบริการจากบริษัท และบริษัทชำระกับกรมฯ นอกระบบ
+        // ลงบัญชีในสมุดบัญชีของบริษัทเอง (operator 2026-09-29) · ยอดที่คิด = ค่าบริการ + VAT
+        //
+        // ชื่อ `platformFee*` ยังเป็นของคอลัมน์ ไม่ใช่ของความหมายใหม่ — ตอนนี้มันคือ
+        // \"ค่าบริการ\" กับ \"VAT ของค่าบริการ\" ตรง ๆ · ชื่อจะถูกแก้พร้อมการดรอปคอลัมน์
+        const platformFeeNet = phase.serviceFeeAmount;
+        const platformFeeVat = phase.vatAmount;
+        const platformFeeGross = platformFeeNet + platformFeeVat;
+        const totalPayableAmount = platformFeeGross;
+        if (totalPayableAmount !== phase.phaseTotal) {
+            // The DB CHECK would refuse the row anyway; fail here with a clearer
+            // message so a fee-service drift is caught at the source.
+            throw httpError(500, 'CHECKOUT_BREAKDOWN_DRIFT',
+                `breakdown total ${totalPayableAmount} != fee-service phaseTotal ${phase.phaseTotal}`);
+        }
+        return { platformFeeNet, platformFeeVat, platformFeeGross, totalPayableAmount };
+    }
+
+    /**
+     * Create (or re-enter) the checkout for an application milestone.
+     *
+     * F-G4-64 — the order of the doors, exactly as spec §3.1 states it:
+     *   ownership → payable status → quotation acceptance gate → payment-terms
+     *   disclosure → re-entry lookup (a READ) → the figures this request would
+     *   charge → snapshot drift check → adapter.assertReady() → the re-entry
+     *   binding, then any DB write and any gateway mutation.
+     *
+     * The re-entry lookup and the fee decomposition sit inside that order because
+     * the drift check guards the RE-ENTRY door too (coordinator ruling 5) and the
+     * figures a re-entry would charge are the ones stored on the order the lookup
+     * returns; both are side-effect-free.
+     *
+     * Why the drift check must precede assertReady() and not merely precede the
+     * writes: assertReady() throws whenever the gateway is unconfigured or
+     * mis-keyed, and running it first meant that during exactly that window an
+     * application whose live figure disagreed with the accepted document produced a
+     * gateway error and NO CRITICAL audit row and NO admin alert. The one condition
+     * this check exists to surface would stay invisible for as long as the gateway
+     * was down. Ordering it first costs nothing and keeps the invariant intact:
+     * nothing is minted and nothing is asked of the gateway before every refusal
+     * this function can raise has had its chance.
+     *
+     * @param {object} args
+     * @param {string} args.applicationId
+     * @param {'M1'|'M2'} args.milestone
+     * @param {{id?: string, healthId?: string, role?: string}} args.actor — `id` is
+     *   the User.id the payment-terms consent is recorded against; ownership uses
+     *   `healthId`; `role` is written on the price-drift audit row (NOT NULL).
+     * @returns {Promise<{checkoutOrderId, paymentIntentId, clientSecret, milestone,
+     *                    breakdown, quotationNumber: string|null,
+     *                    publishableKey: string|null, invoiceId: string|null,
+     *                    payerEmail: string|null}>}
+     */
+    async function createCheckoutForApplication({ applicationId, milestone, actor }) {
+        if (!MILESTONES.includes(milestone)) {
+            throw httpError(400, 'CHECKOUT_INVALID_MILESTONE', `Unknown milestone: ${milestone}`);
+        }
+
+        // Ownership is part of the lookup: a non-owner gets 404, never 403 — the
+        // same collapse-avoidance the preview routes use.
+        const application = await prisma.application.findFirst({
+            where: {
+                id: applicationId,
+                isDeleted: false,
+                ...(actor?.healthId ? { healthId: actor.healthId } : {}),
+            },
+        });
+        if (!application) {
+            throw httpError(404, 'APPLICATION_NOT_FOUND', 'Application not found');
+        }
+        if (!PAYABLE_STATES[milestone].includes(application.status)) {
+            throw httpError(409, 'CHECKOUT_MILESTONE_NOT_PAYABLE',
+                `Milestone ${milestone} is not payable from status ${application.status}`);
+        }
+
+        // ── F-G4-64: the acceptance gate ────────────────────────────────────────
+        // Ownership and payable status are settled above. Everything below runs
+        // BEFORE the adapter is touched and BEFORE any row is minted, so a refusal
+        // leaves the database exactly as it was.
+        //
+        // The gate runs before the re-entry lookup as well (coordinator ruling 5):
+        // an order minted during the drain window, when the gate did not exist,
+        // must not become a door that re-enters without it.
+        //
+        // Lazy require: quotation-gate pulls in quotation-service and the numbering
+        // chain, and requiring it at module top breaks checkout suites that do not
+        // stub that chain — the same reason payment-slip-service defers it.
+        const { assertQuotationAcceptedForPayment } = require('../billing/quotation-gate');
+        const { quotation, phase, snapshot } = await assertQuotationAcceptedForPayment({
+            applicationId: application.id,
+            milestone,
+        });
+
+        // Q4 pre-payment disclosure (owner ruling 2026-07-08), which until now bound
+        // the slip rail only — and payment_slips has zero rows, so no applicant has
+        // ever actually seen this text (register.md G).
+        //
+        // Coordinator ruling 2 (2026-08-28): ONE consent namespace. This is the same
+        // assertion, the same UserConsent ledger and the same
+        // ConsentVersions.PAYMENT_TERMS the slip rail runs — NOT a version string
+        // taken from the request body, which would be the client asserting that the
+        // client showed the applicant a document.
+        const { assertPaymentTermsAccepted } = require('../billing/payment-terms-gate');
+        const paymentTerms = await assertPaymentTermsAccepted({ actorUserId: actor?.id });
+
+        // Re-entry: the Wave-1 partial unique index means at most one open order
+        // exists; reuse it so the applicant always lands on the same charge. A
+        // READ, and it runs before the adapter so the price comparison below can
+        // run before the adapter too.
+        let order = await prisma.checkoutOrder.findFirst({
+            where: { applicationId: application.id, milestone, status: 'PENDING_PAYMENT' },
+        });
+        // An open order that still carries a DTAM portion is never re-entered: it is
+        // retired and refused (foot of this file), so the next press mints afresh.
+        if (order) { await retireOrderCarryingDtamPortion({ order, application, milestone }); }
+
+        // What THIS request would charge: the figures frozen on the existing order
+        // when re-entering it, a fresh fee-service decomposition when minting. The
+        // formula is untouched — breakdownForMilestone is the same call it always
+        // was, and it still raises CHECKOUT_RENEWAL_SINGLE_CHARGE for a renewal
+        // asked for the instalment it does not have, before anything below runs.
+        const breakdown = order
+            ? {
+                platformFeeNet: Number(order.platformFeeNet),
+                platformFeeVat: Number(order.platformFeeVat),
+                platformFeeGross: Number(order.platformFeeGross),
+                totalPayableAmount: Number(order.totalPayableAmount),
+            }
+            : breakdownForMilestone(application, milestone);
+
+        // R2, ONE call for BOTH doors (coordinator ruling 5). A post-gate order
+        // always matches — it was checked at mint and the snapshot is immutable —
+        // so this is a no-op for every order minted from here on, and it fires only
+        // on a drain-window row whose stored figure is not what the applicant has
+        // since accepted. Still nothing minted, still nothing asked of the gateway.
+        await assertChargeMatchesAcceptedFigures({
+            figures: breakdown,
+            snapshot,
+            phase,
+            quotation,
+            application,
+            milestone,
+            actorId: actor?.id || null,
+            actorRole: actor?.role || null,
+            entry: order ? 'RE_ENTRY' : 'MINT',
+        });
+
+        // W2-01 adapter seam: no SDK here. Fail fast BEFORE any DB row is minted
+        // when the gateway is unconfigured (same fail-closed posture as before) —
+        // and, since the drift check has already run, a mis-priced charge is
+        // reported even while the gateway is down.
+        const adapter = getPaymentAdapter();
+        if (typeof adapter.assertReady === 'function') {
+            adapter.assertReady();
+        }
+        // PromptPay QR step (operator ruling 2026-09-27): the browser confirms this
+        // intent with Stripe.js, which needs the publishable key of the same account
+        // and the same test/live mode. Asked here, beside assertReady() and before
+        // any row is minted, so a missing or mismatched key (503
+        // STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED / STRIPE_KEY_MODE_MISMATCH) leaves
+        // no order that nobody could pay. An adapter that has no browser step hands
+        // out no key, and the screen then says the QR cannot be shown.
+        const clientConfig = typeof adapter.getClientConfig === 'function'
+            ? adapter.getClientConfig()
+            : { publishableKey: null };
+
+        if (order && order.quotationId !== quotation.id) {
+            // A drain-window order: minted before this gate existed, so nothing on
+            // the row says which priced document it collects against. The
+            // comparison immediately above has just PROVED which document and which
+            // figures this charge answers to, and without writing that down the
+            // order is paid and settled with quotation_id still NULL — which loses
+            // it from T6's closure step and from the closure probe's INNER JOIN
+            // (checkout_orders o JOIN quotations q ON q.id = o.quotation_id), so the
+            // probe would report PASS while that quotation never reaches INVOICED.
+            //
+            // The condition is the IDENTITY check, not `!order.quotationId` (fix
+            // round 3, reviewer r2 minor 2). A non-null pointer naming a DIFFERENT
+            // row than the gate just returned is the more dangerous case of the
+            // two: the charge was compared against the document above, while the
+            // row still says it collects for a superseded one. That is reachable
+            // through the path the catalogue prescribes — CHECKOUT_PRICE_DRIFT
+            // tells staff to re-issue, and quotations_application_issuer_live_uq
+            // (partial on isDeleted = false) makes a re-issue a soft-delete plus a
+            // NEW id — and it ends with the closure step and the closure probe
+            // joining the wrong document. Re-stamping is safe precisely here:
+            // reaching this line means the figures on the row and the figures the
+            // new document froze already agree to the satang, or the refusal above
+            // fired instead. An order that already names this same document is
+            // left alone, so a re-entry is not an UPDATE per press.
+            //
+            // Provenance columns only: not one money column is in this payload, so
+            // the figure the applicant is asked for cannot move here.
+            const binding = {
+                quotationId: quotation.id,
+                quotationSnapshotHash: quotationSnapshotHash(quotation, snapshot),
+                paymentTermsVersion: paymentTerms.version,
+                paymentTermsAcceptedAt: paymentTerms.acceptedAt,
+            };
+            // updateMany with the status predicate, not update: settlement can
+            // commit between the read above and this write, and a SETTLED order
+            // must not be re-opened. count === 0 means exactly that happened; the
+            // local row is then left as it was read rather than claiming a binding
+            // the database does not hold.
+            const bound = await prisma.checkoutOrder.updateMany({
+                where: { id: order.id, status: 'PENDING_PAYMENT' },
+                data: binding,
+            });
+            if (bound?.count) {
+                order = { ...order, ...binding };
+            } else {
+                logger.warn('[checkout] the open order changed state before it could be bound', {
+                    checkoutOrderId: order.id,
+                    applicationId: application.id,
+                    milestone,
+                });
+            }
+        }
+
+        if (!order) {
+            // W2-02 §3.4 + F-CHECKOUT-M2 (2026-08-18, reports/payment-policy/
+            // 2026-08-18-invoice-family-M2-collision.md): two requests can both
+            // pass the findFirst gate before either commits, AND the invoice's
+            // own partial unique index can independently reject a genuine same-
+            // (app,milestone) resubmit — so the whole create sequence (order +
+            // invoice + line items + charge + the link-back update) runs as ONE
+            // transaction. Either every row commits or none do: an invoice-side
+            // failure can never leave an orphan PENDING_PAYMENT order
+            // (invoiceId=null) for a retry to later hand to settlement. The
+            // P2002 translation below covers the ENTIRE block, not just the
+            // order create — never a raw 500.
+            try {
+                order = await prisma.$transaction(async (tx) => {
+                    const newOrder = await tx.checkoutOrder.create({
+                        data: {
+                            applicationId: application.id,
+                            milestone,
+                            ...breakdown,
+                            // คอลัมน์ dtam_fee_amount ยัง NOT NULL และ CHECK
+                            // total = dtam_fee_amount + platform_fee_gross จนกว่า PR3
+                            // ดรอปมัน — จึงเขียน 0 ตรง ๆ ไม่ใช่ตัวเลขที่คำนวณ
+                            dtamPayableAmount: 0,
+                            status: 'PENDING_PAYMENT',
+                            organizationId: application.organizationId,
+                            // F-G4-64 — the other half of the binding: which priced
+                            // document this charge collects against, and the hash of
+                            // the exact figures it was checked against. The row's own
+                            // stored hash is the acceptance record and wins; a row
+                            // that carries a snapshot but no hash (accepted before
+                            // the column existed) gets the canonical hash of the
+                            // snapshot this charge was actually compared with, and a
+                            // row with neither gets null, because there is nothing
+                            // that was agreed to record.
+                            quotationId: quotation.id,
+                            quotationSnapshotHash: quotationSnapshotHash(quotation, snapshot),
+                            // Ruling 2: the disclosure that authorised THIS charge,
+                            // copied from the UserConsent row — not a second version
+                            // namespace and not the instant this request ran.
+                            paymentTermsVersion: paymentTerms.version,
+                            paymentTermsAcceptedAt: paymentTerms.acceptedAt,
+                        },
+                    });
+
+                    // The ONE invoice for this checkout, with the itemized three-line
+                    // breakdown (replaces the per-phase STATE+PLATFORM invoice pair).
+                    const invoice = await tx.invoice.create({
+                        data: {
+                            invoiceNumber: `INV-CO-${newOrder.id.slice(0, 8).toUpperCase()}-${milestone}`,
+                            applicationId: application.id,
+                            healthId: application.healthId,
+                            // Built by the shared helper above — the same one every
+                            // reader of this invoice family asks.
+                            serviceType: checkoutInvoiceServiceType(milestone),
+                            subtotal: breakdown.platformFeeNet,
+                            vat: breakdown.platformFeeVat,
+                            totalAmount: breakdown.totalPayableAmount,
+                            // Q2-D1 (W3-41): billing.prisma requires dueDate NOT NULL —
+                            // mint stamps it from the schedule service (config-driven
+                            // business-day window on the canonical Thai calendar).
+                            dueDate: computeDueDate(new Date(), milestone),
+                            status: 'pending',
+                            organizationId: application.organizationId,
+                        },
+                    });
+
+                    // ── สองบรรทัด ไม่ใช่สาม (operator 2026-09-11) ─────────────────
+                    //
+                    // เดิมออกสามบรรทัด: STATE_FEE (ราคาเต็ม) · PLATFORM_FEE (10%) · VAT
+                    // พอเลิกแยกส่วนรัฐ บรรทัดแรกกลายเป็น **0 บาทชื่อ \"ราคาเต็ม\"** และ
+                    // บรรทัดสองชื่อ \"ค่าบริการแพลตฟอร์ม\" แบกราคาทั้งก้อน — อ่านแล้วผิด
+                    // ทั้งคู่ และมันคือเอกสารที่เกษตรกรเก็บไว้ ไม่ใช่ตัวแปรภายใน
+                    // (fee-service.js ประกาศไว้เองแล้วว่า \"บรรทัดที่บรรยายสูตรที่ไม่ได้ใช้
+                    // = ข้อความเท็จ\" ตอนถอด stateItems/platformItems — ตรงนี้คือที่เดียว
+                    // ที่ยังไม่ได้ตามไปแก้)
+                    //
+                    // ไม่มีส่วนของกรมฯ ในราคาแล้ว จึงไม่มีบรรทัดของมัน
+                    // ชื่อ code ยังขึ้นต้น PLATFORM_ เพราะผูกกับคอลัมน์ที่จะดรอปในใบ
+                    // migration ถัดไป (ขยายก่อนหด) — ยอดรวมไม่ขยับแม้แต่สตางค์เดียว
+                    await tx.invoiceLineItem.createMany({
+                        data: [
+                            {
+                                invoiceId: invoice.id,
+                                organizationId: application.organizationId,
+                                lineNumber: 1,
+                                code: 'PLATFORM_FEE',
+                                description: 'ค่าบริการตรวจประเมินและรับรองมาตรฐาน GACP',
+                                quantity: 1,
+                                unitPrice: breakdown.platformFeeNet,
+                                amount: breakdown.platformFeeNet,
+                                isTaxable: true,
+                            },
+                            {
+                                invoiceId: invoice.id,
+                                organizationId: application.organizationId,
+                                lineNumber: 2,
+                                code: 'PLATFORM_VAT',
+                                // ฐานคือค่าบริการทั้งก้อน ซึ่งตอนนี้คือบรรทัดเดียวข้างบน
+                                // คำอธิบายเดิมเขียนว่า \"ราคาเต็ม + ค่าแพลตฟอร์ม\" ซึ่งเป็น
+                                // การบวกสองอย่างที่ไม่มีอยู่แล้ว
+                                description: 'ภาษีมูลค่าเพิ่ม 7% (ของค่าบริการ)',
+                                quantity: 1,
+                                unitPrice: breakdown.platformFeeVat,
+                                amount: breakdown.platformFeeVat,
+                                isTaxable: false,
+                            },
+                        ],
+                    });
+
+                    const charge = await tx.paymentTransaction.create({
+                        data: {
+                            applicationId: application.id,
+                            phase: milestone === 'M1' ? 'PHASE_1' : 'PHASE_2',
+                            gateway: 'STRIPE',
+                            amount: toSatang(breakdown.totalPayableAmount),
+                            currency: 'THB',
+                            status: 'PENDING',
+                            idempotencyKey: `checkout:${newOrder.id}`,
+                            organizationId: application.organizationId,
+                        },
+                    });
+
+                    return tx.checkoutOrder.update({
+                        where: { id: newOrder.id },
+                        data: { invoiceId: invoice.id, paymentTransactionId: charge.id },
+                    });
+                });
+            } catch (err) {
+                if (err && err.code === 'P2002') {
+                    throw httpError(409, 'CHECKOUT_ALREADY_IN_PROGRESS',
+                        'มีรายการชำระเงินของงวดนี้กำลังดำเนินการอยู่แล้ว กรุณาเปิดหน้าชำระเงินเดิมหรือลองใหม่อีกครั้ง');
+                }
+                throw err;
+            }
+        }
+
+        // One order, one LIVE intent (review I-1, 2026-09-27). The idempotency key
+        // alone is not enough: Stripe prunes keys after about 24 h, and a pruned key
+        // quietly mints a second intent. With the QR step live that is a double
+        // charge — the first intent's QR can still be paid after the second settles
+        // the order, and settlement answers alreadySettled with no alert. So an
+        // order that already names an intent asks the gateway what it is first
+        // (resolveExistingIntent, foot of this file). A retrieval that fails
+        // throws: nothing is minted on a guess.
+        const existing = order.stripePaymentIntentId
+            ? await resolveExistingIntent(adapter, order.stripePaymentIntentId)
+            : null;
+
+        const session = existing && existing.reuse
+            ? existing.session
+            : await adapter.createCheckoutSession({
+                amountSatang: toSatang(breakdown.totalPayableAmount),
+                currency: 'thb',
+                // PromptPay QR only (mandate D3 2026-08-04). The card path is
+                // intentionally NOT offered — see CHECKOUT_PAYMENT_METHOD_TYPES at the
+                // foot of this file (declared there so no file:line citation moves).
+                paymentMethodTypes: [...CHECKOUT_PAYMENT_METHOD_TYPES],
+                statementDescriptor: STATEMENT_DESCRIPTOR,
+                description: `GACP ${milestone} — ${application.applicationNumber}`,
+                metadata: {
+                    checkoutOrderId: order.id,
+                    applicationId: application.id,
+                    milestone,
+                    organizationId: application.organizationId,
+                },
+                // First mint: the order id, so a retried create is the SAME intent.
+                // Replacing a canceled intent: a key of its own, derived from the
+                // intent it replaces, so the retry of THIS replacement is idempotent
+                // too and the plain key cannot hand the canceled one back.
+                idempotencyKey: existing
+                    ? `checkout:${order.id}:after:${order.stripePaymentIntentId}`
+                    : `checkout:${order.id}`,
+            });
+
+        if (order.stripePaymentIntentId !== session.id) {
+            // Compare-and-set on the value READ above (fix round 3, N-1), the same
+            // idiom as the binding write: the order may have been cancelled by a
+            // webhook, or moved to a later replacement by a concurrent press, while
+            // this request talked to the gateway. A blind update by id would write
+            // this intent over that. No row matched → refuse, hand out no client
+            // secret, and cancel nothing (the intent just minted is left to lapse).
+            const moved = await prisma.checkoutOrder.updateMany({
+                where: { id: order.id, status: 'PENDING_PAYMENT', stripePaymentIntentId: order.stripePaymentIntentId },
+                data: { stripePaymentIntentId: session.id },
+            });
+            if (!moved?.count) {
+                logger.warn('[checkout] the order changed before its intent could be recorded; refused', {
+                    checkoutOrderId: order.id, readPaymentIntentId: order.stripePaymentIntentId, newPaymentIntentId: session.id,
+                });
+                throw httpError(409, 'CHECKOUT_ORDER_CHANGED',
+                    `Checkout order ${order.id} changed while its payment was being prepared; nothing was recorded`);
+            }
+            order = { ...order, stripePaymentIntentId: session.id };
+        }
+
+        logger.info('[checkout] intent ready', {
+            checkoutOrderId: order.id,
+            applicationId: application.id,
+            milestone,
+            actorId: actor?.id || null,
+        });
+
+        return {
+            checkoutOrderId: order.id,
+            paymentIntentId: session.id,
+            // null when the intent has already succeeded: there is nothing left for
+            // a browser to confirm, and the screen watches for the webhook instead.
+            clientSecret: session.clientSecret,
+            // The gateway's own status of the intent handed back (a fresh intent is
+            // requires_payment_method). The screen goes straight to waiting for the
+            // webhook on 'succeeded' / 'processing'; it never marks anything paid.
+            paymentIntentStatus: session.status || session.raw?.status || 'requires_payment_method',
+            milestone,
+            breakdown,
+            // F-G4-64: so the checkout screen can NAME the document the applicant
+            // accepted instead of showing a price with no provenance.
+            quotationNumber: quotation.quotationNumber || null,
+            // PromptPay QR step: the key Stripe.js loads with (null = no browser
+            // step on this adapter), the one invoice the webhook settles and writes
+            // the receipt onto (the screen watches it; it never marks it paid), and
+            // the email Stripe requires for PromptPay (null = the screen asks).
+            publishableKey: clientConfig.publishableKey || null,
+            invoiceId: order.invoiceId || null,
+            // Lazy require, down here rather than at the top, so no line above
+            // moves: shared/error-codes.js cites this file by line number.
+            payerEmail: await require('./payer-contact-email')
+                .resolvePayerContactEmail({ application, userId: actor?.id }),
+        };
+    }
+
+    /**
+     * The payment methods the one live rail offers. PromptPay QR only (mandate D3
+     * 2026-08-04). The card path is intentionally NOT offered: do not add a method
+     * without an operator ruling; the FE confirm step and refund flow assume
+     * PromptPay. Exported so the web copy that names the channel
+     * (apps/web-app/src/constants/service-facts.ts PAYMENT_CHANNEL_TH) is pinned to
+     * this list, not to a second literal (__tests__/unit/frontend-service-facts-mirror.test.js).
+     * Read only when a checkout is created, i.e. after this module has loaded.
+     */
+    const CHECKOUT_PAYMENT_METHOD_TYPES = Object.freeze(['promptpay']);
+
+    /**
+     * PaymentIntent statuses under which the order's existing intent is handed back
+     * as it is (review I-1). An expired PromptPay QR returns its intent to
+     * requires_payment_method, so \"expired\" lands here too: confirming again shows
+     * a fresh QR on the SAME intent.
+     */
+    const REUSABLE_INTENT_STATUSES = Object.freeze(['requires_payment_method', 'requires_action', 'processing']);
+
+    /**
+     * What to do with the intent an open order already names.
+     *   reusable  → { reuse: true, session } (its own client secret)
+     *   succeeded → { reuse: true, session } with clientSecret null: never mint a
+     *               second intent for money already taken; the webhook settles.
+     *   canceled  → { reuse: false }: the caller mints the one replacement.
+     *   anything else (requires_confirmation / requires_capture — states this
+     *   automatic-capture PromptPay flow never produces) → refused. Not canceled
+     *   and replaced: payment_intent.canceled cancels the ORDER while the canceled
+     *   intent is still the order's current one (settlement guard, fix round 2),
+     *   and a cancel issued here lands before the replacement is recorded — so it
+     *   would cancel the order this request is about to hand a new intent to.
+     * The adapter's getPaymentIntent throws on a gateway failure; that propagates.
+     * A null answer (the mock adapter after a restart) is treated as \"no intent\",
+     * which re-mints under the plain key — deterministic on the mock.
+     */
+    async function resolveExistingIntent(adapter, intentId) {
+        if (typeof adapter.getPaymentIntent !== 'function') { return null; }
+        const intent = await adapter.getPaymentIntent(intentId);
+        if (!intent) { return null; }
+        const status = intent.status;
+        if (REUSABLE_INTENT_STATUSES.includes(status)) {
+            return { reuse: true, session: { id: intent.id, clientSecret: intent.client_secret, status } };
+        }
+        if (status === 'succeeded') {
+            return { reuse: true, session: { id: intent.id, clientSecret: null, status } };
+        }
+        if (status === 'canceled') {
+            return { reuse: false };
+        }
+        throw httpError(409, 'CHECKOUT_INTENT_UNUSABLE',
+            `PaymentIntent ${intentId} is ${status}; refusing to mint a second intent for the same order`);
+    }
+
+    /**
+     * PR2 of the DTAM remittance removal (operator 2026-09-29): the platform books
+     * no DTAM portion, so settlement cannot balance an order whose
+     * dtam_fee_amount > 0 (checkout-settlement-service refuses it before any side
+     * effect). Such an order must therefore never be handed a payable intent, and
+     * must not stay in the applicant's way either. Demo holds one (PENDING_PAYMENT
+     * since 2026-09-12, pre-production test data).
+     *
+     * CHECKOUT_PRICE_DRIFT does not cover it for certain: it compares against the
+     * accepted snapshot, and a drain-window row has none while a snapshot frozen
+     * under the old split matches the order's own figures — both re-enter the old
+     * intent. So this runs first, on every re-entry:
+     *   - no DTAM portion → nothing to do;
+     *   - its intent succeeded / is processing → money may already be captured:
+     *     retire nothing, cancel nothing, refuse CHECKOUT_INTENT_UNUSABLE (the
+     *     settlement refusal dead-letters the event for an operator);
+     *   - otherwise cancel the intent at the gateway unless already canceled (a
+     *     failure throws: nothing is retired on a guess), then in ONE transaction
+     *     move the order to CANCELLED and soft-delete its unpaid invoice — the
+     *     invoice has to go too, because uniq_invoice_app_service_active (one live
+     *     invoice per application + serviceType) would otherwise refuse the fresh
+     *     order's invoice — and mark its PENDING charge row CANCELLED;
+     *   - then refuse CHECKOUT_ORDER_HAS_DTAM_PORTION. The next press finds no open
+     *     order and mints one priced from the quotation.
+     * Status and soft-delete columns only: no amount on any row is written.
+     */
+    async function retireOrderCarryingDtamPortion({ order, application, milestone }) {
+        if (!(Number(order.dtamPayableAmount) > 0)) { return; }
+        const context = {
+            checkoutOrderId: order.id,
+            applicationId: application.id,
+            milestone,
+            paymentIntentId: order.stripePaymentIntentId || null,
+        };
+        if (order.stripePaymentIntentId) {
+            const adapter = getPaymentAdapter();
+            const intent = await adapter.getPaymentIntent(order.stripePaymentIntentId);
+            const status = intent ? intent.status : null;
+            if (status === 'succeeded' || status === 'processing') {
+                logger.error('[checkout] an order carrying a DTAM portion has a paid or paying intent; not retired, operator action required', { ...context, intentStatus: status });
+                throw catalogError('CHECKOUT_INTENT_UNUSABLE');
+            }
+            if (intent && status !== 'canceled') {
+                await cancelOrDecide(adapter, order.stripePaymentIntentId, context);
+            }
+        }
+        // The same three rows the payment_intent.canceled webhook retires, through
+        // the same helper (services/checkout/retire-checkout-order.js). If this
+        // transaction fails after the gateway cancel landed, that webhook finishes
+        // the job, and the next press still recovers (PR2 review I-1).
+        const retired = await prisma.$transaction((tx) => retireCheckoutOrderInTx(tx, {
+            order, reason: RETIRE_REASONS.DTAM_PORTION,
+        }));
+        if (!retired) {
+            logger.warn('[checkout] an order carrying a DTAM portion changed before it could be retired; refused', context);
+            throw httpError(409, 'CHECKOUT_ORDER_CHANGED',
+                `Checkout order ${order.id} changed while it was being retired; nothing was recorded`);
+        }
+        logger.warn('[checkout] retired an open order carrying a DTAM portion; the next press mints a fresh order', context);
+        throw catalogError('CHECKOUT_ORDER_HAS_DTAM_PORTION');
+    }
+
+    /**
+     * Cancel at the gateway, and when the gateway refuses, decide from what the
+     * intent IS now (PR2 review M-2). Stripe answers a cancel it cannot perform with
+     * payment_intent_unexpected_state — the intent was paid between our read and
+     * the cancel, or a double press / the webhook already canceled it. The intent
+     * is re-read:
+     *   canceled                → nothing left to do, the retire continues;
+     *   anything else, or a re-read that fails → CHECKOUT_INTENT_UNUSABLE (money
+     *   may be captured or the gateway cannot say; nothing is retired).
+     * The gateway's own error never reaches the caller: it is logged here.
+     */
+    async function cancelOrDecide(adapter, intentId, context) {
+        try {
+            await adapter.cancelPaymentIntent(intentId);
+            return;
+        } catch (cancelErr) {
+            let nowStatus = null;
+            try {
+                const now = await adapter.getPaymentIntent(intentId);
+                nowStatus = now ? now.status : null;
+            } catch (readErr) {
+                nowStatus = null;
+                logger.error('[checkout] intent could not be re-read after a refused cancel', {
+                    ...context, gatewayMessage: readErr?.message || String(readErr),
+                });
+            }
+            if (nowStatus === 'canceled') { return; }
+            logger.error('[checkout] gateway refused to cancel the intent of an order carrying a DTAM portion; not retired', {
+                ...context,
+                gatewayCode: cancelErr?.code || null,
+                gatewayMessage: cancelErr?.message || String(cancelErr),
+                intentStatusNow: nowStatus,
+            });
+            throw catalogError('CHECKOUT_INTENT_UNUSABLE');
+        }
+    }
+
+    module.exports = {
+        CHECKOUT_PAYMENT_METHOD_TYPES,
+        PAYABLE_STATES,
+        checkoutInvoiceServiceType,
+        createCheckoutForApplication,
+    };
+    "
+
+      72 |     test('stripe-checkout-service ไม่เขียน dtamPayableAmount และไม่มีตัวปลด order ที่มีส่วนของกรมฯ', () => {
+      73 |         const src = read('services/checkout/stripe-checkout-service.js');
+    > 74 |         expect(src).not.toMatch(/dtamPayableAmount|dtam_fee_amount|retireOrderCarryingDtamPortion|CHECKOUT_ORDER_HAS_DTAM_PORTION/);
+         |                         ^
+      75 |     });
+      76 |
+      77 |     test('checkout-settlement-service ไม่อ่านส่วนของกรมฯ และไม่มีการปฏิเสธ CHECKOUT_ORDER_HAS_DTAM_PORTION', () => {
+
+      at Object.toMatch (__tests__/unit/dtam-remittance-schema-dropped.test.js:74:25)
+
+  ● โค้ด: ไม่อ่าน/เขียนคอลัมน์ที่ดรอปแล้ว › checkout-settlement-service ไม่อ่านส่วนของกรมฯ และไม่มีการปฏิเสธ CHECKOUT_ORDER_HAS_DTAM_PORTION
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /dtamPayableAmount|dtamRemittanceStatus|CHECKOUT_ORDER_HAS_DTAM_PORTION/
+    Received string:      "'use strict';
+
+    /**
+     * Checkout settlement — the atomic settle of the Wave-2 Stripe engine
+     * (docs/payment-refactor/step2-data-model-design.md v2 §5.5, approved).
+     *
+     * On a verified `payment_intent.succeeded`, ONE database transaction covers:
+     *   1. CheckoutOrder → SETTLED (+ settledAt). The DTAM remittance status is no
+     *      longer written (pipeline removed — operator 2026-09-11 \"ถอดออกทั้งระบบ\").
+     *   2. Invoice → paid, AND the invoice carries the settlement document's
+     *      number in its receipt columns (receiptNumber / receiptStatus ISSUED /
+     *      receiptIssuedAt / receiptIssuedBy) — so invoices.receiptNumber ==
+     *      checkout_documents.documentNumber; PaymentTransaction → SUCCESS
+     *   3. The one-fee journal entry:
+     *        Dr 1110-001 Cash            total
+     *          Cr 4110-001 Revenue          platform_net (the whole ค่าบริการ)
+     *          Cr 2131-001 Output VAT       platform_vat
+     *      No DTAM line: the company settles with DTAM offline and books it in its
+     *      own accounts (operator 2026-09-29).
+     *   4. W14 — the ONE settlement document:
+     *        PLATFORM_TAX_INVOICE (TAX-PRD sequence) — the company's full tax
+     *        invoice for the whole ค่าบริการ, VAT 7% on all of it. The
+     *        DTAM_DISBURSAL_RECEIPT is retired with the collection-agent model.
+     *        ONE number, two rows, one document: the checkout_documents row and
+     *        the invoice's receipt columns (step 2) hold the same TAX-PRD number,
+     *        so the accountant's pending-receipts queue never lists a settled
+     *        checkout invoice and no second number is ever drawn for it.
+     *   5. The workflow unlock, SYSTEM actor:
+     *        M1 → DOC_FEE_PAID   (Step 2 — เจ้าหน้าที่กระจายงาน งวดที่ 1)
+     *        M2 → AUDIT_FEE_PAID (Step 5 — เจ้าหน้าที่กระจายงาน งวดที่ 2)
+     *      (The DISPATCHER_*_QUEUE names in the directive map onto these existing
+     *      canonical states; renaming the vocabulary is Wave-3 work and would
+     *      otherwise force every projection to move inside this PR.)
+     *
+     * The AMOUNT CROSS-CHECK runs before any side effect: amount_received must
+     * equal the order's total in satang. A mismatch is an alert and a recorded
+     * error — never a settlement.
+     */
+
+    const { prisma } = require('../prisma-database');
+    const logger = require('../../shared/logger');
+    const { toSatang } = require('../../config/stripe');
+    const { writeApplicationStatus } = require('../application-status-writer');
+    const { recordPaymentEntry } = require('../journal-entry-service');
+    const { allocateReceiptNumber, ISSUER } = require('../receipt-numbering-service');
+    const { getInvoiceIssuer } = require('../../config/invoice-issuers');
+    const { SETTLEMENT } = require('../../config/business-rules');
+    const { retireCheckoutOrderInTx, RETIRE_REASONS } = require('./retire-checkout-order');
+    const {
+        auditLogger, AuditCategory, AuditSeverity, ResourceType,
+    } = require('../../middleware/audit-logger');
+    // The two states that mean \"the applicant's acceptance is on record\", read from
+    // the ONE gate module rather than re-typed here (F-G4-64 §3.1). quotation-gate
+    // requires neither this file nor quotation-service at load time, so this import
+    // closes no cycle on the money path.
+    const { QUOTATION_ACCEPTED_STATES } = require('../billing/quotation-gate');
+
+    // The company's registered name and its VAT rate each have ONE home. This file
+    // used to keep its own copy of the name — which meant an operator who set
+    // PLATFORM_COMPANY_NAME_TH still saw the default on every settlement receipt,
+    // with nothing to explain why — and typed 0.07 straight into the tax invoice
+    // payload, so an environment that changed the rate would have charged one number
+    // and printed another on the document the customer keeps.
+    const { PLATFORM_ISSUER } = require('../../config/invoice-issuers');
+    // W14 — DTAM's legal name is no longer printed on any farmer-facing document.
+    // The company settles with DTAM outside this system and books it in its own
+    // accounts (operator 2026-09-29) — neither a document identity nor a journal
+    // line here.
+
+    /** milestone → the dispatcher-queue state the verified webhook unlocks. */
+    const SETTLED_TARGET_STATE = Object.freeze({
+        M1: 'DOC_FEE_PAID',
+        M2: 'AUDIT_FEE_PAID',
+    });
+
+    /**
+     * W14 (operator ruling 2026-08-22, HARNESS_LOG.md c28355ea) — ONE document.
+     *
+     * The farmer receives a single full tax invoice / receipt from the company for
+     * the WHOLE ค่าบริการ, with 7% VAT on all of it.
+     *
+     * What was removed, and why it could not just be left in place:
+     *   - DTAM_DISBURSAL_RECEIPT was a receipt issued in DTAM's NAME to the payer,
+     *     for a VAT-exempt state fee, carrying `collectedAsAgentFor: DTAM`. Under
+     *     this ruling the farmer did not pay DTAM and the company did not collect
+     *     as DTAM's agent, so each of those claims is now false.
+     *   - The tax invoice covered only the platform portion. Issuing a document for
+     *     5,310 against a 35,310 charge would leave 30,000 of a taxable supply
+     *     undocumented.
+     *
+     * `documentType` stays 'PLATFORM_TAX_INVOICE' — a value the Wave-1 CHECK
+     * constraint already permits (migration 20260802150000), and PLATFORM is the
+     * company. No migration is needed, and historical DTAM_DISBURSAL_RECEIPT rows
+     * stay readable.
+     *
+     * What the company pays DTAM is settled offline in the company's own accounts
+     * (operator 2026-09-29): it is neither on this document nor in the journal.
+     */
+    function buildSettlementDocumentPayload(order, numbers, issuedAtDate = new Date()) {
+        // `issuedAtDate` is the settlement instant the caller stamps on every row
+        // of the settle transaction, so the document and the invoice's
+        // receiptIssuedAt agree to the millisecond.
+        const issuedAt = issuedAtDate.toISOString();
+        // The service fee is the platform_fee_net column, alone. There is no DTAM
+        // portion to add (one fee since 2026-09-11; no DTAM accounting on this
+        // platform since 2026-09-29).
+        const serviceFeeNet = Number(order.platformFeeNet);
+
+        const taxInvoice = {
+            documentType: 'PLATFORM_TAX_INVOICE',
+            issuer: 'PLATFORM',
+            issuerName: PLATFORM_ISSUER.legalNameTH,
+            documentNumber: numbers.company,
+            issuedAt,
+            buyer: { applicationId: order.applicationId },
+            // ── หนึ่งบรรทัด (operator 2026-09-11) ────────────────────────────
+            // เดิมพิมพ์สองบรรทัดเพื่อให้เห็นว่าราคาประกอบขึ้นจากอะไร: \"ราคาเต็ม\" กับ
+            // \"ค่าแพลตฟอร์ม 10%\" · พอเลิกแยกส่วนรัฐ บรรทัดแรกเหลือ **0 บาท** และ
+            // บรรทัดที่ชื่อ \"ค่าแพลตฟอร์ม 10%\" กลายเป็นตัวแบกราคาทั้งก้อน
+            // นี่คือใบที่เกษตรกรเก็บไว้ ไม่ใช่ตัวแปรภายใน — ส่วนประกอบที่ไม่มีอยู่จริง
+            // อีกแล้วจึงถูกถอด ไม่ใช่พิมพ์เป็นศูนย์ · ยอดรวมไม่ขยับ
+            lines: [
+                {
+                    code: 'PLATFORM_FEE',
+                    description: 'ค่าบริการตรวจประเมินและรับรองมาตรฐาน GACP',
+                    amount: String(serviceFeeNet),
+                },
+            ],
+            serviceFee: String(serviceFeeNet),
+            vat: { rate: PLATFORM_ISSUER.vatRate, amount: String(order.platformFeeVat), base: String(serviceFeeNet) },
+            total: String(order.totalPayableAmount),
+            checkoutOrderId: order.id,
+        };
+
+        return { taxInvoice };
+    }
+
+    /**
+     * F-G4-64 §3.3 — close the quotation of an order whose money has already
+     * landed. Best-effort and TOTAL: this function never throws, because the money,
+     * the receipt and the workflow status must not depend on it.
+     *
+     * It is called from OUTSIDE the settle transaction, and never from inside it.
+     * That is not a style preference: a throw in there rolls back the invoice
+     * `paid`, the receipt number, the CheckoutDocument, the journal entry and the
+     * workflow status, and then settleEvent retries to DEAD_LETTER with Stripe
+     * already holding the money. Pinned by
+     * settlement-quotation-must-not-throw-in-tx.test.js, which also greps this file
+     * to keep every call outside the transaction.
+     *
+     * Two call sites, on purpose (review r0, finding 2):
+     *   1. after the commit, with the number just allocated and the instant just
+     *      written — the normal path;
+     *   2. the already-SETTLED fast path, with the number and instant already on
+     *      the row — the HEAL path. Putting the close after the commit buys the
+     *      money its safety and costs the quotation its atomicity: a process killed
+     *      between the two leaves phaseXInvoicedAt NULL on a paid order, and
+     *      without (2) every redelivery, retry and reconcile pass would answer
+     *      \"already settled\" and walk past the gap forever. recordPhaseInvoiced
+     *      keeps the FIRST instant per phase, so healing a row that is already
+     *      correct costs one UPDATE and changes nothing.
+     *
+     * @returns {Promise<void>}
+     */
+    async function closeQuotationForSettledOrder({ order, milestone, invoiceNumber, at, eventId }) {
+        try {
+            // Required here, not at the top of the file: quotation-service is only
+            // needed on this one best-effort branch, and keeping it out of the
+            // module's load-time graph means a fault in it can never stop the
+            // settle path from loading at all.
+            const quotationService = require('../quotation-service');
+            const closed = await quotationService.recordPhaseInvoiced({
+                quotationId: order.quotationId || null,
+                applicationId: order.applicationId || null,
+                milestone,
+                invoiceNumber,
+                // What this charge actually collected. Only the applicationId
+                // fallback consults it, to refuse a document it does not match.
+                chargedAmount: order.totalPayableAmount,
+                at,
+            });
+            if (!closed) {
+                logger.error('[checkout-settle] no quotation to close for a settled order', {
+                    eventId, checkoutOrderId: order.id, applicationId: order.applicationId, milestone,
+                });
+            } else if (closed.stamped === false) {
+                logger.error('[checkout-settle] quotation figures do not match the charge, nothing stamped', {
+                    eventId,
+                    checkoutOrderId: order.id,
+                    quotationId: closed.quotationId,
+                    milestone,
+                    ...closed.mismatch,
+                });
+            } else if (!QUOTATION_ACCEPTED_STATES.includes(closed.status)) {
+                logger.error('[checkout-settle] quotation not accepted at settlement', {
+                    eventId,
+                    checkoutOrderId: order.id,
+                    quotationId: closed.quotationId,
+                    status: closed.status,
+                    milestone,
+                });
+            }
+        } catch (qtErr) {
+            logger.error('[checkout-settle] quotation close failed — money and documents stand', {
+                eventId, checkoutOrderId: order.id, milestone,
+                errCode: qtErr?.code || null, errMessage: qtErr?.message || String(qtErr),
+            });
+            try {
+                await auditLogger.log({
+                    category: AuditCategory.PAYMENT,
+                    action: 'QUOTATION_CLOSE_FAILED',
+                    severity: AuditSeverity.ERROR,
+                    actorId: 'stripe-webhook',
+                    actorRole: 'SYSTEM',
+                    resourceType: ResourceType.PAYMENT,
+                    resourceId: order.id,
+                    organizationId: order.organizationId,
+                    metadata: { milestone, applicationId: order.applicationId, errCode: qtErr?.code || null },
+                });
+            } catch (auditErr) {
+                logger.error('[checkout-settle] could not record QUOTATION_CLOSE_FAILED', {
+                    eventId, errMessage: auditErr?.message || String(auditErr),
+                });
+            }
+        }
+    }
+
+    /**
+     * Settle a checkout order from a verified payment_intent.succeeded.
+     * Idempotent: an already-settled order is a successful no-op.
+     *
+     * @returns {Promise<{settled: boolean, alreadySettled?: boolean, reason?: string}>}
+     */
+    async function settleFromPaymentIntent({ paymentIntent, eventId }) {
+        const orderId = paymentIntent?.metadata?.checkoutOrderId || null;
+
+        const order = await prisma.checkoutOrder.findFirst({
+            where: orderId
+                ? { id: orderId }
+                : { stripePaymentIntentId: paymentIntent.id },
+            include: { application: true, invoice: true },
+        });
+
+        if (!order) {
+            logger.error('[checkout-settle] no order for intent — investigate', {
+                eventId, paymentIntentId: paymentIntent.id, orderId,
+            });
+            return { settled: false, reason: 'ORDER_NOT_FOUND' };
+        }
+
+        if (order.status === 'SETTLED') {
+            // Nothing is re-settled here: no transaction, no second receipt number,
+            // no status write. The ONE thing this path does do is heal the
+            // quotation, because a settle killed between its commit and its
+            // post-commit close leaves a paid order whose document is unstamped,
+            // and every route back to it — Stripe redelivery, the settleEvent
+            // retry, the reconcile job — arrives at exactly this line. It reuses
+            // what the crashed settle already wrote: the instant on the row and the
+            // number already bound to the invoice, never a fresh one.
+            await closeQuotationForSettledOrder({
+                order,
+                milestone: order.milestone,
+                invoiceNumber: order.invoice?.receiptNumber || null,
+                at: order.settledAt || new Date(),
+                eventId,
+            });
+            return { settled: true, alreadySettled: true };
+        }
+
+        // ── Amount cross-check BEFORE any side effect ──
+        const expectedSatang = toSatang(order.totalPayableAmount);
+        if (paymentIntent.amount_received !== expectedSatang) {
+            logger.error('[checkout-settle] AMOUNT MISMATCH — alert, not a settlement', {
+                eventId,
+                checkoutOrderId: order.id,
+                expectedSatang,
+                receivedSatang: paymentIntent.amount_received,
+            });
+            return { settled: false, reason: 'AMOUNT_MISMATCH' };
+        }
+
+        // ── An order that carries a DTAM portion cannot be settled (PR2) ──
+        // The platform books no DTAM portion (operator 2026-09-29), so its journal
+        // entry could never balance. Refused here, before any side effect: no
+        // receipt number drawn, no transaction opened. The throw is what keeps the
+        // money visible — settleEvent records FAILED with this code, retries, and
+        // dead-letters it for an operator (refund or manual handling); a terminal
+        // return would stamp the event PROCESSED and read as done. The checkout door
+        // retires such orders (stripe-checkout-service), so this fires only if a
+        // payer paid an intent they already held.
+        if (Number(order.dtamPayableAmount) > 0) {
+            logger.error('[checkout-settle] order carries a DTAM portion — not settled, operator action required', {
+                eventId,
+                checkoutOrderId: order.id,
+                orderStatus: order.status,
+                paymentIntentId: paymentIntent.id,
+                receivedSatang: paymentIntent.amount_received,
+            });
+            throw Object.assign(
+                new Error(`CHECKOUT_ORDER_HAS_DTAM_PORTION: order ${order.id} carries a DTAM portion and cannot be settled `
+                    + '(no DTAM accounting on this platform); the payment was captured, refund or handle it manually'),
+                { code: 'CHECKOUT_ORDER_HAS_DTAM_PORTION', checkoutOrderId: order.id },
+            );
+        }
+
+        const milestone = order.milestone;
+        const targetState = SETTLED_TARGET_STATE[milestone];
+
+        // The document number comes from the company's receipt sequence. Allocated
+        // OUTSIDE the settle transaction on purpose: the allocator runs its own
+        // short transaction (sequence row FOR UPDATE), and holding it inside the
+        // settle tx would serialize every settlement behind the counter lock. A
+        // crashed settle burns a number — sequences may legally have gaps.
+        //
+        // W14 — ONE number for ONE document. The DTAM receipt sequence is no longer
+        // drawn from at settlement, because the company no longer issues a document
+        // in DTAM's name.
+        //
+        // ONE settlement instant for every timestamp written below (order
+        // settledAt, invoice paidAt / receiptIssuedAt, charge paidAt, journal
+        // paidAt, document issuedAt, phase paid-at) — one moment, not a scatter of
+        // `new Date()` calls a few milliseconds apart. The number's year is read
+        // from the same instant, in Bangkok, so TAX-PRD-{year} is the year the
+        // document prints (operator 2026-09-26: \"เวลาไทยทั้งหมด\").
+        const settledAt = new Date();
+        const companyNo = await allocateReceiptNumber({ issuer: ISSUER.PLATFORM, dateOrYear: settledAt });
+        const payloads = buildSettlementDocumentPayload(order, {
+            company: companyNo.number,
+        }, settledAt);
+
+        const txOutcome = await prisma.$transaction(async (tx) => {
+            // Concurrency-safe idempotency: lock the order row and re-check under the lock.
+            // Concurrent settles (webhook kick, Stripe redelivery, reconcile) serialize here;
+            // the losers see SETTLED and stop, so the whole bundle is exactly-once.
+            const [locked] = await tx.$queryRaw`SELECT id, status FROM checkout_orders WHERE id = ${order.id} FOR UPDATE`;
+            if (!locked || locked.status === 'SETTLED') {
+                return { raced: true }; // a concurrent handler already settled this order
+            }
+
+            // 1. Order → SETTLED. No dtamRemittanceStatus: the remittance pipeline
+            // that read it was removed (operator 2026-09-11 \"ถอดออกทั้งระบบ\"); the
+            // column stays NULL until the contract migration drops it.
+            await tx.checkoutOrder.update({
+                where: { id: order.id },
+                data: {
+                    status: 'SETTLED',
+                    settledAt,
+                },
+            });
+
+            // 2. Invoice paid + charge SUCCESS.
+            //
+            // F-G4-36 — the invoice carries the settlement document's number.
+            // The TAX-PRD number allocated above is the receipt / tax invoice for
+            // this invoice (W14: ONE number for ONE document), so it is written
+            // into the invoice's receipt columns in the same transaction as the
+            // checkout_documents row. Without this, every invoice-based reader
+            // (customer statement, daily cash report, bank reconciliation, the
+            // invoice PDF, the farmer's payments page) is blind to the receipt,
+            // and listPendingReceipts (status paid + receiptNumber null) keeps
+            // offering the accountant an \"issue receipt\" button that would draw a
+            // SECOND TAX-PRD number for the same supply.
+            //
+            // `status` stays 'paid' on purpose — NOT 'RECEIPT_ISSUED'. The raw
+            // status vocabulary is read strictly as 'paid' by
+            //   services/credit-note-service.js:191   (status !== 'paid')
+            //   services/debit-note-service.js:160    (status !== 'paid')
+            //   services/refund-service.js:296        (status !== 'paid')
+            //   services/wht-service.js:396           (status !== 'paid')
+            // so a different raw status would lock this invoice out of credit
+            // notes, debit notes, refunds and WHT. The receipt state lives in the
+            // receipt columns; invoice-service.js toErpStatus already derives
+            // RECEIPT_ISSUED from them (hasReceipt), which is what the farmer's
+            // payments page and the accountant's queues read.
+            if (order.invoiceId) {
+                await tx.invoice.update({
+                    where: { id: order.invoiceId },
+                    data: {
+                        status: 'paid',
+                        paidAt: settledAt,
+                        paymentMethod: 'STRIPE',
+                        receiptNumber: companyNo.number,
+                        receiptStatus: 'ISSUED',
+                        receiptIssuedAt: settledAt,
+                        receiptIssuedBy: 'stripe-webhook',
+                    },
+                });
+            }
+            if (order.paymentTransactionId) {
+                await tx.paymentTransaction.update({
+                    where: { id: order.paymentTransactionId },
+                    data: {
+                        status: 'SUCCESS',
+                        gatewayRef: paymentIntent.id,
+                        paidAt: settledAt,
+                        webhookReceivedAt: settledAt,
+                    },
+                });
+            }
+
+            // 3. The one-fee journal entry — atomic via the tx handle
+            //    (meta.tx makes recordPaymentEntry throw into this transaction).
+            //    Cash = service fee + VAT; nothing is booked for DTAM. An order
+            //    that still carries a DTAM portion (pre-2026-09-11 test data) makes
+            //    this entry unbalanced, and the refusal rolls the settle back whole.
+            await recordPaymentEntry(
+                order.invoiceId,
+                Number(order.totalPayableAmount),
+                {
+                    platformFee: Number(order.platformFeeNet),
+                    vat: Number(order.platformFeeVat),
+                },
+                {
+                    tx,
+                    // Settlement provenance (defense-in-depth layer 2): sourceId
+                    // MUST be non-null — the partial unique index
+                    // journal_entries_settlement_once treats NULL as distinct,
+                    // so a null sourceId would silently defeat the
+                    // one-live-settlement-per-order guard. order.id is the PK,
+                    // always non-null.
+                    sourceType: 'CHECKOUT_SETTLEMENT',
+                    sourceId: order.id,
+                    // F-CHECKOUT-M2 (2026-08-18): mirrors the milestone-dimensioned
+                    // mint-time write (stripe-checkout-service.js) — journal
+                    // provenance consistency, not correctness-critical
+                    // (resolveIssuerType only needs the STATE_FEE/PLATFORM_FEE
+                    // substring, which this preserves either way). `milestone`
+                    // is already in scope above (order.milestone).
+                    serviceType: `CERTIFICATION_CHECKOUT_${milestone}`,
+                    invoiceNumber: order.invoice?.invoiceNumber || order.invoiceId,
+                    organizationId: order.organizationId,
+                    paidAt: settledAt,
+                },
+            );
+
+            // 4. W14 — the ONE settlement document: the company's full tax invoice
+            //    for the whole ค่าบริการ. The DTAM disbursal receipt is not issued.
+            await tx.checkoutDocument.create({
+                data: {
+                    checkoutOrderId: order.id,
+                    documentType: 'PLATFORM_TAX_INVOICE',
+                    documentNumber: payloads.taxInvoice.documentNumber,
+                    payload: payloads.taxInvoice,
+                    organizationId: order.organizationId,
+                },
+            });
+
+            // 5. The workflow unlock — SYSTEM actor, canonical writer.
+            if (order.applicationId && targetState) {
+                await writeApplicationStatus({
+                    prisma: tx,
+                    applicationId: order.applicationId,
+                    fromStatus: order.application?.status,
+                    toStatus: targetState,
+                    actorId: 'stripe-webhook',
+                    actorRole: 'SYSTEM',
+                    reason: `CHECKOUT_${milestone}_SETTLED`,
+                    additionalData: milestone === 'M1'
+                        ? { phase1Status: 'PAID', phase1PaidAt: settledAt }
+                        : { phase2Status: 'PAID', phase2PaidAt: settledAt },
+                });
+            }
+
+            return { raced: false };
+        }, { timeout: SETTLEMENT.TX_TIMEOUT_MS, maxWait: SETTLEMENT.TX_MAX_WAIT_MS });
+
+        if (txOutcome?.raced) {
+            // The FOR-UPDATE recheck found the order already SETTLED — a
+            // concurrent handler (webhook kick, Stripe redelivery, reconcile)
+            // won the race. No writes happened in this call; report the same
+            // alreadySettled shape as the outside-tx fast path instead of a
+            // phantom fresh \"settled\" — this exact case is what an operator
+            // reaches for during a concurrency incident.
+            logger.info('[checkout-settle] already settled by a concurrent handler', {
+                eventId,
+                checkoutOrderId: order.id,
+            });
+            return { settled: true, alreadySettled: true };
+        }
+
+        // ── F-G4-64: close the quotation. AFTER the commit. Best-effort. ────────
+        // The whole rationale, and the second (heal) call site, are on
+        // closeQuotationForSettledOrder above. Here the number and the instant are
+        // the ones this settle just produced.
+        await closeQuotationForSettledOrder({
+            order, milestone, invoiceNumber: companyNo.number, at: settledAt, eventId,
+        });
+
+        logger.info('[checkout-settle] settled', {
+            eventId,
+            checkoutOrderId: order.id,
+            milestone,
+            targetState,
+        });
+
+        return { settled: true };
+    }
+
+    /**
+     * Retry backoff for a given attempt count — last entry repeats for further
+     * attempts. `attempts` is already 1-based (post-incremented by the caller
+     * before this is called), so the first failure (attempts=1) must index
+     * b[0], not b[1] — hence attempts - 1.
+     */
+    function nextBackoff(attempts) {
+        const b = SETTLEMENT.RETRY_BACKOFF_MS;
+        return b[Math.min(attempts - 1, b.length - 1)];
+    }
+
+    /**
+     * Event-level wrapper around `settleFromPaymentIntent`: loads the stored
+     * webhook-event row, extracts the PaymentIntent from its payload, attempts
+     * the settle, and stamps the event's own status/attempts/nextRetryAt so a
+     * crash or a slow settle is retryable instead of silently lost. After
+     * `SETTLEMENT.MAX_ATTEMPTS` failures the event is DEAD_LETTER — logged
+     * loudly for operator action, no further automatic retry.
+     *
+     * @param {string} eventId
+     * @returns {Promise<{status: 'PROCESSED'|'FAILED'|'DEAD_LETTER', reason?: string}>}
+     */
+    async function settleEvent(eventId) {
+        const ev = await prisma.stripeWebhookEvent.findUnique({ where: { id: eventId } });
+        if (!ev) {
+            return { status: 'FAILED', reason: 'EVENT_NOT_FOUND' };
+        }
+        if (ev.status === 'PROCESSED') {
+            return { status: 'PROCESSED', reason: 'ALREADY' };
+        }
+        // DEAD_LETTER is terminal — past MAX_ATTEMPTS, logged for operator
+        // action. Without this short-circuit, a re-drive (e.g. a manual Stripe
+        // resend of a dead-lettered event) would fall through and re-attempt
+        // the settle, defeating the dead-letter stop.
+        if (ev.status === 'DEAD_LETTER') {
+            return { status: 'DEAD_LETTER', reason: 'ALREADY_TERMINAL' };
+        }
+        const paymentIntent = ev.payload?.data?.object;
+        try {
+            const result = await settleFromPaymentIntent({ paymentIntent, eventId });
+            const terminal = result.settled === false && result.reason; // AMOUNT_MISMATCH / ORDER_NOT_FOUND
+            await prisma.stripeWebhookEvent.update({
+                where: { id: eventId },
+                data: { status: 'PROCESSED', processedAt: new Date(), error: terminal || null, nextRetryAt: null },
+            });
+            return { status: 'PROCESSED', reason: terminal || undefined };
+        } catch (err) {
+            const attempts = (ev.attempts || 0) + 1;
+            const dead = attempts >= SETTLEMENT.MAX_ATTEMPTS;
+            await prisma.stripeWebhookEvent.update({
+                where: { id: eventId },
+                data: {
+                    status: dead ? 'DEAD_LETTER' : 'FAILED',
+                    attempts,
+                    error: err.message,
+                    nextRetryAt: dead ? null : new Date(Date.now() + nextBackoff(attempts)),
+                },
+            });
+            if (dead) {
+                logger.error('[settle] DEAD_LETTER — operator action required', { eventId, attempts, error: err.message });
+            }
+            return { status: dead ? 'DEAD_LETTER' : 'FAILED', reason: err.message };
+        }
+    }
+
+    /**
+     * Fix round 2 (feat/promptpay-qr, 2026-09-27). An order can outlive its first
+     * PaymentIntent: when intent A is canceled, the checkout create path mints ONE
+     * replacement B and moves checkoutOrder.stripePaymentIntentId to B
+     * (stripe-checkout-service resolveExistingIntent). A's canceled or failed
+     * event can arrive after that, and both handlers find the order by
+     * metadata.checkoutOrderId — so without this guard a late event for A would
+     * cancel the order B belongs to, or stamp B's charge row with A's failure.
+     *
+     * They act ONLY when the event's intent IS the order's current one. An order
+     * that records no intent is not current for any event. payment_intent.succeeded
+     * is not routed through here and is unchanged (its stale-intent alert is a
+     * separate backlog item).
+     */
+    const SUPERSEDED_INTENT = 'SUPERSEDED_INTENT';
+
+    function isCurrentIntent(order, intent) {
+        return Boolean(order.stripePaymentIntentId) && order.stripePaymentIntentId === intent?.id;
+    }
+
+    /**
+     * Record the event as ignored and change nothing. The reason rides on the
+     * event row's `error` column (the webhook route stamps the row PROCESSED next;
+     * settleEvent writes its own terminal reasons the same way) and in the log. A
+     * failed stamp is logged and swallowed: the decision to ignore stands, and a
+     * throw here would make Stripe redeliver an event whose only effect is none.
+     */
+    async function ignoreSupersededIntent(event, order, intent) {
+        logger.warn('[checkout-settle] event for a superseded PaymentIntent ignored; the order is untouched', {
+            eventId: event.id,
+            type: event.type,
+            checkoutOrderId: order.id,
+            paymentIntentId: intent?.id,
+            currentPaymentIntentId: order.stripePaymentIntentId || null,
+            reason: SUPERSEDED_INTENT,
+        });
+        try {
+            await prisma.stripeWebhookEvent.update({
+                where: { id: event.id },
+                data: { error: `IGNORED:${SUPERSEDED_INTENT}` },
+            });
+        } catch (err) {
+            logger.error('[checkout-settle] could not stamp the ignored event (non-fatal)', {
+                eventId: event.id, error: err.message,
+            });
+        }
+        return { handled: true, ignored: true, reason: SUPERSEDED_INTENT };
+    }
+
+    /**
+     * Dispatch a verified, deduplicated Stripe event.
+     * @returns {Promise<{handled: boolean, settled?: boolean, reason?: string}>}
+     */
+    async function handleStripeEvent(event) {
+        const object = event?.data?.object || {};
+
+        switch (event.type) {
+            case 'payment_intent.succeeded': {
+                // Routed through the event-bookkeeping wrapper (not
+                // settleFromPaymentIntent directly) so status/attempts/
+                // nextRetryAt stay consistent for every succeeded event.
+                const result = await settleEvent(event.id);
+                return { handled: true, ...result };
+            }
+
+            case 'payment_intent.payment_failed': {
+                // The order stays PENDING_PAYMENT — the applicant retries against
+                // the same intent. Record the failure on the charge row.
+                const order = await prisma.checkoutOrder.findFirst({
+                    where: object?.metadata?.checkoutOrderId
+                        ? { id: object.metadata.checkoutOrderId }
+                        : { stripePaymentIntentId: object.id },
+                });
+                if (order && !isCurrentIntent(order, object)) {
+                    return ignoreSupersededIntent(event, order, object);
+                }
+                if (order?.paymentTransactionId) {
+                    await prisma.paymentTransaction.update({
+                        where: { id: order.paymentTransactionId },
+                        data: {
+                            errorCode: 'PAYMENT_FAILED',
+                            errorMessage: object?.last_payment_error?.message || 'payment_failed',
+                            webhookReceivedAt: new Date(),
+                        },
+                    });
+                }
+                logger.warn('[checkout-settle] payment failed (retryable)', {
+                    eventId: event.id, paymentIntentId: object.id,
+                });
+                return { handled: true };
+            }
+
+            case 'payment_intent.canceled': {
+                const order = await prisma.checkoutOrder.findFirst({
+                    where: object?.metadata?.checkoutOrderId
+                        ? { id: object.metadata.checkoutOrderId }
+                        : { stripePaymentIntentId: object.id },
+                });
+                if (order && !isCurrentIntent(order, object)) {
+                    return ignoreSupersededIntent(event, order, object);
+                }
+                // Order, unpaid invoice and PENDING charge together, in one
+                // transaction, through the helper the checkout door uses (PR2 review
+                // I-1). Cancelling the order alone left its invoice live, and
+                // uniq_invoice_app_service_active then refused every later mint.
+                // CANCELLED is retired too, so a redelivery heals an order the old
+                // handler (or the checkout door's failed transaction) left behind.
+                if (order && (order.status === 'PENDING_PAYMENT' || order.status === 'CANCELLED')) {
+                    await prisma.$transaction((tx) => retireCheckoutOrderInTx(tx, {
+                        order, reason: RETIRE_REASONS.INTENT_CANCELED,
+                    }));
+                }
+                return { handled: true };
+            }
+
+            default:
+                // Acknowledged, not ours — Stripe stops redelivering.
+                return { handled: false };
+        }
+    }
+
+    module.exports = {
+        SETTLED_TARGET_STATE,
+        settleFromPaymentIntent,
+        settleEvent,
+        handleStripeEvent,
+        // exported for the document engine's later PDF renderer
+        buildSettlementDocumentPayload,
+        _internals: { getInvoiceIssuer },
+    };
+    "
+
+      77 |     test('checkout-settlement-service ไม่อ่านส่วนของกรมฯ และไม่มีการปฏิเสธ CHECKOUT_ORDER_HAS_DTAM_PORTION', () => {
+      78 |         const src = read('services/checkout/checkout-settlement-service.js');
+    > 79 |         expect(src).not.toMatch(/dtamPayableAmount|dtamRemittanceStatus|CHECKOUT_ORDER_HAS_DTAM_PORTION/);
+         |                         ^
+      80 |     });
+      81 |
+      82 |     test('ไม่มีรหัส CHECKOUT_ORDER_HAS_DTAM_PORTION และไม่มีเหตุผล DTAM_PORTION_RETIRED', () => {
+
+      at Object.toMatch (__tests__/unit/dtam-remittance-schema-dropped.test.js:79:25)
+
+  ● โค้ด: ไม่อ่าน/เขียนคอลัมน์ที่ดรอปแล้ว › ไม่มีรหัส CHECKOUT_ORDER_HAS_DTAM_PORTION และไม่มีเหตุผล DTAM_PORTION_RETIRED
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "DTAM_PORTION_RETIRED"
+    Received array:     ["DTAM_PORTION_RETIRED", "PAYMENT_INTENT_CANCELED"]
+
+      84 |         expect(ERROR_CODES.CHECKOUT_ORDER_HAS_DTAM_PORTION).toBeUndefined();
+      85 |         const { RETIRE_REASONS } = require('../../services/checkout/retire-checkout-order');
+    > 86 |         expect(Object.values(RETIRE_REASONS)).not.toContain('DTAM_PORTION_RETIRED');
+         |                                                   ^
+      87 |         expect(RETIRE_REASONS.INTENT_CANCELED).toBe('PAYMENT_INTENT_CANCELED');
+      88 |     });
+      89 |
+
+      at Object.toContain (__tests__/unit/dtam-remittance-schema-dropped.test.js:86:51)
+
+  ● โค้ด: ไม่อ่าน/เขียนคอลัมน์ที่ดรอปแล้ว › ไม่มีไฟล์ใน services/routes/jobs/shared/scripts ที่ยังอ้างคอลัมน์หรือตารางที่ดรอป
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "services/checkout/checkout-settlement-service.js",
+    +   "services/checkout/stripe-checkout-service.js",
+    +   "services/tenant-prisma-extension.js",
+    +   "scripts/reset-uat-data.js",
+    + ]
+
+      106 |         }
+      107 |         // ตัวตรวจก่อน deploy อ่านคอลัมน์เดิมด้วย SQL ตรง ๆ โดยตั้งใจ (ต้องนับก่อนดรอป)
+    > 108 |         expect(hits.filter((h) => h !== 'scripts/ops/check-dtam-schema-drop-preflight.js')).toEqual([]);
+          |                                                                                             ^
+      109 |     });
+      110 | });
+      111 |
+
+      at Object.toEqual (__tests__/unit/dtam-remittance-schema-dropped.test.js:108:93)
+
+  ● migration ใหม่: DESTRUCTIVE, ปฏิเสธก่อนดรอป, CHECK ยอดรวม = ค่าบริการรวม › มี migration ดรอปอยู่ใบเดียว และอยู่หลัง migration ที่สร้างตาราง
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      113 |     test('มี migration ดรอปอยู่ใบเดียว และอยู่หลัง migration ที่สร้างตาราง', () => {
+      114 |         const dirs = dropMigrationDir();
+    > 115 |         expect(dirs).toHaveLength(1);
+          |                      ^
+      116 |         expect(dirs[0] > '20260802150000_wave1_checkout_engine_expand').toBe(true);
+      117 |     });
+      118 |
+
+      at Object.toHaveLength (__tests__/unit/dtam-remittance-schema-dropped.test.js:115:22)
+
+  ● migration ใหม่: DESTRUCTIVE, ปฏิเสธก่อนดรอป, CHECK ยอดรวม = ค่าบริการรวม › หัวไฟล์ติดป้าย DESTRUCTIVE และมี rollback SQL ในคอมเมนต์
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-remit3/apps/backend/prisma/migrations/undefined/migration.sql'
+
+      21 |
+      22 | const BACKEND = path.join(__dirname, '..', '..');
+    > 23 | const read = (rel) => fs.readFileSync(path.join(BACKEND, rel), 'utf8');
+         |                          ^
+      24 |
+      25 | function modelBlock(schema, name) {
+      26 |     const start = schema.indexOf(`model ${name} {`);
+
+      at readFileSync (__tests__/unit/dtam-remittance-schema-dropped.test.js:23:26)
+      at Object.read (__tests__/unit/dtam-remittance-schema-dropped.test.js:121:21)
+
+  ● migration ใหม่: DESTRUCTIVE, ปฏิเสธก่อนดรอป, CHECK ยอดรวม = ค่าบริการรวม › ปฏิเสธ (RAISE EXCEPTION) ก่อนดรอปเมื่อมี order ที่มีส่วนของกรมฯ และยังไม่ CANCELLED
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-remit3/apps/backend/prisma/migrations/undefined/migration.sql'
+
+      21 |
+      22 | const BACKEND = path.join(__dirname, '..', '..');
+    > 23 | const read = (rel) => fs.readFileSync(path.join(BACKEND, rel), 'utf8');
+         |                          ^
+      24 |
+      25 | function modelBlock(schema, name) {
+      26 |     const start = schema.indexOf(`model ${name} {`);
+
+      at readFileSync (__tests__/unit/dtam-remittance-schema-dropped.test.js:23:26)
+      at Object.read (__tests__/unit/dtam-remittance-schema-dropped.test.js:129:21)
+
+  ● migration ใหม่: DESTRUCTIVE, ปฏิเสธก่อนดรอป, CHECK ยอดรวม = ค่าบริการรวม › CHECK ยอดรวมใหม่: total = platform gross (ยกเว้นแถว CANCELLED) และคง CHECK ค่าไม่ติดลบของค่าบริการ
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-remit3/apps/backend/prisma/migrations/undefined/migration.sql'
+
+      21 |
+      22 | const BACKEND = path.join(__dirname, '..', '..');
+    > 23 | const read = (rel) => fs.readFileSync(path.join(BACKEND, rel), 'utf8');
+         |                          ^
+      24 |
+      25 | function modelBlock(schema, name) {
+      26 |     const start = schema.indexOf(`model ${name} {`);
+
+      at readFileSync (__tests__/unit/dtam-remittance-schema-dropped.test.js:23:26)
+      at Object.read (__tests__/unit/dtam-remittance-schema-dropped.test.js:139:21)
+
+  ● migration ใหม่: DESTRUCTIVE, ปฏิเสธก่อนดรอป, CHECK ยอดรวม = ค่าบริการรวม › ตัวตรวจก่อน deploy (อ่านอย่างเดียว) อยู่ที่ scripts/ops
+
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-remit3/apps/backend/scripts/ops/check-dtam-schema-drop-preflight.js'
+
+      21 |
+      22 | const BACKEND = path.join(__dirname, '..', '..');
+    > 23 | const read = (rel) => fs.readFileSync(path.join(BACKEND, rel), 'utf8');
+         |                          ^
+      24 |
+      25 | function modelBlock(schema, name) {
+      26 |     const start = schema.indexOf(`model ${name} {`);
+
+      at readFileSync (__tests__/unit/dtam-remittance-schema-dropped.test.js:23:26)
+      at Object.read (__tests__/unit/dtam-remittance-schema-dropped.test.js:146:21)
+
+  ● fixtures: reset-uat-data ไม่ truncate ตารางที่ไม่มีแล้ว › ไม่มี dtamRemittanceBatch ในรายการล้าง
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /dtamRemittanceBatch/
+    Received string:      "#!/usr/bin/env node
+    /**
+     * คลีนข้อมูล UAT — ลบคำขอทั้งเส้น เพื่อเริ่ม UAT ใหม่ตั้งแต่ต้น
+     *
+     * มติ operator 2026-09-05: \"คลีนทั้งหมด แล้ว UAT ใหม่ตั้งแต่ต้น\" และ
+     * \"ถ้าเกี่ยวกับการชำระเงิน ก็เอาออกให้หมด หรือลบตัวที่ขอนั้นไม่ว่าผ่านไม่ผ่าน ลบทั้งเส้น\"
+     *
+     * ── ทำไมต้องมีสคริปต์ ไม่ใช่ลบมือ ────────────────────────────────────────────
+     * คำขอหนึ่งใบมีของห้อยอยู่หลายตาราง: ใบเสนอราคา ใบแจ้งหนี้ คำสั่งซื้อ ธุรกรรมชำระเงิน
+     * รายการบัญชี ใบรับรอง เอกสารแนบ รอบตรวจ และ audit · การลบทีละตารางด้วยมือทำให้เหลือ
+     * แถวกำพร้าที่ชี้ไปยังคำขอที่ไม่มีแล้ว ซึ่งจะไปโผล่ในรายงานตอนที่ไม่มีใครคาด
+     *
+     * ── ทำไม agent ไม่รันเอง ─────────────────────────────────────────────────────
+     * CLAUDE.md L3: **NO MONEY MUTATION by agent** — agent อ่าน/ชี้/เสนอ diff ได้เท่านั้น
+     * สคริปต์นี้ลบข้อมูลเงิน จึงต้องให้ operator เป็นคนกดรัน
+     *
+     * ── วิธีใช้ ──────────────────────────────────────────────────────────────────
+     *   node scripts/reset-uat-data.js                       # นับอย่างเดียว ไม่ลบ (ค่าตั้งต้น)
+     *   node scripts/reset-uat-data.js --apply --expect=8    # ลบจริง ต้องตรงกับจำนวนที่นับได้
+     *
+     * `--expect` ไม่ใช่พิธีกรรม: ถ้าจำนวนไม่ตรงกับที่เห็นตอน dry-run แปลว่ามีข้อมูลเปลี่ยน
+     * ระหว่างนั้น และการลบจะหยุดทันที ไม่ลบเกินจากที่ตั้งใจ
+     *
+     * ── สิ่งที่ลบ / ไม่ลบ ────────────────────────────────────────────────────────
+     * ลบ:    คำขอทุกใบและทุกอย่างที่ห้อยอยู่ รวมใบรับรองที่ออกจากคำขอเหล่านั้น
+     * ไม่ลบ: ผู้ใช้ · ฟาร์ม · แปลง · ตารางกฎเกณฑ์เอกสาร (requirement_rules) · ผังบัญชี ·
+     *        วันหยุด · ค่าตั้งค่าระบบ — เพราะเป็นข้อมูลตั้งต้น ไม่ใช่ผลของการทดสอบ
+     *
+     * ⚠ ฐานข้อมูลเดโมใช้ Supabase ตัวเดียวกับ prod — ตรวจ DATABASE_URL ก่อนกด --apply
+     */
+
+    'use strict';
+
+    const { PrismaClient } = require('@prisma/client');
+
+    const prisma = new PrismaClient();
+
+    const APPLY = process.argv.includes('--apply');
+    const EXPECT = (() => {
+        const arg = process.argv.find((a) => a.startsWith('--expect='));
+        return arg ? Number(arg.split('=')[1]) : null;
+    })();
+
+    /**
+     * ลำดับการลบ: ลูกก่อนพ่อเสมอ
+     *
+     * บางตารางมี ON DELETE CASCADE อยู่แล้ว แต่ไม่ใช่ทุกตาราง และการพึ่ง cascade
+     * ทำให้อ่านไม่ออกว่าอะไรหายไปบ้าง จึงลบตามลำดับให้เห็นจำนวนทุกตาราง
+     */
+    /**
+     * รายการบัญชีผูกกับ *คำสั่งซื้อ* ไม่ใช่คำขอ (`JournalEntry.sourceId` = order.id
+     * สำหรับ CHECKOUT_SETTLEMENT) และ `invoiceId` เป็น scalar ไม่มี relation จริง
+     * จึงต้องเก็บ id ของคำสั่งซื้อและใบแจ้งหนี้ไว้ก่อน แล้วค่อยลบ ไม่งั้นจะเหลือรายการ
+     * บัญชีกำพร้าที่ชี้ไปยังคำสั่งซื้อที่ไม่มีแล้ว — ซึ่งจะไปโผล่ในงบทดลอง
+     */
+    const CHAIN = [
+        // ── เงิน ──
+        ['journalLine', (_ids, ctx) => ({ entry: { is: { sourceId: { in: ctx.orderIds } } } })],
+        ['journalEntry', (_ids, ctx) => ({ sourceId: { in: ctx.orderIds } })],
+        ['checkoutDocument', (ids) => ({ checkoutOrder: { is: { applicationId: { in: ids } } } })],
+        ['dtamRemittanceBatch', () => null],   // ทั้งตาราง — ชุดนำส่งอ้างคำสั่งซื้อที่กำลังจะหาย
+        ['checkoutOrder', (ids) => ({ applicationId: { in: ids } })],
+        ['paymentTransaction', (ids) => ({ applicationId: { in: ids } })],
+        ['invoiceLineItem', (ids) => ({ invoice: { is: { applicationId: { in: ids } } } })],
+        ['creditNote', (ids) => ({ originalInvoice: { is: { applicationId: { in: ids } } } })],
+        ['debitNote', (ids) => ({ originalInvoice: { is: { applicationId: { in: ids } } } })],
+        ['paymentReminderLog', (ids) => ({ invoice: { is: { applicationId: { in: ids } } } })],
+        ['paymentSlip', (ids) => ({ applicationId: { in: ids } })],
+        ['invoice', (ids) => ({ applicationId: { in: ids } })],
+        ['quotation', (ids) => ({ applicationId: { in: ids } })],
+        // ── การตรวจและใบรับรอง ──
+        ['applicationDocumentReview', (ids) => ({ applicationId: { in: ids } })],
+        ['certificateRevision', (ids) => ({ certificate: { is: { applicationId: { in: ids } } } })],
+        ['reportSubmission', (ids) => ({ certificate: { is: { applicationId: { in: ids } } } })],
+        ['certificate', (ids) => ({ applicationId: { in: ids } })],
+        ['correctionSubmissionVersion', (ids) => ({ applicationId: { in: ids } })],
+        ['correctionRound', (ids) => ({ applicationId: { in: ids } })],
+        ['applicationDocument', (ids) => ({ applicationId: { in: ids } })],
+        ['revisionDeadline', (ids) => ({ applicationId: { in: ids } })],
+        // ── ของที่เหลือซึ่งชี้มาที่คำขอด้วย FK แบบ RESTRICT ──
+        //
+        // รายการนี้ **ถามจากฐานข้อมูลเอง** ไม่ได้ไล่จากความจำ:
+        //   SELECT tc.table_name, kcu.column_name, rc.delete_rule
+        //   FROM information_schema.table_constraints tc
+        //   JOIN information_schema.key_column_usage kcu USING (constraint_name)
+        //   JOIN information_schema.constraint_column_usage ccu USING (constraint_name)
+        //   JOIN information_schema.referential_constraints rc USING (constraint_name)
+        //   WHERE tc.constraint_type='FOREIGN KEY' AND ccu.table_name='applications';
+        //
+        // รอบแรกผมเขียนจากที่นึกออก แล้วการลบหยุดกลางคันที่ `audit_checklists` —
+        // ของที่ห้อยอยู่ถูกลบไปแล้ว แต่ตัวคำขอยังอยู่ ซึ่งแย่กว่าทั้งลบและไม่ลบ
+        // ตารางที่ delete_rule เป็น CASCADE/SET NULL ไม่ต้องอยู่ในรายการนี้ แต่ใส่ไว้
+        // ก็ไม่เสียหาย เพราะจะได้เห็นจำนวนที่หายไปด้วยตาแทนที่จะเชื่อ cascade เงียบ ๆ
+        ['applicationComment', (ids) => ({ applicationId: { in: ids } })],
+        // ชั้นที่สอง: ของที่ห้อยใต้ audit_checklists อีกที (ถามจากฐานข้อมูลเช่นกัน) —
+        // ต้องลบก่อนตัว checklist ไม่งั้นจะติด FK ซ้ำรอยเดิม
+        ['farmAuditChecklistItem', (ids) => ({ audit: { is: { applicationId: { in: ids } } } })],
+        ['farmAuditPhoto', (ids) => ({ audit: { is: { applicationId: { in: ids } } } })],
+        ['gpsVerificationLog', (ids) => ({ audit: { is: { applicationId: { in: ids } } } })],
+        ['auditChecklist', (ids) => ({ applicationId: { in: ids } })],
+        ['meetingRoom', (ids) => ({ applicationId: { in: ids } })],
+        ['paymentSlip', (ids) => ({ applicationId: { in: ids } })],
+        ['postAuditTask', (ids) => ({ applicationId: { in: ids } })],
+        ['quote', (ids) => ({ applicationId: { in: ids } })],
+        ['scopeOfWork', (ids) => ({ applicationId: { in: ids } })],
+        ['waiverReopenRequest', (ids) => ({ applicationId: { in: ids } })],
+        ['workActivity', (ids) => ({ applicationId: { in: ids } })],
+        // ── คำขอ ──
+        ['application', (ids) => ({ id: { in: ids } })],
+    ];
+
+    async function main() {
+        const url = String(process.env.DATABASE_URL || '');
+        const host = url.replace(/^postgres(ql)?:\\/\\/[^:]+:[^@]+@/, '').replace(/\\?.*$/, '');
+        console.log(`ฐานข้อมูล: ${host || '(ไม่ได้ตั้ง DATABASE_URL)'}`);
+        console.log(`โหมด:     ${APPLY ? 'ลบจริง (--apply)' : 'นับอย่างเดียว (dry-run)'}\\n`);
+
+        const applications = await prisma.application.findMany({ select: { id: true, applicationNumber: true, status: true } });
+        const ids = applications.map((a) => a.id);
+
+        // เก็บ id ของคำสั่งซื้อไว้ก่อน เพราะรายการบัญชีชี้มาที่ตัวนี้ ไม่ได้ชี้ที่คำขอ
+        const orders = await prisma.checkoutOrder.findMany({
+            where: { applicationId: { in: ids } }, select: { id: true },
+        });
+        const ctx = { orderIds: orders.map((o) => o.id) };
+        console.log(`คำสั่งซื้อที่ผูกอยู่: ${ctx.orderIds.length} ใบ (รายการบัญชีชี้มาที่ตัวนี้)\\n`);
+
+        console.log(`คำขอที่จะถูกลบ: ${applications.length} ใบ`);
+        applications.slice(0, 20).forEach((a) => console.log(`  ${a.applicationNumber || a.id}  [${a.status}]`));
+        if (applications.length > 20) { console.log(`  … และอีก ${applications.length - 20} ใบ`); }
+        console.log('');
+
+        if (APPLY && EXPECT !== null && EXPECT !== applications.length) {
+            console.error(`หยุด: --expect=${EXPECT} แต่พบ ${applications.length} ใบ`);
+            console.error('ข้อมูลเปลี่ยนไปหลังจาก dry-run — รัน dry-run ใหม่แล้วตรวจก่อน');
+            process.exitCode = 1;
+            return;
+        }
+        if (APPLY && EXPECT === null) {
+            console.error('หยุด: --apply ต้องมาคู่กับ --expect=<จำนวน> ที่เห็นตอน dry-run');
+            process.exitCode = 1;
+            return;
+        }
+
+        for (const [model, whereFor] of CHAIN) {
+            const where = whereFor(ids, ctx);
+            if (!prisma[model]) { console.log(`  ${model.padEnd(30)} (ไม่มีในสคีมา — ข้าม)`); continue; }
+            try {
+                const n = where === null
+                    ? await prisma[model].count()
+                    : await prisma[model].count({ where });
+                if (APPLY && n > 0) {
+                    const res = where === null
+                        ? await prisma[model].deleteMany({})
+                        : await prisma[model].deleteMany({ where });
+                    console.log(`  ${model.padEnd(30)} ลบแล้ว ${res.count}`);
+                } else {
+                    console.log(`  ${model.padEnd(30)} ${n}`);
+                }
+            } catch (err) {
+                console.log(`  ${model.padEnd(30)} อ่านไม่ได้: ${err.message}`);
+            }
+        }
+
+        console.log('');
+        if (!APPLY) {
+            console.log(`ยังไม่ลบอะไร · เมื่อตรวจแล้วให้รัน:  node scripts/reset-uat-data.js --apply --expect=${applications.length}`);
+        } else {
+            console.log('ลบเสร็จแล้ว · ผู้ใช้ ฟาร์ม แปลง และตารางกฎเกณฑ์ยังอยู่ครบ');
+        }
+    }
+
+    main()
+        .catch((e) => { console.error(e); process.exitCode = 1; })
+        .finally(() => prisma.$disconnect());
+    "
+
+      152 | describe('fixtures: reset-uat-data ไม่ truncate ตารางที่ไม่มีแล้ว', () => {
+      153 |     test('ไม่มี dtamRemittanceBatch ในรายการล้าง', () => {
+    > 154 |         expect(read('scripts/reset-uat-data.js')).not.toMatch(/dtamRemittanceBatch/);
+          |                                                       ^
+      155 |     });
+      156 | });
+      157 |
+
+      at Object.toMatch (__tests__/unit/dtam-remittance-schema-dropped.test.js:154:55)
+
+Test Suites: 1 failed, 1 total
+Tests:       14 failed, 14 total
+Snapshots:   0 total
+Time:        1.006 s
+Ran all test suites matching __tests__/unit/dtam-remittance-schema-dropped.test.js.

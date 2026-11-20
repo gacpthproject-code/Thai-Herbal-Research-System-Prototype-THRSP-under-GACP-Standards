@@ -1,0 +1,12 @@
+await h.go(page, '/provider/accounting'); await page.waitForTimeout(4000);
+await page.getByRole('tab', { name: /ออกใบเสร็จแล้ว/ }).first().click().catch(async () => { await page.getByText(/ออกใบเสร็จแล้ว/).first().click(); });
+await page.waitForTimeout(2500);
+await h.shot(page, A.tag + '-01-receipted-tab');
+const row = page.locator('main table tbody tr').first();
+const n = await page.locator('main table tbody tr').count();
+const btn = row.locator('button, a').first();
+const nb = await btn.count();
+if (nb) await btn.click(); else await row.click();
+await page.waitForTimeout(3000);
+await h.shot(page, A.tag + '-02-detail');
+return [n, nb, page.url().replace(h.BASE, ''), h.scrub((await page.evaluate(() => (document.querySelector('[role=dialog]') || document.querySelector('main')).innerText)).slice(0, 800))];

@@ -1,0 +1,55 @@
+FAIL src/app/provider/profile/security/__tests__/mfa-reenrol.test.tsx
+  /provider/profile/security — 2FA enabled: move to a new device
+    ✕ asks for the current code before anything is set up, and never calls setup on its own (68 ms)
+    ✕ sends the current code with setup, then shows the new QR and says the old one still works (15 ms)
+    ✕ a wrong current code is refused and nothing moves (14 ms)
+
+  ● /provider/profile/security — 2FA enabled: move to a new device › asks for the current code before anything is set up, and never calls setup on its own
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+      107 |     it('asks for the current code before anything is set up, and never calls setup on its own', async () => {
+      108 |         await mount();
+    > 109 |         expect(card()).not.toBeNull();
+          |                            ^
+      110 |         expect(card()!.textContent).toContain('รหัส 6 หลักปัจจุบัน');
+      111 |         expect(card()!.querySelector('input[name="reenrolCurrentCode"]')).not.toBeNull();
+      112 |         expect(startButton().disabled).toBe(true);
+
+      at Object.<anonymous> (src/app/provider/profile/security/__tests__/mfa-reenrol.test.tsx:109:28)
+
+  ● /provider/profile/security — 2FA enabled: move to a new device › sends the current code with setup, then shows the new QR and says the old one still works
+
+    TypeError: Cannot read properties of null (reading 'querySelector')
+
+      117 |         mockPost.mockResolvedValue({ success: true, data: { secret: 'NEWSECRETBASE32', qrCodeUri: 'otpauth://totp/x?secret=NEWSECRETBASE32', reenrol: true } });
+      118 |         await mount();
+    > 119 |         type(card()!.querySelector<HTMLInputElement>('input[name="reenrolCurrentCode"]')!, '123456');
+          |                     ^
+      120 |         await act(async () => { startButton().click(); });
+      121 |         await flush(10);
+      122 |         expect(mockPost).toHaveBeenCalledWith('/api/mfa/setup', { code: '123456' });
+
+      at Object.<anonymous> (src/app/provider/profile/security/__tests__/mfa-reenrol.test.tsx:119:21)
+
+  ● /provider/profile/security — 2FA enabled: move to a new device › a wrong current code is refused and nothing moves
+
+    TypeError: Cannot read properties of null (reading 'querySelector')
+
+      129 |         mockPost.mockResolvedValue({ success: false, error: 'Invalid code', code: 'MFA_CODE_REQUIRED' });
+      130 |         await mount();
+    > 131 |         type(card()!.querySelector<HTMLInputElement>('input[name="reenrolCurrentCode"]')!, '000000');
+          |                     ^
+      132 |         await act(async () => { startButton().click(); });
+      133 |         await flush(10);
+      134 |         expect(container!.textContent).toContain('รหัสปัจจุบันไม่ถูกต้อง');
+
+      at Object.<anonymous> (src/app/provider/profile/security/__tests__/mfa-reenrol.test.tsx:131:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 total
+Snapshots:   0 total
+Time:        1.198 s
+Ran all test suites matching src/app/provider/profile/security/__tests__/mfa-reenrol.test.tsx.

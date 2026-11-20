@@ -1,0 +1,136 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/server-staging-debug-surfaces.test.js
+  [P0-1] server.js gates — extraction canaries
+    ✓ every gate this suite depends on is still findable in server.js (4 ms)
+  [P0-1] NODE_ENV=staging is a public host, not a laptop
+    ✕ the global error handler does not put a stack trace in the response (5 ms)
+    ✕ Swagger stays shut unless OPENAPI_DOCS_ENABLED opts in (4 ms)
+    ✕ CSP and COEP are not switched off (3 ms)
+    ✕ production keeps the same posture as staging (6 ms)
+  [P0-1] negative control — a developer machine keeps its tools
+    ✓ NODE_ENV=development still attaches the stack trace (3 ms)
+    ✓ NODE_ENV=test still attaches the stack trace (2 ms)
+    ✓ NODE_ENV=development still serves Swagger by default (3 ms)
+    ✓ NODE_ENV=test still serves Swagger by default (3 ms)
+    ✓ NODE_ENV=development still relaxes CSP and COEP for local tooling (2 ms)
+    ✓ NODE_ENV=test still relaxes CSP and COEP for local tooling (3 ms)
+  [P0-1] negative control — the CORS allowlist is untouched
+    ✓ staging still admits the localhost ports developers call it from (2 ms)
+    ✓ staging and development resolve the identical allowlist (3 ms)
+    ✓ production still drops the developer ports (2 ms)
+    ✓ a staging origin supplied through CORS_ORIGIN is still honoured (3 ms)
+  [P0-1] messageTh carries Thai
+    ✕ a 500 from the global error handler answers in Thai, not English (4 ms)
+    ✓ a 4xx from the global error handler answers in Thai too (5 ms)
+
+  ● [P0-1] NODE_ENV=staging is a public host, not a laptop › the global error handler does not put a stack trace in the response
+
+    expect(received).toBeNull()
+
+    Received: {"stack": "STACK-SENTINEL"}
+
+      197 |     test('the global error handler does not put a stack trace in the response', () => {
+      198 |         const { errorPayload } = evaluateGates({ nodeEnv: 'staging' });
+    > 199 |         expect(errorPayload.details).toBeNull();
+          |                                      ^
+      200 |     });
+      201 |
+      202 |     test('Swagger stays shut unless OPENAPI_DOCS_ENABLED opts in', () => {
+
+      at Object.toBeNull (__tests__/unit/server-staging-debug-surfaces.test.js:199:38)
+
+  ● [P0-1] NODE_ENV=staging is a public host, not a laptop › Swagger stays shut unless OPENAPI_DOCS_ENABLED opts in
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      201 |
+      202 |     test('Swagger stays shut unless OPENAPI_DOCS_ENABLED opts in', () => {
+    > 203 |         expect(evaluateGates({ nodeEnv: 'staging' }).enableApiDocs).toBe(false);
+          |                                                                     ^
+      204 |         expect(
+      205 |             evaluateGates({ nodeEnv: 'staging', env: { OPENAPI_DOCS_ENABLED: 'true' } }).enableApiDocs,
+      206 |         ).toBe(true);
+
+      at Object.toBe (__tests__/unit/server-staging-debug-surfaces.test.js:203:69)
+
+  ● [P0-1] NODE_ENV=staging is a public host, not a laptop › CSP and COEP are not switched off
+
+    expect(received).not.toBe(expected) // Object.is equality
+
+    Expected: not false
+
+      209 |     test('CSP and COEP are not switched off', () => {
+      210 |         const { helmetOptions } = evaluateGates({ nodeEnv: 'staging' });
+    > 211 |         expect(helmetOptions.contentSecurityPolicy).not.toBe(false);
+          |                                                         ^
+      212 |         expect(helmetOptions.crossOriginEmbedderPolicy).not.toBe(false);
+      213 |     });
+      214 |
+
+      at Object.toBe (__tests__/unit/server-staging-debug-surfaces.test.js:211:57)
+
+  ● [P0-1] NODE_ENV=staging is a public host, not a laptop › production keeps the same posture as staging
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "contentSecurityPolicy": undefined,
+    -   "crossOriginEmbedderPolicy": undefined,
+    +   "contentSecurityPolicy": false,
+    +   "crossOriginEmbedderPolicy": false,
+      }
+
+      216 |         const staging = evaluateGates({ nodeEnv: 'staging' });
+      217 |         const production = evaluateGates({ nodeEnv: 'production' });
+    > 218 |         expect(staging.helmetOptions).toEqual(production.helmetOptions);
+          |                                       ^
+      219 |         expect(staging.enableApiDocs).toBe(production.enableApiDocs);
+      220 |         expect(staging.errorPayload.details).toEqual(production.errorPayload.details);
+      221 |     });
+
+      at Object.toEqual (__tests__/unit/server-staging-debug-surfaces.test.js:218:39)
+
+  ● [P0-1] messageTh carries Thai › a 500 from the global error handler answers in Thai, not English
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /[฀-๿]/u
+    Received string:  "Internal server error"
+
+      281 |         const { errorPayload } = evaluateGates({ nodeEnv: 'staging', statusCode: 500 });
+      282 |         const body = captureResponse(errorPayload);
+    > 283 |         expect(body.messageTh).toMatch(THAI);
+          |                                ^
+      284 |     });
+      285 |
+      286 |     test('a 4xx from the global error handler answers in Thai too', () => {
+
+      at Object.toMatch (__tests__/unit/server-staging-debug-surfaces.test.js:283:32)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 12 passed, 17 total
+Snapshots:   0 total
+Time:        1.31 s
+Ran all test suites matching /__tests__\/unit\/server-staging-debug-surfaces.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

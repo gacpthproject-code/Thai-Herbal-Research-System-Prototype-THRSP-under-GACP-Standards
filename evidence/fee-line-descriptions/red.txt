@@ -1,0 +1,32 @@
+fix/fee-line-descriptions — RED (tests written first, run against the unchanged code)
+Full outputs: red-output-backend.txt · red-output-web.txt (same directory)
+
+Backend (jest, 4 files): Tests: 33 failed, 9 passed, 42 total
+  fee-line-descriptions.test.js — 26 of 29 failed:
+    - catalogue verbatim / vatLine / serviceForServiceType / catalogueForApi: TypeError (exports did not exist)
+    - invoice + receipt, M1 new / M2 new / M2 renewal: Expected substring "งวดที่ 1 ค่าบริการตรวจสอบเอกสาร" /
+      "ค่าบริการต่ออายุใบรับรอง" / coverage text; the real template printed "ค่าบริการ GACP"
+    - VAT row: Expected "ภาษีมูลค่าเพิ่ม 7% คิดจากค่าบริการทั้งจำนวน"; printed "ภาษีมูลค่าเพิ่ม 7% / VAT"
+    - amounts printed (3 cases, invoice + receipt): PASSED on the old code and pass after: a PIN that the
+      amounts are unchanged, by design
+    - quotation P1/P2/renewal: name count + coverage count wrong; old "งวดที่ 1 · ค่าตรวจเอกสาร" detail present
+    - settlement payload: description "ค่าบริการตรวจประเมินและรับรองมาตรฐาน GACP"
+    - payment-fees computePhaseBreakdown: "ค่าบริการตรวจสอบภาคสนาม" / "ภาษีมูลค่าเพิ่ม 7% ของค่าบริการ"
+    - pricing estimate: "ค่าบริการตรวจสอบและประเมินคำขอเบื้องต้น (งวดที่ 1)" ; /api/pricing/fees had no `services`
+  checkout-renewal-price.test.js (2 new cases) failed: stored PLATFORM_FEE description was
+    "ค่าบริการตรวจประเมินและรับรองมาตรฐาน GACP", VAT "ภาษีมูลค่าเพิ่ม 7% (ของค่าบริการ)"; the 5 money cases passed (amounts unchanged)
+  fee-line-names-retired-variants.test.js: 33 retired-variant hits + 3 travel/lodging hits (list at that run; afterwards
+    the bare 'ค่าตรวจประเมินภาคสนาม' was narrowed to two phrases and 'งวดที่ 2 ค่าตรวจประเมินฟาร์ม'/'…หน้างาน' were added)
+    (pricing/page.tsx:105 "ค่าตอบแทนคณะผู้ตรวจ ค่าเดินทาง และค่าที่พักเจ้าหน้าที่ตรวจ", th-wizard.ts:332 "ค่าพาหนะ",
+     en-wizard.ts:331 "Travel Expense (Standard)")
+  fee-service-catalogue-web-mirror.test.js: 3 failed (no web mirror file)
+
+Web (jest, 3 files): Tests: 6 failed, 35 passed, 41 total
+  pricing-names-from-server.test.tsx: 3 failed (page/ToS printed their own names; no served coverage)
+  quotation-review-names-the-service.test.tsx: 2 failed (card printed no coverage; renewal still showed งวดที่ 1)
+    "never says ... travel" PASSED on the old code: a PIN, not a fix (the card never made that claim)
+  invoice-step-accepts-the-real-quotation.test.tsx: 1 failed (line still "ค่าบริการตรวจประเมินและรับรองมาตรฐาน GACP — …")
+
+Green from birth (pins, not fixes): the review-card travel case above; product-detail-builder
+"names the checkout serviceTypes" case (added after the implementation; the RED for that path is the
+invoice/receipt cases above).

@@ -1,0 +1,77 @@
+# Task 6 GREEN — summaries only
+Tree: feat/holder-read-scope working tree (bbf70ec0 + Task 6). Postgres 17 throwaway 127.0.0.1:5447, migrated,
+plant species seeded, fresh container. Node v24.21.0, plain jest -i, NODE_OPTIONS unset.
+
+## New / changed suites (real PG, witness THROW = NODE_ENV=test default)
+  PASS health-door-walk-real-postgres: 7 passed, 0 failed
+  PASS r1-task6-write-doors-neutral-real-postgres: 3 passed, 0 failed
+  PASS holder-write-doors-witness-real-postgres: 3 passed, 0 failed
+  PASS r1-application-reads-neutral-real-postgres: 2 passed, 0 failed
+  PASS r1-cert-doc-finance-reads-neutral-real-postgres: 3 passed, 0 failed
+  PASS r1-billing-doors-neutral-real-postgres: 1 passed, 0 failed
+  PASS applicant-billing-holder-real-postgres: 15 passed, 0 failed
+  PASS application-health-reads-real-postgres: 21 passed, 0 failed
+  unit holder-read-witness + throw-guard: 102/102 passed
+
+## Door walk detail
+  123 health GET doors (authenticateHealth/authenticateAny, route- or router-level) x A,B,V,S = 492 calls, 0 skipped
+  witness lines: 0 · S leaks of C/A ids: 0 · S served 2xx on a by-id door of C/A rows: 0
+    (named exception: GET /api/tickets/application/:applicationId → 200 [] — Ticket is the caller's own, not holder-bearing)
+  behaviour vs 9616ccdf (status + fixture rows named in each body): 492/492 equal
+  counts for B: dashboard applications 3 = /my 3, certificates 0 = /certificates/my 0;
+    R1 divergences kept from pre-R1 (same on 9616ccdf): /my/statuses 0 vs /my 3 · dashboard farms 0 vs /farms/my 1
+  counts for A: statuses = list, applications, certificates and farms equal their lists
+
+## Write doors vs 9616ccdf (r1-task6-write-doors): 24 actor x door results + 3 row digests + cycle log count: all equal
+  quotes accept/reject, lapsed quotation reissue, bundle submit, PUT revision, PUT revision-deadline submit, CAR, planting activity
+
+## Whole integration set (102 suites + 2 new)
+  Test Suites: 11 failed, 1 skipped, 93 passed, 104 of 105 total
+  Tests:       33 failed, 13 skipped, 784 passed, 830 total
+  Same-tree baseline (RED tree = bbf70ec0 + new tests, HOLDER_READ_WITNESS=shadow):
+    Test Suites: 14 failed, 1 skipped, 88 passed, 102 of 103 total
+    Tests:       44 failed, 13 skipped, 671 passed, 728 total
+  Failing test names in green that are NOT failing in that baseline: 1
+    onsite-evidence-unfreeze HEADLINE — signing key 'bad decrypt': one SIGNING_KEY_DIR was shared by three runs in two
+    worktrees. Re-run alone with a fresh SIGNING_KEY_DIR on this tree: 6/6 passed.
+  Pre-existing failures, identical names in baseline and green: a0-pr2-per-hop-invariant, m1-erasure-holder-survives,
+    m1-holder-backfill, m1-submit-enforcement, m2a-submit-enforcement, officer-review-round-trip, onsite-decision-mint-e2e,
+    staff-chain-assign-then-see, staff-scope-contract, status-writer-audit-default-invariant (schema-stale fixtures etc.)
+
+## Probes / gate
+  ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0
+  retired-words PASS · no-skip PASS · no-secret PASS (layer1 0 hits, gitleaks clean)
+  error-codes-source-pointers + env-example: 18/18 (LOT_ALREADY_PRINTED re-pointed traceability-service.js:1073 → :1078)
+  signing key mtime 1788623435 before and after every backend jest run
+  local gate LOCAL_GATE_FULL=1 (no DB): see gate.txt
+
+# Fix round 1 (review: I1 param mounts, I2 dead doors, I3 main attestation)
+## How the expected files were recorded (on 9616ccdf, ruling C1)
+  git -C /home/ubuntu/work/wt-r1 worktree add --detach /home/ubuntu/work/wt-r1-base9616b 9616ccdf
+  ln -s /home/ubuntu/work/wt-r1/node_modules /home/ubuntu/work/wt-r1-base9616b/node_modules
+  ln -s /home/ubuntu/work/wt-r1/apps/backend/node_modules /home/ubuntu/work/wt-r1-base9616b/apps/backend/node_modules
+  cp (from wt-r1) apps/backend/__tests__/integration/{fixtures/holder-scope-fixture.js,health-door-walk-real-postgres.test.js,
+     r1-task6-write-doors-neutral-real-postgres.test.js} → the same paths in wt-r1-base9616b (only these 3 files untracked there)
+  cd /home/ubuntu/work/wt-r1-base9616b/apps/backend
+  export SIGNING_KEY_DIR=$(mktemp -d) DATABASE_URL=TEST_DATABASE_URL=postgresql://postgres:pg@127.0.0.1:5447/postgres
+  HEALTH_DOOR_WALK_RECORD=<scratch>/fr1-walk-base.json npx jest --config jest.config.cjs -i __tests__/integration/health-door-walk-real-postgres.test.js
+  R1_TASK6_WRITES_RECORD=<scratch>/fr1-writes-base.json npx jest --config jest.config.cjs -i __tests__/integration/r1-task6-write-doors-neutral-real-postgres.test.js
+  cp fr1-walk-base.json → __tests__/fixtures/health-door-walk.expected.json; cp fr1-writes-base.json → __tests__/fixtures/r1-task6-write-doors-neutral.expected.json
+  git worktree remove --force /home/ubuntu/work/wt-r1-base9616b
+  On 9616ccdf the walk's own tests passed 9/10 (only the witness test fails there: no witness exists), incl. the
+  new "real path", "param mounts 2xx" and "every door 2xx or allowlisted" tests.
+## Walk after round 1 (real PG, throw)
+  expected file: 492 keys, 0 keys with regex left ((?: / [^ ) — was 6 junk keys before
+  A: GET /applications/:applicationId/quotations 200 (names X + its quotation), .../quotations/PLATFORM/pdf 200,
+     GET /entities/:id/members/:memberUserId/permissions 200
+  every door 2xx for at least one of A/B/V except the allowlist: lots/:id/qr/print (pre-R1 500, BACKLOG-FOUND)
+     and 11 staff-only doors (analytics x9, site-analyses list x2: role gate 403 for every health token)
+  newly reachable reads converted: GET /finance/credit-notes?originalInvoiceId (Invoice.findUnique),
+     GET /standards/:code/analyze/:applicationId (Application.findFirst)
+  health-door-walk 10/10, r1-task6-write-doors 3/3, 0 skipped; neutrality 492/492 and write doors all equal vs 9616ccdf
+## Full suite on real PG (the suite-green scope of full-gate: npx jest --ci in apps/backend, fresh postgres:17, no seeds)
+  Test Suites: 11 failed, 2 skipped, 944 passed, 955 of 957 · Tests: 33 failed, 54 skipped, 12413 passed, 12500
+  vs main attestation evidence/gate/80876b57…json suite-green (11 failed suites, 33 failed tests):
+  failing test names identical (33 = 33, 0 new, 0 gone) — see gate.txt
+  signing key mtime 1788623435 before and after
+## Probes: ratchet 26/53/101/0 PASS · retired-words, no-skip, no-secret PASS · error-codes 18/18 · ESLint clean on changed files

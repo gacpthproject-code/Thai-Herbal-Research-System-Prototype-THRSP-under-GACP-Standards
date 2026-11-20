@@ -1,0 +1,31 @@
+Suites at 26d7bcb25 (round-4 head before this evidence commit). Scratch Postgres in its own container
+(pubverify4-pg, URL from a 0600 file, asserted host/port/database before every run), private
+SIGNING_KEY_DIR, NODE_OPTIONS=--max-old-space-size=3072. PAYMENT_ADAPTER=mock on integration runs only.
+The full backend suites were not run (the coordinator gates the final head).
+
+  backend, the two touched real-Postgres suites
+    public-verify-scope-real-postgres, backfill-certificate-scopes-real-postgres
+    Test Suites: 2 passed, 2 total · Tests: 23 passed, 23 total
+  backend, integration suites that call the trace doors (not edited this round)
+    approver-decision-tools-real-postgres, both-public-scan-paths-agree, generic-trace-cert-gate,
+    harvest-cross-farm-cert-read, planting-plot-trace, planting-plot-trace-harvest-guards,
+    public-scan-scope-contract
+    Test Suites: 7 passed, 7 total · Tests: 105 passed, 105 total
+  backend, unit suites that load the trace builders, plus the issuer-sentence mirror
+    19 files (a-frozen-cycle-cannot-rewrite-what-the-scan-says ... trace-resolves-plot-code,
+    frontend-service-facts-mirror), PAYMENT_ADAPTER unset
+    Test Suites: 19 passed, 19 total · Tests: 110 passed, 110 total
+  web, targeted (camera test, security headers, every suite under src/app/trace, verify scan host)
+    Test Suites: 11 passed, 11 total · Tests: 99 passed, 99 total
+  eslint on the six changed files: backend exit 0, web --max-warnings=0 exit 0
+  ratchet: PASS: no counter above baseline — current: hardcode=26 todo=40 env-direct=98 dup-source=0
+           (the round touches no counted line: env-direct scans services/routes/jobs/middleware only)
+  error codes: VALIDATION OK - catalog has 443 entries; 443 codes reconciled (no pointer drift)
+  gitleaks over a690fa8d7..26d7bcb25: 7 commits scanned, no leaks found; no 13-digit run in the diff
+  working tree after every run: clean apart from the untracked .audit/ (evidence/payer-block untouched)
+  web jest (whole suite) and web tsc: NOT RUN in this round. Both were queued through heavy.sh at
+    26d7bcb25 and still waited for the lock at the time of this commit, behind a gate run that had held it
+    for more than 20 minutes, a second queued gate run and another agent's web full-suite run.
+    The coordinator's gate of the final head covers both. The web change is one removed optional field
+    (verifiedBy?: string in trace-page-types.ts; git grep finds no reader in apps/web-app) and two cases
+    added to the camera test, which ran green above.

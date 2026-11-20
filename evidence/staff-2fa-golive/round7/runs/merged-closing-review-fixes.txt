@@ -1,0 +1,30 @@
+PASS __tests__/unit/closing-review-fixes.test.js
+  [ClosingReview] NEW-1: twoFactor schema field names
+    ✓ account anonymization (retention sweep + erasure) writes twoFactorSecret (not mfaSecret) (4 ms)
+    ✓ prisma-auth-service.js login() reads twoFactorEnabled (with mfaEnabled legacy fallback) (2 ms)
+  [ClosingReview] NEW-2: actorIdentity healthId leak sweep
+    ✓ routes/api/cultivation/harvest-batches.js masks healthId in actorIdentity field (2 ms)
+    ✓ routes/api/provider/handlers/auditor-audit-decision-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/auditor-inspection-start-handler.js masks healthId in actorIdentity field (2 ms)
+    ✓ routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/workflow-revision-expirations-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/workflow-side-effects.js masks healthId in actorIdentity field (1 ms)
+    ✓ repo-wide sweep: no raw healthId write to actorIdentity field remains (3 ms)
+  [ClosingReview] NEW-5: mfa.js routes use canonical twoFactor* columns
+    ✓ POST /setup writes twoFactorSecret + twoFactorEnabled (not mfa*) (1 ms)
+    ✓ POST /verify-setup reads twoFactorSecret and writes twoFactorEnabled/twoFactorBackupCodes as a native array (1 ms)
+    ✓ POST /verify selects canonical twoFactor* trio in the user lookup (2 ms)
+    ✓ DELETE /disable writes twoFactorEnabled: false + nulls canonical columns (1 ms)
+    ✓ No live code references the broken mfaSecret/mfaBackupCodes column names (2 ms)
+  [ClosingReview] NEW-6: admin status override is transactional with audit
+    ✓ wraps application.update + audit write in prisma.$transaction (1 ms)
+    ✓ no longer uses the best-effort try/catch audit pattern (1 ms)
+    ✓ retries the whole transaction on audit P2002 sequence conflicts (1 ms)
+  [ClosingReview] NEW-4: applications.js duplicate logger cleanup
+    ✓ no duplicate logger.error calls in catch blocks (2 ms)
+Test Suites: 1 passed, 1 total
+Tests:       18 passed, 18 total
+Snapshots:   0 total
+Time:        0.651 s, estimated 1 s
+Ran all test suites matching __tests__/unit/closing-review-fixes.test.js.
+jest exit 0

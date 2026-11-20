@@ -1,0 +1,36 @@
+PASS __tests__/unit/payment-reminder-job.test.js
+  sweep scope — every unpaid milestone, none without a clock start
+    ✓ a milestone whose clock start is not on record is skipped and logged, never guessed (27 ms)
+  three reminder types — send day is the SHIFTED day, ICT date-equality
+    ✓ run on 2026-08-06 dispatches PRE_DUE for the milestone due Tue 2026-08-11 (12 ms)
+    ✓ run on 2026-08-11 dispatches DUE_DATE for the milestone due Tue 2026-08-11 (13 ms)
+    ✓ run on 2026-08-13 dispatches OVERDUE_NOTICE for the milestone due Tue 2026-08-11 (11 ms)
+    ✓ a day that is no reminder day sends nothing (Fri 2026-08-07) (6 ms)
+    ✓ catch-up: no sweep ran on any reminder day → the earliest goes out now, worded as overdue (6 ms)
+    ✓ a type already on the ledger under another intended day is not sent again (5 ms)
+  durable dedup — insert-first, unique constraint is the last line
+    ✓ same-day re-run: P2002 on the insert → skip silently, no second send (9 ms)
+  a reminder that reached nobody is resent on its own row
+    ✓ an unsent PRE_DUE row exists → no insert, the locked row is dispatched and stamped (23 ms)
+    ✓ another sweep holds the unsent row (SKIP LOCKED returns nothing) → deduped, no send (4 ms)
+  collision — DUE_DATE and OVERDUE_NOTICE on the same working day
+    ✓ due Sat 2026-08-08: both fall on Mon 08-10 → one per sweep, DUE_DATE first, both worded as overdue (12 ms)
+  working-day shift — real calendar, no send on the holiday
+    ✓ intended OVERDUE_NOTICE lands on วันแม่ (Wed 2026-08-12): holiday run sends nothing, next working day does (9 ms)
+  fault isolation — one broken milestone never sinks the sweep
+    ✓ non-P2002 insert failure on application 1 is logged; application 2 still gets its reminder (9 ms)
+    ✓ a reminder that reached nobody leaves sentAt unstamped and is not counted as sent (6 ms)
+  source pins — derived-only stays derived-only
+    ✓ no stored-overdue literal, no invoice mutation call in the job source (2 ms)
+    ✓ no calendar or reminder-window data of its own — schedule service + config own those (1 ms)
+    ✓ real notification-service defines PAYMENT_REMINDER + template (static) (2 ms)
+  scheduler registration — daily 09:00 Asia/Bangkok, additive block
+    ✓ registers the payment-reminder block: 12 blocks total, last 0 9 * * * Asia/Bangkok drives the sweep (6 ms)
+    ✓ sweep failure is swallowed and logged — the cron never throws (3 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       19 passed, 19 total
+Snapshots:   0 total
+Time:        0.867 s
+Ran all test suites matching __tests__/unit/payment-reminder-job.test.js.
+jest exit 0

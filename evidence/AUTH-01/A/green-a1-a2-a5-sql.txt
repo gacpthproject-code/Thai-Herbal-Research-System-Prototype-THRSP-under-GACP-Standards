@@ -1,0 +1,34 @@
+=== C1 backfill: every pre-existing user has exactly one provider='local' link, subject = users.id ===
+      users=7 local_links=7 users_without_local_link=0
+PASS  C1
+=== C2 UNIQUE(provider,subject) rejects a duplicate link ===
+      BEGIN
+INSERT 0 1
+ERROR:  duplicate key value violates unique constraint "identity_links_provider_subject_key"
+PASS  C2
+=== C3 CHECK identity_links_provider_ck rejects providers outside local|healthid|providerid|thaid ===
+PASS  C3[provider='bogus']
+PASS  C3[provider='mock']
+PASS  C3[provider='LOCAL']
+PASS  C3[provider='']
+--- and accepts all four allowed values ---
+      BEGIN
+INSERT 0 4
+4
+PASS  C3[allowed values]
+=== C4 ON DELETE CASCADE removes the links with the user ===
+      BEGIN
+INSERT 0 1
+INSERT 0 1
+PASS  C4
+=== C5 one user carries FOUR providers at once, and users_single_identity_ck is untouched ===
+      BEGIN
+INSERT 0 1
+INSERT 0 4
+PASS  C5
+=== C6 (A4) session resolve through identity_links alone — no CID hash column read ===
+      pre-user-3|NULL|NULL
+PASS  C6
+
+checks_failed=0
+exit=0

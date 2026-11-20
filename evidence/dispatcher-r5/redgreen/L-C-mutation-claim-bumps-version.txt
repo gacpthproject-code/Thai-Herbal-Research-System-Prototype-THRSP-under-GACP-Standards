@@ -1,0 +1,77 @@
+mutation: replaced 1 occurrence(s) of 'WHERE id = ${applicationId}\n          AND status = ${status}\n          AND jsonb_typeof("formData")' in jobs/correction-deadline-sweep.js
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T13:47:46.349Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-09T13:47:46.353Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T13:47:46.354Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/draft-save-honours-the-version-real-postgres.test.js:19:25)
+      at Object.require (routes/api/applications/applications.js:30:139)
+      at Object.require (__tests__/integration/draft-save-honours-the-version-real-postgres.test.js:41:38)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/draft-save-honours-the-version-real-postgres.test.js:19:25)
+      at Object.require (routes/api/applications/applications.js:30:139)
+      at Object.require (__tests__/integration/draft-save-honours-the-version-real-postgres.test.js:41:38)
+
+[31merror[39m: [Applications Draft] Error: This draft was changed elsewhere since it was loaded {"code":"DRAFT_VERSION_CONFLICT","service":"gacp-backend","stack":"Error: This draft was changed elsewhere since it was loaded\n    at prisma.$transaction.timeout (/tmp/dispatcher-r5/mut-tree/apps/backend/services/application-service/application-applicant-query-methods.js:227:33)\n    at Proxy._transactionWithCallback (/home/ubuntu/work/wt-dispatcher/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at /tmp/dispatcher-r5/mut-tree/apps/backend/routes/api/applications/applications.js:801:27","statusCode":409,"timestamp":"2026-10-09T13:47:48.295Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T13:47:48.468Z"}
+FAIL __tests__/integration/draft-save-honours-the-version-real-postgres.test.js
+  POST /api/applications/draft ปฏิเสธการบันทึกทับเวอร์ชันที่เก่ากว่า (real Postgres)
+    ✕ การแจ้งเตือนก่อนครบกำหนดแก้ไขที่ระบบบันทึกระหว่างผู้ยื่นแก้ไข ไม่ทำให้การบันทึกครั้งถัดไปได้ 409 (375 ms)
+    ○ skipped สองคนเปิดร่างเวอร์ชันเดียวกัน: คนแรกบันทึกได้ คนหลังได้ 409 และร่างยังเป็นของคนแรก · โหลดใหม่แล้วบันทึกได้
+    ○ skipped ผู้ส่งที่ไม่ส่ง expectedVersion ไม่ถูกเทียบ (ตัวควบคุม)
+
+  ● POST /api/applications/draft ปฏิเสธการบันทึกทับเวอร์ชันที่เก่ากว่า (real Postgres) › การแจ้งเตือนก่อนครบกำหนดแก้ไขที่ระบบบันทึกระหว่างผู้ยื่นแก้ไข ไม่ทำให้การบันทึกครั้งถัดไปได้ 409
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+    -   200,
+    -   null,
+    +   409,
+    +   "DRAFT_VERSION_CONFLICT",
+      ]
+
+      90 |         expect(stamped).toMatchObject({ dueAt });
+      91 |         const next = await save(fx.applicant, revising.id, 'หลังเตือน', first.body.data.version, 'tab-r');
+    > 92 |         expect([next.status, next.body?.code || null]).toEqual([200, null]);
+         |                                                        ^
+      93 |         expect(await firstNameOf(revising.id)).toBe('หลังเตือน');
+      94 |         expect((await raw.application.findUnique({ where: { id: revising.id } })).formData.deadlineReminders).toMatchObject({ dueAt });
+      95 |     });
+
+      at Object.toEqual (__tests__/integration/draft-save-honours-the-version-real-postgres.test.js:92:56)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 2 skipped, 3 total
+Snapshots:   0 total
+Time:        3.409 s
+Ran all test suites matching __tests__/integration/draft-save-honours-the-version-real-postgres.test.js with tests matching "การแจ้งเตือนก่อนครบกำหนด".

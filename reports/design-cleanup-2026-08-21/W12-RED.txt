@@ -1,0 +1,314 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/renewal-fee-ssot.test.js
+  W12-1 — renewal fee value
+    × A. the canonical fee table publishes the renewal fee (23 ms)
+    × B. GET /api/pricing/fees quotes 30,000 (68 ms)
+    × B2. GET /api/pricing (root alias) quotes the same 30,000 (14 ms)
+    √ C. the frontend constant says 30,000 (2 ms)
+  W12-2 — the two ends cannot drift
+    × D. frontend mirror === backend canonical, whatever the number is (2 ms)
+    × E. the API serves the canonical value, not a re-spelled literal (11 ms)
+    × F. only business-rules.js may DEFINE a renewal fee amount (102 ms)
+  W12-3 — what the applicant actually pays for a renewal
+    × G. the payable total is the base grossed up by the canonical rates (11 ms)
+    √ H. that gross-up is the engine's own — it reproduces the phase totals (10 ms)
+    × I. a renewal is ONE charge — the API says so rather than making a screen infer it (10 ms)
+  W12-4 — no other fee moved
+    √ J. every other published fee is byte-identical to before (11 ms)
+    √ K. the canonical engine rates are untouched (1 ms)
+
+  ● W12-1 — renewal fee value › A. the canonical fee table publishes the renewal fee
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 30000
+    Received: undefined
+
+    [0m [90m 63 |[39m     test([32m'A. the canonical fee table publishes the renewal fee'[39m[33m,[39m () [33m=>[39m {
+     [90m 64 |[39m         [36mconst[39m { [33mFEE_RATES[39m } [33m=[39m require([32m'../../modules/billing'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 65 |[39m         expect([33mFEE_RATES[39m[33m.[39m[33mRENEWAL_PER_CERT[39m)[33m.[39mtoBe([33mRENEWAL_BASE_THB[39m)[33m;[39m
+     [90m    |[39m                                            [31m[1m^[22m[39m
+     [90m 66 |[39m     })[33m;[39m
+     [90m 67 |[39m
+     [90m 68 |[39m     test([32m'B. GET /api/pricing/fees quotes 30,000'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/renewal-fee-ssot.test.js:65:44)
+
+  ● W12-1 — renewal fee value › B. GET /api/pricing/fees quotes 30,000
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 30000
+    Received: 15000
+
+    [0m [90m 69 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m request(buildApp())[33m.[39m[36mget[39m([32m'/api/pricing/fees'[39m)[33m;[39m
+     [90m 70 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 71 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mrenewalFee)[33m.[39mtoBe([33mRENEWAL_BASE_THB[39m)[33m;[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 72 |[39m     })[33m;[39m
+     [90m 73 |[39m
+     [90m 74 |[39m     test([32m'B2. GET /api/pricing (root alias) quotes the same 30,000'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/renewal-fee-ssot.test.js:71:42)
+
+  ● W12-1 — renewal fee value › B2. GET /api/pricing (root alias) quotes the same 30,000
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 30000
+    Received: 15000
+
+    [0m [90m 75 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m request(buildApp())[33m.[39m[36mget[39m([32m'/api/pricing'[39m)[33m;[39m
+     [90m 76 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 77 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mrenewalFee)[33m.[39mtoBe([33mRENEWAL_BASE_THB[39m)[33m;[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 78 |[39m     })[33m;[39m
+     [90m 79 |[39m
+     [90m 80 |[39m     test([32m'C. the frontend constant says 30,000'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/renewal-fee-ssot.test.js:77:42)
+
+  ● W12-2 — the two ends cannot drift › D. frontend mirror === backend canonical, whatever the number is
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: undefined
+    Received: 30000
+
+    [0m [90m 89 |[39m         [90m// fee in business-rules.js and forgets fees.ts, this fails even though[39m
+     [90m 90 |[39m         [90m// every literal above was updated in step.[39m
+    [31m[1m>[22m[39m[90m 91 |[39m         expect(readFrontendRenewalFee())[33m.[39mtoBe([33mFEE_RATES[39m[33m.[39m[33mRENEWAL_PER_CERT[39m)[33m;[39m
+     [90m    |[39m                                          [31m[1m^[22m[39m
+     [90m 92 |[39m     })[33m;[39m
+     [90m 93 |[39m
+     [90m 94 |[39m     test([32m'E. the API serves the canonical value, not a re-spelled literal'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/renewal-fee-ssot.test.js:91:42)
+
+  ● W12-2 — the two ends cannot drift › E. the API serves the canonical value, not a re-spelled literal
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: undefined
+    Received: 15000
+
+    [0m [90m  95 |[39m         [36mconst[39m { [33mFEE_RATES[39m } [33m=[39m require([32m'../../modules/billing'[39m)[33m;[39m
+     [90m  96 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m request(buildApp())[33m.[39m[36mget[39m([32m'/api/pricing/fees'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m  97 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mrenewalFee)[33m.[39mtoBe([33mFEE_RATES[39m[33m.[39m[33mRENEWAL_PER_CERT[39m)[33m;[39m
+     [90m     |[39m                                          [31m[1m^[22m[39m
+     [90m  98 |[39m     })[33m;[39m
+     [90m  99 |[39m
+     [90m 100 |[39m     test([32m'F. only business-rules.js may DEFINE a renewal fee amount'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/renewal-fee-ssot.test.js:97:42)
+
+  ● W12-2 — the two ends cannot drift › F. only business-rules.js may DEFINE a renewal fee amount
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "routes/api/finance/pricing.js:191  renewalFee: 15000,",
+    + ]
+
+    [0m [90m 139 |[39m             }
+     [90m 140 |[39m         }
+    [31m[1m>[22m[39m[90m 141 |[39m         expect(offenders)[33m.[39mtoEqual([])[33m;[39m
+     [90m     |[39m                           [31m[1m^[22m[39m
+     [90m 142 |[39m     })[33m;[39m
+     [90m 143 |[39m })[33m;[39m
+     [90m 144 |[39m[0m
+
+      at Object.toEqual (__tests__/unit/renewal-fee-ssot.test.js:141:27)
+
+  ● W12-3 — what the applicant actually pays for a renewal › G. the payable total is the base grossed up by the canonical rates
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 33210
+    Received: undefined
+
+    [0m [90m 147 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m request(buildApp())[33m.[39m[36mget[39m([32m'/api/pricing/fees'[39m)[33m;[39m
+     [90m 148 |[39m         [36mconst[39m d [33m=[39m res[33m.[39mbody[33m.[39mdata[33m;[39m
+    [31m[1m>[22m[39m[90m 149 |[39m         expect(d[33m.[39mrenewalTotalPerCert)[33m.[39mtoBe([33mRENEWAL_PAYABLE_THB[39m)[33m;[39m
+     [90m     |[39m                                       [31m[1m^[22m[39m
+     [90m 150 |[39m         [90m// Not a literal relationship: the same gross-up the biller applies.[39m
+     [90m 151 |[39m         expect(d[33m.[39mrenewalTotalPerCert)[33m.[39mtoBe(
+     [90m 152 |[39m             d[33m.[39mrenewalFee[0m
+
+      at Object.toBe (__tests__/unit/renewal-fee-ssot.test.js:149:39)
+
+  ● W12-3 — what the applicant actually pays for a renewal › I. a renewal is ONE charge — the API says so rather than making a screen infer it
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: undefined
+
+    [0m [90m 171 |[39m     test([32m'I. a renewal is ONE charge — the API says so rather than making a screen infer it'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m 172 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m request(buildApp())[33m.[39m[36mget[39m([32m'/api/pricing/fees'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 173 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mrenewalChargeCount)[33m.[39mtoBe([35m1[39m)[33m;[39m
+     [90m     |[39m                                                  [31m[1m^[22m[39m
+     [90m 174 |[39m         [90m// A new application is billed in two instalments, a renewal in one.[39m
+     [90m 175 |[39m         [90m// The renewal base happens to equal 5,000 + 25,000 today but is NOT[39m
+     [90m 176 |[39m         [90m// defined as their sum — the operator set it — so the schedule must be[39m[0m
+
+      at Object.toBe (__tests__/unit/renewal-fee-ssot.test.js:173:50)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-08-22T13:54:40.601Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-08-22T13:54:40.606Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-08-22T13:54:40.607Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T13:54:41.162Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T13:54:41.172Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T13:54:41.176Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T13:54:41.179Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T13:54:41.182Z"}
+[32minfo[39m: [renewal-service] Renewal application created {"actorId":"user-owner-1","originalCertificateId":"cert-1","renewalApplicationId":"app-renewal-1","service":"gacp-backend","timestamp":"2026-08-22T13:54:41.185Z"}
+FAIL __tests__/unit/renewal-fast-path.test.js
+  W12-2A — a renewal enters at the site-visit payment gate, not at DRAFT
+    × the created application is PENDING_AUDIT_FEE, not DRAFT (5 ms)
+    × the entry state is one settled payment away from the scheduling queue (3 ms)
+    × the entry state skips the document fee and the document review (3 ms)
+  W12-2B — the jump is recorded, never silent
+    × provenance is written onto the application itself (3 ms)
+    × an audit-trail row records the skip, the certificate and the entry state (3 ms)
+    × the application is still created when the audit sink is down (3 ms)
+  W12-2C — the fast path is reachable only for a genuine, live renewal
+    √ an expired certificate is refused, not fast-pathed (2 ms)
+    √ a revoked (non-ACTIVE) certificate is refused (1 ms)
+    √ someone who does not own the certificate is refused (2 ms)
+    √ a missing certificate is refused (1 ms)
+  W12-2D — a NON-renewal application still cannot skip document review
+    √ DRAFT still leads only to SUBMITTED, and document review is still on the ordinary road (1 ms)
+    √ no edge into the renewal entry state was added for ordinary applications (1 ms)
+  W12-2E — a renewal cannot reach CERTIFIED without an onsite audit
+    × every path from the renewal entry state to CERTIFIED runs through AUDIT_CONFIRMED (1 ms)
+    √ the issuance evidence gate is still wired into certificate minting (2 ms)
+
+  ● W12-2A — a renewal enters at the site-visit payment gate, not at DRAFT › the created application is PENDING_AUDIT_FEE, not DRAFT
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PENDING_AUDIT_FEE"
+    Received: "DRAFT"
+
+    [0m [90m 106 |[39m         [36mawait[39m createRenewal(prisma)[33m;[39m
+     [90m 107 |[39m
+    [31m[1m>[22m[39m[90m 108 |[39m         expect(prisma[33m.[39mcreated[33m.[39mdata[33m.[39mstatus)[33m.[39mtoBe([32m'PENDING_AUDIT_FEE'[39m)[33m;[39m
+     [90m     |[39m                                            [31m[1m^[22m[39m
+     [90m 109 |[39m         expect(prisma[33m.[39mcreated[33m.[39mdata[33m.[39mformData[33m.[39mworkflowState)[33m.[39mtoBe([32m'PENDING_AUDIT_FEE'[39m)[33m;[39m
+     [90m 110 |[39m     })[33m;[39m
+     [90m 111 |[39m[0m
+
+      at Object.toBe (__tests__/unit/renewal-fast-path.test.js:108:44)
+
+  ● W12-2A — a renewal enters at the site-visit payment gate, not at DRAFT › the entry state is one settled payment away from the scheduling queue
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUDIT_FEE_PAID"
+    Received: undefined
+
+    [0m [90m 117 |[39m         [90m// queue moves to another state, this test says so instead of passing.[39m
+     [90m 118 |[39m         [36mconst[39m queueState [33m=[39m auditScheduling[33m.[39m[33mSCHEDULING_QUEUE_STATUS[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 119 |[39m         expect(queueState)[33m.[39mtoBe([32m'AUDIT_FEE_PAID'[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 120 |[39m         expect([[33m...[39m[33mALLOWED_TRANSITIONS[39m[prisma[33m.[39mcreated[33m.[39mdata[33m.[39mstatus]])[33m.[39mtoContain(queueState)[33m;[39m
+     [90m 121 |[39m     })[33m;[39m
+     [90m 122 |[39m[0m
+
+      at Object.toBe (__tests__/unit/renewal-fast-path.test.js:119:28)
+
+  ● W12-2A — a renewal enters at the site-visit payment gate, not at DRAFT › the entry state skips the document fee and the document review
+
+    expect(received).not.toContain(expected) // indexOf
+
+    Expected value: not "SUBMITTED"
+    Received array:     ["SUBMITTED"]
+
+    [0m [90m 131 |[39m         [90m// the renewal cannot be walked back into document review by accident.[39m
+     [90m 132 |[39m         [36mfor[39m ([36mconst[39m skipped [36mof[39m [33mSKIPPED[39m) {
+    [31m[1m>[22m[39m[90m 133 |[39m             expect([[33m...[39m[33mALLOWED_TRANSITIONS[39m[prisma[33m.[39mcreated[33m.[39mdata[33m.[39mstatus]])[33m.[39mnot[33m.[39mtoContain(skipped)[33m;[39m
+     [90m     |[39m                                                                              [31m[1m^[22m[39m
+     [90m 134 |[39m         }
+     [90m 135 |[39m     })[33m;[39m
+     [90m 136 |[39m })[33m;[39m[0m
+
+      at Object.toContain (__tests__/unit/renewal-fast-path.test.js:133:78)
+
+  ● W12-2B — the jump is recorded, never silent › provenance is written onto the application itself
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: undefined
+
+    [0m [90m 144 |[39m         expect(fd[33m.[39mrenewalOf)[33m.[39mtoBe([33mCERT_ID[39m)[33m;[39m
+     [90m 145 |[39m         expect(fd[33m.[39mrenewalOfCertificateNumber)[33m.[39mtoBe([32m'GACP-TH-2569-ABCDEF'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 146 |[39m         expect(fd[33m.[39mdocumentReviewSkipped)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                                          [31m[1m^[22m[39m
+     [90m 147 |[39m         expect(fd[33m.[39mdocumentReviewSkipReason)[33m.[39mtoMatch([35m/RENEWAL_FAST_PATH/[39m)[33m;[39m
+     [90m 148 |[39m         expect([33mArray[39m[33m.[39misArray(fd[33m.[39mworkflowStatesSkipped))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 149 |[39m         expect(fd[33m.[39mworkflowStatesSkipped)[33m.[39mtoContain([32m'ASSIGNED_FOR_REVIEW'[39m)[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/renewal-fast-path.test.js:146:42)
+
+  ● W12-2B — the jump is recorded, never silent › an audit-trail row records the skip, the certificate and the entry state
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+    [0m [90m 154 |[39m         [36mawait[39m createRenewal(prisma)[33m;[39m
+     [90m 155 |[39m
+    [31m[1m>[22m[39m[90m 156 |[39m         expect(mockAuditLogger[33m.[39mlog)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 157 |[39m         [36mconst[39m entry [33m=[39m mockAuditLogger[33m.[39mlog[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m;[39m
+     [90m 158 |[39m         expect(entry[33m.[39mcategory)[33m.[39mtoBe([32m'APPLICATION'[39m)[33m;[39m
+     [90m 159 |[39m         expect(entry[33m.[39maction)[33m.[39mtoMatch([35m/RENEWAL_FAST_PATH/[39m)[33m;[39m[0m
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/renewal-fast-path.test.js:156:37)
+
+  ● W12-2B — the jump is recorded, never silent › the application is still created when the audit sink is down
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: undefined
+
+    [0m [90m 174 |[39m         [36mconst[39m result [33m=[39m [36mawait[39m createRenewal(prisma)[33m;[39m
+     [90m 175 |[39m         expect(result[33m.[39mapplicationId)[33m.[39mtoBe([32m'app-renewal-1'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 176 |[39m         expect(prisma[33m.[39mcreated[33m.[39mdata[33m.[39mformData[33m.[39mdocumentReviewSkipped)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                                                                    [31m[1m^[22m[39m
+     [90m 177 |[39m     })[33m;[39m
+     [90m 178 |[39m })[33m;[39m
+     [90m 179 |[39m[0m
+
+      at Object.toBe (__tests__/unit/renewal-fast-path.test.js:176:68)
+
+  ● W12-2E — a renewal cannot reach CERTIFIED without an onsite audit › every path from the renewal entry state to CERTIFIED runs through AUDIT_CONFIRMED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+    [0m [90m 248 |[39m
+     [90m 249 |[39m         expect(reachableWithout([36mnull[39m)[33m.[39mhas([32m'CERTIFIED'[39m))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 250 |[39m         expect(reachableWithout([32m'AUDIT_CONFIRMED'[39m)[33m.[39mhas([32m'CERTIFIED'[39m))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m     |[39m                                                                      [31m[1m^[22m[39m
+     [90m 251 |[39m     })[33m;[39m
+     [90m 252 |[39m
+     [90m 253 |[39m     test([32m'the issuance evidence gate is still wired into certificate minting'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/renewal-fast-path.test.js:250:70)
+
+Test Suites: 2 failed, 2 total
+Tests:       15 failed, 11 passed, 26 total
+Snapshots:   0 total
+Time:        3.747 s
+Ran all test suites matching /__tests__\\unit\\renewal-fee-ssot.test.js|__tests__\\unit\\renewal-fast-path.test.js/i.

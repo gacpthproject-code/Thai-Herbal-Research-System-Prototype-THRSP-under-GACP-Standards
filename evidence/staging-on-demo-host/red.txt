@@ -1,0 +1,81 @@
+# RED — 2026-11-07T03:51:52Z — HEAD ce18432a0 + new test only (fixes not applied)
+$ npx jest --testPathPatterns staging-on-demo-host-overlay
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/staging-on-demo-host-overlay.test.js
+  staging slot on the demo host — merged compose model
+    ✓ the slot starts the services the runbook expects (5 ms)
+    ✓ no container name is shared with demo (3 ms)
+    ✓ no published host port is shared with demo (2 ms)
+    ✓ no volume name is shared with demo, every one is gacp-staging-*, none is external (5 ms)
+    ✕ no network name is shared with demo, none is external, every one has a pinned subnet (4 ms)
+    ✓ backend-staging DATABASE_URL points at this slot's postgres, whatever the env file says (1 ms)
+    ✓ memory limits of the started slot services sum to at most 4096 MiB (2 ms)
+    ✕ PARTNER_TRACE_API_KEY has no built-in default in the merged backend-staging env (2 ms)
+
+  ● staging slot on the demo host — merged compose model › no network name is shared with demo, none is external, every one has a pinned subnet
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+        "key": "gacp-staging-network",
+        "name": "gacp-staging-network",
+    -   "pinnedSubnet": true,
+    +   "pinnedSubnet": false,
+      }
+
+      316 |             expect({ key, external: Boolean(def.external) }).toEqual({ key, external: false });
+      317 |             const cfg = ((def.ipam || {}).config || []).filter((c) => c && c.subnet);
+    > 318 |             expect({ key, name, pinnedSubnet: cfg.length > 0 }).toEqual({ key, name, pinnedSubnet: true });
+          |                                                                 ^
+      319 |             subnets.push(...cfg.map((c) => c.subnet));
+      320 |         }
+      321 |         expect(new Set(subnets).size).toBe(subnets.length);
+
+      at Object.toEqual (__tests__/unit/staging-on-demo-host-overlay.test.js:318:65)
+
+  ● staging slot on the demo host — merged compose model › PARTNER_TRACE_API_KEY has no built-in default in the merged backend-staging env
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /^\$\{[A-Z_][A-Z0-9_]*:\?[^}]*\}$/
+    Received string:  "${STAGING_PARTNER_TRACE_API_KEY:-staging-only-no-prod-secrets}"
+
+      343 |         const raw = stagingRaw.services['backend-staging'].environment.PARTNER_TRACE_API_KEY;
+      344 |         expect(typeof raw).toBe('string');
+    > 345 |         expect(raw).toMatch(/^\$\{[A-Z_][A-Z0-9_]*:\?[^}]*\}$/);
+          |                     ^
+      346 |         expect(raw).not.toMatch(/:-/);
+      347 |     });
+      348 | });
+
+      at Object.toMatch (__tests__/unit/staging-on-demo-host-overlay.test.js:345:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 6 passed, 8 total
+Snapshots:   0 total
+Time:        0.741 s
+Ran all test suites matching staging-on-demo-host-overlay.

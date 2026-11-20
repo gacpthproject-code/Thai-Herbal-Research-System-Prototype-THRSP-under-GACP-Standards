@@ -1,0 +1,60 @@
+# RED round 2 — 2026-09-26
+
+## item 1: harvest-identifiers-ssot.test.js as of 84f15fea, TZ=America/Los_Angeles
+    ✕ converts a Gregorian year to Buddhist Era (+543) (27 ms)
+    Expected: 2568
+    Received: 2569
+Tests:       1 failed, 11 passed, 12 total
+
+## item 2: note services + allocator + invoice-template reverted to 84f15fea (tests kept), TZ=UTC
+    ✕ a draft made 31 Dec 23:30 (Bangkok) and issued 2 Jan is CN-PRD-2027-000001 and prints 2570 (88 ms)
+    ✕ issued at 00:30 on 1 Jan in Bangkok (31 Dec on UTC) takes the new year from that one instant (20 ms)
+    ✕ an abandoned draft leaves no gap: the next issued note is 000001, then 000002 (27 ms)
+    ✕ an issue that fails after allocating rolls the number back with it (no gap) (28 ms)
+    ✕ a draft made 31 Dec 23:30 (Bangkok) and issued 2 Jan is DN-PRD-2027-000001 and prints 2570 (25 ms)
+    ✕ issued at 00:30 on 1 Jan in Bangkok (31 Dec on UTC) takes the new year from that one instant (29 ms)
+    ✕ an abandoned draft leaves no gap: the next issued note is 000001, then 000002 (19 ms)
+    ✕ an issue that fails after allocating rolls the number back with it (no gap) (29 ms)
+    ✕ generateCreditNotePdf on a DRAFT (495 ms)
+    ✕ generateDebitNotePdf on a DRAFT (91 ms)
+    ✕ creates a DRAFT against a paid PLATFORM invoice (26 ms)
+    ✕ creates a DRAFT against a paid PLATFORM invoice (33 ms)
+Tests:       12 failed, 35 passed, 47 total
+
+
+## item 3 (fixture v2): scheduler handlers reverted to 84f15fea
+### TZ=UTC
+    ✕ the dashboard counts the four audits on 17 Sep as today at 06:30 on 17 Sep in Bangkok (12 ms)
+    ✕ the audit-schedules summary counts the same four audits as today (6 ms)
+    Expected: 4
+    Received: 1
+    Expected: 4
+    Received: 1
+Tests:       2 failed, 2 total
+### TZ=America/Los_Angeles
+    ✕ the dashboard counts the four audits on 17 Sep as today at 06:30 on 17 Sep in Bangkok (12 ms)
+    ✕ the audit-schedules summary counts the same four audits as today (7 ms)
+    Expected: 4
+    Received: 3
+    Expected: 4
+    Received: 3
+Tests:       2 failed, 2 total
+
+## item 6: period-guard-survives-any-load-order.test.js before 9267327d (ACCOUNTS still in journal-entry-service), host TZ
+    ✕ period-close-service first (111 ms)
+    ✓ server start-up order (journal-entry-service first) (96 ms)
+    ✓ the guard first (110 ms)
+    ✓ vat-report-service first (94 ms)
+    ✕ journal-entry-service loads first (as server.js does); closePeriod still sees the pending invoices (108 ms)
+    ✕ no module in the cycle throws while it loads in start-up order (87 ms)
+    Expected: "PERIOD_CLOSED"
+    Received: "POSTED"
+    Expected: "PENDING_INVOICES_IN_PERIOD"
+    Received: "CLOSED"
+    - Expected  - 1
+    + Received  + 3
+    - Array []
+    + Array [
+    +   "./vat-report-service: Cannot read properties of undefined (reading 'VAT_PAYABLE_OUTPUT')",
+    + ]
+Tests:       3 failed, 3 passed, 6 total

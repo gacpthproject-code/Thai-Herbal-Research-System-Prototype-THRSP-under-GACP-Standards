@@ -1,0 +1,71 @@
+# R2 M3b — fix cycle 2/3 — GATES (5 ตัว ตามลำดับ, path ที่ยืนยันจาก .github/workflows/ci.yml)
+# captured: 2026-08-03T16:13:11+00:00  ·  HEAD at capture: 5e591a85
+# ดิฟรอบนี้เป็น evidence-only (.md) — ไม่มีไฟล์ .js ถูกแก้
+
+## Gate 1 — jest (full backend suite)
+$ cd apps/backend && npx jest
+    ✓ should pass (2 ms)
+
+Summary of all failing tests
+FAIL __tests__/unit/dataset-export-service.test.js
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 5 skipped, 528 passed, 529 of 534 total
+Tests:       1 failed, 63 skipped, 7122 passed, 7186 total
+Snapshots:   0 total
+Time:        261.859 s
+Ran all test suites.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+  → 7122 passed / 1 failed ตรงกับที่ dispatch คาด · ตัวแดง = __tests__/unit/dataset-export-service.test.js:81
+    (Prisma.dmmf undefined) pre-existing อยู่นอกดิฟทุกรอบ
+
+## Gate 2 — ratchet
+$ bash scripts/probes/ratchet.sh   (repo root)
+  dup [holiday-calendar] 3 sources: /home/user/GACP-Certification-Application/apps/backend/services/working-days-service.js /home/user/GACP-Certification-Application/apps/backend/utils/working-days.js /home/user/GACP-Certification-Application/apps/backend/routes/api/provider/handlers/workflow-handler-deps.js
+  dup [fee-table] 3 sources: /home/user/GACP-Certification-Application/apps/backend/modules/billing/internal/fee-service.js /home/user/GACP-Certification-Application/apps/backend/config/business-rules.js /home/user/GACP-Certification-Application/apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4 (/home/user/GACP-Certification-Application/evidence/ratchet-current.txt)
+exit=0
+
+## Gate 3 — eslint
+$ cd apps/backend && npx eslint <ไฟล์ที่แก้>
+n/a — ดิฟรอบนี้ไม่มีไฟล์ .js/.ts เลย (evidence .md ล้วน) จึงไม่มี target ให้ lint
+หลักฐานว่าไม่มีไฟล์โค้ดในดิฟ:
+$ git status --porcelain
+ M evidence/R2-special-reopen/M3b/notes.md
+?? evidence/R2-special-reopen/M3b/gates-fix2.txt
+$ git diff --stat
+ evidence/R2-special-reopen/M3b/notes.md | 224 ++++++++++++++++++++++++++++++++
+ 1 file changed, 224 insertions(+)
+(ยืนยันเพิ่ม: eslint ของรอบก่อนบนไฟล์ 3 ตัวเดียวกันนี้ exit=0 — gates-fix1.txt Gate 3 และไฟล์ทั้งสามไม่ถูกแตะรอบนี้)
+
+## Gate 4 — Thai copy style
+$ node scripts/ci/check-thai-copy-style.js   (repo root)
+[thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+exit=0
+
+## Gate 5 — banned terms (คำสั่งสุดท้ายก่อน commit)
+$ npm run check:banned-terms   (repo root)
+
+> gacp-platform@3.8.0 check:banned-terms
+> node scripts/ci/check-banned-terms.js
+
+[banned-terms] Repository scan passed
+exit=0

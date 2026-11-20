@@ -1,0 +1,266 @@
+# RED — production code at d349366c (fix/security-wave1 tip), new tests only
+FAIL src/lib/api/__tests__/sign-out-leaves-once.test.ts
+  marker บน https
+    ✕ ตั้งเป็น __Host-signed_out_reason ไม่ใช่ชื่อธรรมดา (12 ms)
+    ✓ หน้าล็อกอินรับเฉพาะชื่อ __Host- และลบทิ้งหลังอ่าน (2 ms)
+    ✕ ชื่อธรรมดาที่ใครตั้งไว้ ไม่ทำให้หน้าล็อกอินขึ้นข้อความว่าบัญชีถูกระงับ (1 ms)
+  พาออกครั้งเดียว
+    ✕ หลังเริ่มพาออกเพราะถูกระงับ 401 ที่ตามมาไม่พาไป ?expired=true (14 ms)
+    ✕ 401 ที่มาก่อน แล้วตามด้วย ACCOUNT_INACTIVE ระหว่างรอ — ปลายทางคือหน้าที่บอกเหตุผล ครั้งเดียว (9 ms)
+    ✕ 401 พร้อมกันหลายคำขอ ยิง clear-cookie ครั้งเดียวและนำทางครั้งเดียว (8 ms)
+
+  ● marker บน https › ตั้งเป็น __Host-signed_out_reason ไม่ใช่ชื่อธรรมดา
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "__Host-signed_out_reason"
+    Received array: ["signed_out_reason"]
+
+      71 |         markAccountInactiveSignOut();
+      72 |
+    > 73 |         expect(cookieNames()).toContain('__Host-signed_out_reason');
+         |                               ^
+      74 |         expect(cookieNames()).not.toContain('signed_out_reason');
+      75 |     });
+      76 |
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:73:31)
+
+  ● marker บน https › ชื่อธรรมดาที่ใครตั้งไว้ ไม่ทำให้หน้าล็อกอินขึ้นข้อความว่าบัญชีถูกระงับ
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      85 |         document.cookie = 'signed_out_reason=account_inactive; path=/';
+      86 |
+    > 87 |         expect(consumeAccountInactiveSignOut(params('reason=account_inactive'))).toBe(false);
+         |                                                                                  ^
+      88 |     });
+      89 | });
+      90 |
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:87:82)
+
+  ● พาออกครั้งเดียว › หลังเริ่มพาออกเพราะถูกระงับ 401 ที่ตามมาไม่พาไป ?expired=true
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+        "/auth/provider/login?reason=account_inactive",
+    +   "/auth/provider/login?expired=true",
+      ]
+
+       98 |         await settle();
+       99 |
+    > 100 |         expect(mockHardNavigate.mock.calls.map(([url]) => url)).toEqual([
+          |                                                                 ^
+      101 |             '/auth/provider/login?reason=account_inactive',
+      102 |         ]);
+      103 |     });
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:100:65)
+
+  ● พาออกครั้งเดียว › 401 ที่มาก่อน แล้วตามด้วย ACCOUNT_INACTIVE ระหว่างรอ — ปลายทางคือหน้าที่บอกเหตุผล ครั้งเดียว
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+    +   "/auth/provider/login?expired=true",
+        "/auth/provider/login?reason=account_inactive",
+      ]
+
+      114 |         await settle();
+      115 |
+    > 116 |         expect(mockHardNavigate.mock.calls.map(([url]) => url)).toEqual([
+          |                                                                 ^
+      117 |             '/auth/provider/login?reason=account_inactive',
+      118 |         ]);
+      119 |     });
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:116:65)
+
+  ● พาออกครั้งเดียว › 401 พร้อมกันหลายคำขอ ยิง clear-cookie ครั้งเดียวและนำทางครั้งเดียว
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1
+    Received: 3
+
+      129 |         await settle();
+      130 |
+    > 131 |         expect(clearCookieCalls(fetchMock)).toBe(1);
+          |                                             ^
+      132 |         expect(mockHardNavigate).toHaveBeenCalledTimes(1);
+      133 |         expect(mockHardNavigate).toHaveBeenCalledWith('/auth/provider/login?expired=true');
+      134 |     });
+
+      at Object.<anonymous> (src/lib/api/__tests__/sign-out-leaves-once.test.ts:131:45)
+
+FAIL src/__tests__/inactive-sign-out-marker-hardening.test.ts
+  บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น
+    ✕ marker ชื่อธรรมดา (ที่ subdomain พี่น้องตั้งให้ได้) ไม่พาเจ้าหน้าที่ออกจากระบบ (12 ms)
+    ✕ marker ชื่อ __Host- (ตั้งได้จากหน้าของเราเองเท่านั้น) ยังทำงานตามเดิม (3 ms)
+    ✕ URL ที่เป็น https อยู่แล้ว (ไม่มี header) ก็ถือเป็น https เช่นกัน (2 ms)
+  บน http (เครื่องนักพัฒนา) ชื่อธรรมดายังใช้ได้ — browser ไม่ยอมตั้ง cookie Secure บน http
+    ✓ ปล่อยผ่านและลบ session cookie (1 ms)
+  ทางลัดเปิดเฉพาะหน้าล็อกอินสองหน้าที่มีจริง
+    ✕ /auth/provider/login/x ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (2 ms)
+    ✕ /auth/health/login/anything ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (2 ms)
+    ✕ /auth/provider/login/ ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason (7 ms)
+
+  ● บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น › marker ชื่อธรรมดา (ที่ subdomain พี่น้องตั้งให้ได้) ไม่พาเจ้าหน้าที่ออกจากระบบ
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "auth_token",
+    +   "provider_token",
+    +   "refresh_token",
+    +   "csrf_token",
+    + ]
+
+      56 |         const res = middleware(behindTls([`provider_token=${PROVIDER_TOKEN}`, PLAIN_MARKER]));
+      57 |
+    > 58 |         expect(clearedSessionCookies(res)).toEqual([]);
+         |                                            ^
+      59 |         expect(isPassThrough(res)).toBe(false);
+      60 |     });
+      61 |
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:58:44)
+
+  ● บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น › marker ชื่อ __Host- (ตั้งได้จากหน้าของเราเองเท่านั้น) ยังทำงานตามเดิม
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      63 |         const res = middleware(behindTls([`provider_token=${PROVIDER_TOKEN}`, HOST_MARKER]));
+      64 |
+    > 65 |         expect(isPassThrough(res)).toBe(true);
+         |                                    ^
+      66 |         expect(clearedSessionCookies(res).sort()).toEqual([...SESSION_COOKIES].sort());
+      67 |     });
+      68 |
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:65:36)
+
+  ● บน https: marker ต้องเป็นชื่อ __Host- เท่านั้น › URL ที่เป็น https อยู่แล้ว (ไม่มี header) ก็ถือเป็น https เช่นกัน
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "auth_token",
+    +   "provider_token",
+    +   "refresh_token",
+    +   "csrf_token",
+    + ]
+
+      73 |         ));
+      74 |
+    > 75 |         expect(clearedSessionCookies(res)).toEqual([]);
+         |                                            ^
+      76 |     });
+      77 | });
+      78 |
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:75:44)
+
+  ● ทางลัดเปิดเฉพาะหน้าล็อกอินสองหน้าที่มีจริง › /auth/provider/login/x ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "auth_token",
+    +   "provider_token",
+    +   "refresh_token",
+    +   "csrf_token",
+    + ]
+
+       97 |             ));
+       98 |
+    >  99 |             expect(clearedSessionCookies(res)).toEqual([]);
+          |                                                ^
+      100 |         });
+      101 |     }
+      102 | });
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:99:48)
+
+  ● ทางลัดเปิดเฉพาะหน้าล็อกอินสองหน้าที่มีจริง › /auth/health/login/anything ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "auth_token",
+    +   "provider_token",
+    +   "refresh_token",
+    +   "csrf_token",
+    + ]
+
+       97 |             ));
+       98 |
+    >  99 |             expect(clearedSessionCookies(res)).toEqual([]);
+          |                                                ^
+      100 |         });
+      101 |     }
+      102 | });
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:99:48)
+
+  ● ทางลัดเปิดเฉพาะหน้าล็อกอินสองหน้าที่มีจริง › /auth/provider/login/ ไม่ได้รับการปล่อยผ่านพิเศษ แม้มี marker และ reason
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "auth_token",
+    +   "provider_token",
+    +   "refresh_token",
+    +   "csrf_token",
+    + ]
+
+       97 |             ));
+       98 |
+    >  99 |             expect(clearedSessionCookies(res)).toEqual([]);
+          |                                                ^
+      100 |         });
+      101 |     }
+      102 | });
+
+      at Object.<anonymous> (src/__tests__/inactive-sign-out-marker-hardening.test.ts:99:48)
+
+Test Suites: 2 failed, 2 total
+Tests:       11 failed, 2 passed, 13 total
+Snapshots:   0 total
+Time:        1.176 s
+Ran all test suites matching src/__tests__/inactive-sign-out-marker-hardening.test.ts|src/lib/api/__tests__/sign-out-leaves-once.test.ts.
+EXIT=1

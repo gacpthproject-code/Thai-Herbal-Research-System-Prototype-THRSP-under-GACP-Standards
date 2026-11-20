@@ -1,0 +1,130 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.092Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.509Z"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"3318f04db10956940bf47f6d997fb54b7a864d0879e8065ffb0e4bc2396f6ca2","service":"gacp-backend","timestamp":"2026-08-19T10:04:58.511Z","type":"REFUND_INITIATED","userId":"user-1"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.577Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.638Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.691Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.739Z"}
+[33mwarn[39m: [fanout] user user-nonexistent not found; skipping {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.740Z"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:04:58.800Z"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"280c83ef75f17cf27181738f4a815a989bc20e60fe1a3617403e378f2e8146ee","service":"gacp-backend","timestamp":"2026-08-19T10:05:00.091Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED (lost NX race) {"dedupeKey":"ddbf4acb598a48baa70ac0b213271419daf87d580e826ffec42c298e49840d8f","service":"gacp-backend","timestamp":"2026-08-19T10:05:00.182Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"21297243938d493b4c7de008e6bbbebb9d00030d233a0721ec5a069075c06439","service":"gacp-backend","timestamp":"2026-08-19T10:05:00.237Z","type":"REFUND_INITIATED","userId":"user-1"}
+[33mwarn[39m: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-08-19T10:05:00.264Z"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"7196e86cd694711e336cf6b2ab8ad22e9b741ebfba9e905f22c408d95a5c8ec4","service":"gacp-backend","timestamp":"2026-08-19T10:05:00.266Z","type":"REFUND_INITIATED","userId":"user-1"}
+[33mwarn[39m: [fanout] IN_APP dispatch failed for user-1/REFUND_INITIATED: DB write timeout {"service":"gacp-backend","timestamp":"2026-08-19T10:05:00.318Z"}
+[32minfo[39m: [fanout] DEDUPE partial-retry of unsettled channels {"dedupeKey":"d5ad03cf0624ad4d31b904a7fab1b013b932a9960993d33124a195af3ed260a9","retry":["IN_APP"],"service":"gacp-backend","timestamp":"2026-08-19T10:05:00.320Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"d5ad03cf0624ad4d31b904a7fab1b013b932a9960993d33124a195af3ed260a9","service":"gacp-backend","timestamp":"2026-08-19T10:05:00.321Z","type":"REFUND_INITIATED","userId":"user-1"}
+[32minfo[39m: [fanout] DEDUPED {"dedupeKey":"52eb7dbf1b7cec93e2e187b0108b3cc2fe71dcbbcb00c4b98ba2be8aec3008c7","service":"gacp-backend","timestamp":"2026-08-19T10:05:00.348Z","type":"REFUND_INITIATED","userId":"user-4"}
+FAIL __tests__/unit/notification-fanout-service.test.js
+  [Iter23→T2] notification-fanout-service — send()
+    √ dispatches IN_APP only; EMAIL/SMS channel names come back CHANNEL_RETIRED and never touch the transports (495 ms)
+    √ dedupes a second call within the 60-min window (same userId+type+invoiceId) — IN_APP dispatched once (72 ms)
+    √ IN_APP opt-out is still respected; EMAIL/SMS are unconditionally CHANNEL_RETIRED regardless of opt-out (51 ms)
+    √ respects `channels` filter (IN_APP only) — EMAIL/SMS stay NOT_REQUESTED, not CHANNEL_RETIRED (61 ms)
+    √ default channels (caller omits `channels`) dispatch IN_APP only — ALL_CHANNELS shrank to [IN_APP] (52 ms)
+    √ returns empty result when user not found (48 ms)
+  [T2] notification-fanout-service — PDPA-erasure confirm-URL carrier
+    √ PDPA_ERASURE_REQUESTED: the in-app row message carries the full confirm URL end to end (107 ms)
+  [Iter23] notification-fanout-service — template resolution
+    √ REFUND_INITIATED → Thai subject + body cites ม.86/10 (46 ms)
+    √ PAYMENT_SLIP_APPROVED → contains invoice number + phase (44 ms)
+    √ PAYMENT_SLIP_REJECTED → includes the rejection reason (57 ms)
+    × CERTIFICATE_ISSUED → includes cert number and url (80 ms)
+    × REVISION_REQUESTED → includes application number and reason (46 ms)
+    √ AUDIT_SCHEDULED → formats date in Buddhist-Era (45 ms)
+    √ AUDIT_RESULT_CAR → Thai subject + body include application number, summary, and critical findings (49 ms)
+    √ AUDIT_RESULT_CAR → renders cleanly with no summary + empty findings (defaults safe) (59 ms)
+    √ AUDIT_RESULT_NEEDS_REVIEW → Thai subject + body signal "under further review", no action required (45 ms)
+    √ AUDIT_RESULT_NEEDS_REVIEW → renders cleanly without summary (defaults safe) (44 ms)
+    √ unknown type → null (caller can fall back to IN_APP-only) (58 ms)
+    √ PAYMENT_SLIP_UPLOADED → renders Thai subject + body + SMS with invoice number, phase label, formatted amount (44 ms)
+    √ PAYMENT_SLIP_UPLOADED → PHASE_1 maps to "1"; missing invoiceNumber falls back to "-" (43 ms)
+    √ PAYMENT_SLIP_SLA_BREACH → renders Thai subject + URGENT SMS with hoursPending + invoice + phase label (44 ms)
+    √ PAYMENT_SLIP_SLA_BREACH → coerces non-number/missing hoursPending to "0" (44 ms)
+    √ PDPA_ERASURE_REQUESTED → cites ม.32, embeds confirm URL with requestId + token + webBaseUrl (57 ms)
+    √ PDPA_ERASURE_REQUESTED → missing webBaseUrl falls back to [WEB_BASE_URL_NOT_CONFIGURED] sentinel (NOT a relative URL) (43 ms)
+    √ PDPA_ERASURE_EXECUTED → enumerates preserved tables citing ม.32 + ม.87/3 ป.รัษฎากร (43 ms)
+    × BREACH_NOTIFICATION_SUBJECT → cites ม.28 + PDPC 2565/2022; embeds breach fields verbatim (48 ms)
+    × NO PII leak invariant — none of the 3 new templates echo raw phone (>=10 digits) or @gmail.com when given a realistic PII payload (62 ms)
+  [Iter23] notification-fanout-service — internals
+    √ _normalizePhone: 0XXXXXXXXX → +66XXXXXXXXX (44 ms)
+    √ _makeDedupeKey: same key for identical inputs, different for different (42 ms)
+    √ formatBE: produces a Buddhist-Era string for 2026 AD (44 ms)
+    √ formatTHB: emits 2-decimal Thai locale string (58 ms)
+  [R5-A] notification-fanout-service — Redis-backed dedupe
+    √ dedupes a second send() within window using Redis NX (single process) (30 ms)
+    √ two concurrent send() calls collapse via Redis NX — exactly ONE IN_APP dispatch (91 ms)
+    √ cross-process: dedupe survives a fresh module load with the SAME Redis store (55 ms)
+    √ falls back to per-process Map when Redis is unavailable (logs warn once) (28 ms)
+  [API-4] notification-fanout-service — transient failure retry within dedupe window
+    √ _isOutcomeRetriable: only transient failures (ok:false + no skipped) are retriable (26 ms)
+    √ re-attempts ONLY the failed IN_APP dispatch on the next send; a third send fully dedupes (28 ms)
+    √ permanent skip (IN_APP OPT_OUT) is NOT retried — second send fully dedupes (28 ms)
+
+  ● [Iter23] notification-fanout-service — template resolution › CERTIFICATE_ISSUED → includes cert number and url
+
+    TypeError: Cannot read properties of null (reading 'bodyTHHtml')
+
+    [0m [90m 433 |[39m             certUrl[33m:[39m [32m'https://gacp.example.com/cert/abc'[39m[33m,[39m
+     [90m 434 |[39m         })[33m;[39m
+    [31m[1m>[22m[39m[90m 435 |[39m         expect(t[33m.[39mbodyTHHtml)[33m.[39mtoMatch([35m/GACP-2026-0001/[39m)[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 436 |[39m         expect(t[33m.[39mbodyTHHtml)[33m.[39mtoMatch([35m/gacp\.example\.com/[39m)[33m;[39m
+     [90m 437 |[39m         expect(t[33m.[39msmsTH)[33m.[39mtoMatch([35m/GACP-2026-0001/[39m)[33m;[39m
+     [90m 438 |[39m     })[33m;[39m[0m
+
+      at Object.bodyTHHtml (__tests__/unit/notification-fanout-service.test.js:435:18)
+
+  ● [Iter23] notification-fanout-service — template resolution › REVISION_REQUESTED → includes application number and reason
+
+    TypeError: Cannot read properties of null (reading 'bodyTHText')
+
+    [0m [90m 444 |[39m             reason[33m:[39m [32m'แผนที่ฟาร์มไม่ครบ'[39m[33m,[39m
+     [90m 445 |[39m         })[33m;[39m
+    [31m[1m>[22m[39m[90m 446 |[39m         expect(t[33m.[39mbodyTHText)[33m.[39mtoMatch([35m/GACP-2026-00045/[39m)[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 447 |[39m         expect(t[33m.[39mbodyTHText)[33m.[39mtoMatch([35m/แผนที่ฟาร์มไม่ครบ/[39m)[33m;[39m
+     [90m 448 |[39m     })[33m;[39m
+     [90m 449 |[39m[0m
+
+      at Object.bodyTHText (__tests__/unit/notification-fanout-service.test.js:446:18)
+
+  ● [Iter23] notification-fanout-service — template resolution › BREACH_NOTIFICATION_SUBJECT → cites ม.28 + PDPC 2565/2022; embeds breach fields verbatim
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+    [0m [90m 758 |[39m             contactInformationTH[33m:[39m [32m'dpo@gacpth.com'[39m[33m,[39m
+     [90m 759 |[39m         })[33m;[39m
+    [31m[1m>[22m[39m[90m 760 |[39m         expect(t)[33m.[39mnot[33m.[39mtoBeNull()[33m;[39m
+     [90m     |[39m                       [31m[1m^[22m[39m
+     [90m 761 |[39m
+     [90m 762 |[39m         [90m// Subject MUST cite ม.28 per Acceptance criteria[39m
+     [90m 763 |[39m         expect(t[33m.[39msubjectTH)[33m.[39mtoMatch([35m/ม\.28/[39m)[33m;[39m[0m
+
+      at Object.toBeNull (__tests__/unit/notification-fanout-service.test.js:760:23)
+
+  ● [Iter23] notification-fanout-service — template resolution › NO PII leak invariant — none of the 3 new templates echo raw phone (>=10 digits) or @gmail.com when given a realistic PII payload
+
+    expect(received).not.toBeNull()
+
+    Received: null
+
+    [0m [90m 827 |[39m         [36mfor[39m ([36mconst[39m type [36mof[39m types) {
+     [90m 828 |[39m             [36mconst[39m t [33m=[39m svc[33m.[39mgetTemplateForType(type[33m,[39m pii)[33m;[39m
+    [31m[1m>[22m[39m[90m 829 |[39m             expect(t)[33m.[39mnot[33m.[39mtoBeNull()[33m;[39m
+     [90m     |[39m                           [31m[1m^[22m[39m
+     [90m 830 |[39m
+     [90m 831 |[39m             [90m// No raw phone number (10+ consecutive digits)[39m
+     [90m 832 |[39m             expect(t[33m.[39mbodyTHHtml)[33m.[39mnot[33m.[39mtoMatch([35m/\d{10,13}/[39m)[33m;[39m[0m
+
+      at Object.toBeNull (__tests__/unit/notification-fanout-service.test.js:829:27)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 34 passed, 38 total
+Snapshots:   0 total
+Time:        4.43 s
+Ran all test suites matching /__tests__\\unit\\notification-fanout-service.test.js/i.

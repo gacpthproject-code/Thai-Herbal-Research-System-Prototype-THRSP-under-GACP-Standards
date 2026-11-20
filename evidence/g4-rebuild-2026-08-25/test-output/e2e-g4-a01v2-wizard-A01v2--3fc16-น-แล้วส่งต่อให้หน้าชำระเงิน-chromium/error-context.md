@@ -1,0 +1,101 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "ข้ามไปยังเนื้อหาหลัก" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e4]:
+    - banner [ref=e5]:
+      - generic [ref=e6]:
+        - generic [ref=e7]:
+          - button "ปิด" [ref=e8] [cursor=pointer]:
+            - img [ref=e9]
+          - generic [ref=e12]:
+            - heading "ระบบยื่นคำขอรับรอง GACP" [level=1] [ref=e14]
+            - paragraph [ref=e15]: แบบฟอร์มคำขอออนไลน์
+          - generic "บันทึกล่าสุด 10/9/2569 11:13:18" [ref=e17]:
+            - img [ref=e18]
+            - text: บันทึกแล้ว 11:13
+        - generic [ref=e20]:
+          - generic [ref=e22]:
+            - img [ref=e23]
+            - generic [ref=e25]: ประเภทคำขอ
+          - generic [ref=e28]:
+            - img [ref=e29]
+            - generic [ref=e32]: ตัวตนผู้ยื่น
+          - generic [ref=e35]:
+            - img [ref=e36]
+            - generic [ref=e39]: สถานที่และที่ดิน
+          - generic [ref=e42]:
+            - img [ref=e43]
+            - generic [ref=e45]: พันธุ์และวัตถุประสงค์
+          - generic [ref=e48]:
+            - img [ref=e49]
+            - generic [ref=e52]: แผนและเอกสาร
+          - generic [ref=e55]:
+            - img [ref=e56]
+            - generic [ref=e59]: ตรวจทาน
+    - main [ref=e60]:
+      - generic [ref=e62]:
+        - generic [ref=e64]:
+          - heading "ตัวตนผู้ยื่นคำขอ" [level=2] [ref=e65]
+          - paragraph [ref=e66]: กรอกข้อมูลตามกทล.1 ส่วนที่ ๑ และแนบเอกสารแสดงคุณสมบัติ
+        - generic [ref=e70]:
+          - heading "ข้อมูลผู้ยื่นคำขอ" [level=3] [ref=e71]
+          - generic [ref=e72]:
+            - generic [ref=e73]:
+              - generic [ref=e74]:
+                - text: ชื่อวิสาหกิจชุมชน*
+                - generic [ref=e75]: (บังคับ)
+              - textbox "ชื่อวิสาหกิจชุมชน (บังคับ)" [ref=e76]
+            - generic [ref=e77]:
+              - generic [ref=e78]:
+                - text: ชื่อประธานวิสาหกิจชุมชน*
+                - generic [ref=e79]: (บังคับ)
+              - textbox "ชื่อประธานวิสาหกิจชุมชน (บังคับ)" [ref=e80]
+            - generic [ref=e81]:
+              - generic [ref=e82]:
+                - text: เลขประจำตัวประชาชนของประธาน*
+                - generic [ref=e83]: (บังคับ)
+              - textbox "เลขประจำตัวประชาชนของประธาน (บังคับ)" [ref=e84]
+            - generic [ref=e85]:
+              - generic [ref=e86]:
+                - text: สัญชาติ*
+                - generic [ref=e87]: (บังคับ)
+              - textbox "สัญชาติ (บังคับ)" [ref=e88]
+            - generic [ref=e89]:
+              - generic [ref=e90]:
+                - text: รหัสทะเบียนวิสาหกิจชุมชน (สวช.01)*
+                - generic [ref=e91]: (บังคับ)
+              - textbox "รหัสทะเบียนวิสาหกิจชุมชน (สวช.01) (บังคับ)" [ref=e92]: 1-57-01-01/1-1392
+              - paragraph [ref=e93]: รหัสบนหนังสือสำคัญแสดงการจดทะเบียนวิสาหกิจชุมชน
+            - generic [ref=e94]:
+              - generic [ref=e95]:
+                - text: เลขรหัสประจำบ้าน*
+                - generic [ref=e96]: (บังคับ)
+              - textbox "เลขรหัสประจำบ้าน (บังคับ)" [ref=e97]
+            - generic [ref=e98]:
+              - generic [ref=e99]:
+                - text: ที่อยู่*
+                - generic [ref=e100]: (บังคับ)
+              - textbox "ที่อยู่ (บังคับ)" [ref=e101]
+            - generic [ref=e102]:
+              - generic [ref=e103]:
+                - text: โทรศัพท์มือถือ*
+                - generic [ref=e104]: (บังคับ)
+              - textbox "โทรศัพท์มือถือ (บังคับ)" [ref=e105]
+            - generic [ref=e106]:
+              - generic [ref=e107]: อีเมล
+              - textbox "อีเมล" [ref=e108]
+        - generic [ref=e110]:
+          - button "ย้อนกลับ" [ref=e112] [cursor=pointer]:
+            - img [ref=e113]
+            - text: ย้อนกลับ
+          - button "ถัดไป" [disabled] [ref=e116]:
+            - generic [ref=e117]: ถัดไป
+            - img [ref=e118]
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e125] [cursor=pointer]:
+    - img [ref=e126]
+  - alert [ref=e129]
+```

@@ -1,0 +1,87 @@
+Task 10 — GREEN + full-run evidence (summaries; raw logs not committed). Node v24.21.0, SIGNING_KEY_DIR=$(mktemp -d), scratch PG17 127.0.0.1:5436 (fresh DB per run, migrate deploy), keys/.dev-signing-passphrase mtime unchanged (2026-09-27 23:55:11).
+
+=== 1. targeted GREEN (apps/backend: npx jest --ci <7 files>) ===
+PASS __tests__/unit/document-precheck/routes.test.js
+PASS __tests__/unit/data-sovereignty-scope.test.js
+PASS __tests__/integration/pdpa-retention-clears-precheck-text.test.js
+PASS __tests__/unit/document-precheck/rules.test.js
+PASS __tests__/unit/env-example-documents-config.test.js
+PASS __tests__/unit/dead-doc-analysis-gone.test.js
+PASS __tests__/unit/pdpa-retention-job.test.js
+Tests:       141 passed, 141 total
+exit=0
+=== 1b. web targeted (apps/web-app: npx jest --ci 'src/app/provider/reviewer/[id]/document-check') ===
+PASS src/app/provider/reviewer/[id]/document-check/__tests__/document-check-precheck.test.tsx
+PASS src/app/provider/reviewer/[id]/document-check/__tests__/document-check.test.ts
+PASS src/app/provider/reviewer/[id]/document-check/__tests__/document-check.test.tsx
+Tests:       46 passed, 46 total
+exit=0
+
+=== 2. backend full suite (NODE_OPTIONS=--max-old-space-size=3072 npx jest --ci --silent --forceExit), final run at 0df64a61 ===
+FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+FAIL __tests__/integration/m1-submit-enforcement.test.js
+FAIL __tests__/integration/m2a-submit-enforcement.test.js
+FAIL __tests__/integration/officer-review-round-trip.test.js
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+FAIL __tests__/integration/onsite-evidence-unfreeze.test.js
+FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+FAIL __tests__/integration/staff-scope-contract.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+FAIL __tests__/unit/renewal-fast-path.test.js
+Test Suites: 11 failed, 2 skipped, 905 passed, 916 of 918 total
+Tests:       33 failed, 54 skipped, 11854 passed, 11941 total
+exit=1
+--- main attestation 2dff24ae suite-green failing suites (evidence/gate/logs/2dff24ae.../artifacts/suite-green.log):
+FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+FAIL __tests__/integration/m1-submit-enforcement.test.js
+FAIL __tests__/integration/m2a-submit-enforcement.test.js
+FAIL __tests__/integration/officer-review-round-trip.test.js
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+FAIL __tests__/integration/onsite-evidence-unfreeze.test.js
+FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+FAIL __tests__/integration/staff-scope-contract.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+FAIL __tests__/unit/renewal-fast-path.test.js
+Tests:       33 failed, 54 skipped, 11713 passed, 11800 total
+=> same 11 suites, same 33 failed tests. First full run (before d64b0e80) had 13: + data-sovereignty-scope (.traineddata unclassified, Task 1) + env-example-documents-config (PATH, Task 4) — both fixed in d64b0e80.
+
+=== 3. integration dir (npx jest __tests__/integration --ci --forceExit) on a fresh scratch DB ===
+FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js
+FAIL __tests__/integration/m1-erasure-holder-survives.test.js
+FAIL __tests__/integration/m1-submit-enforcement.test.js
+FAIL __tests__/integration/m2a-submit-enforcement.test.js
+FAIL __tests__/integration/officer-review-round-trip.test.js
+FAIL __tests__/integration/onsite-decision-mint-e2e.test.js
+FAIL __tests__/integration/onsite-evidence-unfreeze.test.js
+FAIL __tests__/integration/staff-chain-assign-then-see.test.js
+FAIL __tests__/integration/staff-scope-contract.test.js
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+Test Suites: 10 failed, 1 skipped, 74 passed, 84 of 85 total
+Tests:       32 failed, 13 skipped, 501 passed, 546 total
+exit=1
+--- main integration-pg: 
+FAIL __tests__/integration/a0-pr2-per-hop-invariant.test.js FAIL __tests__/integration/m1-erasure-holder-survives.test.js FAIL __tests__/integration/m1-submit-enforcement.test.js FAIL __tests__/integration/m2a-submit-enforcement.test.js FAIL __tests__/integration/officer-review-round-trip.test.js FAIL __tests__/integration/onsite-decision-mint-e2e.test.js FAIL __tests__/integration/staff-chain-assign-then-see.test.js FAIL __tests__/integration/staff-scope-contract.test.js FAIL __tests__/integration/status-writer-audit-default-invariant.test.js 
+=> branch adds onsite-evidence-unfreeze vs main's integration-pg list; it is in main's suite-green list too. Cause in log: certificate-service.js:330 refusePlantUnknown — plant 'cannabis' not in the plant register of a fresh DB (no seed). Task 10 touches neither certificate-service nor the plant seed.
+
+=== 4. web full jest (apps/web-app: npx jest --ci --silent) ===
+Test Suites: 409 passed, 409 total
+Tests:       3368 passed, 3368 total
+exit=0
+=== 5. tsc --noEmit (apps/web-app) ===
+exit=0
+=== 6. next build (apps/web-app) ===
+exit=0
+lines matching error: 0
+
+=== 7. probes (bash scripts/probes/<name>.sh) at 0df64a61 + this evidence ===
+status-vocab exit=0 · PASS: 11 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (3 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+retired-words exit=0 · PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 พื้นผิว)
+ratchet exit=0 · PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/home/ubuntu/work/wt-precheck/evidence/ratchet-current.txt)
+no-skip exit=0 · PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+no-secret exit=0 · PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+=== 8. tier-check ===
+TIER=C
+=== 9. cleanup ===
+docker images local-precheck-measure: 0 (removed: 'Deleted: sha256:3eae85d3…')

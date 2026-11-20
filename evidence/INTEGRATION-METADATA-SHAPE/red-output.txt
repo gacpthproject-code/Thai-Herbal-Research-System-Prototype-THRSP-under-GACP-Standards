@@ -1,0 +1,81 @@
+# RED — metadata shape, reproduced WITHOUT Postgres
+# date: 2026-08-08T03:55:28Z  branch: fix/integration-metadata-shape  base sha: f2093b38
+#
+# Postgres is unavailable in this container. Proof (real output):
+#   $ node -e "const {PrismaClient}=require('@prisma/client'); new PrismaClient();"
+#   Error: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+#
+# So the RED is reproduced by driving the REAL write path
+#   statusTransitionAuditHook -> logWithin -> _buildAuditRow (middleware/audit-logger.js:394)
+# and capturing the exact value handed to auditLog.create, i.e. what Prisma persists
+# into the Json? column and hands back on read.
+#
+# CASE A = the assertion form currently in the two red suites -> MUST fail (this is the RED)
+# CASE B = the proposed replacement form                      -> MUST pass
+# CASE C = negative control, metadata as an OBJECT            -> MUST fail (proves the pin is real,
+#          i.e. the new assertion is NOT a weaker assertion that just stops complaining)
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/ZZ-TEMP-metadata-shape-probe.test.js
+  PROBE — what does the audit writer actually persist into metadata?
+    ✕ CASE A (the staging RED) — the CURRENT assertion form on the persisted value (3 ms)
+    ✓ CASE B (the proposed form) — typeof pin + parse + same fields (2 ms)
+    ✕ CASE C (negative control) — the proposed form MUST go red if metadata ever became an object (3 ms)
+
+  ● PROBE — what does the audit writer actually persist into metadata? › CASE A (the staging RED) — the CURRENT assertion form on the persisted value
+
+    expect(received).toMatchObject(expected)
+
+    Matcher error: received value must be a non-null object
+
+    Received has type:  string
+    Received has value: "{\"fromStatus\":\"SUBMITTED\",\"toStatus\":\"PENDING_DOC_FEE\",\"reason\":\"A0 PR1 invariant (1)\"}"
+
+      54 |
+      55 |     test('CASE A (the staging RED) — the CURRENT assertion form on the persisted value', () => {
+    > 56 |         expect(persisted).toMatchObject({
+         |                           ^
+      57 |             fromStatus: 'SUBMITTED',
+      58 |             toStatus: 'PENDING_DOC_FEE',
+      59 |         });
+
+      at Object.toMatchObject (__tests__/ZZ-TEMP-metadata-shape-probe.test.js:56:27)
+
+  ● PROBE — what does the audit writer actually persist into metadata? › CASE C (negative control) — the proposed form MUST go red if metadata ever became an object
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "string"
+    Received: "object"
+
+      70 |     test('CASE C (negative control) — the proposed form MUST go red if metadata ever became an object', () => {
+      71 |         const regressed = JSON.parse(persisted); // hypothetical "stored as object" future
+    > 72 |         expect(typeof regressed).toBe('string');
+         |                                  ^
+      73 |         expect(JSON.parse(regressed)).toMatchObject({
+      74 |             fromStatus: 'SUBMITTED',
+      75 |             toStatus: 'PENDING_DOC_FEE',
+
+      at Object.toBe (__tests__/ZZ-TEMP-metadata-shape-probe.test.js:72:34)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 1 passed, 3 total
+Snapshots:   0 total
+Time:        0.785 s, estimated 1 s
+Ran all test suites matching /__tests__\/ZZ-TEMP-metadata-shape-probe.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

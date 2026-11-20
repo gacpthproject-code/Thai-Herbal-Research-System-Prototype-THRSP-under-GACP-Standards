@@ -1,0 +1,280 @@
+=== M2a Task 4 — lane regression: applications-submit|bundle|revision|car|doc-requirements
+$ npx jest --config jest.config.cjs --testPathPattern 'applications-submit|bundle|revision|car|doc-requirements'
+date: 2026-08-15T13:04:51Z
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[33mwarn[39m: [EmailService] Email service is disabled or not configured. Emails will be logged only. {"service":"gacp-backend","timestamp":"2026-08-15T13:04:56.385Z"}
+PASS __tests__/integration/bundle-terminal-integrity.test.js
+  R1a — application-bundles terminal-integrity (no resurrection)
+    POST /:id/submit — must not resurrect a linked terminal case
+      √ linked REJECTED case is rejected, not pushed to SUBMITTED (395 ms)
+      √ linked EXPIRED case is rejected, not pushed to SUBMITTED (13 ms)
+      √ linked CANCEL_EXPIRED case is rejected, not pushed to SUBMITTED (12 ms)
+      √ linked CERTIFIED case is rejected, not pushed to SUBMITTED (11 ms)
+      √ non-terminal (DRAFT) linked case still submits (regression pin) (13 ms)
+    POST / — must not link a terminal case into a new bundle
+      √ creating a bundle around a REJECTED case is rejected, no DB write (23 ms)
+      √ creating a bundle around a EXPIRED case is rejected, no DB write (11 ms)
+      √ creating a bundle around a CANCEL_EXPIRED case is rejected, no DB write (11 ms)
+      √ creating a bundle around a CERTIFIED case is rejected, no DB write (11 ms)
+    POST /:id/applications — must not add a terminal case
+      √ adding a REJECTED case to a bundle is rejected, no link write (12 ms)
+      √ adding a EXPIRED case to a bundle is rejected, no link write (11 ms)
+      √ adding a CANCEL_EXPIRED case to a bundle is rejected, no link write (11 ms)
+      √ adding a CERTIFIED case to a bundle is rejected, no link write (11 ms)
+
+PASS __tests__/unit/application-revision-deadline-auth.test.js
+  [AppAudit AH9] GET /api/revision-deadline/:applicationId
+    √ rejects unauthenticated requests with 401 (50 ms)
+    √ health user who DOES own the application can read the deadline (58 ms)
+    √ health user who does NOT own the application gets 404 (no info leak) (10 ms)
+    √ provider/admin role bypasses ownership check (audit/review needs) (11 ms)
+    √ health user with no healthId resolution gets 403 (12 ms)
+
+PASS __tests__/unit/m2a-doc-requirements-doors.test.js
+  M2a — POST /submit, DRAFT branch = first submit
+    √ JURISTIC with no company registration on file → 422, and NOTHING is written (28 ms)
+    √ a client flag cannot buy the way in — documents[].uploaded stays worthless at the door (AC2) (10 ms)
+    √ with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers (12 ms)
+    √ the idempotent early return stays idempotent — an already-submitted application is never re-judged (10 ms)
+  M2a — POST /submit, REVISION_REQUESTED / CAR_PENDING branch = resubmit
+    √ judges by the stamp, not by todays law — a rule filed later cannot 422 it (AC3) (23 ms)
+    √ the stamped set is still enforced on resubmit → 422 before any write (13 ms)
+    √ an application filed before M2a carries no stamp — it is let through, not refused (15 ms)
+  M2a — POST /bundles/:id/submit
+    √ one linked case short of a document refuses the WHOLE bundle → 422, no transaction opened (26 ms)
+    √ every linked case is stamped inside the existing transaction, applicant data intact (12 ms)
+    √ the linked-case projection loads formData — without it the door would stamp over an empty blob (10 ms)
+  M2a — POST /applications/:id/car (resubmit)
+    √ a stamped slot the server cannot see → 422, no status write (14 ms)
+    √ stamped and satisfied → the CAR resubmit proceeds, judged by the stamp alone (12 ms)
+  M2a — PUT /revision-deadline/:id/submit
+    √ an applicant missing a stamped document → 422, the deadline row is untouched (12 ms)
+    √ the projection now carries formData and status — the check has nothing to read without them (11 ms)
+    √ the provider bypass skips the document check entirely, exactly as it skips the entity check (11 ms)
+    √ applicant with the stamped document on file → 200 (10 ms)
+  M2a — PUT /applications/:id/revision
+    √ a stamped slot the server cannot see → 422, submitRevision never runs (15 ms)
+    √ satisfied → the revision goes through, judged by the stamp (10 ms)
+  M2a — the applicant cannot write the stamp through /prepare
+    √ both M2 snapshot keys are declared server-owned (1 ms)
+    √ a full-replacement merge keeps the stored stamp, whatever the client sends (2 ms)
+    √ POST /prepare strips a forged stamp at the edge — the stored one survives (20 ms)
+
+[33mwarn[39m: [EmailService] Email service is disabled or not configured. Emails will be logged only. {"service":"gacp-backend","timestamp":"2026-08-15T13:04:58.842Z"}
+[31merror[39m: [ApplicationBundle] Get by ID error: Invalid `prisma.applicationBundle.findFirst()` invocation: Argument id: Got invalid value {"name":"PrismaClientValidationError","service":"gacp-backend","stack":"PrismaClientValidationError: Invalid `prisma.applicationBundle.findFirst()` invocation: Argument id: Got invalid value\n    at makePrismaValidationError (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:47:13)\n    at Object.makePrismaValidationError (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:126:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T13:04:58.985Z"}
+[31merror[39m: [ApplicationBundle] Get by ID error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:130:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T13:04:58.996Z"}
+[31merror[39m: [ApplicationBundle] Delete error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:134:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T13:04:59.008Z"}
+[31merror[39m: [ApplicationBundle] Add application error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:138:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T13:04:59.020Z"}
+[31merror[39m: [ApplicationBundle] Submit error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:145:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T13:04:59.031Z"}
+PASS __tests__/integration/bundle-bad-input-mapping.test.js
+  BE-EDGE-01 — application-bundles bad input maps to 4xx (not 500)
+    findFirst returns null (well-formed-but-absent id) → 404
+      √ GET /:id bogus id (70 ms)
+      √ DELETE /:id bogus id (10 ms)
+      √ POST /:id/submit bogus id (14 ms)
+      √ POST /:id/applications bogus bundle id (after body validation) (10 ms)
+      √ DELETE /:id/applications/:appId bogus ids (10 ms)
+    missing fields / bad types caught BEFORE prisma → 400
+      √ POST /:id/applications missing applicationId (no prisma call) (10 ms)
+      √ POST /:id/applications bad-typed applicationId (no prisma call) (10 ms)
+      √ POST / bad bundleType (no prisma create) (10 ms)
+    prisma THROWS on the lookup → 4xx via respondError (was a 500 leak)
+      √ GET /:id PrismaClientValidationError → 400 (25 ms)
+      √ GET /:id P2023 malformed UUID → 400 (11 ms)
+      √ DELETE /:id P2023 → 400 (11 ms)
+      √ POST /:id/applications P2023 on bundle lookup → 400 (11 ms)
+      √ POST /:id/submit P2023 → 400 (11 ms)
+
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (25 ms)
+    √ MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (10 ms)
+    √ MANAGER holding a GRANT, with the active-entity header sent → 200 (11 ms)
+    √ ADMIN can submit (10 ms)
+    √ OWNER can submit (10 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (11 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (11 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (10 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (17 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (10 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (11 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (10 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (11 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (9 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (10 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (11 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (10 ms)
+
+[33mwarn[39m: [EmailService] Email service is disabled or not configured. Emails will be logged only. {"service":"gacp-backend","timestamp":"2026-08-15T13:05:00.245Z"}
+PASS __tests__/integration/bundle-natid-token-fk.test.js
+  application-bundles — healthId FK uses the canonicalId TOKEN, not the plaintext national ID
+    √ GET /my read filter uses the TOKEN (where.healthId === canonicalId) (53 ms)
+    √ POST / write stamps the TOKEN into applicationBundle.create data.healthId (14 ms)
+    √ GET /:id read filter uses the TOKEN (10 ms)
+
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (21 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (12 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (10 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (14 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (9 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (22 ms)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'APPLICATION',
+      action: 'APPLICATION_AUTO_EXPIRED',
+      severity: 'INFO',
+      error: 'tx.$executeRaw is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-15T13:05:01.314Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at onAudit (jobs/revision-deadline-checker.js:224:33)
+      at emitBestEffortTransitionAudit (services/application-status-writer.js:585:9)
+      at writeApplicationStatus (services/application-status-writer.js:915:5)
+      at jobs/revision-deadline-checker.js:191:25
+      at jobs/revision-deadline-checker.js:161:21
+      at checkExpiredDeadlines (jobs/revision-deadline-checker.js:109:13)
+      at Object.<anonymous> (__tests__/unit/revision-deadline-cron-preserves-data.test.js:138:9)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'APPLICATION',
+      action: 'APPLICATION_AUTO_EXPIRED',
+      severity: 'INFO',
+      error: 'tx.$executeRaw is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-15T13:05:01.349Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at onAudit (jobs/revision-deadline-checker.js:224:33)
+      at emitBestEffortTransitionAudit (services/application-status-writer.js:585:9)
+      at writeApplicationStatus (services/application-status-writer.js:915:5)
+      at jobs/revision-deadline-checker.js:191:25
+      at jobs/revision-deadline-checker.js:161:21
+      at checkExpiredDeadlines (jobs/revision-deadline-checker.js:109:13)
+      at Object.<anonymous> (__tests__/unit/revision-deadline-cron-preserves-data.test.js:154:9)
+
+PASS __tests__/unit/revision-deadline-cron-preserves-data.test.js
+  Bug 2.1 — revision-deadline cron preserves formData + workflowHistory
+    √ does NOT wipe applicant/plot formData on the EXPIRED write (37 ms)
+    √ APPENDS to workflowHistory (length 4), does NOT reset it to 1 (7 ms)
+    √ findMany select now includes formData + workflowHistory (2 ms)
+
+PASS __tests__/unit/car-late-submission-expiry-attribution.test.js
+  AUDIT-TRAIL — late CAR submission expires as the SYSTEM, not the applicant
+    √ the expiry is still enforced and the late evidence is rejected (18 ms)
+    √ does NOT record the applicant as the actor who cancelled (10 ms)
+    √ attributes the expiry to the system, matching the cron (12 ms)
+    √ the workflow event carries the same system attribution (10 ms)
+    √ also fails the open RevisionDeadline row, as the cron does (11 ms)
+    √ performs both writes in one transaction (18 ms)
+    √ a submission INSIDE the deadline is unaffected (11 ms)
+
+PASS __tests__/unit/revision-deadline-guard.test.js
+  Bug 6.5 — assertRevisionNotExpired
+    √ overdue (formData.revisionDueAt in the past) → expired:true + EXPIRE transition + deadline failed (2 ms)
+    √ overdue (RevisionDeadline row in the past, no formData date) → expired:true (1 ms)
+    √ within deadline (future dueAt) → expired:false + NO side-effects (1 ms)
+    √ no deadline anywhere → expired:false (nothing to enforce) (1 ms)
+
+PASS __tests__/unit/car-deadline-service.test.js
+  car-deadline-service
+    √ uses the 5-working-day window (1 ms)
+    √ computeCarDueDate skips Thai public holidays (Asia/Bangkok), not just weekends (6 ms)
+    √ seedCarRevisionDeadline upserts a PENDING row, bumping revisionCount on an existing CAR loop (1 ms)
+    √ seedCarRevisionDeadline starts revisionCount at 1 for a first-time CAR (1 ms)
+    √ seedCarRevisionDeadline is a no-op on missing/invalid args (no upsert) (1 ms)
+
+PASS __tests__/unit/audit-onsite-car-deadline.test.js
+  audit-onsite-service.submitDecision — CAR deadline SLA clock
+    √ FAIL → seeds the RevisionDeadline + stamps formData.carDueAt + transitions CAR_PENDING (3 ms)
+    √ PASS → does NOT seed a CAR deadline and does NOT override formData (2 ms)
+
+PASS __tests__/integration/working-days-revision-deadline.test.js
+  utils/working-days.addWorkingDays in Asia/Bangkok
+    √ 5 working days from a plain Monday lands on the following Monday (skip Sat+Sun) (5 ms)
+    √ skips Thai public holidays (Labor Day + Coronation Day) when counting working days (6 ms)
+    √ Friday late-night ICT: 5wd from Fri 23:30 ICT lands on the following Friday (4 ms)
+    √ ICT Saturday early-morning (Friday in UTC fringe) treated as WEEKEND in ICT, not working day (4 ms)
+  PAYMENT.REVISION_DEADLINE_BUSINESS_DAYS is 5 (canonical)
+    √ canonical SLA value is 5 working days (1 ms)
+
+PASS __tests__/unit/m2a-doc-requirements.test.js
+  first-submit — the law as of today, per holder type (AC1)
+    √ JURISTIC with no server-side COMPANY_REG → 422 APPLICATION_INCOMPLETE naming the slot (3 ms)
+    √ COMMUNITY_ENTERPRISE is asked for its own document, not the company one (1 ms)
+    √ INDIVIDUAL is asked for nothing extra — no rule of theirs is in force (1 ms)
+    √ a rule with every dimension NULL binds even the INDIVIDUAL filing (1 ms)
+    √ a rule that is not yet in force does not fire, a closed one stops firing (1 ms)
+    √ isRequired:false is a rule on the books that demands nothing (1 ms)
+    √ a renewal is judged by the RENEWAL law, never by a word this codebase does not speak (2 ms)
+  evidence is what the SERVER holds (AC2)
+    √ a draftDocuments entry recorded under an old alias satisfies the rule (1 ms)
+    √ an ApplicationDocument row satisfies it through documentType — the row id is NOT a slot (2 ms)
+    √ a client flag alone is worth nothing — documents[].uploaded = true still 422s (1 ms)
+    √ reads the rows of THIS application only (1 ms)
+  resubmit is judged by the stamp, not by todays law (AC3)
+    √ a rule filed after the first submit cannot 422 the resubmit (1 ms)
+    √ the stamped set is still enforced — a stamped slot gone missing is a 422 (1 ms)
+    √ a stamped slot written in an old spelling is compared canonically (1 ms)
+    √ an application filed before M2a has no stamp — it is grandfathered, and the warn says so (2 ms)
+    √ the mode is the DOORs word — the service never guesses it from a status (16 ms)
+  buildRequirementSnapshot — what gets written on the application
+    √ records the rules consulted and the slots they demanded, canonically (2 ms)
+    √ an empty law still produces a stamp — "nothing was demanded" is an answer worth keeping (1 ms)
+    √ is pure — the same rules stamp the same slots twice (1 ms)
+
+PASS __tests__/unit/application-review-revision-methods.test.js
+  submitRevision — re-entry target (audit 2.9)
+    √ routes a REVISION_REQUESTED resubmit back to ASSIGNED_FOR_REVIEW (not SUBMITTED) (3 ms)
+    √ keeps a DRAFT submit going to SUBMITTED (unchanged) (1 ms)
+    √ stamps the User UUID (not the plaintext national ID) into revision_deadlines.submittedBy/updatedBy (2 ms)
+    √ stamps the User UUID into revision_deadlines.updatedBy on the EXPIRED path (1 ms)
+
+PASS __tests__/unit/auditor-decision-car-deadline-guard.test.js
+  auditor audit-decision handler — CAR SLA clock + comment gate
+    √ imports the canonical CAR-deadline helper (1 ms)
+    √ computes a CAR due date when entering CAR_PENDING and stamps it into formData (2 ms)
+    √ seeds the RevisionDeadline row after the status write
+    √ requires a justification for a MINOR/MAJOR corrective-action request
+
+PASS __tests__/unit/carpet-500-fixes.test.js
+  [carpet-500] BUG-1 — revision-deadline GET must not lose `this` on resolveHealthIdentity
+    √ does NOT destructure resolveHealthIdentity off the service (drops `this` → 500) (1 ms)
+    √ calls it bound on the service object with the canonical args (2 ms)
+  [carpet-500] BUG-2 — lot print-label select must use only real Farm fields
+    √ findLotPrintLabelPayload does NOT select the non-existent Farm.farmNameTH (1 ms)
+    √ the lot print-label handler no longer reads farm.farmNameTH (1 ms)
+
+Test Suites: 17 passed, 17 total
+Tests:       135 passed, 135 total
+Snapshots:   0 total
+Time:        11.361 s, estimated 14 s
+Ran all test suites matching /applications-submit|bundle|revision|car|doc-requirements/i.

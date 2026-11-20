@@ -1,0 +1,71 @@
+R2 Task 11 — GREEN (2026-10-03) · commit 985d1a4c on feat/remove-workspace-mode (base fc533e91)
+Real PG: scratch postgres:17 on :55438 (migrate deploy), jest -i, fresh SIGNING_KEY_DIR per run; container removed after.
+Key mtime (main checkout keys/*.pem): 1788623435 before/after every run (RED, GREEN, focused, full, alone-reruns).
+
+## 1. Task files
+  certificate-download-cold-start-retry.test.js + holder-scope-real-postgres.test.js: Suites 2 passed · Tests 64 passed, 0 skipped
+  Task 11 real-PG block (10 tests): V no workspace → 403 ENTITY_PERMISSION_DENIED (json, no %PDF, no qrCode/qrData,
+  permission PRINT_QR) · V acting on C → 403 · B (MANAGER) → 200 %PDF- · A (OWNER) → 200 with/without workspace ·
+  S → 404 · null-holder cert → 403 for its filer · /my: V canPrintQr false qrCode null, B true + qr kept, null-holder false ·
+  /:id: V canPrintQr false qrData null (application = {applicationNumber} only), B true · V + GRANT → 200 + /my true ·
+  A + REVOKE → 403 both ways, /my and /:id hide QR; REVOKE cleared → 200.
+  Unit (engine mocked): 6 cold-start budget cases unchanged and green (happy path now also asserts the engine was asked once
+  on the holder with PRINT_QR) + 5 gate cases (deny → 403 one body, no render · OWNER workspace does not stand in ·
+  no holder → 403 without engine · non-denial engine error → 500 no PDF · out of scope → 404 before gate).
+
+## 2. Focused real-PG + related unit (22 integration suites: renewal|holder|r1-|health-door-walk|draft-|farm-create|
+   fee-overrides|locked-price|pricing-serves|certificate|prepare-non-draft|qr-only|applicant-billing, + 6 unit suites:
+   certificate-download-cold-start-retry, certificates-route-rbac, certificates-detail-identities-route, rbac-matrix-final,
+   entity-permission-denied-copy, error-codes-source-pointers)
+  Suites 27 passed / 1 failed (28) · Tests 633 passed / 3 failed, 0 skipped. The 3 = m1-erasure-holder-survives (known set, below).
+  r1-cert-doc-finance neutrality: 6 rows re-recorded 200 → 403, all on the download door, each the §3.4 rule:
+    A|C, A|P, A|none download|aN  (A's certificate on an application with no holder: fail closed)
+    F|none download|fC            (F filed on C, membership REVOKED: no PRINT_QR on the holder)
+    G|none download|gP            (G's personal entity has no membership row: missing membership = 403)
+    N|none download|nN            (N's application has no holder: fail closed)
+  No /my or /:id row moved (the table records status + row labels only). No other expected file moved.
+
+## 3. Full backend suite
+  non-integration (parallel): Suites 1 failed / 1 skipped / 862 passed (864) · Tests 1 failed / 41 skipped / 12001 passed
+    - renewal-fast-path "an audit-trail row records the skip..." — known (DATABASE_URL on scratch DB); alone without it: 16/16
+    - skipped suite = smoke-all-endpoints (SMOKE_ENABLED), untouched
+  integration (-i): Suites 10 failed / 1 skipped / 103 passed (114) · Tests 32 failed / 13 skipped / 832 passed (877)
+    - comm -3 of the 32 failure names against Task 10 round 3's list (31 known + onsite flake): empty
+    - onsite-evidence-unfreeze alone: 6/6
+  -> no new failures. payer-block-matrix rewrote evidence/payer-block/after/* (known backlog); restored, not committed.
+
+## 4. Probes
+  ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0 · retired-words PASS · no-skip PASS
+  no-secret PASS (layer1 0 hits, gitleaks clean) · green-mask PASS (baseline 15, no net-new)
+  entity-permission-denied-copy PASS · error-codes-source-pointers PASS (no pointer into a changed line range:
+  certificates.js has none; certificate-service.js change is one in-place line, no shift)
+  eslint on the 3 changed JS files: 0 errors (1 pre-existing unused-var warning in the cold-start test).
+  Web: apps/web-app src/app/health/certificates 5 suites / 21 tests PASS (no web file changed).
+  LOCAL_GATE_FULL / attestation not run here (coordinator, as in Task 10).
+
+## ROUND 1 (coordinator: close concern 2) — GREEN — 2026-10-03
+Change: GET /api/certificates health branch gets the same rule — per row canPrintQr from PRINT_QR on the row's holder
+(certificate.application.entityId, engine with GRANT/REVOKE, memoised per request), qrData null when false; the holder id read
+for the gate is stripped from the row. listCertificates(scope 'self') includes application.entityId (same line, no pointer shift).
+Real PG :55438 fresh, 0 skipped, key mtime 1788623435 before/after every run.
+  holder-scope-real-postgres: 54 tests, all pass in the focused run below (Task 11 block = 11 tests)
+  focused (21 real-PG suites + 6 unit): Suites 27 passed · Tests 634 passed, 0 failed, 0 skipped
+  full: unit 1 failed = renewal-fast-path (known) · integration 32 failed, comm -3 vs Task 10 r3 list empty → no new failures
+  probes: ratchet 26/53/101/0 PASS · retired-words PASS · no-skip PASS · green-mask PASS · copy guard + pointers PASS
+  no-secret: layer1 grep 0 hits; layer2 gitleaks FAIL on 1 finding NOT in this branch — generic-api-key,
+    apps/web-app/src/components/payments/QuotationReviewSection.tsx:344 in commit 770c4bb7 (branch fix/fee-line-descriptions,
+    not an ancestor of HEAD; value = a 12-char camelCase prop name, not printed). gitleaks on fc533e91..HEAD: clean.
+
+Inventory — certificate doors that return a QR value or PDF bytes to a health user (grep: qrData|qrCode|getCertificatePdf|
+generateCertificatePdf|certificate.find* in routes/ controllers/ services/; every select checked for qrData):
+  GATED  GET /api/certificates          (health branch: canPrintQr, qrData null)        — this round
+  GATED  GET /api/certificates/my       (canPrintQr, qrCode null)
+  GATED  GET /api/certificates/:id      (health branch: canPrintQr, qrData null)
+  GATED  GET /api/certificates/:id/download  (PDF bytes; 403 ENTITY_PERMISSION_DENIED) — the only caller of getCertificatePdf
+  No QR/PDF returned (checked): GET /api/certificates/verify/:certificateNumber (public; certificateNumber/name/dates/status only) ·
+    report-submissions POST (documentService.findCertificateForUser, row used for the ownership check, not returned) ·
+    pdpa export (pdpa-service.js:178 select without qrData) · renewal-service, planting-service, planting-cycle-service,
+    planting-cycle-detail-loader, farm-service, harvest-capacity-operations, application-draft-query-methods,
+    application-listing-handlers (selects without qrData).
+  Not health: provider branches of / and /:id, routes/api/provider/handlers/certificates.js, analytics (FULL_STAFF).
+  Out of scope (public T&T): routes/api/trace/* and trace-service.

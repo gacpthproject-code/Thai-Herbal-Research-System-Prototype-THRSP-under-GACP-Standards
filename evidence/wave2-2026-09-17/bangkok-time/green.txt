@@ -1,0 +1,381 @@
+# green — wave2/bangkok-time — 2026-09-17T09:47:48Z — HEAD c8773543 — fixed production code; the new tests plus the existing suites this change updated
+# host clock zone: Asia/Bangkok
+
+$ cd apps/backend && npx jest __tests__/unit/bangkok-business-dates.test.js __tests__/unit/working-days.test.js __tests__/unit/checkout-schedule-service.test.js __tests__/unit/workflow-reject-deadline-holiday.test.js __tests__/unit/vat-report-service.test.js __tests__/unit/audit-scheduling-service.test.js __tests__/unit/sc-ten-1-auditor-tenant-scope.test.js __tests__/unit/atomic-decision-letter.test.js __tests__/unit/quotation-gate-error-codes.test.js
+#   (clock-sensitive checks run in a child node process started with TZ=UTC)
+PASS __tests__/unit/bangkok-business-dates.test.js
+  the checks below really run on a UTC clock
+    ✓ the child process reads 16 Sep for an instant that is 17 Sep in Bangkok (45 ms)
+  CODE-01 — Thai document dates are the Bangkok date on a UTC server
+    ✓ utils/thai-format prints 17 Sep 2569, not 16 (2 ms)
+    ✓ utils/thai-numerals prints the DTAM date in Thai digits for the Bangkok day (1 ms)
+    ✓ the receipt/tax-invoice issue date (DTAM and PLATFORM) is the Bangkok day (1 ms)
+    ✓ a receipt issued at 01:30 on 1 Jan 2570 prints 2570 as both its date and its year (1 ms)
+    ✓ a credit note issued at 01:30 on 1 Jan 2570 prints 2570, and the original invoice keeps its Bangkok day (2 ms)
+    ✓ the certificate prints its issue, expiry and revision dates as Bangkok days (2 ms)
+    ✓ the lot label prints the Bangkok day, still zero-padded (1 ms)
+    ✓ the กทล.1 form prints the Bangkok filing day (2 ms)
+    ✓ the CAR and audit reports print Bangkok days (2 ms)
+  CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server
+    ✓ the over-cap error and the availability view count both audits on the same Bangkok day (1 ms)
+    ✓ "20 Sep, 09:00" is 09:00 in Bangkok (02:00Z), not 09:00 UTC (16:00 in Bangkok) (6 ms)
+    ✓ a time before 07:00 stays on the chosen Bangkok day (1 ms)
+    ✓ the auditor-busy check counts the Bangkok day of the appointment (2 ms)
+  DOMA-10 — the working-day calendar matches the announced holidays
+    ✓ Mon 7 Dec 2569 (substitute for Father's Day on a Saturday) is not a working day (17 ms)
+    ✓ five working days from Fri 4 Dec 2569 skip 7 Dec and 10 Dec and end on Tue 15 Dec (5 ms)
+    ✓ the same deadline comes out the same on a UTC server (92 ms)
+    ✓ 2569: the announced lunar and special days are holidays (2 ms)
+    ✓ 2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days (1 ms)
+    ✓ 2570: the days in ประกาศ ธปท. 37/2569 are holidays, and 19 Feb is not (3 ms)
+    ✓ 2568: substitutes, the special days and the real Asalha date are holidays; 14 Jul is not (3 ms)
+    ✓ a run of fixed-date holidays that touches a weekend gets one substitute, across the new year too (2 ms)
+    ✓ a substitute that is both announced and derived by the rule is one day off, not two (1 ms)
+    ✓ beyond the dated table, the weekend rule still moves fixed-date holidays (1 ms)
+  VAT period (ภ.พ.30) follows the Bangkok calendar month
+    ✓ September 2569 excludes an invoice issued 2026-09-30T20:00Z (1 Oct 03:00 in Bangkok) (48 ms)
+    ✓ October 2569 includes it (16 ms)
+    ✓ the e-Filing CSV dates that invoice 2026-10-01 (its Bangkok day) (27 ms)
+    ✓ December ends, and January starts, at midnight in Bangkok (16 ms)
+[33mwarn[39m: [vat-report] PurchaseInvoice delegate unavailable — returning empty Input VAT report. (Expected in CI before prisma generate; production deploys must have it.) {"service":"gacp-backend","timestamp":"2026-09-17T09:47:51.759Z"}
+PASS __tests__/unit/vat-report-service.test.js
+  [B19-C] vat-report-service — generateOutputVatReport
+    ✓ empty month → totals zero, no rows, inputVat TODO flagged (32 ms)
+    ✓ one PLATFORM payment in May 2026 → 1 row, VAT amount equals journal-line credit (16 ms)
+    ✓ multi-scope invoice (3 scopes) → VAT scales linearly to 105 / taxable 1,500 (21 ms)
+    ✓ corporate (JURISTIC) buyer tax ID is rendered; individual buyer shows dash (17 ms)
+    ✓ reversing entry (credit=0) is excluded from the report (20 ms)
+    ✓ C1 regression: JournalLine query selects scalar invoiceId, NOT a nested invoice relation (17 ms)
+    ✓ rejects invalid year / month (43 ms)
+  [B19-C] vat-report-service — CSV serialisation
+    ✓ UTF-8 BOM prefix present, RFC-4180 escaping, totals footer row (17 ms)
+    ✓ CSV handles empty month — header + empty totals footer only (19 ms)
+    ✓ CSV escapes double-quotes by doubling them per RFC 4180 (14 ms)
+    ✓ CSV serialises Date as YYYY-MM-DD and number as fixed-2 decimal (13 ms)
+  [B19-C] vat-report-service — checkPeriodClosable
+    ✓ returns closable=true when no pending invoices in window (18 ms)
+    ✓ returns closable=false when pending invoices exist in the period (13 ms)
+    ✓ rejects invalid year / month (13 ms)
+  [B19-C] vat-report-service — helpers
+    ✓ monthThai returns the Thai month name (20 ms)
+    ✓ toMonthBoundaries pins the Bangkok start/end of month (14 ms)
+    ✓ OUTPUT_VAT_ACCOUNT_CODES includes canonical 2131-001 plus legacy fallbacks (16 ms)
+    ✓ INPUT_VAT_ACCOUNT_CODES exposes the canonical 1310-001 (Iter 26) (13 ms)
+  [Iter26] vat-report-service — generateInputVatReport
+    ✓ returns empty totals when no APPROVED purchase invoices exist (14 ms)
+    ✓ aggregates per-row taxable + VAT across APPROVED rows (18 ms)
+    ✓ only scans APPROVED rows in the (start, end) window (15 ms)
+    ✓ returns source:unavailable when PurchaseInvoice delegate is missing (28 ms)
+  [Iter26] vat-report-service — generateOutputVatReport with Input side
+    ✓ inputVat block computes from APPROVED PurchaseInvoice rows (30 ms)
+    ✓ falls back to tracked:false marker when PurchaseInvoice missing (22 ms)
+    ✓ collectInputVatSummary helper rounds + aggregates (15 ms)
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+      at warn (services/application-status-writer.js:441:21)
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-17T09:47:52.200Z"}
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+      at warn (services/application-status-writer.js:441:21)
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-17T09:47:52.219Z"}
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+      at warn (services/application-status-writer.js:441:21)
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-17T09:47:52.384Z"}
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+      at warn (services/application-status-writer.js:441:21)
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-17T09:47:52.401Z"}
+PASS __tests__/unit/audit-scheduling-service.test.js
+  [Iter25] audit-scheduling-service — assignAuditor
+    ✓ happy path: AUDIT_FEE_PAID → AUDIT_CONFIRMED with auditSchedule (48 ms)
+    ✓ admin role can also assign (ADMIN_OVERRIDE) (17 ms)
+    ✓ rejects non-SCHEDULER actor (FORBIDDEN_ROLE) (17 ms)
+    ✓ tenant guard: rejects a cross-tenant application (APPLICATION_NOT_FOUND) — audit 2.5 (13 ms)
+    ✓ rejects past scheduledDate (VALIDATION_ERROR) (13 ms)
+    ✓ rejects weekend (NON_WORKING_DAY) (17 ms)
+    ✓ rejects when application not in AUDIT_FEE_PAID (INVALID_STATE) (12 ms)
+    ✓ rejects when auditor user not found (AUDITOR_NOT_FOUND) (14 ms)
+    ✓ rejects when auditor does NOT hold AUDITOR role (AUDITOR_INVALID_ROLE) (16 ms)
+    ✓ AUDITOR_OVER_CAP when auditor already has 2 audits that day (15 ms)
+    ✓ AUDITOR_BUSY surfaces overlapping window (13 ms)
+    ✓ returns APPLICATION_NOT_FOUND for unknown id (18 ms)
+    ✓ ONSITE assign find-or-creates one AuditChecklist (IN_PROGRESS, auditorId=assigned, org=app org) (17 ms)
+    ✓ ONSITE assign is idempotent: an existing active AuditChecklist is reused, not duplicated (17 ms)
+  [Iter25] audit-scheduling-service — requestReschedule
+    ✓ HEALTH applicant creates PENDING reschedule entry (16 ms)
+    ✓ rejects non-HEALTH actor (13 ms)
+    ✓ rejects when application state is not AUDIT_CONFIRMED (21 ms)
+    ✓ rejects reason that is too short (17 ms)
+    ✓ rejects ownership mismatch (different healthId) (12 ms)
+  [Iter25] audit-scheduling-service — approveReschedule
+    ✓ scheduler approves PENDING reschedule with new date (18 ms)
+    ✓ rejects when reschedule already APPROVED (RESCHEDULE_NOT_PENDING) (11 ms)
+    ✓ rejects when rescheduleId not found (11 ms)
+    ✓ rejects past date as newDate (16 ms)
+  [Iter25] audit-scheduling-service — getAuditorAvailability
+    ✓ returns busy slots + cap + overCapDays (13 ms)
+    ✓ rejects missing dateRange (11 ms)
+  [Iter25] audit-scheduling-service — getSchedulingQueue
+    ✓ returns AUDIT_FEE_PAID applications (18 ms)
+PASS __tests__/unit/atomic-decision-letter.test.js
+  canonical workflow-transitions — letter atomic with decision (D-8)
+    ✓ REVISION_REQUESTED mints the OFFICIAL_LETTER through the SAME tx as the status write, with all four elements (57 ms)
+    ✓ CAR_PENDING mints the letter too (CAR branch had NO letter before) (15 ms)
+    ✓ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs (28 ms)
+    ✓ non-correction transition (DOC_APPROVED) mints NO letter (negative control) (8 ms)
+  auditor audit-decision — CAR letter atomic with decision (D-8)
+    ✓ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items) (15 ms)
+    ✓ ATOMIC: letter write failure fails the decision — deadline never seeded, 500 (9 ms)
+    ✓ PASS mints NO correction letter (negative control) (10 ms)
+  PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before)
+    ✓ DOC_REVISION mints the OFFICIAL_LETTER in the same tx as status write + deadline upsert (15 ms)
+    ✓ FIELD_CAR mints the letter too (14 ms)
+    ✓ ATOMIC: letter write failure fails the reject — RevisionDeadline never touched, 500 (16 ms)
+  letter template SSOT
+    ✓ the Thai letter copy is defined ONLY in shared/correction-letter-template.js (64 ms)
+    ✓ buildCorrectionLetter emits all five elements + structured metadata (M3: round number) (2 ms)
+    ✓ buildCorrectionLetter falls back to the decision message when no structured items exist (1 ms)
+    ✓ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition) (4 ms)
+    ✓ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service (2 ms)
+PASS __tests__/unit/working-days.test.js
+  working-days utility (ICT/Asia/Bangkok)
+    isWorkingDay
+      ✓ returns false for Saturday in ICT (2 ms)
+      ✓ returns false for Sunday in ICT (1 ms)
+      ✓ returns true for Monday in ICT (1 ms)
+      ✓ returns false for New Year (Jan 1) (1 ms)
+      ✓ returns false for Songkran (Apr 13) (1 ms)
+      ✓ returns false for Queen Suthida Birthday (Jun 3)
+    isHoliday
+      ✓ detects recurring holidays (1 ms)
+      ✓ detects extra Buddhist holidays for 2026 (9 ms)
+      ✓ returns false for normal working days (1 ms)
+    addWorkingDays
+      ✓ adds 5 working days correctly (simple case, no holidays) (4 ms)
+      ✓ skips weekends correctly (2 ms)
+      ✓ skips holidays correctly (5 ms)
+      ✓ returns end of business day (23:59 ICT) on the deadline date (2 ms)
+      ✓ throws for negative days (13 ms)
+      ✓ honors an explicit timezone parameter (1 ms)
+    ICT timezone edge cases (Bug 3)
+      ✓ Friday 23:00 ICT must still count as Friday for deadline math, even though it is Saturday in UTC (1 ms)
+      ✓ uses ICT calendar to detect Thai holidays even when UTC calendar disagrees (2 ms)
+      ✓ deadline math is invariant under host timezone (uses explicit ICT) (3 ms)
+    countWorkingDaysBetween
+      ✓ counts correctly for a simple week (3 ms)
+      ✓ returns 0 for same instant (1 ms)
+      ✓ returns negative for overdue (2 ms)
+    calculateRevisionDeadline
+      ✓ returns correct deadline with default 5 working days (3 ms)
+    getDeadlineStatus
+      ✓ returns overdue for past dates (3 ms)
+      ✓ returns normal for future dates (6 ms)
+PASS __tests__/unit/checkout-schedule-service.test.js
+  computeDueDate — config-driven business-day windows on the canonical calendar
+    ✓ M1: mint Tue 2026-12-01 lands 2026-12-14 (skips the 05-06 weekend, the 12-07 substitute AND วันรัฐธรรมนูญ 12-10) (6 ms)
+    ✓ M2: mint Fri 2026-12-18 crosses year end to 2027-01-12 (skips 4 weekends + 12-31 + 01-01) (8 ms)
+    ✓ delegates to the canonical addWorkingDays (same instant, end-of-business-day convention) (8 ms)
+    ✓ window lengths come from config, not literals baked into the service (10 ms)
+    ✓ an unknown milestone throws a coded error — never a silent default window (9 ms)
+  isInvoiceOverdue — DERIVED from unpaid status + dueDate, every branch
+    ✓ unpaid (pending) and past due → true
+    ✓ unpaid but not yet past due → false (1 ms)
+    ✓ exactly at the due instant → false (strictly past-due only) (1 ms)
+    ✓ paid → false no matter how late (settlement writes paid — see checkout-settlement-service)
+    ✓ cancelled → false
+    ✓ missing dueDate or missing invoice → false, never a throw (1 ms)
+  overdueInvoiceWhere — the derived-overdue query, no writer anywhere
+    ✓ builds the pending + strictly-past-due where clause with the given instant (2 ms)
+  computeReminderDates — three intended days, shifted onto working days
+    ✓ working-day due (Tue 2026-08-11): PRE_DUE 08-06, DUE_DATE 08-11, OVERDUE_NOTICE skips วันแม่ to 08-13 (4 ms)
+    ✓ weekend due (Sat 2026-08-08): DUE_DATE shifts forward to Mon 08-10 (4 ms)
+    ✓ PRE_DUE walks back across a holiday: due Mon 2026-12-14 → 2026-12-08 (skips 12-13 weekend + 12-10) (3 ms)
+  source pins — the service stays config-driven, derived-only, calendar-free
+    ✓ imports the config and the ONE canonical calendar (1 ms)
+    ✓ no bare due-window literals — the M1/M2 day counts live in config only (1 ms)
+    ✓ no stored-overdue write path: no quoted overdue literal, no prisma, no mutation call (1 ms)
+    ✓ no holiday data of its own — the calendar lives in utils/working-days.js alone (1 ms)
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+      at warn (services/application-status-writer.js:441:21)
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-17T09:47:54.493Z"}
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+      at warn (services/application-status-writer.js:441:21)
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-17T09:47:54.529Z"}
+PASS __tests__/unit/sc-ten-1-auditor-tenant-scope.test.js
+  [X3-FIX-D / SC-TEN-1] assignAuditor — tenant-scope auditor lookup
+    ✓ POSITIVE: SCHEDULER from tenant T1 assigning tenant T1 auditor → success (200 path) (25 ms)
+    ✓ NEGATIVE: SCHEDULER from tenant T1 attempting to assign tenant T2 auditor → AUDITOR_NOT_FOUND (404 anti-enumeration) (12 ms)
+    ✓ LEGACY FALLBACK: actor without organizationId still resolves (no regression for system callers) (17 ms)
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    ✓ QUOTATION_NOT_ISSUED is catalogued with status 409 (2 ms)
+    ✓ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_EXPIRED is catalogued with status 409 (9 ms)
+    ✓ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (1 ms)
+    ✓ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (2 ms)
+    ✓ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    ✓ QUOTATION_ISSUE_FAILED is catalogued with status 500 (1 ms)
+    ✓ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    ✓ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    ✓ SNAPSHOT_REQUIRED is catalogued with status 409 (1 ms)
+    ✓ the four gate codes point at the shared gate module, not at one rail (2 ms)
+    ✓ every gate code`s source line is the line that actually raises it (1 ms)
+    ✓ the two shared refusals name the line that actually raises them (1 ms)
+    ✓ the two not-priced refusals are separate rows pointing at their own door (2 ms)
+    ✓ neither not-priced copy sends the applicant to a staff door that does not exist (1 ms)
+    ✓ no applicant-facing row on this path promises a staff re-issue (1 ms)
+    ✓ the not-issued copy stops promising a refresh the window cannot honour (4 ms)
+    ✓ only QUOTATION_EXPIRED mentions a new document, and it mentions it as a condition (1 ms)
+    ✓ the snapshot refusal names the cause and an action staff can actually take
+    ✓ the expiry copy names the door that may replace the row, and what to do when it does not
+    ✓ the price-drift remediation names the step that unblocks the applicant
+    ✓ the payment-terms remediation no longer names the request body ruling 2 deleted (1 ms)
+    ✓ the two rail-specific messages no longer name only the slip (1 ms)
+    ✓ no Thai message uses an em dash (thai-ui-copy rule) (1 ms)
+    ✓ only the rows that actually alert staff say staff were alerted (1 ms)
+    ✓ the close-failure copy still tells the applicant their money and receipt stand (1 ms)
+PASS __tests__/unit/workflow-reject-deadline-holiday.test.js
+  Blocker F — canonical reject deadline is Thai-holiday-aware + Asia/Bangkok
+    ✓ deps barrel exports THE holiday-aware util (identity — not the holiday-blind service) (21 ms)
+    ✓ 5-working-day deadline spanning วันเฉลิมฯ ร.10 (2026-07-28) lands Wed 2026-08-05, not Fri 07-31 (14 ms)
+    ✓ the transitions handler no longer references loadHolidaySet (wiring pin) (1 ms)
+    ✓ the SECOND reject surface (PATCH /applications/:id/reject) uses the holiday-aware engine too (adversarial-verify MUST) (7 ms)
+    ✓ timezone: Friday 23:30 ICT reject still counts Friday as day zero (ICT, not UTC) (4 ms)
+    ✓ lunar-holiday coverage past the table (2028+) warns loudly instead of silently under-counting (3 ms)
+Test Suites: 9 passed, 9 total
+Tests:       172 passed, 172 total
+Snapshots:   0 total
+Time:        5.664 s, estimated 6 s
+Ran all test suites matching /__tests__\/unit\/bangkok-business-dates.test.js|__tests__\/unit\/working-days.test.js|__tests__\/unit\/checkout-schedule-service.test.js|__tests__\/unit\/workflow-reject-deadline-holiday.test.js|__tests__\/unit\/vat-report-service.test.js|__tests__\/unit\/audit-scheduling-service.test.js|__tests__\/unit\/sc-ten-1-auditor-tenant-scope.test.js|__tests__\/unit\/atomic-decision-letter.test.js|__tests__\/unit\/quotation-gate-error-codes.test.js/i.
+
+$ cd apps/web-app && npx jest verify/\[cert-number\]
+#   (zone-less Date locale calls formatted as a UTC process would)
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-bangkok-dates.test.tsx
+  public verify page — Bangkok dates on a UTC server
+    ✓ the simulated process really formats zone-less calls in UTC (16 ms)
+    ✓ prints the issue and expiry dates as the Bangkok day (156 ms)
+    ✓ prints the backend verification time in Bangkok time (119 ms)
+    ✓ prints the page's own clock in Bangkok time when the backend sends no time (116 ms)
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-holder-row.test.tsx
+  M1 — public verify page shows the certificate holder
+    ✓ renders the juristic holder name under the label ผู้ถือใบรับรอง (158 ms)
+    ✓ falls back to the masked applicantName for pre-backfill certificates (121 ms)
+    ✓ renders no holder row at all when neither name is present (115 ms)
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-real-qr.test.tsx
+  W3 — public verify page renders a REAL QR, not a decorative icon
+    ✓ renders QrImage with value = this certificate's own public verify URL (request-host based) (158 ms)
+    ✓ does not import lucide-react's decorative QrCode icon anywhere in page.tsx (2 ms)
+    ✓ still prints the certificate number as the human-readable fallback (122 ms)
+    ✓ pre-renders a real QR data URL server-side (fix-round 1, point 5 — SSR/no-JS/crawler sees a real code, not a blank box) (116 ms)
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-revision-line.test.tsx
+  deriveVerifyView carries data.revision through unchanged
+    ✓ returns the revision block typed, exactly as the backend sent it (3 ms)
+    ✓ is null when the backend sent null, and null when the field is absent (backend not yet deployed) (1 ms)
+  public verify page — revision line under the hero
+    ✓ revision at r2 → one neutral line + link to the archived revision 1; hero stays green (152 ms)
+    ✓ revision null → no revision line, no link, hero unchanged (120 ms)
+  archived revision page — /verify/<no>/revision/<n>
+    ✓ fetches /api/v1/public/verify/<no>/revisions/<n> from the request host, like the verify page (4 ms)
+    ✓ VALID + signed archived snapshot → "valid when issued, superseded on <date>" + the snapshot fields (2 ms)
+    ✓ TAMPERED archived snapshot → the tampered verdict, never the "valid when issued" one (2 ms)
+    ✓ 404 (no such revision) → "not found" copy, no verdict, link back to the live document (2 ms)
+    ✓ backend unreachable → neutral "cannot verify now" copy, never a verdict (2 ms)
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-status-reason.test.tsx
+  deriveVerifyView — statusReason
+    ✓ a status-valid certificate has no status reason to show (2 ms)
+    ✓ EXPIRED is told in Thai, not in the English the backend sends (2 ms)
+    ✓ SUSPENDED is told in Thai, not in the English the backend sends
+    ✓ REVOKED is told in Thai, not in the English the backend sends
+    ✓ RENEWED is told in Thai, not in the English the backend sends (1 ms)
+    ✓ NOT_FOUND is told in Thai, not in the English the backend sends (1 ms)
+    ✓ CODE_MISMATCH is told in Thai, not in the English the backend sends (1 ms)
+    ✓ RENEWED carries the successor number when the backend resolved one
+    ✓ RENEWED whose successor did not resolve still explains itself, without a number
+    ✓ an EXPIRED certificate that was also renewed keeps the pointer to its successor
+    ✓ an EXPIRED certificate with no successor keeps its plain expiry wording
+    ✓ no reasonCode but an English reason (backend not yet deployed): Thai first, English beside it (1 ms)
+    ✓ neither a code nor a reason: the citizen is still told something true
+    ✓ a reasonCode this build does not know falls back instead of printing the raw enum (1 ms)
+    ✓ the prototype-chain key constructor is not a reason code
+    ✓ the prototype-chain key toString is not a reason code
+    ✓ the prototype-chain key __proto__ is not a reason code (1 ms)
+    ✓ the prototype-chain key valueOf is not a reason code
+    ✓ a null result (fetch failed) does not crash the derivation
+  StatusReason (presentational)
+    ✓ renders nothing for a status-valid certificate (1 ms)
+    ✓ renders the Thai title and detail for an expired certificate (7 ms)
+    ✓ renders the Thai answer for NOT_FOUND, the commonest citizen failures (1 ms)
+    ✓ renders the Thai answer for CODE_MISMATCH, the commonest citizen failures (1 ms)
+    ✓ RENEWED with a successor links to the current certificate (2 ms)
+    ✓ an EXPIRED certificate with a successor renders the link too (C-F1) (1 ms)
+    ✓ percent-encodes the successor number in the link (1 ms)
+    ✓ RENEWED without a successor renders the explanation and NO dead link (1 ms)
+    ✓ the pre-deploy fallback shows the Thai first and the backend English as a third line
+    ✓ no English reason at all: no empty third line is rendered (1 ms)
+    ✓ renders the English third line at AA contrast, not faded 11px (1 ms)
+PASS src/app/(public)/verify/[cert-number]/__tests__/verify-crypto-verdict.test.tsx
+  deriveVerifyView (cert verify view-model)
+    ✓ status-valid + TAMPERED (hash mismatch) → danger tone, green hero overridden RED (2 ms)
+    ✓ status-valid + signatureValid:false (KEY ROTATION) → GREEN status hero + amber, NOT red (1 ms)
+    ✓ status-valid + VALID + signed → heroOk true, success tone, showVerifiedChip
+    ✓ status-valid + UNSIGNED → heroTone success (GREEN status hero), no verified chip (M2: legacy cert not red-flagged) (1 ms)
+    ✓ status-valid + VALID + signatureValid:null (DOWNGRADE) → no chip, warning crypto, GREEN status hero (M1) (1 ms)
+    ✓ status-valid + NO integrity field (FE deployed ahead of BE) → GREEN status hero, no crypto claim (M2 scenario B)
+    ✓ not-found / no integrity (verified:false) → no positive crypto claim, status hero not green
+    ✓ null result (fetch failed) → no crash, no positive claim (1 ms)
+  CryptoVerdict (presentational)
+    ✓ TAMPERED renders the tampered copy and NOT the green-valid hero copy (6 ms)
+    ✓ VALID + signed renders the verified chip + short fingerprint (2 ms)
+    ✓ UNSIGNED renders the amber legacy note and NOT the green crypto chip (1 ms)
+    ✓ VALID + signatureValid:null (downgrade) → amber caution, NOT the green verified chip (1 ms)
+    ✓ no integrity (status-valid, FE ahead of BE) → renders nothing (no positive claim, no false caution) (6 ms)
+    ✓ not-found → renders nothing positive (no verified chip)
+Test Suites: 6 passed, 6 total
+Tests:       64 passed, 64 total
+Snapshots:   0 total
+Time:        3.326 s
+Ran all test suites matching verify/\[cert-number\].
+
+$ cd apps/web-app && TZ=UTC npx jest verify-bangkok-dates   # same test, whole jest process on UTC
+    ✓ the simulated process really formats zone-less calls in UTC (17 ms)
+    ✓ prints the issue and expiry dates as the Bangkok day (171 ms)
+    ✓ prints the backend verification time in Bangkok time (135 ms)
+    ✓ prints the page's own clock in Bangkok time when the backend sends no time (116 ms)
+Tests:       4 passed, 4 total
+
+# Wider check — every backend test file that names a module this change touched
+# (git grep over __tests__/services/chaos-tests for working-days, thai-format, thai-numerals,
+#  receipt-numbering, invoice/certificate/lot-label/katorlor1/car/audit report templates,
+#  vat-report, audit-scheduling, requirement-rule, checkout-schedule, payment-reminder, car-deadline):
+#  104 files, run with one jest invocation (maxWorkers 1).
+$ cd apps/backend && npx jest <those files>
+Test Suites: 2 skipped, 102 passed, 102 of 104 total
+Tests:       11 skipped, 1577 passed, 1588 total
+exit=0
+# not run (no local Postgres on this box; jest-globalsetup skips DB suites):
+#   __tests__/integration/m2a-submit-enforcement.test.js
+#   __tests__/integration/requirement-rules-as-of-filing-day.test.js
+# before the test updates in this commit the same set gave 8 failing suites:
+#   FAIL __tests__/unit/atomic-decision-letter.test.js
+#   FAIL __tests__/unit/audit-scheduling-service.test.js
+#   FAIL __tests__/unit/checkout-schedule-service.test.js
+#   FAIL __tests__/unit/quotation-gate-error-codes.test.js
+#   FAIL __tests__/unit/sc-ten-1-auditor-tenant-scope.test.js
+#   FAIL __tests__/unit/vat-report-service.test.js
+#   FAIL __tests__/unit/workflow-reject-deadline-holiday.test.js
+#   FAIL __tests__/unit/working-days.test.js
+
+# Lint / types
+$ cd apps/backend && npx eslint <21 changed backend files>   # exit 0
+
+apps/backend/services/pdf/certificate-template-service.js
+  62:7  warning  'DEFAULT_VERIFY_BASE_URL' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+apps/backend/services/pdf/invoice-template-service.js
+  21:9  warning  'getLogoDataUrl' is assigned a value but never used. Allowed unused vars must match /^_/u  no-unused-vars
+
+✖ 2 problems (0 errors, 2 warnings)
+
+#   both warnings are on base too (same rule, same symbol; lines moved by the added requires)
+$ cd apps/web-app && npx eslint 'src/app/(public)/verify/[cert-number]/page.tsx' '.../__tests__/verify-bangkok-dates.test.tsx'   # no output, exit 0
+$ cd apps/web-app && npx tsc --noEmit -p tsconfig.json   # exit 0, no output
+$ bash scripts/check-done.sh holiday-single-source ratchet   # exit 0
+holiday-single-source  PASS     PASS: single calendar source: apps/backend/utils/working-days.js
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=25 todo=53 env-direct=102 dup-source=0 (evidence/ratchet-current.txt)

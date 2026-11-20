@@ -1,0 +1,162 @@
+# R2 Task 9 — GREEN (2026-10-03, worktree feat/remove-workspace-mode on 15455b27 + Task 9 diff)
+# Real Postgres: postgres:17 on :55436 (ws-pg-55436), prisma migrate deploy, jest -i.
+# Signing key mtime before/after every run: 1788623435 (unchanged).
+
+## 1. holder-scope-real-postgres.test.js (witness THROW) — 37 passed, 0 skipped
+    ✓ the witness runs in THROW mode for this file
+    ✓ case 6: A /prepare on D with body entityId PA → D.entityId still C, body entityId stripped
+    ✓ case 6b: A /prepare on D acting on PA (no header) → 404, D still held by C and unchanged
+    ✓ case 7: create with entityId C by S → 403 ENTITY_PERMISSION_DENIED, nothing created
+    ✓ case 7: create with entityId C by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED, nothing created
+    ✓ case 7: no entityId → 400 APPLICATION_HOLDER_REQUIRED with the spec copy, nothing created
+    ✓ a draft-document upload with no id and no entityId → 400 APPLICATION_HOLDER_REQUIRED, nothing created, no file kept
+    ✓ created draft has formData.applicantType = Entity.type; body applicantType ignored
+    ✓ /prepare cannot rewrite applicantType
+    ✓ GET /draft-documents without applicationId → 400; missing draft → 404; no row created
+    ✓ GET /draft-documents for a user with no draft at all → 400, nothing minted
+    ✓ GET /draft without id returns latest open draft with submitterId = me and holder in editIds
+    ✓ ordered save: a holder outside editIds → 404 under the lock, nothing written
+    ✓ id-less write by B on C never resumes O2's open draft on C: B gets its own new draft
+    ✓ renewal of a source with NO holder → 400 APPLICATION_HOLDER_REQUIRED; no application, quotation or invoice written
+    ✓ renewal of a source with NO holder by a caller with no entity context (no membership) → 400; retries write nothing
+    ✓ renewal by a VIEWER of the source holder → 403 ENTITY_PERMISSION_DENIED; nothing written
+    ✓ renewal of a source with a holder the caller edits → 201, the renewal carries that holder
+    ✓ task 9 setup: A, B, V, O2, S hold the PDPA consents the submit door asks first
+    ✓ case 3: V (VIEWER) sees X in the list
+    ✓ case 3: V submits D → 403 ENTITY_PERMISSION_DENIED; D unchanged, nothing written
+    ✓ audit: the submit refusal row has onBehalfOfEntityId = C and no activeEntityId
+    ✓ case 3: V edits D (POST /draft, /prepare, draft-documents) → 403 ENTITY_PERMISSION_DENIED; D unchanged
+    ✓ B (MANAGER) edits D → 200 (the write lands)
+    ✓ B (MANAGER) submits D → 403 ENTITY_PERMISSION_DENIED; D still DRAFT, nothing written
+    ✓ a stranger S cannot reach D at all: edit, submit and delete → 404 / not deleted, nothing written
+    ✓ C8: B's bundle holding D (created by A): B unlinking D → 403; B deleting the bundle → 403; nothing written
+    ✓ C8: B's bundle holding B's own draft on C: B unlinks it → 200, then deletes the bundle → 200
+    ✓ case 4: B (MANAGER, not creator) deletes D → 403 ENTITY_PERMISSION_DENIED; D not deleted
+    ✓ case 4: V (VIEWER) deletes D → 403; D not deleted
+    ✓ case 4: O2 (OWNER, not creator) deletes D2 → 200, D2 soft-deleted
+    ✓ case 4: A (creator, OWNER) deletes D → 200, D soft-deleted
+    ✓ case 8b: A REVOKED on C → POST /draft {applicationId: D3} → 404, applications count unchanged
+    ✓ checkout by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED; no order, invoice, payment or gateway call
+    ✓ checkout by B (MANAGER without SUBMIT_APPLICATION) → 403 ENTITY_PERMISSION_DENIED; no order, invoice, payment or gateway call
+    ✓ checkout by a stranger S → 404, nothing written, no gateway call
+    ✓ checkout by A (OWNER, holds SUBMIT_APPLICATION) → 200, one order minted through the gateway
+
+## 2. focused real-PG set (17 suites, -i): Test Suites: 17 passed · Tests: 173 passed, 0 skipped
+   holder-scope, r1-application-reads-neutral, r1-cert-doc-finance-reads-neutral, r1-billing-doors-neutral,
+   r1-task6-write-doors-neutral, health-door-walk, application-health-reads, holder-write-doors-witness,
+   holder-read-witness, holder-marker-prisma, applicant-billing-holder, applicant-billing-membership,
+   draft-explicit-id-routes-to-its-application, draft-save-repeat-is-harmless, draft-renewal-save-on-one-connection
+   (autosave fix keeps working), prepare-non-draft-guard, canceled-webhook-lets-the-applicant-pay-again.
+
+## 3. unit + services (no DATABASE_URL): Test Suites: 842 passed · Tests: 11640 passed
+   With DATABASE_URL pointing at the scratch DB, renewal-fast-path 'an audit-trail row records the skip' fails
+   (extra ADMIN_ALERT_NO_RECIPIENT) — identical on base 15455b27 (stash run). Pre-existing, env-dependent; BACKLOG-FOUND.
+
+## 4. integration folder, real PG, -i: Suites 10 failed / 1 skipped / 100 passed (111) · Tests 32 failed / 13 skipped / 780 passed
+   - 31 failures: the same 31 test names fail on base 15455b27 run the same way (comm -3 of the two name lists = only the line below);
+     9 suites: a0-pr2-per-hop-invariant, m1-erasure-holder-survives, m1-submit-enforcement, m2a-submit-enforcement,
+     officer-review-round-trip, onsite-decision-mint-e2e, staff-chain-assign-then-see, staff-scope-contract,
+     status-writer-audit-default-invariant = main's known set (Task 8 green.txt §4).
+   - 32nd: onsite-evidence-unfreeze HEADLINE (refusePlantUnknown, shared-DB plant master order). Alone on this tree: PASS 6/6.
+   - 1 skipped suite (13 tests): cross-system-audit-to-cert-flow.test.js:317 `HELPER_AVAILABLE ? describe : describe.skip`,
+     untouched by this task.
+   → no new failures.
+
+## 5. probes
+   ratchet: hardcode=26 todo=53 env-direct=101 dup-source=0 PASS · retired-words PASS · no-skip PASS (0 skip/only)
+   no-secret PASS (layer1 0 hits, layer2 gitleaks clean) · green-mask PASS (baseline 15, no net-new)
+   error-codes-source-pointers PASS after refreshing APPLICATION_HOLDER_REQUIRED → applications.js:400 and
+   DRAFT_OUT_OF_ORDER → application-applicant-query-methods.js:292 (shared/error-codes.js:1335,1351).
+
+## 6. R1 neutrality expected files — every changed row, one by one (re-recorded with R1_NEUTRAL_RECORD /
+##    HEALTH_DOOR_WALK_RECORD; recorded diff = exactly these rows)
+### __tests__/fixtures/r1-application-reads-neutral.expected.json (15 of 1339)
+- A|P|GET /, A|P|GET /my: '200 aP' → '200 aP,wP'. wP is held by P (W filed it as MANAGER of P); A is P's OWNER. Spec §3.1: a member reads every row whose holder is in R(user). Cause: buildHealthWhereClause deleted, the list reads the fragment alone.
+- A|P|GET /dashboard/stats: '200 1' → '200 2'. Same row counted (count uses the list's fragment, Review Focus 4).
+- A|none|GET /, /my, /dashboard/stats: same three moves. No header binds A's personal P, same rule.
+- A|transient|GET /, /my: 'aC,aCar,aN,aP,aRev' → 'aC,aCar,aP,aRev,mC,wP'. No context: R(A) = {P, C}. mC (M on C) and wP (W on P) join by membership (§3.1); aN (A's own, holder NULL) leaves: §3.1 'no filer fallback, a null holder is readable by no one'; D1 heals such rows to 0 before deploy.
+- N|none|GET /, /my: '200 nD,nN' → '200 '. N's two filings have holder NULL: §3.1 no filer fallback.
+- N|none|GET /dashboard/stats: '200 2' → '200 0'. Same rows counted.
+- N|transient|GET /, /my: '200 nD,nN' → '200 '. Same, catch path.
+- M|C|POST /draft|aC: '404 -' → '200 aC'. M is MANAGER of C; aC is A's DRAFT on C. Spec §3.2: draft edits need the holder in editIds; MANAGER can fill in a draft (entity-service.js:144-149). Test restructured: M's edit runs after the 'nothing of A's moved' snapshot, V/W/S still never touch aC.
+- V|C|POST /draft|aC: '404 -' → '403 -'. V is VIEWER of C: readable, not editable → 403 ENTITY_PERMISSION_DENIED (§4 case 3 'V edits D: 403').
+### __tests__/fixtures/r1-cert-doc-finance-reads-neutral.expected.json (15 of 2044)
+- M|C|POST /submit|dC, dF: '404' → '403'. M (MANAGER of C) now reaches C's drafts by id (fragment, no filer pin); the submit guard refuses: MANAGER lacks SUBMIT_APPLICATION (§3.2, §4 'MANAGER submits D → 403').
+- V|C|POST /submit|dC, dF, dM: '404' → '403'. VIEWER of C: §4 case 3 'V submits D: 403 ENTITY_PERMISSION_DENIED'.
+- W|P|POST /submit|dP: '404' → '403'. W is MANAGER of P; same rule as M.
+- V|C|POST /payments/checkout|aC, fC, mC: '404 APPLICATION_NOT_FOUND' → '403 ENTITY_PERMISSION_DENIED'. Q3: only SUBMIT_APPLICATION holders start a checkout; Q1: a VIEWER cannot pay.
+- M|C|POST /payments/checkout|aC, fC: '404 …' → '403 ENTITY_PERMISSION_DENIED'. Q3: MANAGER without SUBMIT_APPLICATION.
+- M|C|POST /payments/checkout|mC: '200' → '403 ENTITY_PERMISSION_DENIED'. M filed mC as MANAGER of C; Q3 = 'the same people who may file' and M|C|POST /submit|dM was already 403 pre-R1. A filer is included only while it holds SUBMIT_APPLICATION.
+- W|P|POST /payments/checkout|aP: '404 …' → '403 …'. W MANAGER of P, same.
+- W|P|POST /payments/checkout|wP: '200' → '403 …'. W filed wP as MANAGER of P; same rule as mC.
+- G|none|POST /payments/checkout|gP: '200' → '403 ENTITY_PERMISSION_DENIED'. G has no membership row (R(G) = []); spec §3.1 no filer fallback and Q3 'a member holding SUBMIT_APPLICATION'. 403 not 404 because, in R1, the active-entity middleware binds PG and the extension rewrites the top-level entityId (holder-access.js 'R1 caveat'); after Task 12 the read is empty → 404.
+- Unchanged and noted: A|C|POST /payments/checkout|fC and |mC stay '404 APPLICATION_NOT_FOUND' (expected.json:66,68): A passes the Q3 gate as OWNER, the checkout service's R1 filer pin still refuses (stripe-checkout-service.js:436) until Task 12. BACKLOG-FOUND.
+### __tests__/fixtures/health-door-walk.expected.json (2 of 492)
+- B /api/applications/draft-documents?applicationId=D: {404,[D]} → {200,[D,draftDoc]}. B MANAGER of C edits C's drafts (§3.2), so it lists D's documents.
+- V /api/applications/draft-documents?applicationId=D: {404,[D]} → {403,[D]}. VIEWER: readable, not editable.
+### r1-billing-doors / r1-task6-write-doors expected files: unchanged, suites PASS.
+
+## 7. other tests rewritten to the R2 rule (not new behaviour pins)
+- application-health-reads-real-postgres: findApplicationByIdForHealth carries the fragment alone (B reads appC there; the two
+  other by-id lookups keep their R1 pin); deleteDraft by B (MANAGER, not creator) → rejects 403, nothing deleted.
+- draft-explicit-id-routes-to-its-application round 5: 'another user's row' now sits on a holder the caller is not a member of
+  (on a shared holder an OWNER may edit it by §3.2).
+- prepare-non-draft-guard: the explicit-id lookup takes { holderScope } only.
+- applications-prepare-server-owned-fields: readable-not-editable → 403 (was 404) + new case: outside the scope → 404.
+- cert-finance-reads-carry-holder-marker: findDraftForSubmit by id = { id, ...fragment, isDeleted }; id-less keeps the R1 pin (new case).
+- canonicalid-rekey-stage0 / application-identity-destructure-safe / r1-application-holder-or-pin: the buildHealthWhereClause cases removed (function deleted).
+- application-entity-scope-where.test.js deleted (matrix in holder-access.test.js, spec §4).
+
+## 8. PIN not fix (green from birth, red.txt)
+- case 3 'V sees X'; case 4 'A deletes D'; C8 'B unlinks/deletes own bundle'; stranger S edit/submit/delete; checkout S → 404; checkout A → 200.
+- The stored refusal row 'no activeEntityId' could not go RED on the real DB at base (V never reached the guard: 404). Its RED is
+  the unit pair (applications-submit-capability-gate, application-submit-guard: 'Expected path: not "activeEntityId"').
+
+## ROUND 1 GREEN — review I1 (list vs statuses) + I2 (legacy payment doors)
+# Real Postgres :55437 (ws-pg-55437; :55436 held by a stale docker-proxy), -i. Key mtime 1788623435 unchanged.
+### new / changed tests
+    ✓ POST /payments/create by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED; no invoice, order, payment or application written
+    ✓ POST /payments/create by B (MANAGER without SUBMIT_APPLICATION) → 403 ENTITY_PERMISSION_DENIED; no invoice, order, payment or application written
+    ✓ POST /payments/phase1/:id by V (VIEWER) → 403 ENTITY_PERMISSION_DENIED; no invoice, order, payment or application written
+    ✓ POST /payments/phase1/:id by B (MANAGER without SUBMIT_APPLICATION) → 403 ENTITY_PERMISSION_DENIED; no invoice, order, payment or application written
+    ✓ legacy doors by a stranger S → 404, nothing written
+    ✓ legacy doors by A (OWNER) keep their success (witness shadow): /create → 200, then /phase1 → 200
+    ✓ Review Focus 4: /my, /my/statuses and / list the same ids, and /dashboard/stats counts them, for every actor × context
+    ✓ counts equal list lengths for B (Review Focus 4), R1 divergences pinned with their R2 answer
+### focused real-PG set (17 suites): Tests 180 passed, 0 skipped · unit+services: 842 suites / 11640 tests passed
+### integration folder: 32 failed / 13 skipped / 787 passed (832). 31 names identical to base 15455b27 (comm -3 = only the line
+### below); onsite-evidence-unfreeze HEADLINE (plant-master order) alone: PASS 6/6. Skipped = cross-system-audit-to-cert-flow:317. → no new failures.
+### probes: ratchet 26/53/101/0 PASS · retired-words · no-skip · no-secret · green-mask PASS · error-codes-source-pointers PASS (no pointer moved)
+### R1 neutrality expected rows changed in round 1, one by one
+__tests__/fixtures/r1-application-reads-neutral.expected.json (9 of 1339; cert-doc-finance 0/2044, billing 0/702 unchanged)
+- A|none, A|P|GET /my/statuses: 'aP' → 'aP,wP'. Same rows as A's /my (wP held by P, A is P's OWNER; §3.1). Review Focus 4.
+- A|C|GET /my/statuses: 'aC,aCar,aRev' → 'aC,aCar,aRev,mC'. /my already listed mC pre-R1 (workspace relax); statuses now match.
+- A|transient|GET /my/statuses: 'aC,aCar,aN,aP,aRev' → 'aC,aCar,aP,aRev,mC,wP'. = A|transient /my (R(A) = {P, C}; aN null holder, §3.1 no filer fallback).
+- M|C|GET /my/statuses: 'mC' → 'aC,aCar,aRev,mC'. = M|C /my (C's filings, M is a member).
+- V|C|GET /my/statuses: '' → 'aC,aCar,aRev,mC'. = V|C /my (Q1: VIEWER reads).
+- W|P|GET /my/statuses: 'wP' → 'aP,wP'. = W|P /my.
+- N|none, N|transient|GET /my/statuses: 'nD,nN' → ''. = N's /my (null holders, §3.1).
+__tests__/fixtures/health-door-walk.expected.json (2 of 492)
+- B /api/applications/my/statuses: {200,[]} → {200,[D,D2,X]}; V same. = their /my (co-member / VIEWER read C's filings).
+### tests rewritten to the round-1 rule
+- health-door-walk 'counts equal list lengths for B': b.statuses now equals b.list (the farm-counter R1 pin stays, Task 12).
+- application-health-reads 'GET /my, /, /my/statuses': B in C now gets appC on /my/statuses too.
+- phase1-payment-requires-accepted-quotation (unit): mocks the Q3 gate as allowed (it measures the quotation gate behind it).
+### PIN not fix: legacy doors by S → 404; OWNER success (shadow mode).
+### Q3 hold: unchanged — a MANAGER filer still cannot pay its own filing (green.txt §6 rows mC/wP), awaiting operator.
+
+## ROUND 1b GREEN — scoped reads behind /payments/create and /payments/phase1 (read filters only)
+holder-scope-real-postgres 43/43 (0 skipped), witness THROW, 0 HEALTH_READ_UNSCOPED and 0 QUOTE_PRICE_LOCK log lines:
+    ✓ legacy doors by A (OWNER) keep their success, witness THROW: /create → 200, then /phase1 → 200 (no unscoped read logged)
+focused real-PG set 17 suites / 180 tests passed, 0 skipped; r1 finance (cert-doc-finance) and billing neutrality suites PASS
+  with expected files UNCHANGED (git diff of __tests__/fixtures empty). phase-amount-canonical (createPhase1Payment) PASS.
+unit+services: 842 suites, all pass (phase1-payment-requires-accepted-quotation expects the scope as the 3rd argument).
+ratchet 26/53/101/0 · retired-words · no-skip · no-secret · green-mask PASS · error-codes-source-pointers PASS · key 1788623435.
+Reads scoped (each returns exactly the pre-change rows: the pin or the gate-authorised key decides):
+  - payment-service-phase-flow.js createPhase1Payment Application.findFirst: r1ApplicationHolderOrPin(scope, { healthId })
+  - payment-service.js syncPhaseStatusesFromInvoices Application: findFirst { id, OR: [fragment, { id }] } (no scope → findUnique as before)
+  - payment-service.js getInvoiceSettlementsForApplication Invoice.findMany: + r1HolderOrLegacyWhenScoped(scope, 'Invoice', { applicationId })
+  - payment-service-phase-flow.js resolveLockedPhaseTotals → getFrozenPhaseFees(applicationId, { holderScope }) (quotation-service _holderFragment, existing)
+  - payments.js /phase1 settlements read passes the scope.
+Not changed: quotation-gate.js:123 reads quotations inside withoutTenantScope on purpose (staff/webhook callers), so the witness
+  never sees it; it reads by the applicationId the gate already authorised.

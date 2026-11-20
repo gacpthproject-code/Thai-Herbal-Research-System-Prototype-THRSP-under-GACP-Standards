@@ -1,0 +1,39 @@
+# verify-56 — ชนิดดิน (Select) — skeptic check, 2026-09-01
+
+**Item under challenge** (census production.md row B17):
+`apps/web-app/src/app/health/applications/new/_steps/steps/production-info-panels.tsx:129-136` —
+Select `label="ชนิดดิน"`, `placeholder="เลือกชนิดดิน..."`, `description="ระบุชนิดดินที่ใช้ปลูก"`,
+options = `SOIL_TYPE_OPTIONS` (`apps/web-app/src/constants/options.ts:117-125`: ดินร่วน · ดินร่วนปนทราย · ดินร่วนเหนียว · ดินทราย · ดินเหนียว · ดินพีท · อื่น ๆ/ไม่ใช้ดิน).
+Proposed verdict: **CUT** (ruling 2; soil matters are audit-day/SOP substance; soil lab results not required at submission, facts §3).
+
+**Assignment**: refute the CUT if any named DTAM/Thai-law basis requires this at APPLICATION time for cannabis.
+
+## Refutation attempts (all failed)
+
+1. **facts.md ส่วนที่ ๒ re-read** — the exhaustive fill-in list (facts.md:20-25, "ทั้งหมดที่ฟอร์มขอ ไม่มีมากกว่านี้"): วัตถุประสงค์ · ลักษณะพื้นที่ (Outdoor/Indoor/Greenhouse/อื่น ๆ) · ชื่อ/ที่ตั้งสถานที่ · ข้อมูลแปลง (เอกสารที่ดิน+การถือครอง+ขนาด ตร.ม.+พิกัด+ปริมาณการปลูก ต้น/รอบ, รอบ/ปี) · พันธุ์และส่วนของกัญชา. **No soil-type field.** "เอกสารที่ดิน" is land *title paper* (โฉนด เลขที่/เล่ม/หน้า), not soil; nothing in ส่วนที่ ๑, ๒ or ๔ asks what the soil is.
+2. **facts.md ส่วนที่ ๓ attachments (A1-A8)** — no soil slot. The nearest homes are A5 แผนการผลิต (facts.md:40) and A8 SOP (facts.md:43), where soil-management substance can live as *document content* authored by the farmer — that supports the census note ("เรื่องดินเป็นสาระ…SOP"), it does not create a wizard field. A8 being an application-day upload does not convert its internal content into discrete form fields; the SOP slot is its own census row.
+3. **facts.md §3 (audit-day)** — soil appears only as *lab results*: "ผลตรวจน้ำ/ดิน/ช่อดอก/ใบรับรองแล็บ ไม่ใช่เอกสารบังคับตอนยื่น" (facts.md:63, กรมปกติไม่ตรวจแล็บ). Audit-day records are purchase/use/activity RECORDS (facts.md:60-62), not a soil-type declaration. So MOVE_TO_AUDIT would misdescribe this dropdown — §3 names soil *tests*, not a type field; the audit-day substance already has its own post-cert home in the schema (`apps/backend/prisma/schema/cultivation.prisma:45` PlantingCycle.soilType; `apps/backend/prisma/schema/farm.prisma:128-135` FarmAnalysis soilPH/soilOrganic/…/soilReportUrl — lab analysis, separate table).
+4. **Repo search for another named Thai-law basis** — grep for กฎกระทรวง/ประกาศ/พ.ร.บ./มาตรา near ดิน across docs/: every hit is **กฎกระทรวงการคลังเรื่องเงินรายได้แผ่นดิน** (state-revenue receipts — "ดิน" inside "แผ่นดิน") — money law, zero relevance. No ประกาศ/กฎกระทรวง anywhere ties soil type to the cannabis GACP application. The uncited-brief docs (`docs/requirements/dtam-requirements-analysis.md`) that invented "DTAM ต้องเพิ่มวัสดุปลูก" (line 28) do not even claim ชนิดดิน — soil type has *less* claimed lineage than the field verify-54 already cut.
+5. **Platform's own config concedes it** — `apps/backend/data/journey-config-matrix.js:289`: `soil_analysis_report … required: false`; `journey-config-standards.js:49-51` lists it under `docOptional`. Even the pre-baseline platform never treated soil as application-mandatory — and that is the *analysis report*, one step closer to a legal basis than a type dropdown, which has none.
+6. **Backend enforcement** — the live submit door (`apps/backend/validation/canonical-application-validator.js`) never reads `soilType`; the only "soil" tokens in validation/ are `soil_preparation_method`/`soil_analysis_date` in the LEGACY snake-case schema (`application-schemas.js:214-215`) that the C2 header (canonical-application-validator.js:11-20) documents as the dead step-keyed contract the live wizard never populates. `application-submission-methods.js:80` merely copies `farmData.soilType` through; nothing rejects an application without it. The UI itself passes no `error` prop and no required asterisk (panels:129-136) — de-facto optional today, consumed by nothing.
+7. **Prior independent analysis concurs** — `reports/design-cleanup-2026-08-21/04-WIZARD-VS-DTAM.md:90`: "วัสดุปลูก / ชนิดดิน / ระยะปลูก | ไม่ (gacp-4 §5.1-5.2 ขอผลตรวจดิน/วัสดุปลูก ไม่ขอชนิด) | **ตัด** ทั้ง 3 (ย้ายไป SOP)". The GACP standard asks for soil *test results* (audit substance), never a soil-*type* declaration.
+8. **OPTIONAL instead of CUT?** — rejected: ruling 2 (facts.md:68) says excess over DTAM = ตัด, "ความเกินคือปัญหา". OPTIONAL is reserved for items with demonstrated usefulness worth carrying at zero weight; a soil-type dropdown whose value no reviewer, validator or analyzer reads (grep: no signal-map/analyzer consumer) is pure excess, and the operator's prior audit already ordered ตัด.
+
+## Census of the surfaces in scope of this challenge (no conditional branches skipped)
+
+The Select renders unconditionally — no applicant-type / plant / area-type branch gates it (panels:119-137 SimpleGrid has no conditional wrapper; it renders for Outdoor, Indoor and Greenhouse alike, even though soil type is meaningless for hydroponic/aeroponic setups — the option list papers over that with "อื่น ๆ/ไม่ใช้ดิน", options.ts:124).
+
+| # | Surface | file:line | UI shows | Verdict | Citation |
+|---|---|---|---|---|---|
+| 56 | ชนิดดิน (Select) | production-info-panels.tsx:129-136 | label "ชนิดดิน", desc "ระบุชนิดดินที่ใช้ปลูก" | **CUT** — upheld | No row in facts.md ส่วนที่ ๑/๒/๔ (facts.md:11-28, exhaustive) · no attachment slot A1-A8 (facts.md:32-43) · ruling 2 (facts.md:68) · soil lab explicitly not required at submission (facts.md:63) |
+| 56a-g | options ดินร่วน / ดินร่วนปนทราย / ดินร่วนเหนียว / ดินทราย / ดินเหนียว / ดินพีท / อื่น ๆ-ไม่ใช้ดิน | options.ts:118-124 (rendered panels:133) | 7 option labels | **CUT** — fall with the field | same |
+| — | mirror surface: edit-config row 'ชนิดดิน' | application-document-edit-config.ts:95 (`farmData.soilType`, SOIL_TYPE_OPTIONS) | select, same options, officer/edit view | falls with 56 (flag for the fix batch — same CUT must remove this row or it resurfaces in the document edit view; note it reads `farmData.soilType` while the wizard writes the production-step `formData.soilType` — a path split the cut also retires) | same |
+| — | mirror surface: master-data 'soilTypes' | apps/backend/controllers/master-data-controller.js:149; apps/backend/data/journey-config-standards.js:81-87 | platform master-data soil list (clay/loam/…/hydroponic) | flag for the fix batch — orphaned once 56 is cut; no legal citation attached | same |
+
+Post-cert cultivation surfaces (`cultivation.prisma:45` PlantingCycle.soilType, `trace-service/resolve-generic.js:156` public trace "Not specified" fallback) are OUT of scope — they belong to the planting/T&T domain after certification, not the application wizard, and are not touched by this verdict.
+
+Adjacent surfaces on the same page (section header B2, วิธีการขยายพันธุ์, วัสดุปลูก B9 [verify-54: CUT upheld], ระยะปลูก, จำนวนต้น, รอบเก็บเกี่ยว, ผลผลิตคาดการณ์, plant parts, seed sources, production inputs) are separately rowed in census/production.md — not re-verdicted here.
+
+## Verdict
+
+**UPHELD — CUT stands.** The กทล.1 fill-in set (ส่วนที่ ๑, ๒, ๔) and attachment list (ส่วนที่ ๓, A1-A8) contain no soil-type item; the ข้อกำหนด places soil matters at the farm visit (and even then only as lab tests when contamination risk appears, at the operator's cost — facts.md:63); no named กฎกระทรวง/ประกาศ/พ.ร.บ. anywhere in the repo requires declaring soil type at application time for cannabis; the platform's own journey config marks even the soil *analysis report* optional; the live submit validator never reads the value; and the operator's prior audit independently ordered ตัด for this exact field. Soil substance reaches DTAM through the A5/A8 uploads and audit-day inspection, exactly as the census note says. Correct verdict: **CUT**, citation ruling 2 (facts.md:68) + facts §3 (facts.md:59-63).

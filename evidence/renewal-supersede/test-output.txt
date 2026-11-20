@@ -1,0 +1,115 @@
+RED: origin/main f8c7149c1 + เทสต์ใหม่ (worktree แยก) · scratch postgres:17-alpine ผ่าน heavy.sh
+head line: head f8c7149c19f28a2b593f4162274376725d0b9039 dirty-files: 2
+      ✕ marks the old certificate renewed and links both ways (649 ms)
+      ✕ a failure after the new certificate is created leaves no new certificate and the old one unchanged (447 ms)
+      ✕ marks the old certificate renewed and links both ways (430 ms)
+      ✕ a failure after the new certificate is created leaves no new certificate and the old one unchanged (426 ms)
+      ✕ the old certificate belongs to another holder (464 ms)
+      ✕ the old certificate is revoked (421 ms)
+      ✕ the old certificate is suspended (419 ms)
+      ✕ the old certificate was already renewed to a different certificate (659 ms)
+      ✕ GET /api/v1/public/verify: RENEWED, with the new number and its verify link (58 ms)
+      ✕ the lot door: 410 RENEWED, with the new number and its verify link (64 ms)
+      ✕ the generic door, lot QR: 410 RENEWED, with the new number and its verify link (38 ms)
+      ✓ the new certificate verifies as valid (20 ms)
+      ✕ the renewal reminder selects the new certificate in its window, never the old one (14 ms)
+Tests:       12 failed, 1 passed, 13 total
+jest exit 1
+
+RED reasons (trimmed):
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › issuing a renewal through the approver door (caller transaction) › marks the old certificate renewed and links both ways
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › issuing a renewal through the approver door (caller transaction) › a failure after the new certificate is created leaves no new certificate and the old one unchanged
+Received promise resolved instead of rejected
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › issuing a renewal through a bare client (status-writer and seed doors) › marks the old certificate renewed and links both ways
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › issuing a renewal through a bare client (status-writer and seed doors) › a failure after the new certificate is created leaves no new certificate and the old one unchanged
+Received promise resolved instead of rejected
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › refusals: nothing is issued and the old certificate keeps its state › the old certificate belongs to another holder
+Received promise resolved instead of rejected
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › refusals: nothing is issued and the old certificate keeps its state › the old certificate is revoked
+Received promise resolved instead of rejected
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › refusals: nothing is issued and the old certificate keeps its state › the old certificate is suspended
+Received promise resolved instead of rejected
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › refusals: nothing is issued and the old certificate keeps its state › the old certificate was already renewed to a different certificate
+Received promise resolved instead of rejected
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › after a renewal, the old certificate is never shown as valid › GET /api/v1/public/verify: RENEWED, with the new number and its verify link
+Expected: false
+Received: true
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › after a renewal, the old certificate is never shown as valid › the lot door: 410 RENEWED, with the new number and its verify link
+Expected: 410
+Received: 200
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › after a renewal, the old certificate is never shown as valid › the generic door, lot QR: 410 RENEWED, with the new number and its verify link
+Expected: 410
+Received: 200
+● order 107 on real Postgres: a renewal supersedes the certificate it renews › after a renewal, the old certificate is never shown as valid › the renewal reminder selects the new certificate in its window, never the old one
+
+GREEN round 1 (a28818b23): public-verify-scope แดง 3 ข้อ เพราะ 410 ของใบพักใช้/เพิกถอน/หมดอายุมี renewal: null เพิ่ม → แก้ใน 4c1bdc02b
+FAIL __tests__/integration/public-verify-scope-real-postgres.test.js (6.551 s)
+PASS __tests__/integration/renewal-supersede-real-postgres.test.js (5.634 s)
+PASS __tests__/integration/final-approval-audit-fail-closed-real-postgres.test.js
+Tests:       3 failed, 31 passed, 34 total
+
+GREEN final:
+head line: head 9b8d5fb96c954afb630bd7ec8384104b31c22a4e dirty-files: 1
+PASS __tests__/integration/public-verify-scope-real-postgres.test.js (5.891 s)
+    ✓ a scope row spelled INDOOR_CONTROLLED means INDOOR on the certificate door, the lot door and the planting gate (274 ms)
+    ✓ the lot door, the batch door and every branch of the generic door name the department only in the future-tense issuer sentence (194 ms)
+      ✓ OUTDOOR: the certificate holds one active scope row of its type, proved by the decided audit (5 ms)
+      ✓ GREENHOUSE: the certificate holds one active scope row of its type, proved by the decided audit (3 ms)
+      ✓ INDOOR: the certificate holds one active scope row of its type, proved by the decided audit (2 ms)
+      ✓ OUTDOOR in force: the scope line, the issuer sentence, the company, no person (57 ms)
+      ✓ GREENHOUSE in force: the scope line, the issuer sentence, the company, no person (20 ms)
+      ✓ INDOOR in force: the scope line, the issuer sentence, the company, no person (28 ms)
+      ✓ a person-held certificate in force publishes no holder name at all (248 ms)
+      ✓ suspended: no certificate block, so no scope, holder or issuer (241 ms)
+      ✓ revoked: no certificate block, so no scope, holder or issuer (268 ms)
+      ✓ expired: no certificate block, so no scope, holder or issuer (243 ms)
+      ✓ an unknown number: not found, nothing else (12 ms)
+      ✓ OUTDOOR certificate in force: the same scope and issuer as the certificate-number door (84 ms)
+      ✓ GREENHOUSE certificate in force: the same scope and issuer as the certificate-number door (54 ms)
+      ✓ INDOOR certificate in force: the same scope and issuer as the certificate-number door (57 ms)
+      ✓ suspended certificate: today's 410 minimal body, which carries no scope (280 ms)
+      ✓ revoked certificate: today's 410 minimal body, which carries no scope (275 ms)
+      ✓ expired certificate: today's 410 minimal body, which carries no scope (265 ms)
+PASS __tests__/integration/renewal-supersede-real-postgres.test.js (5.419 s)
+      ✓ marks the old certificate renewed and links both ways (595 ms)
+      ✓ a failure after the new certificate is created leaves no new certificate and the old one unchanged (485 ms)
+      ✓ marks the old certificate renewed and links both ways (442 ms)
+      ✓ a failure after the new certificate is created leaves no new certificate and the old one unchanged (427 ms)
+      ✓ the old certificate belongs to another holder (425 ms)
+      ✓ the old certificate is revoked (419 ms)
+      ✓ the old certificate is suspended (433 ms)
+      ✓ the old certificate was already renewed to a different certificate (651 ms)
+      ✓ GET /api/v1/public/verify: RENEWED, with the new number and its verify link (22 ms)
+      ✓ the lot door: 410 RENEWED, with the new number and its verify link (44 ms)
+      ✓ the generic door, lot QR: 410 RENEWED, with the new number and its verify link (33 ms)
+      ✓ the new certificate verifies as valid (16 ms)
+      ✓ the renewal reminder selects the new certificate in its window, never the old one (13 ms)
+PASS __tests__/integration/final-approval-audit-fail-closed-real-postgres.test.js
+    ✓ จ่ายครบสองงวด หลักฐานครบ: อนุมัติแล้วได้ CERTIFIED พร้อมใบรับรอง และแถวบันทึกหนึ่งแถว (638 ms)
+    ✓ เขียนแถวบันทึกไม่ได้: ทั้งธุรกรรมถอย ไม่มี APPROVED และไม่มีใบรับรอง (406 ms)
+Tests:       34 passed, 34 total
+jest exit 0
+
+web (jest, ไม่มี DB):
+RED  FAIL src/app/trace/__tests__/trace-fetch.test.ts
+RED      ✕ returns not-found for a 410 envelope, keeping the honest revoked/expired reason (4 ms)
+RED      ✕ a 410 carries which certificate the gate refused on, and why (2 ms)
+RED      ✕ a 410 for a renewed certificate carries the successor the server named (order 107) (2 ms)
+RED  FAIL src/app/trace/__tests__/lot-page-plain-words.test.tsx
+RED      ✕ says the certificate was renewed and links the current one, never the old one as valid (5 ms)
+RED  Tests:       4 failed, 25 passed, 29 total
+GREEN PASS src/app/trace/__tests__/trace-fetch.test.ts
+GREEN PASS src/app/trace/__tests__/plot-sign-tells-the-truth-about-its-certificate.test.tsx
+GREEN PASS src/app/trace/__tests__/certificate-status.test.ts
+GREEN PASS src/app/trace/__tests__/lot-page-plain-words.test.tsx
+GREEN PASS src/app/trace/__tests__/lot-page-never-certified-is-not-expired.test.tsx
+GREEN PASS src/app/trace/__tests__/lab-privacy.test.ts
+GREEN PASS src/lib/verify/__tests__/integrity-presentation.test.ts
+GREEN PASS src/lib/verify/__tests__/verify-route.test.ts
+GREEN PASS src/app/trace/__tests__/public-scan-page-declares-only-what-it-gets.test.ts
+GREEN PASS src/lib/verify/__tests__/trace-trust.test.tsx
+GREEN PASS src/app/verify/__tests__/scan-points-to-another-host.test.tsx
+GREEN PASS src/app/verify/__tests__/verify-citizen-page.test.tsx
+GREEN PASS src/lib/verify/__tests__/public-verify-url.test.ts
+GREEN PASS src/app/trace/__tests__/generic-trace-issuer-words.test.tsx
+GREEN Tests:       137 passed, 137 total

@@ -1,0 +1,57 @@
+ratchet counters — before / after the probe-friction changes
+============================================================
+Method: the SAME working tree measured twice. "before" = scripts/probes/ratchet.sh
+and scripts/probes/ssot-domains.txt checked out from HEAD (f03d3398); "after" = the
+versions in this diff. Both runs used PROBE_OUT_DIR so neither touched the tracked
+evidence/ratchet-current.txt.
+
+Commands
+--------
+  git checkout HEAD -- scripts/probes/ratchet.sh scripts/probes/ssot-domains.txt
+  PROBE_OUT_DIR=<tmp>/before bash scripts/probes/ratchet.sh
+  # restore the new versions
+  PROBE_OUT_DIR=<tmp>/after  bash scripts/probes/ratchet.sh
+
+BEFORE (HEAD probe)
+-------------------
+  dup [fee-table] 3 sources: /home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/backend/modules/billing/internal/fee-service.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/backend/config/business-rules.js /home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 168
+dup-source: 2
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=168 dup-source=2
+
+AFTER (this diff)
+-----------------
+  dup [fee-table] 3 sources: apps/backend/modules/billing/internal/fee-service.js apps/backend/config/business-rules.js apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 168
+dup-source: 2
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=168 dup-source=2
+
+VERDICT
+-------
+hardcode    43 → 43   (unchanged)
+todo        59 → 59   (unchanged)
+env-direct 168 → 168  (unchanged)
+dup-source   2 → 2    (unchanged)
+
+No counter increased, and none decreased either. The only difference between the two
+runs is that the dup line now prints repo-relative paths.
+
+Why dup-source did NOT drop, since the point of the change was to stop counting
+mentions: the one domain that is over its SSOT today is `fee-table`, and all three of
+its hits are real code lines, not comments —
+  apps/backend/modules/billing/internal/fee-service.js:23  PHASE1_PER_SCOPE: FEES.PHASE1_PER_SCOPE,
+  apps/backend/config/business-rules.js:34                 PHASE1_PER_SCOPE: 5000,
+  apps/backend/config/payment-fees.js:15                   DOCUMENT_REVIEW_FEE: 5000, // …
+so the comment filter correctly leaves all three counted. The `holiday-calendar`
+domain, which is the one that used to be inflated by comments (BACKLOG-FOUND.md:88),
+is already down to one source on main, so there was no live inflation left to remove
+— the fixtures in `bash scripts/probes/ratchet.sh --selftest` cases A and C are what
+demonstrate the behaviour change instead.
+
+AUDIT_LEDGER.md baselines were not touched (operator-owned; and nothing moved).

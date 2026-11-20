@@ -1,0 +1,337 @@
+Task 4 — services/document-precheck/extract.js — GREEN evidence (summary, no raw jest log per task instructions)
+
+SUPERSEDED by "Fix round 1" below: the NODE_OPTIONS requirement this section
+records was a real gate blocker (green only with a hand-set flag = red on
+the actual gate command). Kept for history; do not run extract.js's tests
+with NODE_OPTIONS=--experimental-vm-modules going forward — Fix round 1
+removed the need for it entirely.
+
+Command (all three runs): SIGNING_KEY_DIR=$(mktemp -d) NODE_OPTIONS=--experimental-vm-modules \
+  npx jest __tests__/unit/document-precheck/extract.test.js
+Node v24.21.0 (nvm use 24)
+
+NODE_OPTIONS=--experimental-vm-modules is REQUIRED for this file: pdf-parse v2's
+PDFParse#getText()/getInfo() load pdfjs-dist's "fake worker" via a real dynamic
+import() of pdf.worker.mjs when no true worker thread is available (Node main
+thread, which is what a Jest test runs in). Under plain Node this import()
+resolves fine; under Jest's own module sandbox (jest-runtime, no relation to
+Node's native require(esm)) any dynamic import() throws "A dynamic import
+callback was invoked without --experimental-vm-modules" unless that flag is
+set. Confirmed by reproducing the failure both with the flag absent (4/8
+tests fail with exactly that message) and present (8/8 pass) — no other
+existing suite exercises pdf-parse's real getText/getInfo path today (grep:
+only the old, unused services/ocr-service.js references pdf-parse elsewhere,
+and its one caller-test mocks it away), so this is a new requirement specific
+to this file, not a pre-existing repo convention. jest.config.cjs was not
+touched (out of Task 4's scope: it is shared repo-wide config) — documented
+here and in task-4-report.md instead.
+
+=== default TZ (Asia/Bangkok, +07) ===
+Tests:       8 passed, 8 total
+Test Suites: 1 passed, 1 total
+
+=== TZ=UTC ===
+Tests:       8 passed, 8 total
+Test Suites: 1 passed, 1 total
+
+=== TZ=America/Los_Angeles ===
+Tests:       8 passed, 8 total
+Test Suites: 1 passed, 1 total
+
+Per-case wall time (from the test's own console.log summary, default-TZ run):
+  text-layer PDF: 154ms
+  image-only PDF (scanned Thai): 635ms
+  PNG image: 304ms
+  extract-limits (60-page PDF): 62ms
+  0-byte file: 3ms
+  encrypted PDF: 5ms
+  unsupported mime type: 2ms
+  timeout: 11ms
+
+OCR text actually produced for the scanned Thai page (verbatim), from a direct
+node -e reproduction of the image-only-PDF case:
+  input phrase: โฉนดที่ดิน
+  extractDocument() output: { method: "OCR", pageCount: 1, pages: [{ text: "โฉนดที่ดิน", confidence: 93 }], truncated: false }
+  (exact match, confidence 93 — same tessdata_fast tha model Task 1 pinned)
+
+Probes:
+  scripts/probes/no-skip.sh   -> PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+  scripts/probes/no-secret.sh -> PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+  scripts/probes/ratchet.sh   -> PASS: hardcode=26 todo=53 env-direct=101 dup-source=0 (baseline unchanged, dup-source stays 0)
+
+apps/backend/keys/private.pem: not present in this worktree (only quarantine
+subdirs + README.md under apps/backend/keys/) — N/A, nothing to compare mtimes on.
+
+Jest's own detectOpenHandles flags one native handle ("CustomGC", from the
+@napi-rs/canvas binding pdf-parse's pdfjs-dist build loads) after every run.
+This is not a hang: every run above exits with code 0 in ~3-4s (measured with
+`time`), and the handle is a native GC finalizer registration, not something
+extract.js or tesseract-service.js opens or could terminate itself.
+
+=== Fix round 1 (task-4-fix-round-1, on top of 9f05bf6b) ===
+
+Fix: extractFromPdf() no longer calls PDFParse in this (Jest-loaded) module.
+It forks a child `node` process running the new
+services/document-precheck/pdf-extract-worker.js, which does call
+getInfo/getText/getScreenshot — as a plain `node <file>` invocation, not
+inside Jest's module sandbox. Parent<->child talk over
+child_process.fork()'s IPC channel: one {type:'extract'} message in, one
+{type:'result'} message out, then the parent kills the child
+(`runPdfWorkerChild()`'s `settle()`, called on message/error/exit alike).
+extractDocument's own timeout handler also kills the in-flight child
+directly (`inFlight.child.kill('SIGKILL')`) alongside terminating any
+in-flight tesseract worker, so a timeout tears down both real subprocesses
+it could be waiting on. extract.js no longer requires 'pdf-parse' at all —
+only pdf-extract-worker.js does. tesseract-service.js's header edit from the
+original Task 4 commit is unchanged.
+
+Command (all three runs, NODE_OPTIONS explicitly UNSET — the acceptance
+criterion): SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs \
+  __tests__/unit/document-precheck/extract.test.js
+Node v24.21.0 (nvm use 24)
+
+=== default TZ (Asia/Bangkok, +07), NODE_OPTIONS unset ===
+Tests:       8 passed, 8 total
+Test Suites: 1 passed, 1 total
+
+=== TZ=UTC, NODE_OPTIONS unset ===
+Tests:       8 passed, 8 total
+Test Suites: 1 passed, 1 total
+
+=== TZ=America/Los_Angeles, NODE_OPTIONS unset ===
+Tests:       8 passed, 8 total
+Test Suites: 1 passed, 1 total
+
+`time (... npx jest --config jest.config.cjs ...)`: real 0m4.06s, exit code 0
+(default-TZ run) — no hang. `ps aux | grep pdf-extract-worker` immediately
+after: no output — no leftover child process. Jest's detectOpenHandles
+printed NOTHING this run (the "CustomGC" native handle from Fix round 0's
+evidence is gone too: the parent process never loads pdf-parse/pdfjs-dist's
+canvas binding anymore, since only the forked child does).
+
+Full document-precheck dir (jest --config jest.config.cjs, NODE_OPTIONS
+unset): Tests: 111 passed, 111 total / Test Suites: 3 passed, 3 total.
+
+Probes (re-run after the fix):
+  scripts/probes/no-skip.sh   -> PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+  scripts/probes/no-secret.sh -> PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+  scripts/probes/ratchet.sh   -> PASS: hardcode=26 todo=53 env-direct=101 dup-source=0 (unchanged)
+
+Per-case wall time (from the test's own console.log summary, default-TZ,
+NODE_OPTIONS-unset run — higher than round 0 mainly on encrypted-PDF, ~5ms ->
+~130ms, and extract-limits, ~62ms -> ~250ms: real `fork()` process-spawn cost
+now paid per PDF, expected and acceptable for a queue-processed upload, not a
+request-path call):
+  text-layer PDF: 323ms
+  image-only PDF (scanned Thai): 798ms
+  PNG image: 354ms
+  extract-limits (60-page PDF): 216ms
+  0-byte file: 5ms
+  encrypted PDF: 132ms
+  unsupported mime type: 5ms
+  timeout: 5ms
+
+=== Fix round 2 (task-4-review.md, on top of c646bf29) ===
+
+Fixes (see red-output.txt's Fix round 2 section for the matching RED, and
+each file's own "Fix round 2" comment for the full reasoning):
+  I1 — extract.js: `inFlight.aborted` checked (synchronously, no `await` in
+    between the check and the next call) after `readFile`, before `fork`,
+    and at the top of `runOcr`; each `extractDocument()` call gets its own
+    `new TesseractService()` (tesseract-service.js now also exports the
+    class, not only its module-level singleton) instead of sharing one
+    worker across calls.
+  I2 — tesseract-service.js's `initialize()` now checks both
+    `tha.traineddata`/`eng.traineddata` exist BEFORE calling
+    `Tesseract.createWorker()`, throwing a clear, fast, catchable error if
+    not; `runOcr` in extract.js throws when tesseract reports
+    `success:false`, instead of returning `{text:'', confidence:0}`.
+    tessdata.js's `TESSERACT_WORKER_OPTIONS` also gained a no-op
+    `errorHandler` — needed to stop an UNRELATED crash-on-uncaught-throw
+    path in tesseract.js's own worker message loop for a DIFFERENT class of
+    rejection (an `action:'load'` reject); it alone did not fix the hang
+    (see that file's comment for why both pieces were needed).
+  I3 — new pdf-raster-scale.js: `scaleForPage()` picks `getScreenshot`'s
+    scale from each page's own MediaBox so the rasterised long side stays
+    ≤2500px; pdf-extract-worker.js now sends one IPC message per page
+    (`type:'page'`) instead of batching all pages into one final message,
+    plus a defensive per-page byte cap.
+  Minor 1 — pdf-extract-worker.js exits on `disconnect`.
+  Minor 2 — extract.js forks with an explicit minimal `env`
+    (`PATH`, `NODE_ENV` only) and `execArgv: ['--max-old-space-size=512']`,
+    not the parent's full `process.env`/`process.execArgv`.
+  Minor 4 — `isPasswordException` in pdf-extract-worker.js now checks
+    `instanceof PasswordException` first, falling back to the `err.name`
+    string match only if pdf-parse ever stops exporting that class.
+  Minor 5 — new test: a timeoutMs (50ms) chosen so the timer lands while the
+    forked child is provably still running (polled via `pgrep -f`), then
+    asserts no such process survives.
+  Minor 3, 6, 7 — left alone per the coordinator's instruction.
+
+Command (all three runs, NODE_OPTIONS explicitly UNSET): SIGNING_KEY_DIR=$(mktemp -d) \
+  npx jest --config jest.config.cjs __tests__/unit/document-precheck/extract.test.js
+Node v24.21.0 (nvm use 24)
+
+=== default TZ (Asia/Bangkok, +07), NODE_OPTIONS unset ===
+Tests:       13 passed, 13 total
+Test Suites: 1 passed, 1 total
+
+=== TZ=UTC, NODE_OPTIONS unset ===
+Tests:       13 passed, 13 total
+Test Suites: 1 passed, 1 total
+
+=== TZ=America/Los_Angeles, NODE_OPTIONS unset ===
+Tests:       13 passed, 13 total
+Test Suites: 1 passed, 1 total
+
+`ps aux | grep pdf-extract-worker` after every run above: no output — no
+leftover child process, including after the two tests that force a timeout
+mid-flight (Minor 5, and I1's concurrent-call case).
+
+Full document-precheck dir (jest --config jest.config.cjs, NODE_OPTIONS
+unset): Tests: 116 passed, 116 total / Test Suites: 3 passed, 3 total.
+
+Probes (re-run after the fix):
+  scripts/probes/no-skip.sh   -> PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+  scripts/probes/no-secret.sh -> PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+  scripts/probes/ratchet.sh   -> PASS: hardcode=26 todo=53 env-direct=104 dup-source=0
+    (env-direct rose 101->104 from this round's own new `process.env.PATH` /
+    `process.env.NODE_ENV` reads in extract.js's childEnv() and the I2 test's
+    `process.env.TESSDATA_PATH` swap — still far under AUDIT_LEDGER.md's
+    baseline of 122, so the probe still PASSes; not a violation)
+
+New per-case wall time (from the test's own console.log summary,
+default-TZ, NODE_OPTIONS-unset run):
+  timeout mid-flight (Minor 5): 104ms
+  concurrent timeout does not corrupt sibling OCR (I1): 1065ms
+  OCR failure -> rejects (I2): 26-39ms
+  huge MediaBox (I3): 1318-2087ms (real fork+rasterise+OCR of a page whose
+    long side is scaled down to ~2500px — proves the cap works, not just
+    that it exists)
+
+OCR text for the huge-MediaBox (I3) fixture was not asserted (the review's
+acceptance is "extracts without exceeding the cap", not text correctness);
+`result.method === 'OCR'`, `pageCount === 1`, one page returned is what the
+test checks.
+
+pdf-raster-scale.js's `scaleForPage({width:14400,height:14400})` = 2500/14400
+≈ 0.17361...; 14400 * that scale = 2500.0 exactly (within floating-point
+epsilon), matching MAX_RASTER_LONG_SIDE_PX precisely for the review's own
+example dimensions.
+
+BACKLOG-FOUND.md note: `services/document-precheck/normalize.js` fails
+`eslint` with 6 pre-existing errors (confirmed unchanged since 6d4ac44e via
+`git stash` + eslint on the untouched file) — already logged under "Task 3,
+fix round 1" in BACKLOG-FOUND.md; not re-logged, not touched (out of this
+round's scope). Every file this round actually authored/edited
+(extract.js, pdf-extract-worker.js, pdf-raster-scale.js, tesseract-service.js,
+tessdata.js, extract.test.js) is 0 eslint problems.
+
+=== Fix round 3 (coordinator's ratchet note, on top of eb6ab321) ===
+
+CLAUDE.md L4: a ratchet counter rising by even one is a fail regardless of
+the ledger baseline — "PASS under baseline" (what Fix round 2's own evidence
+said) is not the rule. Fix round 2's `extract.js` childEnv() added 3 direct
+`process.env.PATH`/`process.env.NODE_ENV` reads inside `services/`
+(env-direct counts `services/`, `routes/`, `jobs/`, `middleware/` — not
+`config/`, same convention as `config/public-urls.js`/`config/auth-
+providers.js:8`'s own comment "ratchet env-direct ไม่นับ config/"), moving
+101 -> 104.
+
+Fix: new config/child-process-env.js exports `minimalChildEnv()`
+(`{PATH, NODE_ENV}`, both optional); extract.js now imports and calls that
+instead of reading `process.env` itself. tessdata.js's own pre-existing
+`process.env.TESSDATA_PATH` read (part of the original 101 baseline, not
+added by any Fix round in this task) was left untouched — the child never
+uses TESSDATA_PATH at all (OCR runs in the parent, not the forked child), so
+there was nothing to move there.
+
+Command: bash scripts/probes/ratchet.sh
+Result: hardcode=26 todo=53 env-direct=101 dup-source=0 — exactly the
+value before Fix round 2 (evidence/ratchet-current.txt now matches, diffed
+against the eb6ab321-committed version: only the `env-direct` line changes,
+104 -> 101).
+
+Re-ran (NODE_OPTIONS unset, plain gate command, 3 TZ): Tests: 13 passed, 13
+total / Test Suites: 1 passed, 1 total, each of default TZ/UTC/America-Los-
+Angeles. `ps aux | grep pdf-extract-worker` empty after. Full
+document-precheck dir: 116 passed, 116 total (unchanged from Fix round 2).
+scripts/probes/no-skip.sh -> PASS. scripts/probes/no-secret.sh -> PASS.
+
+=== Fix round 4 (worker leak on terminate during createWorker) ===
+Node v24.21.0 · NODE_OPTIONS unset · SIGNING_KEY_DIR=$(mktemp -d) · plain gate cmd
+Command: npx jest --config jest.config.cjs __tests__/unit/document-precheck/tesseract-terminate-race.test.js __tests__/unit/document-precheck/extract.test.js
+(summary: test-name/count lines only)
+### TZ=default
+    ✓ the worker createWorker resolves with is terminated and no scheduler is left (28 ms)
+    ✓ extractDocument timing out during createWorker() rejects PRECHECK_TIMEOUT and still terminates the late worker (108 ms)
+    ✓ a text-layer PDF returns TEXT_LAYER and the page text contains the Thai phrase (255 ms)
+    ✓ an image-only PDF (scanned Thai page) returns OCR and reads the Thai phrase (592 ms)
+    ✓ a PNG image returns OCR (317 ms)
+    ✓ extract-limits: a 60-page PDF reports pageCount 60, returns 10 pages, truncated true (257 ms)
+    ✓ a 0-byte file returns NONE with no pages (3 ms)
+    ✓ an encrypted PDF returns NONE with no pages (133 ms)
+    ✓ an unsupported mime type returns NONE with no pages (3 ms)
+    ✓ extraction that exceeds timeoutMs rejects with code PRECHECK_TIMEOUT (2 ms)
+    ✓ a timeout that lands while the pdf-extract-worker child is running leaves no child process behind (98 ms)
+    ✓ I1: a timed-out call does not corrupt a concurrent call's own OCR worker (559 ms)
+    ✓ I2: a missing tessdata directory makes OCR reject, not silently return an unreadable page (40 ms)
+      ✓ scaleForPage keeps a 14400x14400pt page's long side within MAX_RASTER_LONG_SIDE_PX (1 ms)
+      ✓ a 1-page PDF declaring a 14400x14400pt MediaBox extracts successfully (1298 ms)
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+### TZ=UTC
+    ✓ a text-layer PDF returns TEXT_LAYER and the page text contains the Thai phrase (246 ms)
+    ✓ an image-only PDF (scanned Thai page) returns OCR and reads the Thai phrase (604 ms)
+    ✓ a PNG image returns OCR (306 ms)
+    ✓ extract-limits: a 60-page PDF reports pageCount 60, returns 10 pages, truncated true (209 ms)
+    ✓ a 0-byte file returns NONE with no pages (5 ms)
+    ✓ an encrypted PDF returns NONE with no pages (143 ms)
+    ✓ an unsupported mime type returns NONE with no pages (3 ms)
+    ✓ extraction that exceeds timeoutMs rejects with code PRECHECK_TIMEOUT (2 ms)
+    ✓ a timeout that lands while the pdf-extract-worker child is running leaves no child process behind (90 ms)
+    ✓ I1: a timed-out call does not corrupt a concurrent call's own OCR worker (557 ms)
+    ✓ I2: a missing tessdata directory makes OCR reject, not silently return an unreadable page (44 ms)
+      ✓ scaleForPage keeps a 14400x14400pt page's long side within MAX_RASTER_LONG_SIDE_PX (1 ms)
+      ✓ a 1-page PDF declaring a 14400x14400pt MediaBox extracts successfully (1346 ms)
+    ✓ the worker createWorker resolves with is terminated and no scheduler is left (5 ms)
+    ✓ extractDocument timing out during createWorker() rejects PRECHECK_TIMEOUT and still terminates the late worker (105 ms)
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+### TZ=America/Los_Angeles
+    ✓ a text-layer PDF returns TEXT_LAYER and the page text contains the Thai phrase (248 ms)
+    ✓ an image-only PDF (scanned Thai page) returns OCR and reads the Thai phrase (604 ms)
+    ✓ a PNG image returns OCR (353 ms)
+    ✓ extract-limits: a 60-page PDF reports pageCount 60, returns 10 pages, truncated true (221 ms)
+    ✓ a 0-byte file returns NONE with no pages (4 ms)
+    ✓ an encrypted PDF returns NONE with no pages (139 ms)
+    ✓ an unsupported mime type returns NONE with no pages (3 ms)
+    ✓ extraction that exceeds timeoutMs rejects with code PRECHECK_TIMEOUT (2 ms)
+    ✓ a timeout that lands while the pdf-extract-worker child is running leaves no child process behind (86 ms)
+    ✓ I1: a timed-out call does not corrupt a concurrent call's own OCR worker (566 ms)
+    ✓ I2: a missing tessdata directory makes OCR reject, not silently return an unreadable page (43 ms)
+      ✓ scaleForPage keeps a 14400x14400pt page's long side within MAX_RASTER_LONG_SIDE_PX (1 ms)
+      ✓ a 1-page PDF declaring a 14400x14400pt MediaBox extracts successfully (1219 ms)
+    ✓ the worker createWorker resolves with is terminated and no scheduler is left (5 ms)
+    ✓ extractDocument timing out during createWorker() rejects PRECHECK_TIMEOUT and still terminates the late worker (105 ms)
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+### full dir: npx jest --config jest.config.cjs __tests__/unit/document-precheck
+Test Suites: 4 passed, 4 total
+Tests:       118 passed, 118 total
+### ps aux | grep -E 'pdf-extract-worker|tesseract' (after): 0 lines
+### probes
+### no-skip
+PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+exit=0
+### no-secret
+PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+exit=0
+### ratchet
+hardcode: 26
+todo: 53
+env-direct: 101
+dup-source: 0
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/home/ubuntu/work/wt-precheck/evidence/ratchet-current.txt)
+exit=0

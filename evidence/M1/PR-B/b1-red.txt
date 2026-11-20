@@ -1,0 +1,269 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/public-verify-holder-display.test.js
+  M1 holder display on public verify
+    × shows unmasked juristic holder name (5 ms)
+    × shows unmasked community-enterprise holder name (2 ms)
+    × masks person-shaped holders (INDIVIDUAL / LEGACY_PERSON / unknown) (1 ms)
+    × falls back to applicantName when holder columns are empty (pre-backfill rows) (1 ms)
+  GET /verify/:certificateNumber (JSON) — holderDisplayName is additive
+    × adds holderDisplayName (unmasked juristic) while applicantName keeps its old masked value (48 ms)
+    × falls back to the masked applicantName for pre-backfill rows (13 ms)
+  GET /verify/:certificateNumber/page (HTML) — holder row
+    × renders the row as "ผู้ถือใบรับรอง" with the full juristic name, never the person name (34 ms)
+    √ still masks a person-shaped holder in the HTML page (20 ms)
+  PDF placeholder map — APPLICANT_NAME carries the holder
+    × prints the holder name when holderDisplayName is set (7 ms)
+    √ falls back to applicantName for pre-backfill rows, then to "-" (1 ms)
+
+  ● M1 holder display on public verify › shows unmasked juristic holder name
+
+    TypeError: holderNameForDisplay is not a function
+
+    [0m [90m 93 |[39m describe([32m'M1 holder display on public verify'[39m[33m,[39m () [33m=>[39m {
+     [90m 94 |[39m     it([32m'shows unmasked juristic holder name'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 95 |[39m         expect(holderNameForDisplay({
+     [90m    |[39m                [31m[1m^[22m[39m
+     [90m 96 |[39m             holderDisplayName[33m:[39m [32m'บริษัท สมุนไพรไทย จำกัด'[39m[33m,[39m
+     [90m 97 |[39m             holderType[33m:[39m [32m'JURISTIC'[39m[33m,[39m
+     [90m 98 |[39m             applicantName[33m:[39m [32m'สมชาย ใจดี'[39m[33m,[39m[0m
+
+      at Object.holderNameForDisplay (__tests__/unit/public-verify-holder-display.test.js:95:16)
+
+  ● M1 holder display on public verify › shows unmasked community-enterprise holder name
+
+    TypeError: holderNameForDisplay is not a function
+
+    [0m [90m 101 |[39m
+     [90m 102 |[39m     it([32m'shows unmasked community-enterprise holder name'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 103 |[39m         expect(holderNameForDisplay({
+     [90m     |[39m                [31m[1m^[22m[39m
+     [90m 104 |[39m             holderDisplayName[33m:[39m [32m'วิสาหกิจชุมชนสมุนไพรบ้านนา'[39m[33m,[39m
+     [90m 105 |[39m             holderType[33m:[39m [32m'COMMUNITY_ENTERPRISE'[39m[33m,[39m
+     [90m 106 |[39m             applicantName[33m:[39m [32m'สมชาย ใจดี'[39m[33m,[39m[0m
+
+      at Object.holderNameForDisplay (__tests__/unit/public-verify-holder-display.test.js:103:16)
+
+  ● M1 holder display on public verify › masks person-shaped holders (INDIVIDUAL / LEGACY_PERSON / unknown)
+
+    TypeError: holderNameForDisplay is not a function
+
+    [0m [90m 109 |[39m
+     [90m 110 |[39m     it([32m'masks person-shaped holders (INDIVIDUAL / LEGACY_PERSON / unknown)'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 111 |[39m         [36mconst[39m out [33m=[39m holderNameForDisplay({ holderDisplayName[33m:[39m [32m'สมชาย ใจดี'[39m[33m,[39m holderType[33m:[39m [32m'LEGACY_PERSON'[39m })[33m;[39m
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 112 |[39m         expect(out)[33m.[39mnot[33m.[39mtoBe([32m'สมชาย ใจดี'[39m)[33m;[39m       [90m// masked by the existing maskApplicantName[39m
+     [90m 113 |[39m         expect(out[33m.[39mstartsWith([32m'สมชาย'[39m))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 114 |[39m[0m
+
+      at Object.holderNameForDisplay (__tests__/unit/public-verify-holder-display.test.js:111:21)
+
+  ● M1 holder display on public verify › falls back to applicantName when holder columns are empty (pre-backfill rows)
+
+    TypeError: holderNameForDisplay is not a function
+
+    [0m [90m 118 |[39m
+     [90m 119 |[39m     it([32m'falls back to applicantName when holder columns are empty (pre-backfill rows)'[39m[33m,[39m () [33m=>[39m {
+    [31m[1m>[22m[39m[90m 120 |[39m         expect(holderNameForDisplay({
+     [90m     |[39m                [31m[1m^[22m[39m
+     [90m 121 |[39m             holderDisplayName[33m:[39m [36mnull[39m[33m,[39m holderType[33m:[39m [36mnull[39m[33m,[39m applicantName[33m:[39m [32m'สมหญิง ดีใจ'[39m[33m,[39m
+     [90m 122 |[39m         }))[33m.[39mtoBe(holderNameForDisplay({
+     [90m 123 |[39m             holderDisplayName[33m:[39m [32m'สมหญิง ดีใจ'[39m[33m,[39m holderType[33m:[39m [32m'LEGACY_PERSON'[39m[33m,[39m[0m
+
+      at Object.holderNameForDisplay (__tests__/unit/public-verify-holder-display.test.js:120:16)
+
+  ● GET /verify/:certificateNumber (JSON) — holderDisplayName is additive › adds holderDisplayName (unmasked juristic) while applicantName keeps its old masked value
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "บริษัท สมุนไพรไทย จำกัด"
+    Received: undefined
+
+    [0m [90m 138 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m 139 |[39m         [36mconst[39m c [33m=[39m res[33m.[39mbody[33m.[39mdata[33m.[39mcertificate[33m;[39m
+    [31m[1m>[22m[39m[90m 140 |[39m         expect(c[33m.[39mholderDisplayName)[33m.[39mtoBe([32m'บริษัท สมุนไพรไทย จำกัด'[39m)[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 141 |[39m         [90m// Old contract untouched: still the masked person name.[39m
+     [90m 142 |[39m         expect(c[33m.[39mapplicantName)[33m.[39mtoBe([32m'สมชาย ใ.'[39m)[33m;[39m
+     [90m 143 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/public-verify-holder-display.test.js:140:37)
+
+  ● GET /verify/:certificateNumber (JSON) — holderDisplayName is additive › falls back to the masked applicantName for pre-backfill rows
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "สมชาย ใ."
+    Received: undefined
+
+    [0m [90m 150 |[39m
+     [90m 151 |[39m         [36mconst[39m c [33m=[39m res[33m.[39mbody[33m.[39mdata[33m.[39mcertificate[33m;[39m
+    [31m[1m>[22m[39m[90m 152 |[39m         expect(c[33m.[39mholderDisplayName)[33m.[39mtoBe([32m'สมชาย ใ.'[39m)[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 153 |[39m         expect(c[33m.[39mapplicantName)[33m.[39mtoBe([32m'สมชาย ใ.'[39m)[33m;[39m
+     [90m 154 |[39m     })[33m;[39m
+     [90m 155 |[39m })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/public-verify-holder-display.test.js:152:37)
+
+  ● GET /verify/:certificateNumber/page (HTML) — holder row › renders the row as "ผู้ถือใบรับรอง" with the full juristic name, never the person name
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "ผู้ถือใบรับรอง"
+    Received string:    "
+    <!DOCTYPE html>
+    <html lang=\"th\">
+    <head>
+        <meta charset=\"UTF-8\">
+        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">
+        <title>ตรวจสอบใบรับรอง GACP | GACP-TH-2569-A3F7B2</title>
+        <style>
+            * { box-sizing: border-box; margin: 0; padding: 0; }
+            body {·
+                font-family: 'Sarabun', sans-serif;·
+                background: linear-gradient(135deg, #1b5e20 0%, #4caf50 100%);·
+                min-height: 100vh;·
+                display: flex;·
+                align-items: center;·
+                justify-content: center;·
+                padding: 20px;·
+            }
+            .card {·
+                background: white;·
+                border-radius: 20px;·
+                max-width: 500px;·
+                width: 100%;·
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);·
+                overflow: hidden;·
+            }
+            .header {·
+                background: #1b5e20;·
+                color: white;·
+                padding: 30px 20px;·
+                text-align: center;·
+            }
+            .status-icon { font-size: 60px; margin-bottom: 10px; }
+            .header h1 { font-size: 20px; margin-bottom: 5px; }
+            .header p { font-size: 14px; opacity: 0.9; }
+            .content { padding: 30px 20px; }
+            .cert-number {·
+                text-align: center;·
+                font-size: 18px;·
+                font-weight: bold;·
+                color: #1b5e20;·
+                margin-bottom: 20px;·
+                padding: 15px;·
+                background: #f0fdf4;·
+                border-radius: 10px;·
+            }
+            .info-row {·
+                display: flex;·
+                justify-content: space-between;·
+                padding: 12px 0;·
+                border-bottom: 1px solid #e0e0e0;·
+            }
+            .info-label { color: #666; font-size: 14px; }
+            .info-value { font-weight: 600; color: #333; text-align: right; }
+            .footer {·
+                background: #f5f5f5;·
+                padding: 15px 20px;·
+                text-align: center;·
+                font-size: 12px;·
+                color: #666;·
+            }
+            .badge {·
+                display: inline-block;·
+                padding: 5px 15px;·
+                border-radius: 20px;·
+                font-size: 14px;·
+                font-weight: bold;·
+            }
+            .badge-valid { background: #dcfce7; color: #16a34a; }
+            .badge-invalid { background: #fee2e2; color: #dc2626; }
+        </style>
+    </head>
+    <body>
+        <div class=\"card\">
+            <div class=\"header\">
+                <div class=\"status-icon\">✅</div>
+                <h1>ใบรับรองถูกต้อง</h1>
+                <p>Certificate Verified</p>
+            </div>
+            <div class=\"content\">
+                <div class=\"cert-number\">
+                    GACP-TH-2569-A3F7B2
+                </div>·············
+                    <div class=\"info-row\">
+                        <span class=\"info-label\">ชื่อแปลง</span>
+                        <span class=\"info-value\">ฟาร์มสมุนไพรสมชาย</span>
+                    </div>
+                    <div class=\"info-row\">
+                        <span class=\"info-label\">ผู้ประกอบการ</span>
+                        <span class=\"info-value\">สมชาย ใ.</span>
+                    </div>
+                    <div class=\"info-row\">
+                        <span class=\"info-label\">จังหวัด</span>
+                        <span class=\"info-value\">เชียงราย</span>
+                    </div>
+                    <div class=\"info-row\">
+                        <span class=\"info-label\">พืชสมุนไพร</span>
+                        <span class=\"info-value\">กัญชา / Cannabis sativa L.</span>
+                    </div>
+                    <div class=\"info-row\">
+                        <span class=\"info-label\">วันที่ออก</span>
+                        <span class=\"info-value\">16/5/2569</span>
+                    </div>
+                    <div class=\"info-row\">
+                        <span class=\"info-label\">วันหมดอายุ</span>
+                        <span class=\"info-value\">15/8/2570</span>
+                    </div>
+                    <div class=\"info-row\">
+                        <span class=\"info-label\">สถานะ</span>
+                        <span class=\"info-value\">
+                            <span class=\"badge badge-valid\">
+                                ใช้งานได้
+                            </span>
+                        </span>
+                    </div>·············
+            </div>
+            <div class=\"footer\">
+                <p>ตรวจสอบเมื่อ: 15/8/2569 12:11:56</p>
+                <p>ระบบรับรองมาตรฐาน GACP สมุนไพร | GACP Thai Platform</p>
+            </div>
+        </div>
+    </body>
+    </html>
+        "
+
+    [0m [90m 166 |[39m
+     [90m 167 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 168 |[39m         expect(res[33m.[39mtext)[33m.[39mtoContain([32m'ผู้ถือใบรับรอง'[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 169 |[39m         expect(res[33m.[39mtext)[33m.[39mtoContain([32m'บริษัท สมุนไพรไทย จำกัด'[39m)[33m;[39m
+     [90m 170 |[39m         expect(res[33m.[39mtext)[33m.[39mnot[33m.[39mtoContain([32m'ผู้ประกอบการ'[39m)[33m;[39m
+     [90m 171 |[39m         expect(res[33m.[39mtext)[33m.[39mnot[33m.[39mtoContain([32m'สมชาย ใจดี'[39m)[33m;[39m   [90m// raw person name must be absent[39m[0m
+
+      at Object.toContain (__tests__/unit/public-verify-holder-display.test.js:168:26)
+
+  ● PDF placeholder map — APPLICANT_NAME carries the holder › prints the holder name when holderDisplayName is set
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "บริษัท สมุนไพรไทย จำกัด"
+    Received: "สมชาย ใจดี"
+
+    [0m [90m 198 |[39m         })[33m;[39m
+     [90m 199 |[39m         [90m// The PDF is the legal document — it is never masked.[39m
+    [31m[1m>[22m[39m[90m 200 |[39m         expect(ctx[33m.[39m[33mAPPLICANT_NAME[39m)[33m.[39mtoBe([32m'บริษัท สมุนไพรไทย จำกัด'[39m)[33m;[39m
+     [90m     |[39m                                    [31m[1m^[22m[39m
+     [90m 201 |[39m     })[33m;[39m
+     [90m 202 |[39m
+     [90m 203 |[39m     it([32m'falls back to applicantName for pre-backfill rows, then to "-"'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toBe (__tests__/unit/public-verify-holder-display.test.js:200:36)
+
+Test Suites: 1 failed, 1 total
+Tests:       8 failed, 2 passed, 10 total
+Snapshots:   0 total
+Time:        2.34 s, estimated 7 s
+Ran all test suites matching /__tests__\\unit\\public-verify-holder-display.test.js/i.

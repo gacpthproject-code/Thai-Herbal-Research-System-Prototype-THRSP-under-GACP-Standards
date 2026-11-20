@@ -1,0 +1,88 @@
+AUTH-01-A / A3 — RED evidence for the grep-pin
+==============================================
+__tests__/unit/identity-provider-naming-collision.test.js เขียวตั้งแต่เกิด เพราะวันนี้
+ยังไม่มีโค้ดจุดไหน map provider_id ↔ providerId — มันคือ **pin ไม่ใช่ fix** (Law 3.11)
+ดังนั้น RED ที่มีความหมายคือการพิสูจน์ว่ามันไม่ผ่านแบบว่าง: ใส่ไฟล์ที่ละเมิดจริงลงไป
+ชั่วคราว แล้วดูว่ามันจับได้
+
+Mutation ที่ใส่ (ลบทิ้งทันทีหลัง capture — apps/backend/services/__auth01a_mutation_probe.js):
+
+    'use strict';
+    async function linkStaff(prisma, profile, userId) {
+        const { provider_id, hash_cid } = profile;
+        await prisma.user.update({
+            where: { id: userId },
+            data: { providerId: provider_id, providerIdHash: hash_cid },
+        });
+        const link = { provider: 'providerid', subject: profile.account_id };
+        await prisma.user.update({ where: { id: userId }, data: { providerId: link.subject } });
+        await prisma.identityLink.create({
+            data: { userId, provider: 'providerid', subject: link.subject },
+        });
+    }
+    module.exports = { linkStaff };
+
+คำสั่ง: npx jest --config jest.config.cjs --no-coverage --forceExit \
+          --testPathPattern 'unit/identity-provider-naming-collision'
+ผล: 3 failed / 1 passed (ตัวที่ผ่านคือ sanity floor ซึ่งต้องผ่านเสมอ)
+--------------------------------------------------------------------------
+      138 |             });
+      139 |         }
+    > 140 |         expect(violations).toEqual([]);
+          |                            ^
+      141 |     });
+      142 |
+      143 |     it('ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ)', () => {
+
+      at Object.toEqual (__tests__/unit/identity-provider-naming-collision.test.js:140:28)
+
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "services/__auth01a_mutation_probe.js:10 await prisma.user.update({ where: { id: userId }, data: { providerId: link.subject } });",
+    + ]
+
+      150 |             });
+      151 |         }
+    > 152 |         expect(violations).toEqual([]);
+          |                            ^
+      153 |     });
+      154 |
+      155 |     it('ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID', () => {
+
+      at Object.toEqual (__tests__/unit/identity-provider-naming-collision.test.js:152:28)
+
+  ● [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID) › ไม่มีโค้ดเขียน row ของ identity_links สำหรับ provider จริง — เส้น linking ยังติดธง D-MANUAL-HASHCID
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Array []
+    + Array [
+    +   "services/__auth01a_mutation_probe.js:11 identity_links write → services/__auth01a_mutation_probe.js:9 const link = { provider: 'providerid', subject: profile.account_id };",
+    +   "services/__auth01a_mutation_probe.js:11 identity_links write → services/__auth01a_mutation_probe.js:12 data: { userId, provider: 'providerid', subject: link.subject },",
+    + ]
+
+      171 |             });
+      172 |         }
+    > 173 |         expect(violations).toEqual([]);
+          |                            ^
+      174 |     });
+      175 | });
+      176 |
+
+      at Object.toEqual (__tests__/unit/identity-provider-naming-collision.test.js:173:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 1 passed, 4 total
+Snapshots:   0 total
+Time:        1.109 s, estimated 2 s
+Ran all test suites matching /unit\/identity-provider-naming-collision/i.

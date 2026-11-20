@@ -1,0 +1,13 @@
+# R2 Task 10 side fix — POST /api/farms refusals orphaned the stored photo — 2026-10-03
+Defect: multer stores evidence_photo before the handler runs; the 400 (missing fields),
+403 (FARM_CREATE denied) and 500 paths returned without removing it, so a refusal left a
+file in apps/backend/public/uploads that no farm row points at.
+Real Postgres :55437 (postgres:17, migrate deploy, jest -i), real server, real engine.
+Key mtime 1788623435 before/after.
+
+RED (base e9b8bcf7, test only) — farm-create-holder-real-postgres.test.js: 2 failed, 1 passed (3)
+  x missing required fields with a photo -> 400; nothing written, photo discarded   (files +1)
+  x MANAGER B on C -> 403 ENTITY_PERMISSION_DENIED; nothing written, photo discarded (files +1)
+  v A (OWNER) on C -> 201, photo kept (pin)
+GREEN (routes/api/cultivation/farms.js discards via upload-content-guard.discardRejectedUpload):
+  3 passed (3), 0 skipped; farm-permission-gates 10/10 and farm-entityid-stamp 10/10 unchanged.

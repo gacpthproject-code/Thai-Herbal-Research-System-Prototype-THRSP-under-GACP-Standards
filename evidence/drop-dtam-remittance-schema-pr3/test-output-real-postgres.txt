@@ -1,0 +1,69 @@
+GREEN — real Postgres 17 scratch (127.0.0.1:5443, random password, not printed) · node v24.21.0 · code = 397c1bde (committed)
+cmd: npx jest --config jest.config.cjs <3 integration files> -i
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T17:11:52.393Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T17:11:52.396Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T17:11:52.398Z"}
+[32minfo[39m: [org-user-create] org=wts-B-mumxongi311d2a userId=3625225a-7087-4681-a0d9-150f5f036a8a role=system_admin_dtam by=5d62dd8b-aba4-4a84-b163-21eba2e83cab {"service":"platform-admin-organizations","timestamp":"2026-09-29T17:11:54.537Z"}
+[33mwarn[39m: Unauthorized role access attempt {"normalizedUserRole":"system_admin_dtam","path":"/42375ed8-00cb-47ba-8451-01cea223a3ec/users","requiredRoles":["system_admin_platform"],"service":"gacp-backend","timestamp":"2026-09-29T17:11:54.625Z","userId":"555e2e0e-a833-4dbe-b791-0246362741d0","userRole":"system_admin_dtam"}
+[32minfo[39m: [Revision Deadline Checker] Starting check... {"service":"gacp-backend","timestamp":"2026-09-29T17:11:54.916Z"}
+[32minfo[39m: [Revision Deadline Checker] Found 1 active deadlines {"service":"gacp-backend","timestamp":"2026-09-29T17:11:54.921Z"}
+[32minfo[39m: [Revision Deadline Checker] Auto-cancelled: WTS-RD-mumxongi311d2a (deadline: 2026-08-30T17:11:54.913Z, status: REVISION_REQUESTED → EXPIRED) {"service":"gacp-backend","timestamp":"2026-09-29T17:11:55.047Z"}
+[32minfo[39m: [Revision Deadline Checker] Completed: 1 checked, 1 expired, 0 errors {"service":"gacp-backend","timestamp":"2026-09-29T17:11:55.080Z"}
+[32minfo[39m: [reconcile] settlement reconcile complete {"deadLettered":0,"errors":0,"reDrivenOrders":0,"retriedEvents":0,"service":"settlement-reconcile","timestamp":"2026-09-29T17:11:55.119Z"}
+PASS __tests__/integration/without-tenant-scope-lazy.int.test.js
+  withoutTenantScope runs a lazy PrismaPromise with no tenant bound (real Postgres)
+    S6 — last-admin guard, caller bound to org A, target in org B
+      ✓ service: assertNotLastActiveAdmin refuses to remove org B's only admin (48 ms)
+      ✓ real door: PATCH disabling org B's only admin answers 409 and the row stays ACTIVE (300 ms)
+      ✓ control: org C has two admins, so disabling one of them succeeds (35 ms)
+    platform-admin provisioning — caller bound to org A creates a user in org B
+      ✓ POST /api/platform-admin/organizations/:orgB/users answers 201 and the row lands in org B (461 ms)
+    M1 pin — a tenant admin of org A cannot reach org B's staff (provider.js :92 / :705)
+      ✓ :92 PATCH on org B's staff answers 404 and org B's row is unchanged (14 ms)
+      ✓ :92 DELETE on org B's staff answers 404 and org B's row is unchanged (14 ms)
+      ✓ :705 unlock on org B's staff answers 404 and the account stays locked (13 ms)
+      ✓ control: the same admin unlocks a staff member of its own org A (21 ms)
+    M2 pin — organizations POST /:id/users refuses a non-platform admin
+      ✓ tenant admin of org A → 403 AUTHORIZATION_ERROR, no user created in org B (14 ms)
+    S7 — a REVOKE stored under org B, caller bound to org A
+      ✓ the fixture really is a default MANAGER permission (1 ms)
+      ✓ effective permissions honour the REVOKE (5 ms)
+      ✓ revoking the member removes its grant rows (no resurrect on re-invite) (17 ms)
+    revision-deadline fan-out stays in the deadline's org
+      ✓ an expired deadline in org B notifies org B's dispatcher and not org C's (417 ms)
+    money path — settlement-reconcile runs with no tenant (behaviour unchanged)
+      ✓ stale PENDING_PAYMENT orders from every org reach the gateway question (36 ms)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T17:11:58.091Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T17:11:58.092Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T17:11:58.093Z"}
+[32minfo[39m: [checkout] intent ready {"actorId":"3137b9c6-2f4a-4c63-a4a5-ac1d8d48036f","applicationId":"60da2ed5-c043-4d55-820b-1b3fe69bd663","checkoutOrderId":"7836965e-8462-4d60-b30a-fb47aca607a9","milestone":"M1","service":"gacp-backend","timestamp":"2026-09-29T17:12:03.020Z"}
+[32minfo[39m: [journal-entry] balanced entry for invoice INV-CO-7836965E-M1 Dr=5885 Cr=5885 lines=3 {"entry":{"balanced":true,"description":"Payment received for invoice INV-CO-7836965E-M1","entryDate":"2026-09-29T17:12:03.056Z","invoiceId":"06f3357c-2bb2-496c-b98b-b31479ff9129","invoiceNumber":"INV-CO-7836965E-M1","lines":[{"accountCode":"1110-001","accountName":"เงินสด/เงินฝากธนาคาร · บัญชีหลัก","credit":0,"debit":5885,"issuer":"PLATFORM","lineNumber":1,"memo":"Cash received — invoice INV-CO-7836965E-M1"},{"accountCode":"4110-001","accountName":"รายได้ค่าบริการ","credit":5500,"debit":0,"issuer":"PLATFORM","lineNumber":2,"memo":"Service fee — CERTIFICATION_CHECKOUT_M1"},{"accountCode":"2131-001","accountName":"ภาษีขายตั้งพัก (Output VAT 7%)","credit":385,"debit":0,"issuer":"PLATFORM","lineNumber":3,"memo":"Output VAT 7% — INV-CO-7836965E-M1"}],"reference":"INV-CO-7836965E-M1","totalCredit":5885,"totalDebit":5885},"entryId":"aa99f102-b56a-492f-af68-1f55eaffbfc6","fallbackReason":null,"invoiceId":"06f3357c-2bb2-496c-b98b-b31479ff9129","invoiceNumber":"INV-CO-7836965E-M1","service":"gacp-backend","timestamp":"2026-09-29T17:12:03.286Z"}
+[32minfo[39m: [checkout-settle] settled {"checkoutOrderId":"7836965e-8462-4d60-b30a-fb47aca607a9","eventId":"evt_pr3_1790701915604_o7u3cs","milestone":"M1","service":"gacp-backend","targetState":"DOC_FEE_PAID","timestamp":"2026-09-29T17:12:03.370Z"}
+PASS __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js (10.301 s)
+  PR3: ดรอป schema ของ DTAM remittance บน Postgres จริง
+    1. ฐานที่ยังมี order ค้างส่วนของกรมฯ
+      ✓ ตัวตรวจก่อน deploy: exit 1 พร้อมตัวเลขต่อสถานะ และไม่พิมพ์รหัสผ่านฐาน (150 ms)
+      ✓ migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย (687 ms)
+      ✓ หลังถูกปฏิเสธ: migrate resolve --rolled-back แล้วแก้แถวที่ขวาง → deploy ซ้ำผ่าน (2428 ms)
+    2. ฐานที่ order เก่าถูกปลดแล้ว
+      ✓ ตัวตรวจก่อน deploy: exit 0 (222 ms)
+      ✓ migrate deploy ผ่าน: ตารางและคอลัมน์หาย, CHECK ใหม่อยู่, แถวเก่ายังอยู่และยอดไม่ถูกแตะ (815 ms)
+      ✓ CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้ (71 ms)
+      ✓ mint + settle ใหม่ทั้งเส้นบนคำขอเดียวกับ order เก่า: ลง 1110-001 / 4110-001 / 2131-001 เท่านั้น (494 ms)
+      ✓ หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้ (901 ms)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T17:12:05.876Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T17:12:05.877Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T17:12:05.878Z"}
+[32minfo[39m: [checkout] intent ready {"actorId":"272a92e0-665d-495f-8872-fa598670c859","applicationId":"6d9e3e51-bf6a-4469-87aa-cbfd7f2d1493","checkoutOrderId":"353f2032-3875-416c-ba9d-f9070e675236","milestone":"M1","service":"gacp-backend","timestamp":"2026-09-29T17:12:06.093Z"}
+[32minfo[39m: [checkout] intent ready {"actorId":"272a92e0-665d-495f-8872-fa598670c859","applicationId":"6d9e3e51-bf6a-4469-87aa-cbfd7f2d1493","checkoutOrderId":"c052392e-5dde-41b6-a8e7-00e1e45ff805","milestone":"M1","service":"gacp-backend","timestamp":"2026-09-29T17:12:06.138Z"}
+PASS __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js
+  payment_intent.canceled lets the applicant pay again, on a real Postgres
+    ✓ A. ordinary order: canceled webhook → order CANCELLED + invoice retired (deletedBy/deleteReason) + charge CANCELLED → next press mints afresh (176 ms)
+
+Test Suites: 3 passed, 3 total
+Tests:       23 passed, 23 total
+Snapshots:   0 total
+Time:        15.054 s
+Ran all test suites matching __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js|__tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js|__tests__/integration/without-tenant-scope-lazy.int.test.js.

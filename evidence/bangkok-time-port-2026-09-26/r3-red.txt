@@ -1,0 +1,56 @@
+# RED round 3 item 1/3 — credit/debit-note-service.js as of 0d223ad3 (round 2), tests from round 3, real postgres:17-alpine
+## run 1
+      ✕ two concurrent issues of the same draft: one succeeds, one number is drawn, the audit names only it (206 ms)
+      ✓ an abandoned draft takes no number; the next issued note is the next number (no gap) (123 ms)
+      ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue (90 ms)
+      ✕ two concurrent issues of the same draft: one succeeds, one number is drawn, the audit names only it (140 ms)
+      ✓ an abandoned draft takes no number; the next issued note is the next number (no gap) (103 ms)
+      ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue (45 ms)
+    Expected: "CN-PRD-2026-982529"
+    Received: "CN-PRD-2026-000010"
+    Expected: "DN-PRD-2026-962993"
+    Received: "DN-PRD-2026-000010"
+Tests:       4 failed, 2 passed, 6 total
+## run 2
+      ✕ two concurrent issues of the same draft: one succeeds, one number is drawn, the audit names only it (159 ms)
+      ✓ an abandoned draft takes no number; the next issued note is the next number (no gap) (94 ms)
+      ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue (64 ms)
+      ✕ two concurrent issues of the same draft: one succeeds, one number is drawn, the audit names only it (60 ms)
+      ✓ an abandoned draft takes no number; the next issued note is the next number (no gap) (56 ms)
+      ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue (42 ms)
+    Expected: "CN-PRD-2026-903424"
+    Received: "CN-PRD-2026-000014"
+    Expected: "DN-PRD-2026-998738"
+    Received: "DN-PRD-2026-000014"
+Tests:       4 failed, 2 passed, 6 total
+## unit, same revert
+    ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue — no new number, no gap (25 ms)
+    ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue — no new number, no gap (18 ms)
+Tests:       2 failed, 12 passed, 14 total
+## unit, same revert (fixed race fixture)
+    ✕ the second issue is refused before it draws a number (one number used, no gap) (34 ms)
+    ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue — no new number, no gap (36 ms)
+    ✕ the second issue is refused before it draws a number (one number used, no gap) (21 ms)
+    ✕ a draft that already holds a number (made before 2026-09-26) keeps it at issue — no new number, no gap (23 ms)
+Tests:       4 failed, 10 passed, 14 total
+
+# RED round 3 item 2 — guard/journal-entry-service/manual-journal-entry-service as of 2d9974f3, tests from 4db2977c, TZ=UTC children
+    ✕ period-close-service fails to load → the guard refuses (73 ms)
+    ✕ period-close-service fails to load → journal-entry-service refuses (77 ms)
+    ✕ the guard fails to load → journal-entry-service refuses (84 ms)
+    ✕ period-close-service fails to load → manual journal entry refuses (107 ms)
+    ✕ the guard fails to load → manual journal entry refuses (95 ms)
+    Expected: "PERIOD_CHECK_UNAVAILABLE"
+    Received: "POSTED"
+    Expected: "PERIOD_CHECK_UNAVAILABLE"
+    Received: "POSTED"
+    Expected: "PERIOD_CHECK_UNAVAILABLE"
+    Received: "POSTED"
+    Expected: "PERIOD_CHECK_UNAVAILABLE"
+    Received: "VALIDATION_ERROR"
+    Expected: "PERIOD_CHECK_UNAVAILABLE"
+    Received: "VALIDATION_ERROR"
+      ✕ fails CLOSED when period-close-service has no isPeriodClosed (controller ruling 2026-09-26) (17 ms)
+      ✕ fails CLOSED when period-close-service throws while loading (24 ms)
+Tests:       7 failed, 23 passed, 30 total
+(manual-JE cases on the old code: VALIDATION_ERROR from the stub's empty lines — the post went PAST the missing guard; with valid lines it would have posted)

@@ -1,0 +1,80 @@
+# RED — round 1 (22496da7) superseded summary; round 2 additions at the end
+# RED — captured 2026-10-03 before implementation (worktree wt-pt12, HEAD 71be1915)
+## backend (jest, scratch postgres:17 :55445)
+FAIL __tests__/integration/payment-terms-v1-2-rollout-real-postgres.test.js
+    ✕ the runtime under test is v1.2 and the reproduced v1.1 deploy is v1.1 (6 ms)
+    ✕ (a) a v1.1-only applicant is asked to accept v1.2 before the next checkout; the order then carries v1.2 (157 ms)
+    ✕ (b)+(c) an order minted under v1.1 and still in flight settles from its webhook after v1.2 ships, keeping its v1.1 stamp (368 ms)
+    ✓ (c) re-entering an in-flight v1.1 order after accepting v1.2 hands back the same order, stamp unchanged, and it settles (494 ms)
+    Expected: "payment-terms-th-v1.2"
+    Received: "payment-terms-th-v1.1"
+    Received promise resolved instead of rejected
+FAIL __tests__/unit/payment-terms-v1-2-is-the-current-terms.test.js
+    ENOENT: no such file or directory, open '/home/ubuntu/work/wt-pt12/docs/legal/payment-terms-th-v1.2.md'
+FAIL __tests__/unit/consent-version-matches-the-published-document.test.js
+    ✕ PAYMENT_TERMS defaults to the newest published payment-terms document, with no env var set (4 ms)
+    ✓ the document that default names is the one that carries the version string (1 ms)
+    ✓ the env var still overrides the default (ops can bump without a code deploy) (1 ms)
+    ✓ a category with no published document in this tree keeps the historical baseline (1 ms)
+    ✕ getUserConsents reports the version in force beside the version each grant was given under (3 ms)
+    Expected: "payment-terms-th-v1.2"
+    Received: "payment-terms-th-v1.1"
+Test Suites: 3 failed, 3 total
+Tests:       5 failed, 4 passed, 9 total
+
+## web (jest)
+FAIL src/__tests__/truthful-copy/payment-terms-summary-is-the-published-document.test.ts
+FAIL src/app/health/payments/checkout/__tests__/checkout-terms-are-v1-2.test.tsx
+    ✕ names the document and its edition: ฉบับที่ 1.2 (48 ms)
+    ✕ names every line with the catalogue names the finance documents print (10 ms)
+    ✕ states what each line covers (§2.5) (8 ms)
+    ✕ states one fee with no state part, and what it does not include (§2.6) (27 ms)
+    ✕ carries none of the retired v1.1 wording (7 ms)
+    ✓ an applicant whose grant is v1.1 is shown the box again, not "already accepted" (7 ms)
+Test Suites: 2 failed, 2 total
+Tests:       5 failed, 1 passed, 6 total
+
+## backend integration, restructured (isolateModulesAsync) — re-run against PUBLISHED_CONSENT_VERSIONS.PAYMENT_TERMS='payment-terms-th-v1.1' (constant flipped back by sed, then restored)
+    ✕ the runtime under test is v1.2 and the reproduced v1.1 deploy is v1.1 (7 ms)
+    ✕ (a) a v1.1-only applicant is asked to accept v1.2 before the next checkout; the order then carries v1.2 (169 ms)
+    ✕ (b)+(c) an order minted under v1.1 and still in flight settles from its webhook after v1.2 ships, keeping its v1.1 stamp (376 ms)
+    ✓ (c) re-entering an in-flight v1.1 order after accepting v1.2 hands back the same order, stamp unchanged, and it settles (482 ms)
+    Expected: "payment-terms-th-v1.2"
+    Received: "payment-terms-th-v1.1"
+    + Received  + 1
+    Received promise resolved instead of rejected
+Tests:       3 failed, 1 passed, 4 total
+Note: test (c) re-entry and the web 'v1.1 grant shows the box' test are green before the change = PINS, not fixes.
+
+## web copy RED (pricing / service-facts refund door / truthful-copy reader moved to v1.2) — before service-facts.ts + pricing/page.tsx edits
+FAIL src/__tests__/truthful-copy/service-facts-module.test.ts
+    ✕ every refund line is a rule payment-terms v1.2 states (§7, §10, §11) (4 ms)
+FAIL src/__tests__/truthful-copy/payee-channel-and-refund-are-one-story.test.tsx
+    ✕ states the refund rule of payment-terms v1.2 and nothing it does not say (3 ms)
+    ✕ gives the refund rule of payment-terms v1.2, with no 7-day phase-2 refund (1 ms)
+FAIL src/__tests__/truthful-copy/pricing-page-follows-payment-terms-v1-2.test.tsx
+    ✕ says its refund section summarises v1.2 by its own title and edition (6 ms)
+    ✕ names the rows with the catalogue the quotation, invoice and receipt print (1 ms)
+    ✕ states what each row covers as §2.5 does, and the §2.6 single fee (1 ms)
+    ✕ no longer claims the price covers inspector pay, travel or lodging (1 ms)
+    ✕ gives the v1.2 refund door and the §7.2 (ง) refund (1 ms)
+PASS src/__tests__/truthful-copy/onboarding-and-faq-fees-and-validity.test.tsx
+PASS src/__tests__/truthful-copy/the-charge-is-called-kha-borikan.test.ts
+PASS src/__tests__/truthful-copy/contact-emails-one-source.test.ts
+PASS src/__tests__/truthful-copy/payment-terms-summary-is-the-published-document.test.ts
+PASS src/__tests__/truthful-copy/platform-status-claims.test.tsx
+Test Suites: 3 failed, 5 passed, 8 total
+Tests:       8 failed, 69 passed, 77 total
+
+## round 2 (2026-10-03, on top of merge 0db1648f)
+### placeholder + catalogue guards — temporary '⟨หมายเลขโทรศัพท์⟩ TODO' line + one coverage word changed in v1.2, then reverted (sha256 prefix 8530760a1d6c9e75 before and after)
+    ✕ the published text carries no ⟨…⟩ placeholder, no TODO and no ร่าง (operator filled §7.3/§11.1 on 2026-10-03) (2 ms)
+    ✕ §2.5 prints each catalogue name and coverage exactly (the documents print "ครอบคลุม: " where the terms print the name) (3 ms)
+    Expected pattern: not /⟨[^⟩]*⟩/
+    Received string:      "# เงื่อนไขการชำระค่าบริการและการคืนเงิน (ฉบับที่ 1.2)
+    Expected value: "- งวดที่ 1 ค่าบริการตรวจสอบเอกสาร: รับและตรวจความครบถ้วน ความถูกต้องของเอกสารคำขอตามหลักเกณฑ์ GACP · ตรวจเบื้องต้นด้วยระบบ · แจ้งผลและรับเอกสารแก้ไข · จัดเก็บเอกสารอิเล็กทรอนิกส์ · ใช้งานระบบยื่นคำขอและติดตามสถานะออนไลน์"
+Tests:       2 failed, 13 passed, 15 total
+### travel-words guard (fee-line-names-retired-variants) — before the §2.6 exemption, full suite reported:
+    + "apps/web-app/src/constants/payment-terms.ts:55"   (1 failed)
+### exemption is narrow — mutant appending 'ราคานี้รวมค่าที่พักผู้ตรวจ' to that same line, then reverted:
+    + "apps/web-app/src/constants/payment-terms.ts:55"   Tests: 1 failed, 2 passed, 3 total

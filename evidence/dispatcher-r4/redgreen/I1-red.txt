@@ -1,0 +1,55 @@
+FAIL __tests__/unit/formdata-national-id-mask.test.js
+  maskFormDataNationalIds
+    ✓ masks every national-ID key, bare, formatted or a number, at any depth (5 ms)
+    ✓ masks a Mod-11 national ID under any key, and leaves a 13-digit string that fails Mod-11 (1 ms)
+    ✓ keeps what only looks like digits: a staff UUID, an epoch in a stored file name, a numeric timestamp, a registration code (2 ms)
+    ✓ a staff key that holds text keeps the text and masks only the 13-digit run in it (1 ms)
+    ✓ does not touch the stored blob (3 ms)
+    ✕ nationalId is encrypted at rest as well as masked on a staff screen (3 ms)
+    ✕ authorisedIdCard is encrypted at rest as well as masked on a staff screen (2 ms)
+  maskApplicationForStaff
+    ✓ masks the filing and its history and leaves out healthId (2 ms)
+  isMaskedEchoOfStored
+    ✓ the masked value a screen showed is an echo; a newly typed number and other keys are not (1 ms)
+  isMaskedNationalIdFragment
+    ✓ a national ID still carrying the mask letter is a fragment; a full number and other keys are not (1 ms)
+
+  ● maskFormDataNationalIds › nationalId is encrypted at rest as well as masked on a staff screen
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      70 |         const failsMod11 = `${ID.slice(0, 12)}${(Number(ID[12]) + 1) % 10}`;
+      71 |         expect(maskFormDataNationalIds({ applicantData: { [key]: failsMod11 } }).applicantData[key]).toBe(`1-XXXX-XXXX-X-${failsMod11.slice(9)}`);
+    > 72 |         expect(encryptFormDataPii({ applicantData: { [key]: failsMod11 } }).applicantData[key].startsWith(VERSION_PREFIX)).toBe(true);
+         |                                                                                                                            ^
+      73 |     });
+      74 | });
+      75 |
+
+      at toBe (__tests__/unit/formdata-national-id-mask.test.js:72:124)
+
+  ● maskFormDataNationalIds › authorisedIdCard is encrypted at rest as well as masked on a staff screen
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      70 |         const failsMod11 = `${ID.slice(0, 12)}${(Number(ID[12]) + 1) % 10}`;
+      71 |         expect(maskFormDataNationalIds({ applicantData: { [key]: failsMod11 } }).applicantData[key]).toBe(`1-XXXX-XXXX-X-${failsMod11.slice(9)}`);
+    > 72 |         expect(encryptFormDataPii({ applicantData: { [key]: failsMod11 } }).applicantData[key].startsWith(VERSION_PREFIX)).toBe(true);
+         |                                                                                                                            ^
+      73 |     });
+      74 | });
+      75 |
+
+      at toBe (__tests__/unit/formdata-national-id-mask.test.js:72:124)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 8 passed, 10 total
+Snapshots:   0 total
+Time:        0.578 s, estimated 1 s
+Ran all test suites matching __tests__/unit/formdata-national-id-mask.test.js.

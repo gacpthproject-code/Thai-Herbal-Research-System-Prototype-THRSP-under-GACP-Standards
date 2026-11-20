@@ -1,0 +1,735 @@
+<title>API & Database Audit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600&display=swap">
+
+<style>
+  :root{
+    --ground:#fbfaf8; --surface:#ffffff; --sunk:#f2f1ed;
+    --ink:#16191c; --ink-soft:#3c4348; --muted:#5e676d;
+    --rule:#e0e2de; --rule-strong:#c6cac6;
+    --accent:#1c5f7a; --accent-soft:#e9f1f4;
+    --crit:#9d2235; --crit-soft:#fbeef0;
+    --perf:#8a5a10; --perf-soft:#fbf4e6;
+    --cons:#1c5f7a; --cons-soft:#e9f1f4;
+    --good:#1a6b4a;
+    --f-ui:'IBM Plex Sans Thai','Noto Sans Thai',system-ui,sans-serif;
+    --f-body:'Sarabun','IBM Plex Sans Thai',system-ui,sans-serif;
+    --f-mono:'IBM Plex Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+    --w:min(100% - 2.5rem, 76rem);
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --ground:#0e1113; --surface:#161a1d; --sunk:#111517;
+      --ink:#e7eaeb; --ink-soft:#c0c7ca; --muted:#8f9a9f;
+      --rule:#262c30; --rule-strong:#394247;
+      --accent:#63b6d4; --accent-soft:#122b35;
+      --crit:#f4909c; --crit-soft:#2b1418;
+      --perf:#e2b366; --perf-soft:#2a2114;
+      --cons:#63b6d4; --cons-soft:#122b35;
+      --good:#63cd91;
+    }
+  }
+  :root[data-theme="dark"]{
+    --ground:#0e1113; --surface:#161a1d; --sunk:#111517;
+    --ink:#e7eaeb; --ink-soft:#c0c7ca; --muted:#8f9a9f;
+    --rule:#262c30; --rule-strong:#394247;
+    --accent:#63b6d4; --accent-soft:#122b35;
+    --crit:#f4909c; --crit-soft:#2b1418;
+    --perf:#e2b366; --perf-soft:#2a2114;
+    --cons:#63b6d4; --cons-soft:#122b35;
+    --good:#63cd91;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--ground);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.72;-webkit-font-smoothing:antialiased}
+  .wrap{width:var(--w);margin-inline:auto}
+
+  header.mast{border-bottom:1px solid var(--rule);background:var(--surface)}
+  .mast-in{width:var(--w);margin-inline:auto;padding:3.5rem 0 2.5rem}
+  .kicker{font-family:var(--f-mono);font-size:.7rem;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);margin:0 0 1.25rem}
+  h1{font-family:var(--f-ui);font-weight:700;font-size:clamp(2rem,4.2vw,2.9rem);line-height:1.3;margin:0 0 1rem;text-wrap:balance;max-width:24ch}
+  .standfirst{font-size:1.05rem;color:var(--ink-soft);max-width:64ch;margin:0 0 2rem}
+  .meta{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);grid-template-columns:repeat(auto-fit,minmax(150px,1fr))}
+  .meta div{background:var(--surface);padding:.8rem 1rem}
+  .meta dt{font-family:var(--f-mono);font-size:.64rem;letter-spacing:.13em;text-transform:uppercase;color:var(--muted);margin:0 0 .3rem}
+  .meta dd{margin:0;font-family:var(--f-ui);font-weight:600;font-size:.95rem;line-height:1.4}
+
+  section{padding:3.25rem 0}
+  section+section{border-top:1px solid var(--rule)}
+  h2{font-family:var(--f-ui);font-weight:700;font-size:1.55rem;line-height:1.35;margin:0 0 .5rem;text-wrap:balance}
+  h2 .num{font-family:var(--f-mono);font-size:.78rem;color:var(--muted);display:block;letter-spacing:.14em;margin-bottom:.4rem;font-weight:500}
+  h3{font-family:var(--f-ui);font-weight:600;font-size:1.06rem;margin:0 0 .4rem;line-height:1.45}
+  .lede{color:var(--ink-soft);max-width:66ch;margin:0 0 2rem}
+  p{margin:0 0 1rem}
+  a{color:var(--accent)}
+  code{font-family:var(--f-mono);font-size:.86em;background:var(--sunk);padding:.1em .32em;border-radius:2px}
+  pre{font-family:var(--f-mono);font-size:.76rem;line-height:1.65;background:var(--surface);border:1px solid var(--rule);padding:.8rem .95rem;margin:.55rem 0 0;overflow-x:auto}
+  pre code{background:none;padding:0}
+
+  .tally{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);grid-template-columns:repeat(auto-fit,minmax(170px,1fr));margin-bottom:2rem}
+  .tally div{background:var(--surface);padding:1.35rem 1.2rem}
+  .tally .n{font-family:var(--f-mono);font-size:2.2rem;font-weight:600;line-height:1;display:block;margin-bottom:.5rem}
+  .tally .lbl{font-family:var(--f-ui);font-size:.85rem;font-weight:600;display:block;line-height:1.4}
+  .tally .sub{font-size:.79rem;color:var(--muted);display:block;margin-top:.15rem;line-height:1.45}
+  .t-c .n{color:var(--crit)} .t-p .n{color:var(--perf)} .t-y .n{color:var(--cons)} .t-g .n{color:var(--good)}
+
+  .note{border:1px solid var(--rule-strong);background:var(--sunk);padding:1.2rem 1.35rem;margin:0 0 2rem}
+  .note p:last-child{margin-bottom:0}
+  .note strong{font-family:var(--f-ui)}
+
+  .rec{background:var(--surface);border:1px solid var(--rule);border-left:4px solid var(--rule-strong);padding:1.4rem 1.5rem;margin:0 0 1.15rem}
+  .rec.c{border-left-color:var(--crit)} .rec.p{border-left-color:var(--perf)} .rec.y{border-left-color:var(--cons)}
+  .rec.done{border-left-color:var(--good)}
+  .rh{display:flex;flex-wrap:wrap;gap:.6rem;align-items:baseline;margin-bottom:.6rem}
+  .sev{font-family:var(--f-mono);font-size:.62rem;letter-spacing:.14em;text-transform:uppercase;font-weight:600;padding:.2rem .5rem;white-space:nowrap}
+  .sev.c{color:var(--crit);background:var(--crit-soft)}
+  .sev.p{color:var(--perf);background:var(--perf-soft)}
+  .sev.y{color:var(--cons);background:var(--cons-soft)}
+  .sev.g{color:var(--good);background:var(--accent-soft)}
+  .id{font-family:var(--f-mono);font-size:.72rem;color:var(--muted);letter-spacing:.06em}
+  .rec h3{flex:1 1 20rem;margin:0}
+  .rec p{font-size:.95rem;margin-bottom:.8rem}
+  .rec p:last-child{margin-bottom:0}
+  .where{font-family:var(--f-mono);font-size:.76rem;color:var(--muted);margin:0 0 .85rem;word-break:break-word;line-height:1.6}
+  .meas{display:grid;gap:1px;background:var(--rule);border:1px solid var(--rule);grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin:0 0 1rem}
+  .meas div{background:var(--sunk);padding:.65rem .8rem}
+  .meas dt{font-family:var(--f-mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 .25rem}
+  .meas dd{margin:0;font-family:var(--f-mono);font-size:.92rem;font-weight:500;line-height:1.4;word-break:break-word}
+  .meas dd.bad{color:var(--crit)} .meas dd.ok{color:var(--good)}
+  .fix{background:var(--sunk);border:1px solid var(--rule);padding:.95rem 1.1rem;margin-top:.9rem}
+  .cap{font-family:var(--f-mono);font-size:.6rem;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);display:block;margin-bottom:.45rem}
+  .fix p{font-size:.92rem;margin-bottom:.5rem}
+  .fix p:last-child{margin-bottom:0}
+
+  .tscroll{overflow-x:auto;border:1px solid var(--rule);margin-bottom:1.25rem}
+  table{border-collapse:collapse;width:100%;font-size:.87rem}
+  th,td{text-align:left;padding:.58rem .8rem;border-bottom:1px solid var(--rule);vertical-align:top}
+  th{font-family:var(--f-ui);font-weight:600;font-size:.76rem;letter-spacing:.04em;background:var(--sunk);white-space:nowrap}
+  td{background:var(--surface)}
+  td.m{font-family:var(--f-mono);font-size:.82rem;white-space:nowrap;font-variant-numeric:tabular-nums}
+  tr:last-child td{border-bottom:0}
+  .win{color:var(--good);font-weight:600}
+  .lose{color:var(--crit)}
+
+  ol.order{counter-reset:o;list-style:none;padding:0;margin:0}
+  ol.order li{counter-increment:o;position:relative;padding:1rem 0 1rem 3.2rem;border-bottom:1px solid var(--rule)}
+  ol.order li:last-child{border-bottom:0}
+  ol.order li::before{content:counter(o,decimal-leading-zero);position:absolute;left:0;top:1.05rem;font-family:var(--f-mono);font-size:.85rem;color:var(--muted);font-weight:500}
+  ol.order p{font-size:.91rem;color:var(--ink-soft);margin:0}
+  .cost{font-family:var(--f-mono);font-size:.71rem;color:var(--muted);display:block;margin-top:.35rem}
+
+  footer{border-top:1px solid var(--rule);background:var(--surface);padding:2.25rem 0 3.25rem}
+  footer p{font-size:.84rem;color:var(--muted);margin:0 0 .5rem}
+  @media (max-width:640px){ .mast-in{padding:2.5rem 0 2rem} section{padding:2.5rem 0} .rec{padding:1.15rem 1.05rem} }
+</style>
+
+<header class="mast">
+  <div class="mast-in">
+    <p class="kicker">API &amp; Database Audit · 8 กันยายน 2569</p>
+    <h1>เวลาที่หายไปเป็นระยะทาง ไม่ใช่ประสิทธิภาพฐานข้อมูล</h1>
+    <p class="standfirst">
+      ตรวจ 648 route handler และ 107 model บนระบบที่รันอยู่จริง — ยิง endpoint จริง วัด payload จริง
+      นับ query ต่อ request ด้วย <code>pg_stat_statements</code> และรัน middleware จริงกับข้อความไทยจริง
+      ทุกข้อในรายงานนี้มีตัวเลขหรือ file:line ที่เปิดตรวจซ้ำได้
+    </p>
+    <dl class="meta">
+      <div><dt>Endpoint</dt><dd>648</dd></div>
+      <div><dt>Prisma model</dt><dd>107</dd></div>
+      <div><dt>ตาราง / index</dt><dd>108 / 594</dd></div>
+      <div><dt>ข้อค้นพบ</dt><dd>89</dd></div>
+      <div><dt>ผ่านการหักล้าง</dt><dd>73</dd></div>
+      <div><dt>แก้แล้ววันนี้</dt><dd>4</dd></div>
+    </dl>
+  </div>
+</header>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ผลรวม</span>สิ่งที่วัดได้ก่อนจะพูดถึงอะไรทั้งสิ้น</h2>
+    <p class="lede">
+      การตรวจเริ่มจากคำถามเดียว — เวลาที่ผู้ใช้รอ หายไปไหน — และคำตอบเปลี่ยนลำดับความสำคัญของทั้งรายงาน
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>สิ่งที่วัด</th><th>ค่าที่ได้</th><th>แปลว่าอะไร</th></tr></thead>
+        <tbody>
+          <tr><td>TCP connect ไปฐานข้อมูล</td><td class="m lose">244 ms</td><td>แอปอยู่สิงคโปร์ ฐานอยู่ซิดนีย์</td></tr>
+          <tr><td><code>SELECT 1</code></td><td class="m lose">244 ms</td><td>เท่ากับระยะทางเป๊ะ</td></tr>
+          <tr><td><code>count(*)</code> ทั้งตาราง</td><td class="m lose">251 ms</td><td>งานจริงในฐาน ≈ 7 ms · ที่เหลือคือเดินทาง</td></tr>
+          <tr><td>query ต่อ request (<code>/invoices/my</code>)</td><td class="m">~4</td><td>4 × 244 ms ≈ เวลาที่วัดได้จริง 813 ms</td></tr>
+          <tr><td>ขนาด response ของ endpoint นั้น</td><td class="m">26 ไบต์</td><td>array ว่าง — เวลาไม่ได้อยู่ที่ข้อมูล</td></tr>
+          <tr><td>OpenAPI ครอบคลุม</td><td class="m lose">48 / 648 = 7.4%</td><td>ผู้เชื่อมต่อภายนอกมองไม่เห็น 92.6% ของระบบ</td></tr>
+          <tr><td>route file ที่อ้าง validator</td><td class="m lose">3 / 187</td><td>การตรวจ input แทบไม่มีที่ชั้น route</td></tr>
+          <tr><td><code>findMany</code> ที่มี pagination</td><td class="m lose">90 / 435</td><td>รายการส่วนใหญ่คืนทั้งตาราง</td></tr>
+          <tr><td>POST ที่คืน 201</td><td class="m lose">45 / 205</td><td>สร้างของสำเร็จแต่ตอบ 200</td></tr>
+          <tr><td><code>$transaction</code></td><td class="m ok">67 ไฟล์ · 122 จุด</td><td>ใช้แพร่หลาย — จุดแข็งของระบบนี้</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="note">
+      <p><strong>บรรทัดที่สามคือหัวใจของรายงานนี้</strong></p>
+      <p>
+        <code>count(*)</code> ทั้งตารางกับ <code>SELECT 1</code> ใช้เวลาเท่ากัน — งานในฐานข้อมูลเกือบเป็นศูนย์
+        ดังนั้น <strong>index ที่ประหยัดได้ 5 ms ไม่มีความหมายเลย</strong> เมื่อการเดินทางไป-กลับหนึ่งครั้งราคา 244 ms
+        รายงานนี้จึงเรียงตาม <em>จำนวนรอบที่เดินทาง</em> ไม่ใช่ตามตำราการทำ index
+      </p>
+      <p>
+        และเพราะข้อนี้ ระหว่างการตรวจจึงย้ายฐาน demo กับ staging ไปสิงคโปร์ — <strong>244 ms กลายเป็น 4 ms</strong>
+        endpoint ที่วัดได้ 1,543 ms เหลือ 287 ms · รายละเอียดอยู่ใน
+        <code>evidence/supabase-singapore-2026-09-08/</code>
+      </p>
+    </div>
+
+    <div class="tally">
+      <div class="t-c"><span class="n">20</span><span class="lbl">Critical</span><span class="sub">พังหน้าที่ · ข้อมูลเสียหาย · ช่องโหว่</span></div>
+      <div class="t-p"><span class="n">21</span><span class="lbl">Performance</span><span class="sub">รอบเดินทางเกินจำเป็น · ดึงข้อมูลเกิน</span></div>
+      <div class="t-y"><span class="n">32</span><span class="lbl">Contract</span><span class="sub">สัญญาไม่คงเส้นคงวา</span></div>
+      <div class="t-g"><span class="n">4</span><span class="lbl">แก้แล้ววันนี้</span><span class="sub">อยู่ใน commit แล้ว</span></div>
+    </div>
+
+    <div class="note">
+      <p><strong>ข้อจำกัดที่ต้องบอกก่อนใช้ตัดสินใจ</strong></p>
+      <p>
+        89 ข้อผ่านชั้นหักล้างแบบ adversarial 73 ข้อ · <strong>ถูกปฏิเสธ 1 ข้อ</strong> ·
+        และ <strong>15 ข้อยังไม่ผ่านการตรวจสอบ</strong> เพราะ agent ตรวจสอบของ lane schema-cleanliness
+        ชนโควตารายสัปดาห์ — 15 ข้อนั้นอยู่ใน <code>findings.json</code> ทำเครื่องหมายว่า
+        <code>unverified</code> <strong>ยังไม่ควรใช้ตัดสินใจ</strong>
+      </p>
+      <p>
+        ข้อที่ผมพิสูจน์ซ้ำเองด้วยการรันจริงถูกทำเครื่องหมายไว้ในรายงานนี้ · และมีข้อหนึ่งที่ผมตรวจแล้ว
+        <strong>ไม่เป็นจริงกับระบบปัจจุบัน</strong> — เขียนไว้ในหัวข้อ "ข้อที่ตกไป" ท้ายรายงาน
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ส่วนที่หนึ่ง · API</span>สัญญาที่ผู้เชื่อมต่ออ่านไม่ออก</h2>
+
+    <article class="rec c">
+      <div class="rh"><span class="sev c">Critical</span><span class="id">VAL-01</span>
+        <h3>ตัวกรอง input ลบข้อความไทยธรรมดาทิ้งเงียบ ๆ ก่อนบันทึกลงฐาน</h3></div>
+      <p class="where">apps/backend/middleware/sanitize-input.js:14-32 — mount แบบ global ที่ server.js</p>
+      <p>
+        ผมรัน middleware ตัวจริงกับข้อความที่เจ้าหน้าที่และเกษตรกรพิมพ์ได้จริง ผลคือ:
+      </p>
+      <div class="tscroll">
+        <table>
+          <thead><tr><th>พิมพ์เข้าไป</th><th>ถูกบันทึกจริงเป็น</th></tr></thead>
+          <tbody>
+            <tr><td class="m">"สวนพงษ์ภูวนาท -- แปลงที่ 1"</td><td class="m lose">"สวนพงษ์ภูวนาท แปลงที่ 1"</td></tr>
+            <tr><td class="m">"onsite=ตรวจแล้ว"</td><td class="m lose">"ตรวจแล้ว"</td></tr>
+            <tr><td class="m">"ปุ๋ยสูตร 15-15-15 /* ใช้ตามฉลาก */"</td><td class="m lose">"ปุ๋ยสูตร 15-15-15 "</td></tr>
+            <tr><td class="m">"พืช: กัญชา (Cannabis sativa L.)"</td><td class="m ok">เหมือนเดิม</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>
+        แถวที่สองรุนแรงที่สุด — <strong>คำว่า "onsite=" หายไปทั้งคำ</strong> เพราะ pattern
+        <code>/on\w+\s*=/gi</code> ที่ตั้งไว้กันการโจมตี <code>onclick=</code> ดันจับคำภาษาอังกฤษธรรมดา
+        ที่ขึ้นต้นด้วย <code>on</code> ทุกคำ · แถวที่สามลบหมายเหตุในวงเล็บ <code>/* */</code> ทิ้งทั้งก้อน
+      </p>
+      <p>
+        นี่คือ <strong>การทำข้อมูลเสียหายอย่างเงียบเชิงบนระบบทะเบียนราชการ</strong> — ไม่มี error
+        ไม่มีคำเตือน ผู้ใช้เห็นว่าบันทึกสำเร็จ แล้วข้อความหายไปบางส่วน
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้</span>
+        <p>
+          การป้องกัน XSS ที่ถูกต้องคือ <strong>escape ตอนแสดงผล ไม่ใช่ทำลายตอนบันทึก</strong>
+          ระบบนี้ใช้ React ซึ่ง escape ให้อยู่แล้ว และใช้ Prisma ซึ่งใช้ parameterized query อยู่แล้ว
+          ตัวกรองนี้จึงป้องกันสิ่งที่ป้องกันอยู่แล้ว แลกกับการทำลายข้อมูลจริง
+        </p>
+        <p>อย่างน้อยที่สุด ถ้ายังต้องเก็บไว้: ให้ <strong>ปฏิเสธ ไม่ใช่แก้เงียบ ๆ</strong></p>
+<pre><code>// เดิม: ลบ pattern ที่ตรงออกจาก string แล้วบันทึกส่วนที่เหลือ
+// ใหม่: ถ้าตรง pattern ให้ตอบ 422 พร้อมบอกว่าตรงตัวไหน
+if (DANGEROUS_PATTERNS.some((re) =&gt; re.test(value))) {
+  throw new ValidationError('INPUT_REJECTED', {
+    messageTh: 'ข้อความมีรูปแบบที่ระบบไม่รับ กรุณาตรวจสอบ',
+    field: path,
+  });
+}</code></pre>
+        <p>
+          และตัด <code>/--\s/g</code> กับ <code>/\/\*[\s\S]*?\*\//g</code> ออก — ทั้งคู่เป็น
+          SQL comment pattern ที่ไม่มีความหมายเมื่อใช้ parameterized query และเป็นตัวที่ทำลายข้อความไทยจริง
+        </p>
+      </div>
+    </article>
+
+    <article class="rec done">
+      <div class="rh"><span class="sev g">แก้แล้ว</span><span class="id">API-01 · ERR-01</span>
+        <h3>API ตอบ HTML แทน JSON เมื่อ path ไม่ตรง และ 404 ทั้งที่ผิดแค่ method</h3></div>
+      <p class="where">apps/backend/server.js — ไม่มีตัวรับ path ที่ไม่ match ใต้ <code>/api</code> เลย</p>
+      <div class="meas">
+        <div><dt>GET /api/plots</dt><dd class="bad">404 HTML 1.1 KB</dd></div>
+        <div><dt>DELETE /api/applications/my</dt><dd class="bad">404 — path มีจริง</dd></div>
+        <div><dt>สถานะ</dt><dd class="ok">แก้แล้ว fe289fea</dd></div>
+      </div>
+      <p>
+        client ทุกตัวที่ขอ JSON ได้เอกสารที่ parse ไม่ได้กลับไป และบนโฮสต์นั้นยังแถม script ของ Cloudflare มาด้วย
+        กรณีที่สองแย่กว่า — บอกว่า "ไม่มี resource นี้" ทั้งที่มี ผิดแค่ verb
+        ผู้เชื่อมต่อจึงแยกไม่ออกว่าพิมพ์ path ผิดหรือ method ผิด
+      </p>
+      <div class="fix">
+        <span class="cap">ที่แก้ไปแล้ว</span>
+        <p>
+          <code>middleware/api-not-found.js</code> เดิน router stack ถามว่า path นี้มี verb อะไรลงทะเบียนไว้บ้าง
+          ก่อนจะสรุปว่าไม่รู้จัก path — เจอแล้วตอบ <strong>405 พร้อม <code>Allow</code> header</strong> ตาม RFC 9110
+          mount หลัง router ทุกตัวและก่อน global error handler · RED ก่อน 9 เทส
+        </p>
+      </div>
+    </article>
+
+    <article class="rec done">
+      <div class="rh"><span class="sev g">แก้แล้ว</span><span class="id">CORS</span>
+        <h3>การปฏิเสธ CORS ตอบ 500 แทนที่จะปฏิเสธ</h3></div>
+      <p class="where">apps/backend/server.js — origin callback</p>
+      <p>
+        <code>callback(new Error(...), false)</code> ทำให้ cors ส่ง error เข้า global handler → ตอบ 500
+        ทุก bot ทุก scanner ที่ยิงมาจึงกลายเป็น server error ในระบบ monitoring กลบ 500 จริงจนหาไม่เจอ
+        และใครก็ตามสร้าง 500 ได้ด้วย request เดียว · แก้เป็น <code>callback(null, false)</code> —
+        <strong>การปฏิเสธไม่ใช่ความล้มเหลว</strong> เบราว์เซอร์บล็อกเองอยู่แล้ว
+      </p>
+    </article>
+
+    <article class="rec c">
+      <div class="rh"><span class="sev c">Critical</span><span class="id">API-03</span>
+        <h3>หน้าเว็บทิ้ง error code ที่ backend อุตส่าห์ส่งมา ใน 108 จาก 121 endpoint</h3></div>
+      <p class="where">apps/web-app/src/lib/api/api-client.ts:484</p>
+<pre><code>const rawCode = String(data?.error || data?.code || '').trim() || undefined;
+//                          ^^^^^ ประโยคภาษาคนชนะ ^^^^^ code ที่เครื่องอ่านได้</code></pre>
+      <p>
+        ไฟล์เดียวกันบรรทัด 366 ทำกลับด้าน (<code>code || error</code>) สำหรับ branch 401 —
+        และคอมเมนต์ในไฟล์นั้นเองเขียนไว้แล้วว่า <em>"the raw error:'Forbidden' would otherwise win the
+        harvest below and hide the real code"</em> แล้วแก้ด้วยการเขียนตัวดักเฉพาะกิจสองตัว
+        แทนที่จะสลับลำดับ
+      </p>
+      <p>
+        ผลคือ <code>res.code === '…'</code> ทุกที่ในหน้าเว็บไม่เคยเป็นจริงสำหรับ 108 endpoint นั้น
+        ข้อความไทยเฉพาะเรื่องที่เขียนไว้จึงไม่เคยขึ้น ผู้ใช้เห็นข้อความสำรองทั่วไปแทน
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้ — บรรทัดเดียว</span>
+<pre><code>-const rawCode = String(data?.error || data?.code || '').trim() || undefined;
++const rawCode = String(data?.code || data?.error || '').trim() || undefined;</code></pre>
+        <p>
+          ผู้ตรวจสอบยืนยันความปลอดภัยด้วยการดึง <code>code:</code> ทุกค่าใน <code>routes/</code> —
+          129 ค่า เป็น UPPER_SNAKE ทั้งหมด ยกเว้นสามค่าที่เป็นข้อมูลไม่ใช่ envelope
+        </p>
+      </div>
+    </article>
+
+    <article class="rec c">
+      <div class="rh"><span class="sev c">Critical</span><span class="id">API-02</span>
+        <h3>401 มีความหมายสองอย่าง ทำให้หน้ายืนยัน OTP ใช้ไม่ได้เลย</h3></div>
+      <p class="where">routes/api/identity/mfa.js:64-100 · api-client.ts:348-352</p>
+      <p>
+        OTP ที่หมดอายุตอบ 401 เหมือนกับ session ที่ตาย · client เห็น 401 แล้ว
+        <strong>ล้าง session และเด้งไปหน้า login ทันที</strong> ผู้ใช้ที่พิมพ์ OTP ช้าไปหนึ่งวินาที
+        จึงถูกดีดออกจากระบบ และเสีย <code>mfa_session</code> ที่ต้องใช้ลองใหม่
+        ข้อความไทยที่เตรียมไว้ทั้งสองอัน (<code>copy.expired</code>, <code>copy.tooMany</code>) ไม่เคยแสดง
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้ที่ถูกต้อง</span>
+        <p>
+          OTP ที่ผิดหรือหมดอายุ <strong>คือคำตอบที่ถูกปฏิเสธ ไม่ใช่ session ที่ตาย</strong> —
+          ตอบ <code>422</code> พร้อม <code>code: 'OTP_EXPIRED'</code> และสงวน 401 ไว้ให้
+          mfa_session token ที่หมดอายุจริงเท่านั้น เมื่อทำแบบนี้ ฝั่ง client ไม่ต้องมีรายการ path ยกเว้นเลย
+        </p>
+      </div>
+    </article>
+
+    <article class="rec p">
+      <div class="rh"><span class="sev p">Performance</span><span class="id">PAY-02</span>
+        <h3>คิวคำขอฝั่งเจ้าหน้าที่ดึง 1,000 แถวเต็มพร้อม <code>formData</code> แล้วมาแบ่งหน้าใน JavaScript</h3></div>
+      <p class="where">routes/api/provider/handlers/applications.js:57-99</p>
+      <p>
+        <code>take: 1000</code> ไม่มี <code>select</code> — ดึงทุกคอลัมน์รวม <code>formData</code>
+        ซึ่งเป็น JSON ของทั้งใบคำขอ แล้วค่อย <code>.slice()</code> ในหน่วยความจำ
+        ตอนนี้มี 10 ใบจึงไม่เจ็บ แต่โตขึ้นเมื่อไรหน้านี้จะเป็นจุดแรกที่ล้ม
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้</span>
+<pre><code>const [rows, total] = await prisma.$transaction([
+  prisma.application.findMany({
+    where,
+    // ขอเฉพาะที่ตารางแสดงจริง — formData ไม่เคยถูกใช้ในหน้านี้
+    select: {
+      id: true, applicationNumber: true, status: true,
+      createdAt: true, farmName: true, applicantName: true,
+    },
+    orderBy: { createdAt: 'desc' },
+    skip: (page - 1) * perPage,
+    take: perPage,
+  }),
+  prisma.application.count({ where }),
+]);
+// $transaction ทำให้สอง query เดินทางรอบเดียว แทนที่จะเป็นสองรอบ</code></pre>
+      </div>
+    </article>
+
+    <article class="rec c">
+      <div class="rh"><span class="sev c">Critical</span><span class="id">PAY-11</span>
+        <h3>ตัวช่วยส่งแจ้งเตือนโหลด User ทั้งแถว — รวม bcrypt hash และ hash ของเลขบัตรประชาชน</h3></div>
+      <p class="where">services/notification/domain-helpers.js:123, :145, :342, :378</p>
+      <p>
+        <code>findMany</code> ที่ไม่มี <code>select</code> บนตาราง <code>users</code> ดึงคอลัมน์รหัสผ่าน
+        และ hash ของเลขบัตรเข้ามาในหน่วยความจำของ process ทุกครั้งที่ส่งแจ้งเตือน
+        ไม่ได้รั่วออกไปที่ response แต่<strong>ไม่มีเหตุผลที่ต้องอ่านมันเลย</strong> และเพิ่มพื้นที่ที่ผิดพลาดได้
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้</span>
+<pre><code>-const staff = await prisma.user.findMany({ where: { role: 'reviewer' } });
++const staff = await prisma.user.findMany({
++  where: { role: 'reviewer' },
++  select: { id: true, email: true, firstName: true, lastName: true },
++});</code></pre>
+      </div>
+    </article>
+
+    <article class="rec y">
+      <div class="rh"><span class="sev y">Contract</span><span class="id">SPEC-01…05</span>
+        <h3>เอกสาร API ครอบคลุม 7.4% และส่วนที่มีก็ไม่ตรงกับของจริง</h3></div>
+      <div class="meas">
+        <div><dt>operation ที่เขียนไว้</dt><dd>48</dd></div>
+        <div><dt>endpoint จริง</dt><dd class="bad">648</dd></div>
+        <div><dt>ไม่มี response schema</dt><dd class="bad">45 / 48</dd></div>
+        <div><dt>operation ที่ไม่มีจริง</dt><dd class="bad">5</dd></div>
+      </div>
+      <p>
+        ในห้า operation ที่ไม่มีจริง <strong>สองอันเป็น endpoint เรื่องเงินที่เลิกใช้แล้ว</strong>
+        (<code>/payments/slip/upload</code>, <code>/payments/slip/{id}/approve</code>) —
+        เอกสารสาธารณะยังบอกว่าแพลตฟอร์มรับสลิปโอนเงินอยู่ ทั้งที่ระบบนั้นถูกถอดไปแล้ว
+      </p>
+      <p>
+        และไม่มี operation ไหนเลยที่เขียน error body ไว้ ผู้เชื่อมต่อจึงไม่รู้ว่าจะ branch อะไรเมื่อพลาด
+      </p>
+      <div class="fix">
+        <span class="cap">ข้อเสนอ — ไม่ใช่ "เขียนเอกสารให้ครบ"</span>
+        <p>
+          เลือกผิวที่ต้องมีจริงก่อน: <strong>ประตูสาธารณะ 17 ตัว</strong> (trace, verify, trust registry,
+          revocation list) ที่ อย. โรงงาน และผู้ส่งออกต้องใช้ · แล้ว<strong>บังคับด้วยเครื่อง</strong>
+          ให้ spec เน่าไม่ได้ — repo นี้ใช้ probe ใน <code>scripts/probes/</code> อยู่แล้ว
+          เพิ่มตัวที่ fail เมื่อ public route ใดไม่มีใน spec หรือ spec มี path ที่ router ไม่รู้จัก
+        </p>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ส่วนที่สอง · Database</span>โครงแน่น แต่จ่ายค่าเดินทางทุกก้าว</h2>
+    <p class="lede">
+      โครงสร้างฐานข้อมูลอยู่ในสภาพดีอย่างน่าประหลาดใจสำหรับระบบขนาดนี้ — ปัญหาแทบทั้งหมดอยู่ที่
+      <em>จำนวนครั้งที่คุยกับฐาน</em> ไม่ใช่ที่ตัวฐานเอง
+    </p>
+
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>ตัวชี้วัดสุขภาพ</th><th>ค่า</th><th>ประเมิน</th></tr></thead>
+        <tbody>
+          <tr><td>ตารางที่ไม่มี primary key</td><td class="m ok">0 / 108</td><td class="win">ดีเยี่ยม</td></tr>
+          <tr><td>foreign key</td><td class="m ok">206</td><td class="win">ผูกความสัมพันธ์ครบ</td></tr>
+          <tr><td>FK ที่ไม่มี index (ของเราเอง)</td><td class="m">4</td><td>เล็กน้อย — ที่เหลือเป็นของ Supabase</td></tr>
+          <tr><td><code>$transaction</code></td><td class="m ok">122 จุด</td><td class="win">ใช้เป็นปกติ</td></tr>
+          <tr><td>index ทั้งหมด</td><td class="m">594</td><td>hot path มีครบ</td></tr>
+          <tr><td>Postgres ENUM</td><td class="m lose">0</td><td class="lose">1,136 คอลัมน์เป็น text</td></tr>
+          <tr><td>ตารางที่ไม่มี <code>updatedAt</code></td><td class="m">28 / 108</td><td>บางตัวเป็น append-only โดยตั้งใจ</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <article class="rec c">
+      <div class="rh"><span class="sev c">Critical</span><span class="id">DB-01</span>
+        <h3>กฎสองข้อบนตารางเงินที่ขัดกันเอง — ลบใบคำขอไม่ได้ตลอดกาล</h3></div>
+      <p class="where">prisma/schema/billing.prisma:17 และ :1297</p>
+      <p>
+        <code>invoices.applicationId</code> และ <code>checkout_orders.applicationId</code> ประกาศ
+        <code>ON DELETE SET NULL</code> แต่ตารางเดียวกันมี <code>CHECK</code> ที่บังคับว่าคอลัมน์นั้นห้ามเป็น NULL
+        (<code>invoices_billable_xor_*</code>) — <strong>สองกฎที่ทำตามพร้อมกันไม่ได้</strong>
+      </p>
+      <p>
+        ผลคือ <code>DELETE FROM applications WHERE id=$1</code> จะล้มด้วย SQLSTATE 23514 เสมอ
+        สำหรับใบคำขอที่มีใบแจ้งหนี้ — ซึ่งคือทุกใบ · การลบไม่ได้อาจเป็นสิ่งที่ถูกต้องสำหรับเอกสารภาษี
+        แต่ตอนนี้ระบบ<strong>ประกาศว่าจะ SET NULL แล้วล้มแทน</strong> ซึ่งไม่ใช่การออกแบบ เป็นความขัดแย้ง
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้ — พูดสิ่งที่ตั้งใจจริง ๆ</span>
+<pre><code>// billing.prisma — ทั้งสองจุด
+application Application? @relation(
+  fields: [applicationId], references: [id],
+  onDelete: Restrict,     // เดิม SetNull ซึ่ง CHECK ไม่ยอม
+  onUpdate: Cascade
+)</code></pre>
+<pre><code>-- migration
+ALTER TABLE "invoices" DROP CONSTRAINT "invoices_applicationId_fkey";
+ALTER TABLE "invoices" ADD CONSTRAINT "invoices_applicationId_fkey"
+  FOREIGN KEY ("applicationId") REFERENCES "applications"("id")
+  ON DELETE RESTRICT ON UPDATE CASCADE;
+-- ทำแบบเดียวกันกับ checkout_orders</code></pre>
+        <p>
+          <strong>นี่คือ Tier C</strong> — เส้นทางเงิน ต้องให้ operator merge · ผมเสนอ diff เท่านั้น ไม่แก้เอง
+        </p>
+      </div>
+    </article>
+
+    <article class="rec c">
+      <div class="rh"><span class="sev c">Critical</span><span class="id">DB-02</span>
+        <h3>การออกใบแจ้งหนี้จากใบเสนอราคาไม่มี transaction และไม่มี idempotency key</h3></div>
+      <p class="where">services/quote-service.js:347, :358 · routes/api/helpers/quotes-provider-routes.js:45-56</p>
+      <p>
+        <code>invoice.create</code> แล้วตามด้วย <code>invoiceLineItem.createMany</code> โดยไม่อยู่ใน transaction
+        ถ้าอันที่สองล้ม จะได้<strong>ใบกำกับภาษีที่มียอดรวมแต่ไม่มีรายการ</strong> —
+        ซึ่ง ม.86/4 บังคับให้ต้องมี และไฟล์ export บัญชีก็อ่านจากรายการนั้น
+      </p>
+      <p>
+        และ <code>Invoice.quoteId</code> มี index แต่<strong>ไม่มี unique</strong> —
+        กด "ออกใบแจ้งหนี้" สองครั้งจึงมินต์ใบกำกับภาษีสองใบจากใบเสนอราคาเดียวได้
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้ — สองชั้น</span>
+<pre><code>// 1) ทำให้เป็นอะตอม — ระบบมี $transaction ใช้อยู่แล้ว 122 จุด
+await prisma.$transaction(async (tx) =&gt; {
+  const invoice = await tx.invoice.create({ data: invoiceData });
+  await tx.invoiceLineItem.createMany({ data: lineItems(invoice.id) });
+  await tx.quote.update({ where: { id: quoteId }, data: { status: 'INVOICED' } });
+});</code></pre>
+<pre><code>-- 2) ทำให้กดซ้ำไม่ได้ ที่ระดับฐานข้อมูล
+CREATE UNIQUE INDEX CONCURRENTLY "invoices_quoteId_key"
+  ON "invoices" ("quoteId") WHERE "quoteId" IS NOT NULL;</code></pre>
+        <p>
+          <code>CONCURRENTLY</code> เพื่อไม่ล็อกตารางบนฐานที่ใช้งานอยู่ ·
+          <code>WHERE ... IS NOT NULL</code> เพื่อให้ใบที่ไม่ได้มาจากใบเสนอราคายังเป็น NULL ได้หลายใบ
+        </p>
+      </div>
+    </article>
+
+    <article class="rec c">
+      <div class="rh"><span class="sev c">Critical</span><span class="id">DB-03</span>
+        <h3>เลขที่ใบแจ้งหนี้มาจาก <code>count()+1</code> และ <code>count()</code> กรอง soft-delete ออก</h3></div>
+      <p class="where">services/quote-service.js:380-384</p>
+      <p>
+        soft-delete ใบแจ้งหนี้หนึ่งใบ แล้วออกใบใหม่ในวันเดียวกัน — <code>count()</code> ลดลงหนึ่ง
+        เลขที่ได้จึงชนกับเลขที่มีอยู่แล้ว ได้ P2002 และ 500 · <strong>เกิดซ้ำได้แน่นอน ไม่ใช่ race</strong>
+      </p>
+      <div class="fix">
+        <span class="cap">วิธีแก้</span>
+        <p>
+          ลบ <code>generateInvoiceNumberSequential</code> ทิ้ง แล้วใช้ตัวจ่ายเลขที่ระบบมีอยู่แล้วและเชื่อถือได้
+          — <code>services/receipt-numbering-service.js</code> ซึ่ง <code>quotation-service</code> ใช้อยู่
+          <strong>เลขเอกสารต้องมาจากตัวจ่ายเลข ไม่ใช่จากการนับแถว</strong>
+        </p>
+      </div>
+    </article>
+
+    <article class="rec p">
+      <div class="rh"><span class="sev p">Performance</span><span class="id">AUTH-01</span>
+        <h3>ทุก request ที่ล็อกอินจ่ายค่าเดินทางสองรอบก่อน handler เริ่มทำงาน</h3></div>
+      <p class="where">middleware/auth-middleware.js:502, :536 · active-entity-middleware</p>
+      <div class="meas">
+        <div><dt>ตอนอยู่ซิดนีย์</dt><dd class="bad">488 ms</dd></div>
+        <div><dt>ของ /invoices/my ทั้งหมด</dt><dd class="bad">60%</dd></div>
+        <div><dt>ตอนนี้ (สิงคโปร์)</dt><dd class="ok">~8 ms</dd></div>
+      </div>
+      <p>
+        middleware ยิงสอง query <strong>ต่อกันแบบลำดับ</strong> ก่อนถึง handler:
+        หา user จาก token แล้วหา active entity · ตอนอยู่ซิดนีย์นั่นคือ 488 ms
+        หรือ 60% ของเวลาทั้งหมดของ endpoint ที่คืน array ว่าง
+      </p>
+      <p>
+        การย้ายมาสิงคโปร์ลดค่านี้เหลือ ~8 ms แล้ว <strong>แต่ไม่ได้ลบมันทิ้ง</strong> —
+        ยังเป็นสองรอบต่อทุก request ที่ล็อกอิน
+      </p>
+      <div class="fix">
+        <span class="cap">ข้อเสนอ — ระวังจุดที่ผู้ตรวจสอบเตือน</span>
+        <p>
+          จำ personal-entity ไว้ชั่วคราวได้ เพราะเป็นค่าที่แทบไม่เปลี่ยนและ<strong>ไม่ใช่กลไกเพิกถอนสิทธิ์</strong>
+          แต่ผู้ตรวจสอบเตือนไว้ชัดว่า <strong>ห้าม cache ผลลบ</strong> — ผู้ใช้ที่เพิ่งถูกเพิ่มเข้า workspace
+          จะถูกกันออกต่ออีกหนึ่งนาที
+        </p>
+<pre><code>const PERSONAL_TTL_MS = 60_000;
+const cache = new Map(); // userId -> { id, exp }
+
+async function findPersonalEntityCached(user) {
+  const hit = cache.get(user.id);
+  if (hit &amp;&amp; hit.exp &gt; Date.now()) return hit.id;
+  const found = await findPersonalEntity(user);
+  if (found) cache.set(user.id, { id: found, exp: Date.now() + PERSONAL_TTL_MS });
+  return found;   // ไม่พบ = ไม่ cache
+}</code></pre>
+      </div>
+    </article>
+
+    <article class="rec p">
+      <div class="rh"><span class="sev p">Performance</span><span class="id">INCLUDE</span>
+        <h3><code>include</code> ทุกตัวคือการเดินทางเพิ่มหนึ่งรอบ — ระบบนี้ใช้ 231 จุด</h3></div>
+      <p>
+        Prisma แยก <code>include</code> เป็น query ต่างหาก ผมวัดแล้ว:
+        <code>findMany({ include })</code> = <strong>2 query</strong> ไม่ใช่ 1
+      </p>
+      <p>
+        Prisma 5.22 มี preview feature <code>relationJoins</code> ที่เปลี่ยนเป็น LATERAL JOIN เดียว
+        ผมทดสอบแล้วว่า <strong>schema validate ผ่าน</strong> — แต่ยังไม่เปิดใช้ เพราะเปลี่ยนวิธี
+        generate query ทั้งระบบ ต้องรันชุดทดสอบเต็มและเดินเส้นทางจริงก่อน
+      </p>
+      <div class="fix">
+        <span class="cap">ข้อเสนอ — บรรทัดเดียว ผลทั้งระบบ</span>
+<pre><code>// prisma/schema/_base.prisma
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["prismaSchemaFolder", "relationJoins"]
+}</code></pre>
+        <p>ต้องทำเป็นใบของตัวเองพร้อม regression test — ไม่ใช่ของที่แอบใส่ไปกับ commit อื่น</p>
+      </div>
+    </article>
+
+    <article class="rec y">
+      <div class="rh"><span class="sev y">Contract</span><span class="id">TYPE-01</span>
+        <h3>1,136 คอลัมน์เป็น <code>text</code> และไม่มี Postgres ENUM แม้แต่ตัวเดียว</h3></div>
+      <p>
+        คอลัมน์ที่เป็น enum โดยความหมาย — <code>status</code>, <code>role</code>, <code>type</code> —
+        ล้วนเป็น text เปล่า ฐานข้อมูลจึงยอมรับค่าอะไรก็ได้ การพิมพ์ผิดหนึ่งตัวอักษรกลายเป็นสถานะใหม่ที่ไม่มีใครรู้จัก
+      </p>
+      <p>
+        <strong>แต่ต้องพูดให้เป็นธรรม:</strong> ระบบนี้บังคับค่าที่ชั้นแอปพลิเคชันอยู่แล้วผ่าน shared vocabulary
+        และ probe · ความเสียหายจริงจึงจำกัด · การเปลี่ยนเป็น ENUM บนฐานที่ใช้งานอยู่มีต้นทุนและความเสี่ยง
+        ที่ต้องทำแบบ expand-then-contract ตามกฎที่ CLAUDE.md §4 เขียนไว้แล้ว
+      </p>
+      <p>
+        <strong>ข้อเสนอ:</strong> อย่าแปลงทั้ง 1,136 คอลัมน์ · เลือกเฉพาะที่ค่าผิดแล้วเจ็บจริง —
+        สถานะใบคำขอ สถานะใบแจ้งหนี้ สถานะใบรับรอง — แล้วใช้ <code>CHECK</code> constraint ก่อน
+        ซึ่งได้ความปลอดภัยเกือบเท่ากันโดยไม่ต้องเขียน type ใหม่
+      </p>
+<pre><code>ALTER TABLE "applications" ADD CONSTRAINT "applications_status_valid"
+  CHECK ("status" IN ('DRAFT','SUBMITTED','PENDING_DOC_FEE','DOC_APPROVED',
+                      'PENDING_AUDIT_FEE','AUDIT_PASSED','CERTIFIED','EXPIRED'))
+  NOT VALID;   -- NOT VALID = ไม่ตรวจแถวเดิม ไม่ล็อกตาราง
+ALTER TABLE "applications" VALIDATE CONSTRAINT "applications_status_valid";</code></pre>
+    </article>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ความเป็นธรรม</span>สิ่งที่ระบบนี้ทำได้ดีจริง</h2>
+    <p class="lede">ผมพยายามหาปัญหาในสิ่งเหล่านี้แล้วไม่เจอ</p>
+    <div class="tscroll">
+      <table>
+        <thead><tr><th>เรื่อง</th><th>หลักฐาน</th></tr></thead>
+        <tbody>
+          <tr><td>ทุกตารางมี primary key</td><td class="m">0 / 108 ที่ขาด</td></tr>
+          <tr><td>ผูกความสัมพันธ์ครบ</td><td class="m">206 foreign key</td></tr>
+          <tr><td>ใช้ transaction เป็นปกติ</td><td class="m">67 ไฟล์ · 122 จุด</td></tr>
+          <tr><td>envelope ของ 401 ดีที่สุดในระบบ</td><td class="m">{success, error, message, code}</td></tr>
+          <tr><td>rate limiting มีจริงและมี header มาตรฐาน</td><td class="m">1000 req / 15 นาที</td></tr>
+          <tr><td>security header ครบ</td><td class="m">CSP · HSTS · nosniff · referrer-policy</td></tr>
+          <tr><td>CORS ตอบถูกต้องกับ origin ที่อนุญาต</td><td class="m">204 + Vary + credentials</td></tr>
+          <tr><td>ตรวจข้อมูลตอนสมัครดีมาก</td><td class="m">checksum เลขบัตร · ข้อความไทยทุกอัน</td></tr>
+          <tr><td>index บน hot path มีครบ</td><td class="m">594 index</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ความซื่อสัตย์</span>ข้อที่ตกไป และข้อที่ยังไม่ได้ตรวจ</h2>
+
+    <article class="rec">
+      <div class="rh"><span class="sev y">ตกไป</span><span class="id">DB-01 (lane 5)</span>
+        <h3>"Prisma ตั้ง 20 connection บน pooler ที่รับได้ 15" — ไม่เป็นจริงกับระบบปัจจุบัน</h3></div>
+      <p>
+        ข้อนี้จริงตอนที่ตรวจ เพราะตอนนั้นใช้ session mode (พอร์ต 5432) ซึ่งจำกัด client จริง
+        แต่การย้ายไปสิงคโปร์เปลี่ยนมาใช้ <strong>transaction mode (6543)</strong> ซึ่ง multiplex ให้
+      </p>
+      <p>ผมทดสอบเองหลังย้าย:</p>
+      <div class="meas">
+        <div><dt>demo — 30 query พร้อมกัน</dt><dd class="ok">30/30 · 101 ms</dd></div>
+        <div><dt>staging — 30 query พร้อมกัน</dt><dd class="ok">30/30 · 130 ms</dd></div>
+      </div>
+      <p>การย้ายฐานแก้ข้อนี้ไปโดยบังเอิญ · <strong>ไม่ต้องทำอะไรเพิ่ม</strong></p>
+    </article>
+
+    <div class="note">
+      <p><strong>15 ข้อที่ยังไม่ผ่านการตรวจสอบ</strong></p>
+      <p>
+        agent ตรวจสอบของ lane <em>schema cleanliness</em> ชนโควตารายสัปดาห์ก่อนทำงานเสร็จ
+        ข้อค้นพบของ lane นั้นจึงยังไม่มีใครหักล้าง · อยู่ใน
+        <code>evidence/api-db-audit-2026-09-08/findings.json</code> ทำเครื่องหมาย <code>unverified</code>
+      </p>
+      <p>
+        <strong>ยังไม่ควรใช้ตัดสินใจ</strong> — ประสบการณ์จากรอบก่อนคือชั้นหักล้างจับข้อผิดพลาดได้จริง
+        รวมถึงข้อที่ผมเขียนเอง
+      </p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <div class="wrap">
+    <h2><span class="num">ลำดับการแก้</span>ทำอะไรก่อน</h2>
+    <p class="lede">เรียงตามความเสียหายต่อผู้ใช้หารด้วยแรงที่ต้องลง</p>
+    <ol class="order">
+      <li>
+        <h3>หยุดตัวกรอง input ไม่ให้ทำลายข้อความไทย</h3>
+        <p>
+          นี่คือข้อเดียวในรายงานที่<strong>ทำข้อมูลเสียหายอยู่ตอนนี้</strong> ทุกครั้งที่มีคนพิมพ์
+          <code>--</code> หรือคำที่ขึ้นต้นด้วย <code>on</code> ตามด้วย <code>=</code> หรือหมายเหตุใน
+          <code>/* */</code> · และเสียแบบกู้ไม่ได้เพราะไม่มีใครรู้ว่าเสีย
+        </p>
+        <span class="cost">แก้ middleware หนึ่งไฟล์ · แต่ต้องตัดสินก่อนว่าจะปฏิเสธหรือปล่อยผ่าน</span>
+      </li>
+      <li>
+        <h3>สลับลำดับ <code>code || error</code> ในหน้าเว็บ</h3>
+        <p>บรรทัดเดียว ปลดล็อกข้อความไทยเฉพาะเรื่องที่เขียนไว้แล้วแต่ไม่เคยแสดง ใน 108 endpoint</p>
+        <span class="cost">1 บรรทัด · ผู้ตรวจสอบยืนยันความปลอดภัยจาก 129 ค่า</span>
+      </li>
+      <li>
+        <h3>ปิดช่องออกใบกำกับภาษีซ้ำ (Tier C — operator merge)</h3>
+        <p>
+          unique index บน <code>quoteId</code> + ห่อการมินต์ด้วย <code>$transaction</code> ·
+          ตอนนี้กดสองครั้งได้ใบภาษีสองใบ และใบที่ไม่มีรายการก็เกิดได้
+        </p>
+        <span class="cost">1 migration + 1 service · เส้นทางเงิน ผมเสนอ diff เท่านั้น</span>
+      </li>
+      <li>
+        <h3>เลิกใช้ <code>count()+1</code> ตั้งเลขเอกสาร</h3>
+        <p>ใช้ตัวจ่ายเลขที่ระบบมีอยู่แล้ว · ตอนนี้ soft-delete หนึ่งใบทำให้ใบถัดไปชนแน่นอน</p>
+        <span class="cost">แทนที่ฟังก์ชันเดียวด้วยตัวที่มีอยู่แล้ว</span>
+      </li>
+      <li>
+        <h3>ทำ OpenAPI ให้ซื่อสัตย์ เริ่มจากประตูสาธารณะ 17 ตัว</h3>
+        <p>
+          ไม่ใช่ "เขียนให้ครบ 648" — เขียนเฉพาะผิวที่คนนอกต้องใช้ แล้วเพิ่ม probe บังคับ
+          ไม่ให้เน่าอีก · และลบ operation เรื่องสลิปที่เลิกใช้แล้วออกก่อนเลย เพราะตอนนี้เอกสารสาธารณะโกหก
+        </p>
+        <span class="cost">งานเขียน + probe หนึ่งตัว</span>
+      </li>
+      <li>
+        <h3>ทดลอง <code>relationJoins</code> เป็นใบของตัวเอง</h3>
+        <p>231 <code>include</code> × หนึ่งรอบเดินทาง · บรรทัดเดียวในคอนฟิก แต่เปลี่ยน query ทั้งระบบ</p>
+        <span class="cost">1 บรรทัด + ชุดทดสอบเต็ม + เดินเส้นทางจริง</span>
+      </li>
+    </ol>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <p>
+      ข้อค้นพบทั้ง 89 ข้อพร้อมสถานะการตรวจสอบ อยู่ที่
+      <code>evidence/api-db-audit-2026-09-08/findings.json</code> ·
+      ผลการยิง endpoint จริงอยู่ที่ <code>endpoint-probe.json</code>
+    </p>
+    <p>
+      ตรวจบนระบบที่รันอยู่จริงเมื่อ 8 กันยายน 2569 — ยิง endpoint ผ่านประตูสาธารณะและจากในคอนเทนเนอร์
+      นับ query ด้วย <code>pg_stat_statements</code> วัดระยะทางด้วย TCP connect
+      และรัน middleware ตัวจริงกับข้อความไทยจริง
+    </p>
+  </div>
+</footer>

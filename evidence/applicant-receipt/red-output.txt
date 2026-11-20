@@ -1,0 +1,209 @@
+# RED runs — failing assertions only, ANSI stripped (review I-2). Raw dumps are in this branch's git history.
+
+## 2026-09-29 · P1/P6 unit
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/unit/applicant-billing-doors.test.js
+Test Suites: 1 failed, 1 total
+Tests:       9 failed, 2 passed, 11 total
+failing assertions:
+  ✕ asks the service for the ACTIVE entity's invoices only
+      Expected: {"entityId": "entity-personal"} | Received: undefined
+  ✕ a company workspace asks for the company's invoices
+      Expected: {"entityId": "entity-company"} | Received: undefined
+  ✕ adds application.entityId to the where, keeping the applicant pin
+      (see test name)
+  ✕ serves the receipt PDF to the owner of a paid invoice that carries a receipt number
+      Expected: 200 | Received: 404
+  ✕ accepts the lower-case "paid" status the demo register stores
+      Expected: 200 | Received: 404
+  ✕ refuses someone else's invoice with 403 and never renders it
+      Expected: 403 | Received: 404
+  ✕ refuses an invoice that is unpaid with 409 RECEIPT_NOT_ISSUED
+      Expected: 409 | Received: 404
+  ✕ refuses an invoice that is paid but no receipt number yet with 409 RECEIPT_NOT_ISSUED
+      Expected: 409 | Received: 404
+  ✕ refuses an invoice that is cancelled after a receipt with 409 RECEIPT_NOT_ISSUED
+      Expected: 409 | Received: 404
+
+## 2026-09-29 · P1/P6 real Postgres (implementation stashed)
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/integration/applicant-billing-workspace-real-postgres.test.js
+  (+ DATABASE_URL/TEST_DATABASE_URL = scratch PG 17 on 127.0.0.1:5442, migrate deploy, container removed after; url never printed)
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 4 passed, 10 total
+failing assertions:
+  ✕ personal workspace by default (no header): only the personal invoice, never the company's
+      (see test name)
+  ✕ personal workspace named in the header: only the personal invoice
+      (see test name)
+  ✕ company workspace: only the company's invoice
+      (see test name)
+  ✕ the owner downloads the receipt of the paid company invoice: receipt title, receipt number, company buyer block
+      Expected: 200 | Received: 404
+  ✕ a stranger cannot download it (403), the template is never reached
+      Expected: 403 | Received: 404
+  ✕ an unpaid invoice has no receipt to give (409 RECEIPT_NOT_ISSUED)
+      Expected: 409 | Received: 404
+
+## 2026-09-29 · P2 one page
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/unit/invoice-documents-fit-one-page.test.js
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 7 passed, 10 total
+failing assertions:
+  ✕ invoice (ใบวางบิล / ใบแจ้งหนี้) renders as exactly one page
+      Expected: 1 | Received: 2
+  ✕ receipt (ใบเสร็จรับเงิน) renders as exactly one page
+      Expected: 1 | Received: 2
+  ✕ tax invoice (ใบกำกับภาษีเต็มรูป) renders as exactly one page
+      Expected: 1 | Received: 2
+
+## 2026-09-29 · P1/P5/P6/link param (web)
+$ cd apps/web-app && node node_modules/jest/bin/jest.js src/app/health/payments/__tests__/applicant-receipt-and-workspace.test.tsx src/lib/services/__tests__/payment-service-receipt-download.test.ts
+Test Suites: 2 failed, 2 total
+Tests:       12 failed, 3 passed, 15 total
+failing assertions:
+  ✕ asks the owner's receipt door, not the staff one, and saves the file under the receipt number
+      TypeError: payment_service_1.PaymentService.downloadReceiptPdf is not a function
+  ✕ answers false (never throws) when the door gives no file
+      TypeError: payment_service_1.PaymentService.downloadReceiptPdf is not a function
+  ✕ answers false when the request itself throws
+      TypeError: payment_service_1.PaymentService.downloadReceiptPdf is not a function
+  ✕ a paid invoice with a receipt number offers ใบเสร็จรับเงิน/ใบกำกับภาษี and downloads it through the receipt door
+      Received: undefined
+  ✕ the invoice itself is still downloadable after payment, named as the invoice
+      (see test name)
+  ✕ a failed receipt download says so in Thai and names the receipt number
+      (see test name)
+  ✕ prints the application number from the applicant's own list, never the UUID
+      Expected substring: "กรองตามคำขอ: APP-2569-MUJZRHP3-69A796" | Received string:    "ผู้ขอรับรอง · การเงินการชำระเงินและใบแจ้งหนี้ดูยอดค่าบริการ ใบเสนอราคา ใบแจ้งหนี้ และใบเสร็จของคำขอรีเฟรช฿0ยอดรอชำระ฿5,885ยอดที่ชำระแล้วขั้นตอนเอกสารการเงิน (Document Lifecycle)ใบเสนอราคาQuotationใบวางบิล / ใบแจ้งหนี้Invoiceใบเสร็จรับเงิน / ใบกำกับภาษีReceipt / Tax Invoice* เมื่อยื่นคำขอ คุณจะได้รับใบเสนอราคาก่อน → ยอมรับแล้วจึงได้รับใบวางบิล / ใบแจ้งหนี้เพื่อชำระเงิน → หลังชำระจะออกใบเสร็จรับเงิน / ใบกำกับภาษีให้อัตโนมัติในใบเดียวกันทั้งหมดรอชำระชำระแล้วกรองตามคำขอ: aa75ba6e-2f4c-4d7e-9a0e-5b1f7c3d2e10งวดที่ 1 ชำระเรียบร้อยแล้ว  เจ้าหน้าที่กำลังตรวจสอบเอกสารของคุณ เมื่อเอกสารผ่านการอนุมัติ ระบบจะออกใบแจ้งหนี้งวดที่ 2 (ค่าตรวจประเมินหน้างาน) ให้อัตโนมัติ คุณจะได้รับการแจ้งเตือนในระบบงวดที่ 1ชำระครบแล้วค่าธรรมเนียมเอกสาร ชำระครั้งเดียวให้บริษัทไม่มียอดค้างในงวดนี้ยอดรวมงวด: ฿5,885PRDค่าบริการรับรองใบแจ้งหนี้ใบเดียวของงวดนี้ ชำระให้บริษัทผู้ให้บริการแพลตฟอร์มออกใบเสร็จแล้วยอดชำระ฿5,885ค่าบริการ GACP฿5,500รวม฿5,885ใบเสร็จ/ใบกำกับภาษี TAX-PRD-2026-000002ดูรายละเอียด"
+  ✕ falls back to the number the quotation lookup returned
+      Expected substring: "กรองตามคำขอ: APP-2569-MUJZRHP3-69A796" | Received string:    "ผู้ขอรับรอง · การเงินการชำระเงินและใบแจ้งหนี้ดูยอดค่าบริการ ใบเสนอราคา ใบแจ้งหนี้ และใบเสร็จของคำขอรีเฟรช฿0ยอดรอชำระ฿5,885ยอดที่ชำระแล้วขั้นตอนเอกสารการเงิน (Document Lifecycle)ใบเสนอราคาQuotationใบวางบิล / ใบแจ้งหนี้Invoiceใบเสร็จรับเงิน / ใบกำกับภาษีReceipt / Tax Invoice* เมื่อยื่นคำขอ คุณจะได้รับใบเสนอราคาก่อน → ยอมรับแล้วจึงได้รับใบวางบิล / ใบแจ้งหนี้เพื่อชำระเงิน → หลังชำระจะออกใบเสร็จรับเงิน / ใบกำกับภาษีให้อัตโนมัติในใบเดียวกันทั้งหมดรอชำระชำระแล้วกรองตามคำขอ: aa75ba6e-2f4c-4d7e-9a0e-5b1f7c3d2e10งวดที่ 1 ชำระเรียบร้อยแล้ว  เจ้าหน้าที่กำลังตรวจสอบเอกสารของคุณ เมื่อเอกสารผ่านการอนุมัติ ระบบจะออกใบแจ้งหนี้งวดที่ 2 (ค่าตรวจประเมินหน้างาน) ให้อัตโนมัติ คุณจะได้รับการแจ้งเตือนในระบบงวดที่ 1ชำระครบแล้วค่าธรรมเนียมเอกสาร ชำระครั้งเดียวให้บริษัทไม่มียอดค้างในงวดนี้ยอดรวมงวด: ฿5,885PRDค่าบริการรับรองใบแจ้งหนี้ใบเดียวของงวดนี้ ชำระให้บริษัทผู้ให้บริการแพลตฟอร์มออกใบเสร็จแล้วยอดชำระ฿5,885ค่าบริการ GACP฿5,500รวม฿5,885ใบเสร็จ/ใบกำกับภาษี TAX-PRD-2026-000002ดูรายละเอียด"
+  ✕ with no number known yet, the chip still never prints the UUID
+      Expected substring: "กรองตามคำขอที่เลือก" | Received string:    "ผู้ขอรับรอง · การเงินการชำระเงินและใบแจ้งหนี้ดูยอดค่าบริการ ใบเสนอราคา ใบแจ้งหนี้ และใบเสร็จของคำขอรีเฟรช฿0ยอดรอชำระ฿0ยอดที่ชำระแล้วขั้นตอนเอกสารการเงิน (Document Lifecycle)ใบเสนอราคาQuotationใบวางบิล / ใบแจ้งหนี้Invoiceใบเสร็จรับเงิน / ใบกำกับภาษีReceipt / Tax Invoice* เมื่อยื่นคำขอ คุณจะได้รับใบเสนอราคาก่อน → ยอมรับแล้วจึงได้รับใบวางบิล / ใบแจ้งหนี้เพื่อชำระเงิน → หลังชำระจะออกใบเสร็จรับเงิน / ใบกำกับภาษีให้อัตโนมัติในใบเดียวกันทั้งหมดรอชำระชำระแล้วกรองตามคำขอ: aa75ba6e-2f4c-4d7e-9a0e-5b1f7c3d2e10ไม่พบรายการชำระเงิน"
+  ✕ ?applicationId= filters the page and drives the quotation lookup
+      Expected substring: "กรองตามคำขอ: APP-2569-MUJZRHP3-69A796" | Received string:    "ผู้ขอรับรอง · การเงินการชำระเงินและใบแจ้งหนี้ดูยอดค่าบริการ ใบเสนอราคา ใบแจ้งหนี้ และใบเสร็จของคำขอรีเฟรช฿0ยอดรอชำระ฿5,885ยอดที่ชำระแล้วขั้นตอนเอกสารการเงิน (Document Lifecycle)ใบเสนอราคาQuotationใบวางบิล / ใบแจ้งหนี้Invoiceใบเสร็จรับเงิน / ใบกำกับภาษีReceipt / Tax Invoice* เมื่อยื่นคำขอ คุณจะได้รับใบเสนอราคาก่อน → ยอมรับแล้วจึงได้รับใบวางบิล / ใบแจ้งหนี้เพื่อชำระเงิน → หลังชำระจะออกใบเสร็จรับเงิน / ใบกำกับภาษีให้อัตโนมัติในใบเดียวกันทั้งหมดรอชำระชำระแล้วงวดที่ 1ชำระครบแล้วค่าธรรมเนียมเอกสาร ชำระครั้งเดียวให้บริษัทไม่มียอดค้างในงวดนี้ยอดรวมงวด: ฿5,885PRDค่าบริการรับรองใบแจ้งหนี้ใบเดียวของงวดนี้ ชำระให้บริษัทผู้ให้บริการแพลตฟอร์มออกใบเสร็จแล้วยอดชำระ฿5,885ค่าบริการ GACP฿5,500รวม฿5,885ใบเสร็จ/ใบกำกับภาษี TAX-PRD-2026-000002ดูรายละเอียด"
+  ✕ when a link carries both, ?applicationId= wins
+      (see test name)
+  ✕ switching workspace reloads the invoices, the applications and the quotation lookup
+      Expected: 2 | Received: 1
+
+## 2026-09-30 · §3.3 one paper, on the pre-change templates (implementation stashed)
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/unit/receipt-tax-invoice-paper.test.js
+Test Suites: 1 failed, 1 total
+Tests:       8 failed, 6 passed, 14 total
+failing assertions:
+  ✕ is titled both ใบเสร็จรับเงิน and ใบกำกับภาษี
+      Expected substring: "ใบกำกับภาษี" | Received string:    "เอกสารฉบับนี เป นใบเสร็จรับเงินที ถูกต้องตามกฎหมาย · ออกโดยระบบ GACP Online · ใบเสร็จเลขที  TAX-PRD-2026-000002 วันที รับชำระ 29 กันยายน 2569
+  ✕ prints the company buyer tax ID grouped 1-4-5-2-1
+      Expected substring: "0-1055-61234-56-0" | Received string:    "เอกสารฉบับนี เป นใบเสร็จรับเงินที ถูกต้องตามกฎหมาย · ออกโดยระบบ GACP Online · ใบเสร็จเลขที  TAX-PRD-2026-000002 วันที รับชำระ 29 กันยายน 2569
+  ✕ names no payment provider and speaks no system language
+      Expected substring: not "STRIPE" | Received string:        "เอกสารฉบับนี เป นใบเสร็จรับเงินที ถูกต้องตามกฎหมาย · ออกโดยระบบ GACP Online · ใบเสร็จเลขที  TAX-PRD-2026-000002 วันที รับชำระ 29 กันยายน 2569
+  ✕ never prints a reference field that can only ever say "-"
+      Expected pattern: not /Ref\. No\.\s*-/ | Received string:      "เอกสารฉบับนี เป นใบเสร็จรับเงินที ถูกต้องตามกฎหมาย · ออกโดยระบบ GACP Online · ใบเสร็จเลขที  TAX-PRD-2026-000002 วันที รับชำระ 29 กันยายน 2569
+  ✕ is still the combined paper with the stored number
+      Expected substring: "ใบกำกับภาษี" | Received string:    "เอกสารฉบับนี เป นใบเสร็จรับเงินที ถูกต้องตามกฎหมาย · ออกโดยระบบ GACP Online · ใบเสร็จเลขที  TAX-PRD-2026-000002 วันที รับชำระ 29 กันยายน 2569
+  ✕ receipt.html and tax-invoice.html are gone; receipt-tax-invoice.html is the one template
+      Expected: false | Received: true
+  ✕ the template service exports one generator for it, and not the two old ones
+      Expected: "function" | Received: "undefined"
+  ✕ refuses to print the paper without a stored receipt number (no fallback to the invoice number)
+      TypeError: tpl.generateReceiptTaxInvoicePdf is not a function
+
+## 2026-09-30 · review round 1 (I-1, I-4, m7, m8, m10, m12), before the implementation
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/integration/applicant-billing-membership-real-postgres.test.js __tests__/unit/applicant-billing-doors.test.js __tests__/unit/receipt-tax-invoice-paper.test.js -i
+  (+ DATABASE_URL/TEST_DATABASE_URL = scratch PG 17 on 127.0.0.1:5442, migrate deploy, container removed after; url never printed)
+Test Suites: 3 failed, 3 total
+Tests:       33 failed, 35 passed, 68 total
+failing assertions:
+  ✕ lists X's invoice in X's workspace
+      (see test name)
+  ✕ downloads X's receipt
+      Expected: 200 | Received: 403
+  ✕ downloads X's invoice PDF
+      Expected: 200 | Received: 403
+  ✕ lists X's invoice in X's workspace
+      (see test name)
+  ✕ downloads X's receipt
+      Expected: 200 | Received: 403
+  ✕ downloads X's invoice PDF
+      Expected: 200 | Received: 403
+  ✕ its filer lists it in the personal workspace
+      Expected value: "39d2cf90-9191-4e64-8153-8e7bc81629ae" | Received array: []
+  ✕ 403 on the receipt door
+      Expected: 403 | Received: 200
+  ✕ 403 on the invoice PDF door
+      Expected: 403 | Received: 200
+  ✕ prints อ้างอิงการชำระ with the invoice number the payment settled, never a provider id
+      Expected pattern: /อ้างอิงการชำระ \/ Payment ref\.\s*INV-CO-09246C23-M1/ | Received string:  "เอกสารนี ออกโดยระบบ GACP Online · ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป เลขที  TAX-PRD-2026-000002 วันที  29 ก.ย. 2569
+  ✕ carries the ผู้รับเงิน signer line with the seller under it
+      Expected pattern: /ผู้รับเงิน \/ Cashier\s*ระบบออกเอกสารอัตโนมัติ\s*บริษัท/ | Received string:  "เอกสารนี ออกโดยระบบ GACP Online · ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป เลขที  TAX-PRD-2026-000002 วันที  29 ก.ย. 2569
+  ✕ prints both dates with the full month name
+      Expected substring: not "29 ก.ย. 2569" | Received string:        "เอกสารนี ออกโดยระบบ GACP Online · ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป เลขที  TAX-PRD-2026-000002 วันที  29 ก.ย. 2569
+  ✕ prints the registration number row from the payer-block rule
+      Expected pattern: /เลขทะเบียนวิสาหกิจชุมชน \/ Registration No\.\s*58012345678/ | Received string:  "เอกสารนี ออกโดยระบบ GACP Online · ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป เลขที  TAX-PRD-2026-000002 วันที  29 ก.ย. 2569
+  ✕ the rail code STRIPE prints ชำระผ่านระบบ
+      Expected: "ชำระผ่านระบบ" | Received: "ชำระผ่านระบบ / Online payment"
+  ✕ the rail code PROMPTPAY prints ชำระผ่านระบบ
+      Expected: "ชำระผ่านระบบ" | Received: "พร้อมเพย์ / PromptPay"
+  ✕ the rail code CARD prints ชำระผ่านระบบ
+      Expected: "ชำระผ่านระบบ" | Received: "-"
+  ✕ the rail code CREDIT_CARD prints ชำระผ่านระบบ
+      Expected: "ชำระผ่านระบบ" | Received: "บัตร / Card"
+  ✕ the rail code BANK_TRANSFER prints ชำระผ่านระบบ
+      Expected: "ชำระผ่านระบบ" | Received: "โอนเงิน / Bank transfer"
+  ✕ the rail code QR_CASH prints ชำระผ่านระบบ
+      Expected: "ชำระผ่านระบบ" | Received: "QR"
+  ✕ the rail code stripe prints ชำระผ่านระบบ
+      Expected: "ชำระผ่านระบบ" | Received: "ชำระผ่านระบบ / Online payment"
+  ✕ with neither receiptIssuedAt nor paidAt, the dates print "-", not today
+      Expected pattern: /วันที่ \/ Date<\/span><span class="value">-<\/span>/ | Received string:  "<!DOCTYPE html>
+  ✕ hands the service the caller and the active workspace
+      (see test name)
+  ✕ no active workspace: the service is told so (null), never given a broad question
+      (see test name)
+  ✕ company workspace: every invoice of the company's applications, with no filer pin
+      TypeError: invoiceService.listForWorkspace is not a function
+  ✕ personal workspace: the personal entity's invoices plus the caller's own entity-less ones
+      TypeError: invoiceService.listForWorkspace is not a function
+  ✕ no active workspace: only the caller's own entity-less invoices, and a warning
+      TypeError: invoiceService.listForWorkspace is not a function
+  ✕ no active workspace and no caller identity: no query at all
+      TypeError: invoiceService.listForWorkspace is not a function
+  ✕ an ACTIVE OWNER member of the entity gets the receipt although someone else filed
+      Expected: 200 | Received: 403
+  ✕ an ACTIVE VIEWER member of the entity gets the receipt although someone else filed
+      Expected: 200 | Received: 403
+  ✕ a REVOKED member is refused (403), even the filer
+      Expected: 403 | Received: 200
+  ✕ a PENDING member is refused (403), even the filer
+      Expected: 403 | Received: 200
+  ✕ a soft-deleted invoice is 404 on both owner doors, even for its filer
+      Expected: 404 | Received: 200
+  ✕ RECEIPT_NOT_ISSUED is a 409 in the register, as both doors answer it
+      Expected: 409 | Received: 400
+
+## 2026-09-30 · review round 2 (signer line), before the implementation
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/unit/{finance-paper-signer-line,receipt-tax-invoice-paper,adjustment-note-context,invoice-template-thai-numerals}.test.js __tests__/integration/applicant-billing-membership-real-postgres.test.js -i
+  (+ DATABASE_URL/TEST_DATABASE_URL = scratch PG 17 on 127.0.0.1:5442, migrate deploy, container removed after; url never printed)
+Test Suites: 4 failed, 1 passed, 5 total
+Tests:       10 failed, 70 passed, 80 total
+failing assertions:
+  ✕ receipt-tax-invoice.html prints no "ระบบออกเอกสารอัตโนมัติ" anywhere
+      Expected substring: not "ระบบออกเอกสารอัตโนมัติ" | Received string:        "<!DOCTYPE html>
+  ✕ credit-note.html prints no "ระบบออกเอกสารอัตโนมัติ" anywhere
+      Expected substring: not "ระบบออกเอกสารอัตโนมัติ" | Received string:        "<!DOCTYPE html>
+  ✕ debit-note.html prints no "ระบบออกเอกสารอัตโนมัติ" anywhere
+      Expected substring: not "ระบบออกเอกสารอัตโนมัติ" | Received string:        "<!DOCTYPE html>
+  ✕ receipt-tax-invoice.html: the seller signer block holds no "ระบบ" and names the seller company
+      Expected substring: not "ระบบ" | Received string:        "
+  ✕ credit-note.html: the seller signer block holds no "ระบบ" and names the seller company
+      Expected substring: not "ระบบ" | Received string:        "
+  ✕ debit-note.html: the seller signer block holds no "ระบบ" and names the seller company
+      Expected substring: not "ระบบ" | Received string:        "
+  ✕ buildReceiptContext puts the approver on the signer line
+      Received has value: undefined
+  ✕ carries the ผู้รับเงิน signer line with the seller company directly under it
+      Expected pattern: /ผู้รับเงิน \/ Cashier\s*บริษัท/ | Received string:  "เอกสารนี ออกโดยระบบ GACP Online · ใบเสร็จรับเงิน / ใบกำกับภาษีเต็มรูป เลขที  TAX-PRD-2026-000002 วันที  29 กันยายน 2569
+  ✕ no approver supplied: no invented name and no system wording (review round 2)
+      Expected: "-" | Received: "ระบบออกเอกสารอัตโนมัติ"
+  ✕ emits a neutral block when approver is missing — no invented name, no system wording
+      Expected: "-" | Received: "ระบบออกเอกสารอัตโนมัติ"
+pins (green before any code change): the round-2 real-Postgres cases — member of X and Y (X lists only X; Y's doors allowed by membership) and PENDING member of X (403 on both doors; X workspace refused)

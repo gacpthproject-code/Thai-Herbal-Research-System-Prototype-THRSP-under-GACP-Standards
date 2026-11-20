@@ -1,0 +1,947 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/idp-adapter.test.js
+  getIdpAdapter factory — fail-closed (แบบ payment-adapter seam)
+    ✕ unknown key → AUTH_PROVIDER_UNKNOWN (8 ms)
+    ✕ providerid default (coming_soon) → AUTH_PROVIDER_DISABLED (4 ms)
+    ✕ providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED (3 ms)
+    ✕ providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method (2 ms)
+    ✕ mock บน non-production → ได้ adapter (4 ms)
+    ✕ mock บน production → AUTH_PROVIDER_DISABLED (§D5 บังคับใน logic) (9 ms)
+    ✕ local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER (3 ms)
+  ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด)
+    getAuthorizeUrl — [P-OAUTH] หน้า 3
+      ✕ สร้าง URL ครบ 4 param: client_id, redirect_uri, response_type=code, state (3 ms)
+      ✕ state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR (6 ms)
+    exchangeCode — happy path 2 ขา
+      ✕ ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract (5 ms)
+    exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5)
+      ✕ 422 "Access grant has denied" → AUTH_IDP_ACCESS_DENIED (3 ms)
+      ✕ 422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED (4 ms)
+      ✕ 422 "Code is invalid" → AUTH_IDP_CODE_INVALID (4 ms)
+      ✕ 401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED (4 ms)
+      ✕ 500 → AUTH_IDP_UNAVAILABLE (7 ms)
+      ✕ network ล่ม/timeout → AUTH_IDP_UNAVAILABLE (3 ms)
+    exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8)
+      ✕ 400 "This user has not provider id" → AUTH_PROVIDERID_NOT_FOUND (แยกเป็น error ของตัวเอง) (3 ms)
+      ✕ 400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED (3 ms)
+      ✕ 401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED (2 ms)
+    getProfile — [P-OAUTH] หน้า 9-12
+      ✕ GET + headers Authorization Bearer / client-id / secret-key แล้วคืน raw profile เท่านั้น (3 ms)
+      ✕ 401 "access_token is invalid" → AUTH_IDP_TOKEN_INVALID (2 ms)
+      ✕ 404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND (4 ms)
+      ✕ 503 → AUTH_IDP_UNAVAILABLE (3 ms)
+  MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network)
+    ✕ มี fixture code ครบ 5 ชุด (3 ms)
+    ✕ happy: exchangeCode ตาม contract แล้ว getProfile ได้ profile ครบ (in_registry=true) (2 ms)
+    ✕ deny → AUTH_IDP_ACCESS_DENIED (2 ms)
+    ✕ expired-code → AUTH_IDP_CODE_EXPIRED (5 ms)
+    ✕ code ไม่รู้จัก → AUTH_IDP_CODE_INVALID (2 ms)
+    ✕ profile-missing-field: token ผ่าน แต่ profile ไม่มี hash_cid (2 ms)
+    ✕ staff-not-in-registry: profile valid แต่ flag in_registry=false (consumer P2 ใช้) (2 ms)
+    ✕ deterministic: code เดิม → ผลเดิมทุกครั้ง (3 ms)
+    ✕ ไม่แตะ network เลย (fetch ต้องไม่ถูกเรียก) (3 ms)
+    ✕ getAuthorizeUrl มี state เสมอ + response_type=code (โครงเดียวกับของจริง) (3 ms)
+    ✕ getProfile ด้วย token ไม่รู้จัก → AUTH_IDP_TOKEN_INVALID (2 ms)
+
+  ● getIdpAdapter factory — fail-closed (แบบ payment-adapter seam) › unknown key → AUTH_PROVIDER_UNKNOWN
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_UNKNOWN"
+    Received: undefined
+
+       99 | describe('getIdpAdapter factory — fail-closed (แบบ payment-adapter seam)', () => {
+      100 |     test('unknown key → AUTH_PROVIDER_UNKNOWN', () => {
+    > 101 |         expect(thrownCode(() => getIdpAdapter('facebook'))).toBe('AUTH_PROVIDER_UNKNOWN');
+          |                                                             ^
+      102 |     });
+      103 |
+      104 |     test('providerid default (coming_soon) → AUTH_PROVIDER_DISABLED', () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:101:61)
+
+  ● getIdpAdapter factory — fail-closed (แบบ payment-adapter seam) › providerid default (coming_soon) → AUTH_PROVIDER_DISABLED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_DISABLED"
+    Received: undefined
+
+      103 |
+      104 |     test('providerid default (coming_soon) → AUTH_PROVIDER_DISABLED', () => {
+    > 105 |         expect(thrownCode(() => getIdpAdapter('providerid'))).toBe('AUTH_PROVIDER_DISABLED');
+          |                                                               ^
+      106 |     });
+      107 |
+      108 |     test('providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED', () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:105:63)
+
+  ● getIdpAdapter factory — fail-closed (แบบ payment-adapter seam) › providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_NOT_CONFIGURED"
+    Received: undefined
+
+      108 |     test('providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED', () => {
+      109 |         process.env.AUTH_PROVIDERID_STATE = 'enabled';
+    > 110 |         expect(thrownCode(() => getIdpAdapter('providerid'))).toBe('AUTH_PROVIDER_NOT_CONFIGURED');
+          |                                                               ^
+      111 |     });
+      112 |
+      113 |     test('providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method', () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:110:63)
+
+  ● getIdpAdapter factory — fail-closed (แบบ payment-adapter seam) › providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "providerid"
+    Received: undefined
+
+      114 |         setFullProviderIdEnv();
+      115 |         const adapter = getIdpAdapter('providerid') || {};
+    > 116 |         expect(adapter.name).toBe('providerid');
+          |                              ^
+      117 |         expect(typeof adapter.getAuthorizeUrl).toBe('function');
+      118 |         expect(typeof adapter.exchangeCode).toBe('function');
+      119 |         expect(typeof adapter.getProfile).toBe('function');
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:116:30)
+
+  ● getIdpAdapter factory — fail-closed (แบบ payment-adapter seam) › mock บน non-production → ได้ adapter
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "mock"
+    Received: undefined
+
+      122 |     test('mock บน non-production → ได้ adapter', () => {
+      123 |         const adapter = getIdpAdapter('mock') || {};
+    > 124 |         expect(adapter.name).toBe('mock');
+          |                              ^
+      125 |         expect(typeof adapter.getAuthorizeUrl).toBe('function');
+      126 |         expect(typeof adapter.exchangeCode).toBe('function');
+      127 |         expect(typeof adapter.getProfile).toBe('function');
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:124:30)
+
+  ● getIdpAdapter factory — fail-closed (แบบ payment-adapter seam) › mock บน production → AUTH_PROVIDER_DISABLED (§D5 บังคับใน logic)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_DISABLED"
+    Received: undefined
+
+      131 |         process.env.NODE_ENV = 'production';
+      132 |         process.env.AUTH_MOCK_STATE = 'enabled';
+    > 133 |         expect(thrownCode(() => getIdpAdapter('mock'))).toBe('AUTH_PROVIDER_DISABLED');
+          |                                                         ^
+      134 |     });
+      135 |
+      136 |     test('local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER', () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:133:57)
+
+  ● getIdpAdapter factory — fail-closed (แบบ payment-adapter seam) › local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_NO_ADAPTER"
+    Received: undefined
+
+      135 |
+      136 |     test('local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER', () => {
+    > 137 |         expect(thrownCode(() => getIdpAdapter('local'))).toBe('AUTH_PROVIDER_NO_ADAPTER');
+          |                                                          ^
+      138 |     });
+      139 | });
+      140 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:137:58)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getAuthorizeUrl — [P-OAUTH] หน้า 3 › สร้าง URL ครบ 4 param: client_id, redirect_uri, response_type=code, state
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      152 |                 ? adapter.getAuthorizeUrl({ state: 'random-state-0123456789abcdef' })
+      153 |                 : undefined;
+    > 154 |             expect(String(url).startsWith('https://healthid.example/oauth/redirect?')).toBe(true);
+          |                                                                                        ^
+      155 |             const parsed = new URL(String(url));
+      156 |             expect(parsed.searchParams.get('client_id')).toBe('test-providerid-client');
+      157 |             expect(parsed.searchParams.get('redirect_uri')).toBe('https://gacp.example/auth/callback/providerid');
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:154:88)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getAuthorizeUrl — [P-OAUTH] หน้า 3 › state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "VALIDATION_ERROR"
+    Received: undefined
+
+      161 |
+      162 |         test('state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR', () => {
+    > 163 |             expect(thrownCode(() => adapter.getAuthorizeUrl({}))).toBe('VALIDATION_ERROR');
+          |                                                                   ^
+      164 |         });
+      165 |     });
+      166 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:163:67)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — happy path 2 ขา › ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "https://healthid.example/api/v1/token"
+    Received: undefined
+
+      175 |             // ขา 1 — [P-OAUTH] หน้า 4: POST form-urlencoded 5 field
+      176 |             const [url1, opts1] = global.fetch.mock.calls[0] || [];
+    > 177 |             expect(url1).toBe('https://healthid.example/api/v1/token');
+          |                          ^
+      178 |             expect(opts1 && opts1.method).toBe('POST');
+      179 |             const contentType1 = opts1 && opts1.headers
+      180 |                 && (opts1.headers['Content-Type'] || opts1.headers['content-type']);
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:177:26)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5) › 422 "Access grant has denied" → AUTH_IDP_ACCESS_DENIED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_ACCESS_DENIED"
+    Received: undefined
+
+      219 |                 status: 422, data: null, message: 'Access grant has denied',
+      220 |             }));
+    > 221 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_ACCESS_DENIED');
+          |                                                                             ^
+      222 |         });
+      223 |
+      224 |         test('422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:221:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5) › 422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_CODE_EXPIRED"
+    Received: undefined
+
+      226 |                 status: 422, data: null, message: 'Code has been expired',
+      227 |             }));
+    > 228 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_CODE_EXPIRED');
+          |                                                                             ^
+      229 |         });
+      230 |
+      231 |         test('422 "Code is invalid" → AUTH_IDP_CODE_INVALID', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:228:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5) › 422 "Code is invalid" → AUTH_IDP_CODE_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_CODE_INVALID"
+    Received: undefined
+
+      233 |                 status: 422, data: null, message: 'Code is invalid',
+      234 |             }));
+    > 235 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_CODE_INVALID');
+          |                                                                             ^
+      236 |         });
+      237 |
+      238 |         test('401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:235:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5) › 401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_CLIENT_AUTH_FAILED"
+    Received: undefined
+
+      240 |                 status: 401, data: null, message: 'Credential is required',
+      241 |             }));
+    > 242 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_CLIENT_AUTH_FAILED');
+          |                                                                             ^
+      243 |         });
+      244 |
+      245 |         test('500 → AUTH_IDP_UNAVAILABLE', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:242:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5) › 500 → AUTH_IDP_UNAVAILABLE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_UNAVAILABLE"
+    Received: undefined
+
+      247 |                 status: 500, data: null, message: 'Server error',
+      248 |             }));
+    > 249 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_UNAVAILABLE');
+          |                                                                             ^
+      250 |         });
+      251 |
+      252 |         test('network ล่ม/timeout → AUTH_IDP_UNAVAILABLE', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:249:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5) › network ล่ม/timeout → AUTH_IDP_UNAVAILABLE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_UNAVAILABLE"
+    Received: undefined
+
+      254 |                 Object.assign(new Error('The operation was aborted'), { name: 'AbortError' }),
+      255 |             );
+    > 256 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_UNAVAILABLE');
+          |                                                                             ^
+      257 |         });
+      258 |     });
+      259 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:256:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8) › 400 "This user has not provider id" → AUTH_PROVIDERID_NOT_FOUND (แยกเป็น error ของตัวเอง)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDERID_NOT_FOUND"
+    Received: undefined
+
+      265 |                     message: 'This user has not provider id',
+      266 |                 }));
+    > 267 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_PROVIDERID_NOT_FOUND');
+          |                                                                             ^
+      268 |         });
+      269 |
+      270 |         test('400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:267:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8) › 400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_EXCHANGE_FAILED"
+    Received: undefined
+
+      274 |                     message: 'The requested parameter can not used.',
+      275 |                 }));
+    > 276 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_EXCHANGE_FAILED');
+          |                                                                             ^
+      277 |         });
+      278 |
+      279 |         test('401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:276:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8) › 401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_CLIENT_AUTH_FAILED"
+    Received: undefined
+
+      283 |                     message: 'Authentication is required to access the requested resource.',
+      284 |                 }));
+    > 285 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_CLIENT_AUTH_FAILED');
+          |                                                                             ^
+      286 |         });
+      287 |     });
+      288 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:285:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getProfile — [P-OAUTH] หน้า 9-12 › GET + headers Authorization Bearer / client-id / secret-key แล้วคืน raw profile เท่านั้น
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "https://providerid.example/api/v1/services/profile"
+    Received: undefined
+
+      306 |
+      307 |             const [url, opts] = global.fetch.mock.calls[0] || [];
+    > 308 |             expect(url).toBe('https://providerid.example/api/v1/services/profile');
+          |                         ^
+      309 |             expect(opts && opts.method).toBe('GET');
+      310 |             const headers = (opts && opts.headers) || {};
+      311 |             expect(headers.Authorization || headers.authorization).toBe('Bearer provider-access-token-1');
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:308:25)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getProfile — [P-OAUTH] หน้า 9-12 › 401 "access_token is invalid" → AUTH_IDP_TOKEN_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_TOKEN_INVALID"
+    Received: undefined
+
+      321 |                 message: 'access_token is invalid',
+      322 |             }));
+    > 323 |             expect(await rejectedCode(adapter.getProfile({ accessToken: 'x' }))).toBe('AUTH_IDP_TOKEN_INVALID');
+          |                                                                                  ^
+      324 |         });
+      325 |
+      326 |         test('404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:323:82)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getProfile — [P-OAUTH] หน้า 9-12 › 404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDERID_NOT_FOUND"
+    Received: undefined
+
+      328 |                 message: 'This user has no provider id',
+      329 |             }));
+    > 330 |             expect(await rejectedCode(adapter.getProfile({ accessToken: 'x' }))).toBe('AUTH_PROVIDERID_NOT_FOUND');
+          |                                                                                  ^
+      331 |         });
+      332 |
+      333 |         test('503 → AUTH_IDP_UNAVAILABLE', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:330:82)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getProfile — [P-OAUTH] หน้า 9-12 › 503 → AUTH_IDP_UNAVAILABLE
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_UNAVAILABLE"
+    Received: undefined
+
+      335 |                 message: 'Service unavailable',
+      336 |             }));
+    > 337 |             expect(await rejectedCode(adapter.getProfile({ accessToken: 'x' }))).toBe('AUTH_IDP_UNAVAILABLE');
+          |                                                                                  ^
+      338 |         });
+      339 |     });
+      340 | });
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:337:82)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › มี fixture code ครบ 5 ชุด
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "string"
+    Received: "undefined"
+
+      349 |     test('มี fixture code ครบ 5 ชุด', () => {
+      350 |         const codes = MOCK_FIXTURE_CODES || {};
+    > 351 |         expect(typeof codes.HAPPY).toBe('string');
+          |                                    ^
+      352 |         expect(typeof codes.DENY).toBe('string');
+      353 |         expect(typeof codes.EXPIRED).toBe('string');
+      354 |         expect(typeof codes.PROFILE_MISSING_FIELD).toBe('string');
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:351:36)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › happy: exchangeCode ตาม contract แล้ว getProfile ได้ profile ครบ (in_registry=true)
+
+    expect(received).toMatchObject(expected)
+
+    Matcher error: received value must be a non-null object
+
+    Received has value: undefined
+
+      358 |     test('happy: exchangeCode ตาม contract แล้ว getProfile ได้ profile ครบ (in_registry=true)', async () => {
+      359 |         const res = await adapter.exchangeCode({ code: (MOCK_FIXTURE_CODES || {}).HAPPY });
+    > 360 |         expect(res).toMatchObject({ tokenType: 'Bearer', expiresIn: 86400 });
+          |                     ^
+      361 |         expect(typeof (res || {}).accessToken).toBe('string');
+      362 |         expect(typeof (res || {}).accountId).toBe('string');
+      363 |
+
+      at Object.toMatchObject (__tests__/unit/idp-adapter.test.js:360:21)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › deny → AUTH_IDP_ACCESS_DENIED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_ACCESS_DENIED"
+    Received: undefined
+
+      370 |     test('deny → AUTH_IDP_ACCESS_DENIED', async () => {
+      371 |         expect(await rejectedCode(adapter.exchangeCode({ code: (MOCK_FIXTURE_CODES || {}).DENY })))
+    > 372 |             .toBe('AUTH_IDP_ACCESS_DENIED');
+          |              ^
+      373 |     });
+      374 |
+      375 |     test('expired-code → AUTH_IDP_CODE_EXPIRED', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:372:14)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › expired-code → AUTH_IDP_CODE_EXPIRED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_CODE_EXPIRED"
+    Received: undefined
+
+      375 |     test('expired-code → AUTH_IDP_CODE_EXPIRED', async () => {
+      376 |         expect(await rejectedCode(adapter.exchangeCode({ code: (MOCK_FIXTURE_CODES || {}).EXPIRED })))
+    > 377 |             .toBe('AUTH_IDP_CODE_EXPIRED');
+          |              ^
+      378 |     });
+      379 |
+      380 |     test('code ไม่รู้จัก → AUTH_IDP_CODE_INVALID', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:377:14)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › code ไม่รู้จัก → AUTH_IDP_CODE_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_CODE_INVALID"
+    Received: undefined
+
+      380 |     test('code ไม่รู้จัก → AUTH_IDP_CODE_INVALID', async () => {
+      381 |         expect(await rejectedCode(adapter.exchangeCode({ code: 'no-such-code' })))
+    > 382 |             .toBe('AUTH_IDP_CODE_INVALID');
+          |              ^
+      383 |     });
+      384 |
+      385 |     test('profile-missing-field: token ผ่าน แต่ profile ไม่มี hash_cid', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:382:14)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › profile-missing-field: token ผ่าน แต่ profile ไม่มี hash_cid
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "string"
+    Received: "undefined"
+
+      386 |         const res = await adapter.exchangeCode({ code: (MOCK_FIXTURE_CODES || {}).PROFILE_MISSING_FIELD });
+      387 |         const profile = await adapter.getProfile({ accessToken: (res || {}).accessToken });
+    > 388 |         expect(typeof (profile || {}).account_id).toBe('string');
+          |                                                   ^
+      389 |         expect((profile || {}).hash_cid).toBeUndefined();
+      390 |     });
+      391 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:388:51)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › staff-not-in-registry: profile valid แต่ flag in_registry=false (consumer P2 ใช้)
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /^[0-9a-f]{64}$/
+    Received string:  "undefined"
+
+      393 |         const res = await adapter.exchangeCode({ code: (MOCK_FIXTURE_CODES || {}).STAFF_NOT_IN_REGISTRY });
+      394 |         const profile = await adapter.getProfile({ accessToken: (res || {}).accessToken });
+    > 395 |         expect(String((profile || {}).hash_cid)).toMatch(/^[0-9a-f]{64}$/);
+          |                                                  ^
+      396 |         expect(((profile || {})._mock || {}).in_registry).toBe(false);
+      397 |     });
+      398 |
+
+      at Object.toMatch (__tests__/unit/idp-adapter.test.js:395:50)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › deterministic: code เดิม → ผลเดิมทุกครั้ง
+
+    expect(received).toEqual(expected) // deep equality
+
+    Expected: Any<String>
+    Received: undefined
+
+      400 |         const a = await adapter.exchangeCode({ code: (MOCK_FIXTURE_CODES || {}).HAPPY });
+      401 |         const b = await adapter.exchangeCode({ code: (MOCK_FIXTURE_CODES || {}).HAPPY });
+    > 402 |         expect((a || {}).accessToken).toEqual(expect.any(String)); // กัน pin หลอก: ต้องมีผลจริง
+          |                                       ^
+      403 |         expect(a).toEqual(b);
+      404 |     });
+      405 |
+
+      at Object.toEqual (__tests__/unit/idp-adapter.test.js:402:39)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › ไม่แตะ network เลย (fetch ต้องไม่ถูกเรียก)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "string"
+    Received: "undefined"
+
+      408 |         const url = adapter.getAuthorizeUrl ? adapter.getAuthorizeUrl({ state: 's123' }) : undefined;
+      409 |         expect(global.fetch).not.toHaveBeenCalled();
+    > 410 |         expect(typeof url).toBe('string');
+          |                            ^
+      411 |     });
+      412 |
+      413 |     test('getAuthorizeUrl มี state เสมอ + response_type=code (โครงเดียวกับของจริง)', () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:410:28)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › getAuthorizeUrl มี state เสมอ + response_type=code (โครงเดียวกับของจริง)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "code"
+    Received: null
+
+      417 |         const query = String(url).split('?')[1] || '';
+      418 |         const params = new URLSearchParams(query);
+    > 419 |         expect(params.get('response_type')).toBe('code');
+          |                                             ^
+      420 |         expect(params.get('state')).toBe('mock-state-1');
+      421 |         expect(thrownCode(() => adapter.getAuthorizeUrl({}))).toBe('VALIDATION_ERROR');
+      422 |     });
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:419:45)
+
+  ● MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network) › getProfile ด้วย token ไม่รู้จัก → AUTH_IDP_TOKEN_INVALID
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_TOKEN_INVALID"
+    Received: undefined
+
+      424 |     test('getProfile ด้วย token ไม่รู้จัก → AUTH_IDP_TOKEN_INVALID', async () => {
+      425 |         expect(await rejectedCode(adapter.getProfile({ accessToken: 'bogus' })))
+    > 426 |             .toBe('AUTH_IDP_TOKEN_INVALID');
+          |              ^
+      427 |     });
+      428 | });
+      429 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:426:14)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/auth-providers-config.test.js
+  AUTH_PROVIDERS registry (mandate §D2)
+    ✕ registry มีครบ 5 provider ตาม vocab: local | healthid | providerid | thaid | mock (8 ms)
+    ✕ default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED), mock=enabled (non-prod) (3 ms)
+    ✕ isProviderEnabled defaults ตรงกับ states (3 ms)
+    ✕ unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN (3 ms)
+  mock ปิดบน production — บังคับใน logic ไม่ใช่แค่ default (mandate §D5)
+    ✕ NODE_ENV=production + AUTH_MOCK_STATE=enabled → mock ก็ยังไม่ enabled (2 ms)
+    ✕ non-production: mock enabled โดย default (ไม่ตั้ง env ใด) (2 ms)
+  fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment)
+    ✕ AUTH_PROVIDERID_STATE=enabled แต่ไม่มี config ใดเลย → ไม่ enabled + AUTH_PROVIDER_NOT_CONFIGURED (16 ms)
+    ✕ ขาดตัวเดียว (SECRET_KEY) ก็ fail-closed เหมือนกัน (2 ms)
+    ✕ config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field (2 ms)
+    ✕ ค่า state นอก vocab (เช่น "yolo") → fail-closed ไม่ enabled (2 ms)
+    ✕ staging_only: enabled เฉพาะ non-production (2 ms)
+    ✕ provider จริง default coming_soon → assertProviderReady โยน AUTH_PROVIDER_DISABLED (2 ms)
+  local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended)
+    ✕ local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6) (3 ms)
+    ✕ AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5) (3 ms)
+  getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin)
+    ✕ ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ (3 ms)
+
+  ● AUTH_PROVIDERS registry (mandate §D2) › registry มีครบ 5 provider ตาม vocab: local | healthid | providerid | thaid | mock
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 7
+    + Received  + 1
+
+    - Array [
+    -   "local",
+    -   "healthid",
+    -   "providerid",
+    -   "thaid",
+    -   "mock",
+    - ]
+    + Array []
+
+      66 | describe('AUTH_PROVIDERS registry (mandate §D2)', () => {
+      67 |     test('registry มีครบ 5 provider ตาม vocab: local | healthid | providerid | thaid | mock', () => {
+    > 68 |         expect(PROVIDER_KEYS).toEqual(['local', 'healthid', 'providerid', 'thaid', 'mock']);
+         |                               ^
+      69 |         const listed = (getAuthProviders() || []).map((p) => p && p.key);
+      70 |         expect(listed).toEqual(['local', 'healthid', 'providerid', 'thaid', 'mock']);
+      71 |     });
+
+      at Object.toEqual (__tests__/unit/auth-providers-config.test.js:68:31)
+
+  ● AUTH_PROVIDERS registry (mandate §D2) › default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED), mock=enabled (non-prod)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "enabled"
+    Received: undefined
+
+      72 |
+      73 |     test('default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED), mock=enabled (non-prod)', () => {
+    > 74 |         expect(stateOf('local')).toBe('enabled');
+         |                                  ^
+      75 |         expect(stateOf('healthid')).toBe('coming_soon');
+      76 |         expect(stateOf('providerid')).toBe('coming_soon');
+      77 |         expect(stateOf('thaid')).toBe('coming_soon');
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:74:34)
+
+  ● AUTH_PROVIDERS registry (mandate §D2) › isProviderEnabled defaults ตรงกับ states
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      80 |
+      81 |     test('isProviderEnabled defaults ตรงกับ states', () => {
+    > 82 |         expect(isProviderEnabled('local')).toBe(true);
+         |                                            ^
+      83 |         expect(isProviderEnabled('healthid')).toBe(false);
+      84 |         expect(isProviderEnabled('providerid')).toBe(false);
+      85 |         expect(isProviderEnabled('thaid')).toBe(false);
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:82:44)
+
+  ● AUTH_PROVIDERS registry (mandate §D2) › unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_UNKNOWN"
+    Received: undefined
+
+      89 |     test('unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN', () => {
+      90 |         expect(isProviderEnabled('facebook')).toBe(false);
+    > 91 |         expect(thrownCode(() => getProviderConfig('facebook'))).toBe('AUTH_PROVIDER_UNKNOWN');
+         |                                                                 ^
+      92 |         expect(thrownCode(() => assertProviderReady('facebook'))).toBe('AUTH_PROVIDER_UNKNOWN');
+      93 |     });
+      94 | });
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:91:65)
+
+  ● mock ปิดบน production — บังคับใน logic ไม่ใช่แค่ default (mandate §D5) › NODE_ENV=production + AUTH_MOCK_STATE=enabled → mock ก็ยังไม่ enabled
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "coming_soon"
+    Received: undefined
+
+       99 |         process.env.AUTH_MOCK_STATE = 'enabled';
+      100 |         expect(isProviderEnabled('mock')).toBe(false);
+    > 101 |         expect(stateOf('mock')).toBe('coming_soon');
+          |                                 ^
+      102 |         expect(thrownCode(() => assertProviderReady('mock'))).toBe('AUTH_PROVIDER_DISABLED');
+      103 |     });
+      104 |
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:101:33)
+
+  ● mock ปิดบน production — บังคับใน logic ไม่ใช่แค่ default (mandate §D5) › non-production: mock enabled โดย default (ไม่ตั้ง env ใด)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      104 |
+      105 |     test('non-production: mock enabled โดย default (ไม่ตั้ง env ใด)', () => {
+    > 106 |         expect(isProviderEnabled('mock')).toBe(true);
+          |                                           ^
+      107 |         expect(thrownCode(() => assertProviderReady('mock'))).toBeUndefined();
+      108 |     });
+      109 | });
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:106:43)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › AUTH_PROVIDERID_STATE=enabled แต่ไม่มี config ใดเลย → ไม่ enabled + AUTH_PROVIDER_NOT_CONFIGURED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "coming_soon"
+    Received: undefined
+
+      113 |         process.env.AUTH_PROVIDERID_STATE = 'enabled';
+      114 |         expect(isProviderEnabled('providerid')).toBe(false);
+    > 115 |         expect(stateOf('providerid')).toBe('coming_soon');
+          |                                       ^
+      116 |         expect(thrownCode(() => assertProviderReady('providerid'))).toBe('AUTH_PROVIDER_NOT_CONFIGURED');
+      117 |     });
+      118 |
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:115:39)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › ขาดตัวเดียว (SECRET_KEY) ก็ fail-closed เหมือนกัน
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_NOT_CONFIGURED"
+    Received: undefined
+
+      122 |         process.env.AUTH_PROVIDERID_STATE = 'enabled';
+      123 |         expect(isProviderEnabled('providerid')).toBe(false);
+    > 124 |         expect(thrownCode(() => assertProviderReady('providerid'))).toBe('AUTH_PROVIDER_NOT_CONFIGURED');
+          |                                                                     ^
+      125 |     });
+      126 |
+      127 |     test('config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field', () => {
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:124:69)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      128 |         setFullProviderIdEnv();
+      129 |         process.env.AUTH_PROVIDERID_STATE = 'enabled';
+    > 130 |         expect(isProviderEnabled('providerid')).toBe(true);
+          |                                                 ^
+      131 |         expect(thrownCode(() => assertProviderReady('providerid'))).toBeUndefined();
+      132 |         const cfg = getProviderConfig('providerid') || {};
+      133 |         expect(cfg.clientId).toBe('test-providerid-client');
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:130:49)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › ค่า state นอก vocab (เช่น "yolo") → fail-closed ไม่ enabled
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "coming_soon"
+    Received: undefined
+
+      146 |         process.env.AUTH_PROVIDERID_STATE = 'yolo';
+      147 |         expect(isProviderEnabled('providerid')).toBe(false);
+    > 148 |         expect(stateOf('providerid')).toBe('coming_soon');
+          |                                       ^
+      149 |     });
+      150 |
+      151 |     test('staging_only: enabled เฉพาะ non-production', () => {
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:148:39)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › staging_only: enabled เฉพาะ non-production
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      152 |         setFullProviderIdEnv();
+      153 |         process.env.AUTH_PROVIDERID_STATE = 'staging_only';
+    > 154 |         expect(isProviderEnabled('providerid')).toBe(true);
+          |                                                 ^
+      155 |         process.env.NODE_ENV = 'production';
+      156 |         expect(isProviderEnabled('providerid')).toBe(false);
+      157 |     });
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:154:49)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › provider จริง default coming_soon → assertProviderReady โยน AUTH_PROVIDER_DISABLED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_PROVIDER_DISABLED"
+    Received: undefined
+
+      158 |
+      159 |     test('provider จริง default coming_soon → assertProviderReady โยน AUTH_PROVIDER_DISABLED', () => {
+    > 160 |         expect(thrownCode(() => assertProviderReady('providerid'))).toBe('AUTH_PROVIDER_DISABLED');
+          |                                                                     ^
+      161 |         expect(thrownCode(() => assertProviderReady('healthid'))).toBe('AUTH_PROVIDER_DISABLED');
+      162 |         expect(thrownCode(() => assertProviderReady('thaid'))).toBe('AUTH_PROVIDER_DISABLED');
+      163 |     });
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:160:69)
+
+  ● local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended) › local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      167 |     test('local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6)', () => {
+      168 |         process.env.NODE_ENV = 'production';
+    > 169 |         expect(isProviderEnabled('local')).toBe(true);
+          |                                            ^
+      170 |     });
+      171 |
+      172 |     test('AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5)', () => {
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:169:44)
+
+  ● local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended) › AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "coming_soon"
+    Received: undefined
+
+      173 |         process.env.AUTH_LOCAL_STATE = 'coming_soon';
+      174 |         expect(isProviderEnabled('local')).toBe(false);
+    > 175 |         expect(stateOf('local')).toBe('coming_soon');
+          |                                  ^
+      176 |     });
+      177 | });
+      178 |
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:175:34)
+
+  ● getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin) › ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 5
+    Received length: 0
+    Received array:  []
+
+      182 |         process.env.AUTH_PROVIDERID_STATE = 'enabled';
+      183 |         const out = getAuthProviders() || [];
+    > 184 |         expect(out).toHaveLength(5); // กัน pin หลอก: ต้องมีข้อมูลจริงก่อนค่อยตรวจว่าไม่รั่ว
+          |                     ^
+      185 |         const serialized = JSON.stringify(out);
+      186 |         // grep-pin ชื่อ field ต้องห้าม
+      187 |         expect(serialized).not.toMatch(/secret/i);
+
+      at Object.toHaveLength (__tests__/unit/auth-providers-config.test.js:184:21)
+
+Test Suites: 2 failed, 2 total
+Tests:       49 failed, 49 total
+Snapshots:   0 total
+Time:        2.455 s, estimated 4 s
+Ran all test suites matching /__tests__\/unit\/auth-providers-config.test.js|__tests__\/unit\/idp-adapter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

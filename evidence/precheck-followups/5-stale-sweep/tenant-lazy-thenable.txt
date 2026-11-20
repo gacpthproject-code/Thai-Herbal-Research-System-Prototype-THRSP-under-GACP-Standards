@@ -1,0 +1,15 @@
+Finding while making the stale sweep tenant-safe (2026-09-29, scratch PG17 127.0.0.1:5440, test
+__tests__/integration/document-precheck-stale-sweep.test.js, sweep called inside
+runWithTenantContext({organizationId: orgA})):
+
+First implementation:  withoutTenantScope(() => prisma.documentPrecheck.findMany({...}))
+Captured debug line (stats, then the two stale rows as the raw client reads them after the sweep):
+DEBUG {"scanned":1,"failed":1,"skipped":0,"errors":0} [{"id":"a95fea32-be48-4af7-b0e8-713b67e2c041","status":"PENDING","createdAt":"2026-09-29T10:14:20.566Z","organizationId":"31821178-a4b0-4d6d-b03b-a1ee8c39d673"},{"id":"bf029db3-d24c-44fc-aef6-e20deb9744e4","status":"FAILED","createdAt":"2026-09-29T11:03:20.566Z","organizationId":"5ef4c4d2-61c0-46cf-be25-09a1affea404"}] A=bf029db3-d24c-44fc-aef6-e20deb9744e4 orgA=5ef4c4d2-61c0-46cf-be25-09a1affea404 NOW=2026-09-29T11:14:20.566Z
+=> only org A's stale row was scanned; org B's 60-minute-old PENDING row was left PENDING.
+
+Fixed implementation:  withoutTenantScope(async () => await prisma.documentPrecheck.findMany({...}))
+DEBUG {"scanned":2,"failed":2,"skipped":0,"errors":0} [... both rows "status":"FAILED" ...]
+
+Reading: a Prisma query is a lazy thenable; returned un-awaited from the callback it executes when
+the caller awaits it, i.e. after storage.run(null, fn) has returned, under the caller's ambient tenant.
+The same un-awaited shape exists elsewhere (see BACKLOG-FOUND.md entry of 2026-09-29, precheck-followups).

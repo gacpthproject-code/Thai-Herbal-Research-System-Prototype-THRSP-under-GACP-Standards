@@ -1,0 +1,351 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/staff-password-doors.test.js
+  directory doors never write a password
+    ✓ admin PUT a staff password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, hash unchanged (86 ms)
+    ✓ admin PUT a farmer password → 400, the farmer hash unchanged and the old password still works (38 ms)
+    ✓ a password riding along with a legitimate edit refuses the whole request (nothing written) (23 ms)
+    ✓ admin PUT their OWN password through the directory → 400 (own change needs the old password) (14 ms)
+    ✓ platform admin (cross-tenant) PUT a password → 400 (33 ms)
+    ✓ PATCH carrying a password → 400 as well (the field used to be dropped silently) (17 ms)
+    ✓ control: an empty password string is "no password" — the edit goes through and the hash stays (21 ms)
+  directory mutations reach staff accounts only
+    ✓ PUT a farmer (no providerId) → 404, nothing written (13 ms)
+    ✓ PATCH a farmer → 404 (18 ms)
+    ✓ DELETE a farmer → 404, the account is not deleted (37 ms)
+    ✓ an account with a providerId but the health role → 404 (14 ms)
+    ✓ platform admin cannot reach a farmer either → 404 (12 ms)
+    ✓ kept: cross-org staff → 404 for a dtam admin (12 ms)
+    ✓ kept: a non-admin caller → 403 (12 ms)
+    ✓ control: PATCH a staff member in the same org still works (10 ms)
+  POST /api/auth/provider/change-password — staff change their own password
+    ✓ old + new → 200; the new password verifies, sessions revoked, audit written (28 ms)
+    ✓ changes only the caller: a userId in the body is ignored (17 ms)
+    ✓ wrong old password → the same 400 as the health door, hash unchanged (31 ms)
+    ✓ a weak new password → 400 VALIDATION_ERROR (the registration policy), hash unchanged (13 ms)
+    ✓ no old password → 400, hash unchanged (14 ms)
+    ✓ not signed in → 401 (14 ms)
+  server.js mounts one change-password limiter on both doors, both prefixes
+    ✓ the limiter exists and counts failures only (2 ms)
+    ✓ mounted on /auth/health/change-password inside the prefix loop (2 ms)
+    ✓ mounted on /auth/provider/change-password inside the prefix loop (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/provider-directory-hardening.test.js
+  P0-D staff-directory hardening — /api/system/providers
+    providerId edit forbid
+      ✓ PATCH /:id — differing providerId → 400 PROVIDER_ID_EDIT_FORBIDDEN, no write (140 ms)
+      ✓ PATCH /:id — identical providerId is an idempotent no-op (2xx, providerId NOT in update data) (18 ms)
+      ✓ PATCH /:id — dashed-but-identical providerId also passes as no-op (12 ms)
+      ✓ PUT /:id — differing providerId → 400 PROVIDER_ID_EDIT_FORBIDDEN, no write (13 ms)
+      ✓ PUT /:id — identical providerId is an idempotent no-op (2xx, providerId NOT in update data) (21 ms)
+      ✓ PUT /:id — dashed-but-identical providerId also passes as no-op (12 ms)
+    tenant scope on PATCH/PUT/DELETE
+      ✓ PATCH /:id — cross-tenant target → 404, no write (no existence disclosure) (17 ms)
+      ✓ PATCH /:id — PLATFORM_ADMIN bypasses the org filter (cross-tenant role) (9 ms)
+      ✓ PUT /:id — cross-tenant target → 404, no write (no existence disclosure) (10 ms)
+      ✓ PUT /:id — PLATFORM_ADMIN bypasses the org filter (cross-tenant role) (17 ms)
+      ✓ DELETE /:id — cross-tenant target → 404, no write (9 ms)
+      ✓ same-tenant PATCH still works (positive control) (8 ms)
+    session-epoch stamp on role/isActive/password changes
+      ✓ PATCH role change stamps sessionsRevokedAt (10 ms)
+      ✓ PATCH isActive change stamps sessionsRevokedAt (8 ms)
+      ✓ PUT password → 400 DIRECTORY_PASSWORD_WRITE_FORBIDDEN, no write at all (7 ms)
+      ✓ PUT isActive change stamps sessionsRevokedAt (19 ms)
+      ✓ PATCH name-only change does NOT stamp sessionsRevokedAt (10 ms)
+      ✓ PATCH re-submitting the UNCHANGED role does NOT stamp sessionsRevokedAt (10 ms)
+      ✓ PATCH unchanged isActive:true (already ACTIVE) does NOT stamp (9 ms)
+      ✓ PUT re-submitting the UNCHANGED role does NOT stamp sessionsRevokedAt (10 ms)
+      ✓ DELETE stamps sessionsRevokedAt on the soft delete (8 ms)
+    self-guards
+      ✓ PATCH /:id — own role CHANGE → 403 SELF_ROLE_CHANGE_FORBIDDEN, no write (8 ms)
+      ✓ PATCH /:id — own status CHANGE → 403 SELF_DISABLE_FORBIDDEN, no write (7 ms)
+      ✓ PATCH /:id — own name/email edits stay allowed (6 ms)
+      ✓ PATCH /:id — own edit re-submitting the UNCHANGED role passes as a profile edit (9 ms)
+      ✓ PATCH /:id — own isActive:true while already ACTIVE is a no-op edit, not a 403 (10 ms)
+      ✓ PUT /:id — own role CHANGE → 403 SELF_ROLE_CHANGE_FORBIDDEN, no write (14 ms)
+      ✓ PUT /:id — own status CHANGE → 403 SELF_DISABLE_FORBIDDEN, no write (13 ms)
+      ✓ PUT /:id — own name/email edits stay allowed (13 ms)
+      ✓ PUT /:id — own edit re-submitting the UNCHANGED role passes as a profile edit (12 ms)
+      ✓ PUT /:id — own isActive:true while already ACTIVE is a no-op edit, not a 403 (13 ms)
+      ✓ DELETE /:id — self-delete → 403 SELF_DISABLE_FORBIDDEN, no write (11 ms)
+    last-admin guard (ROLE_ADMIN_CANNOT_BE_LAST)
+      ✓ PATCH demoting the last active ADMIN → 409 + code, no write (12 ms)
+      ✓ PATCH isActive=false on the last active ADMIN → 409 + code, no write (13 ms)
+      ✓ DELETE targeting the last active ADMIN → 409 + code, no write (10 ms)
+      ✓ PATCH demoting an ADMIN when another active admin exists → passes (8 ms)
+      ✓ PATCH demoting a NON-admin target skips the admin count entirely (13 ms)
+    audit emission (best-effort)
+      ✓ PATCH role change writes USER_ROLE_UPDATED with before/after metadata (12 ms)
+      ✓ PATCH name-only change does NOT write the role-update audit row (14 ms)
+      ✓ PATCH re-submitting the UNCHANGED role does NOT write a before==after audit row (15 ms)
+      ✓ audit failure NEVER blocks the mutation (best-effort) (13 ms)
+    S2 — tenant scope on unlock / disable-2fa
+      ✓ POST /:id/unlock — cross-tenant target → 404, no write (10 ms)
+      ✓ POST /:id/disable-2fa — cross-tenant target → 404, no write (16 ms)
+      ✓ POST /:id/unlock — same-tenant target still works (positive control) (10 ms)
+      ✓ POST /:id/disable-2fa — same-tenant target still works (positive control) (11 ms)
+    S6 — target lookups run inside withoutTenantScope
+      ✓ PATCH /:id target lookup is wrapped (13 ms)
+      ✓ POST /:id/unlock target lookup is wrapped (11 ms)
+    GET /roles
+      ✓ includes Tier-16 ACCOUNT_DTAM + ACCOUNT_PLATFORM, excludes PLATFORM_ADMIN and HEALTH (13 ms)
+      ✓ keeps the FE-expected value/label shape and the legacy entries (15 ms)
+    mutation gate
+      ✓ PATCH /:id — document_reviewer role gets 403, no write (13 ms)
+      ✓ PATCH /:id — dispatcher role gets 403, no write (10 ms)
+      ✓ PATCH /:id — field_inspector role gets 403, no write (10 ms)
+      ✓ PATCH /:id — finance_officer_dtam role gets 403, no write (10 ms)
+      ✓ PATCH /:id — finance_officer_platform role gets 403, no write (10 ms)
+      ✓ PATCH /:id — finance_officer_platform role gets 403, no write (14 ms)
+      ✓ PUT /:id — document_reviewer role gets 403, no write (11 ms)
+      ✓ PUT /:id — dispatcher role gets 403, no write (13 ms)
+      ✓ PUT /:id — field_inspector role gets 403, no write (12 ms)
+      ✓ PUT /:id — finance_officer_dtam role gets 403, no write (10 ms)
+      ✓ PUT /:id — finance_officer_platform role gets 403, no write (8 ms)
+      ✓ PUT /:id — finance_officer_platform role gets 403, no write (11 ms)
+      ✓ DELETE /:id — document_reviewer role gets 403, no write (11 ms)
+      ✓ DELETE /:id — dispatcher role gets 403, no write (11 ms)
+      ✓ DELETE /:id — field_inspector role gets 403, no write (12 ms)
+      ✓ DELETE /:id — finance_officer_dtam role gets 403, no write (12 ms)
+      ✓ DELETE /:id — finance_officer_platform role gets 403, no write (11 ms)
+      ✓ DELETE /:id — finance_officer_platform role gets 403, no write (13 ms)
+      ✓ DELETE /:id — PLATFORM_ADMIN is allowed through the gate (12 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/error-codes-catalog.test.js
+  shared/error-codes catalog
+    ✓ exports a frozen object with at least 80 entries (RFC W4-B floor) (2 ms)
+    ✓ every entry has all 6 required fields with the right types (550 ms)
+    ✓ every source path points at a file that exists (known debt listed explicitly) (3 ms)
+    ✓ the known-debt list has no entry that is already fixed (1 ms)
+    ✓ every httpStatus is a 4xx or 5xx HTTP status code (56 ms)
+    ✓ catalog codes are unique (no duplicate keys across the object) (1 ms)
+    ✓ contains every code listed in shared/api-response.js DEFAULT_ERROR_MESSAGES (4 ms)
+    ✓ contains every code thrown by shared/errors.js AppError + JWT branches (2 ms)
+    ✓ exposes getMessage() that returns localised strings with fallback (2 ms)
+    ✓ exposes lookup() that returns the full row or undefined (1 ms)
+    ✓ extract-error-codes script runs and discovers ≥ catalog floor codes (73 ms)
+    ✓ extractor loadCatalog returns same module as direct require (1 ms)
+    ✓ every discovered code is catalogued (no drift between code and catalog) (117 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-26T10:10:09.183Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-26T10:10:09.642Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0129","service":"auth-service","timestamp":"2026-09-26T10:10:10.429Z"}
+PASS __tests__/unit/auth-service-audit-fixes.test.js
+  B-01: Password Reset
+    ✓ the service exposes no way to request a reset (2 ms)
+    ✓ the service exposes no way to redeem a reset token (1 ms)
+  H-05: updateProfile Whitelist
+    ✓ should allow whitelisted fields (10 ms)
+    ✓ should BLOCK role escalation attempt (1 ms)
+    ✓ should BLOCK status manipulation (2 ms)
+    ✓ should BLOCK password change via profile update (1 ms)
+    ✓ should throw when no valid fields provided (27 ms)
+  H-04: OCR Bypass Toggle (ENABLE_OCR_BYPASS)
+    ✓ should default to PENDING_VERIFICATION when bypass is off (460 ms)
+    ✓ should auto-approve when ENABLE_OCR_BYPASS=true (env bypass) (787 ms)
+    ✓ should auto-approve ALL IDs when bypass is on (no ID-ending-in-9 exception) (552 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/no-self-service-password-reset.test.js
+  no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17)
+    ✓ the backend mounts no reset route, neither the request nor the token redemption (2 ms)
+    ✓ no router or server mount names a password-reset or recovery path (33 ms)
+    ✓ no controller, service or schema can start or complete a reset any more (40 ms)
+    ✓ no backend code mints or looks up a password-reset token (115 ms)
+    ✓ no error-code remediation sends anyone to a forgot-password endpoint or a reset token (5 ms)
+    ✓ the web app has no forgot-password or reset page, route, link, call, sitemap entry or copy (93 ms)
+    ✓ the mobile app has no forgot-password screen, route or button (15 ms)
+    ✓ the API contract documents no reset path and no email verification (1 ms)
+  no email or SMS transport is configured outside the ops alerting stack (operator 2026-09-15 / 2026-09-16)
+    ✓ nodemailer is not a dependency (2 ms)
+    ✓ the secrets catalog has no SMTP, email or SMS row (2 ms)
+    ✓ no env template, generator or compose file configures a mail or SMS relay (29 ms)
+    ✓ the email template engine that rendered for the deleted email service is gone (1 ms)
+    ✓ no error code documents the deleted email/SMS notification providers (8 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/auth-provider-login-codes.test.js
+  BE-EDGE-04 (D2) — POST /auth/provider/login failure-code mapping
+    ✓ malformed (non-13-digit) providerId → 400 INVALID_PROVIDER_ID (never hits the DB) (30 ms)
+    ✓ unknown provider → 401 USER_NOT_FOUND (35 ms)
+    ✓ account carries a non-provider role → 403 INVALID_PROVIDER_ROLE (11 ms)
+    ✓ inactive provider (status !== ACTIVE) → 403 ACCOUNT_INACTIVE (19 ms)
+    ✓ wrong password → 401 INVALID_PASSWORD and records the failed attempt (13 ms)
+    ✓ wrong password that crosses the threshold → 423 ACCOUNT_LOCKED (18 ms)
+    ✓ already-locked account → 423 ACCOUNT_LOCKED, never reaches bcrypt (17 ms)
+    ✓ expired lock → auto-unlocks then proceeds to a normal login (13 ms)
+    ✓ happy path → 200, sets httpOnly provider_token cookie, touches last-login (12 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/admin-gates-use-canonical-rbac.test.js
+  SSOT — interoperability requireAdminRole resolves roles canonically
+    ✓ admits a platform admin whose RAW role is the platform_owner alias (2 ms)
+    ✓ admits the canonical lowercase spellings the migration will produce (1 ms)
+    ✓ prefers canonicalRole over the raw column when both are present (1 ms)
+    ✓ still admits the spellings that already worked (7 ms)
+    ✓ still refuses every non-admin role (3 ms)
+    ✓ refuses an unknown or absent role rather than defaulting open (3 ms)
+  SSOT — provider create gate matches this file own admin convention
+    ✓ admits PLATFORM_ADMIN, as resolveDirectoryManager in this same file does (27 ms)
+    ✓ admits the platform_owner alias (13 ms)
+    ✓ still admits ADMIN and SUPER_ADMIN (27 ms)
+    ✓ prefers canonicalRole over the raw column (13 ms)
+    ✓ still refuses every non-admin role (171 ms)
+    ✓ refuses an unknown role rather than defaulting open (38 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/password-reset-routes-behaviour.test.js
+  the applicant auth router redeems no reset token (operator 2026-09-17)
+    ✓ POST /reset-password/:token reaches no route and no service (3 ms)
+    ✓ no other reset or recovery path is mounted either (3 ms)
+    ✓ the route table names no password reset or recovery path (3 ms)
+    ✓ positive control: the walk does reach a mounted route (3 ms)
+  the staff directory router issues no reset token (operator 2026-09-17)
+    ✓ POST /:id/force-password-reset reaches no route, writes nothing and returns no token (2 ms)
+    ✓ the route table names no password reset or recovery action (2 ms)
+    ✓ positive control: POST /:id/unlock is still mounted and sets no password (4 ms)
+    ✓ positive control: POST /:id/disable-2fa is still mounted and sets no password (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/session-epoch-refresh.test.js
+  [BE-AUTH-03-03] /refresh session-epoch gate
+    ✓ (a) rejects an RT whose iat predates sessionsRevokedAt → 401 REFRESH_TOKEN_REVOKED (5 ms)
+    ✓ (b) allows an RT whose iat is AFTER sessionsRevokedAt (post-change re-login) → mints (5 ms)
+    ✓ (b2) allows an RT when sessionsRevokedAt is NULL (never changed password) → mints (2 ms)
+    ✓ (d) fail-CLOSED: user re-fetch returns null → no mint (401) (2 ms)
+    ✓ (d2) fail-CLOSED: user re-fetch THROWS → no mint (401/503) (2 ms)
+  [BE-AUTH-03-03] password-management stamps sessionsRevokedAt
+    ✓ (c) changePassword sets sessionsRevokedAt on the update (21 ms)
+
+Test Suites: 9 passed, 9 total
+Tests:       163 passed, 163 total
+Snapshots:   0 total
+Time:        9.562 s, estimated 13 s
+Ran all test suites matching /__tests__\/unit\/staff-password-doors.test.js|__tests__\/unit\/provider-directory-hardening.test.js|__tests__\/unit\/password-reset-routes-behaviour.test.js|__tests__\/unit\/no-self-service-password-reset.test.js|__tests__\/unit\/error-codes-catalog.test.js|__tests__\/unit\/auth-provider-login-codes.test.js|__tests__\/unit\/admin-gates-use-canonical-rbac.test.js|__tests__\/unit\/session-epoch-refresh.test.js|__tests__\/unit\/auth-service-audit-fixes.test.js/i.

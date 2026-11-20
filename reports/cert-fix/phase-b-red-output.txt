@@ -1,0 +1,55 @@
+RED run — apps/backend/__tests__/integration/onsite-evidence-unfreeze.test.js
+Command: DATABASE_URL=<redacted> npx jest --config jest.config.cjs __tests__/integration/onsite-evidence-unfreeze.test.js --runInBand
+Run against: schema BEFORE prisma/schema/audit-onsite-evidence.prisma existed, BEFORE migration, BEFORE `prisma generate` (the @prisma/client in node_modules at run time had no farmAuditPhoto / farmAuditChecklistItem model).
+Date: 2026-08-16
+
+FAIL __tests__/integration/onsite-evidence-unfreeze.test.js (15.302 s)
+  Phase B — onsite evidence models unfreeze certificate issuance
+    the already-coded capture flow (submitChecklistItem / uploadPhoto)
+      x submitChecklistItem persists a real FarmAuditChecklistItem row (1128 ms)
+      x uploadPhoto persists a real FarmAuditPhoto row carrying its SHA-256 hash (710 ms)
+    onsite-evidence-gate + certificate issuance (the headline unfreeze)
+      x assertOnsiteEvidenceSufficient resolves once photos+checklist are fully recorded (645 ms)
+      x HEADLINE: generateCertificate mints a real Certificate for an application with sufficient recorded evidence (770 ms)
+      x gate holds: generateCertificate still throws INSUFFICIENT_PHOTOS for an application whose audit has NO evidence rows (1364 ms)
+      x gate holds: generateCertificate still throws INCOMPLETE_CHECKLIST when photos are present but the checklist is short (520 ms)
+
+  * submitChecklistItem persists a real FarmAuditChecklistItem row
+    TypeError: Cannot read properties of undefined (reading 'upsert')
+      at upsert (services/audit-onsite-service.js:544:53)
+      -> tx.farmAuditChecklistItem.upsert(...) — tx.farmAuditChecklistItem is undefined (model not on the generated client)
+
+  * uploadPhoto persists a real FarmAuditPhoto row carrying its SHA-256 hash
+    Error: Onsite photo capture is not available in this deployment (code: ONSITE_NOT_AVAILABLE, statusCode: 501)
+      at Object.uploadPhoto (services/audit-onsite-service.js:657:19)
+      -> the existing pilot-descope guard `typeof prisma.farmAuditPhoto?.create !== 'function'` fired
+
+  * assertOnsiteEvidenceSufficient resolves once photos+checklist are fully recorded
+    TypeError: Cannot read properties of undefined (reading 'upsert')
+      (same root cause — recordFullEvidence's first submitChecklistItem call throws before the gate is ever reached)
+
+  * HEADLINE: generateCertificate mints a real Certificate for an application with sufficient recorded evidence
+    TypeError: Cannot read properties of undefined (reading 'upsert')
+      (same root cause — evidence seeding fails before generateCertificate is called)
+
+  * gate holds: generateCertificate still throws INSUFFICIENT_PHOTOS for an application whose audit has NO evidence rows
+    expect(received).rejects.toMatchObject(expected)
+    - Expected  - 1
+    + Received  + 1
+      Object {
+    -   "code": "INSUFFICIENT_PHOTOS",
+    +   "code": "EVIDENCE_CAPTURE_UNAVAILABLE",
+      }
+    -> proves the freeze is BLANKET, not evidence-aware: an application with
+       an audit and NO evidence rows fails for the SAME reason
+       (EVIDENCE_CAPTURE_UNAVAILABLE) as one that would otherwise qualify —
+       the gate cannot yet distinguish "no evidence" from "can't verify
+       evidence at all".
+
+  * gate holds: generateCertificate still throws INCOMPLETE_CHECKLIST when photos are present but the checklist is short
+    Error: Onsite photo capture is not available in this deployment (code: ONSITE_NOT_AVAILABLE, statusCode: 501)
+      (uploadPhoto throws before submitChecklistItem or generateCertificate run)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 6 total
+Time:        15.758 s

@@ -1,0 +1,103 @@
+# final-fix GREEN (2026-10-03) — summaries only
+Tree: feat/holder-read-scope 8f86a51f (merge cee9d7c4 + c07180ca, a0afa07e, 90205ef2, 9e1c4657, 8f86a51f)
+Toolchain: Node 24.21.0, NODE_OPTIONS unset · fresh SIGNING_KEY_DIR per run
+Signing key mtime (main repo apps/backend/keys/*.pem): 1788623435 before and after every run
+Real Postgres: FRESH postgres:17 ws-pg-55437, `npx prisma migrate deploy`, jest -i, then `docker rm -f ws-pg-55437`
+
+## How the expected files were re-recorded (ruling C1: R1 = main + holder scope, neutral)
+After the main merge the baseline is main e33666b9 (it contains 9616ccdf). Recorded on BOTH, compared:
+  git -C /home/ubuntu/work/wt-r1 worktree add --detach /home/ubuntu/work/wt-r1-base9616c 9616ccdf
+  git -C /home/ubuntu/work/wt-r1 worktree add --detach /home/ubuntu/work/wt-r1-basemain e33666b9
+  (each) pnpm install --frozen-lockfile --offline   # own node_modules + prisma client for that schema
+  cp (from wt-r1) the changed test file + its current expected json → same paths in the base worktree
+  cd <base>/apps/backend; export DATABASE_URL=TEST_DATABASE_URL=postgresql://postgres:pg@127.0.0.1:55437/postgres
+  9616ccdf only: npx prisma migrate deploy (its own level) BEFORE recording; then wt-r1 migrate deploy for the rest
+  SIGNING_KEY_DIR=$(mktemp -d) R1_NEUTRAL_RECORD=<scratch>/<name>.json npx jest --config jest.config.cjs -i <test>
+  cp <scratch>/<name>-main.json → apps/backend/__tests__/fixtures/<name>.expected.json
+  git worktree remove --force <base>   (all three removed: base9616c, basemain, premerge cee9d7c4)
+  r1-application-reads: 9616ccdf vs e33666b9 differ in 7 keys = main's POST /draft 404 change (see red.txt); all
+    other 1332 keys equal · old keys of each expected file unchanged on main except rows the new fixtures add (aN)
+
+## C1 — r1-application-reads-neutral (actors A W V M S N, headers none/P/C + transient A,N)
+  1339/1339 keys equal e33666b9 (read doors ✓, write doors ✓) · was 44 differing (red.txt)
+  reviewer probe sr-noent/run.js on this tree: {"/:id":"200 row","/:id/status":"200 row","/:id/history":"200 row",
+    "/my/statuses":"200 len=1","/my":"200 len=1"} = the 9616ccdf answer
+## C1 — r1-cert-doc-finance-reads-neutral (+N, aN, nN, dN): 2044/2044 equal e33666b9, 3/3 tests (was 3 differing)
+## C1 — r1-billing-doors-neutral (+Z, zN): 702/702 equal e33666b9 (pin)
+## unit: r1-application-holder-or-pin.test.js 7/7 (pin — helper written with the fix; rows evaluated, old form shown narrowing)
+## I2 heal: heal-null-holders-rules + heal-null-holders-real-postgres 49/49, 0 skipped
+## I1 guard: applicant-draft-lookups-refuse-positional-args 11/11; application-health-reads-carry-holder-marker 29/29
+
+## Final verify — fresh ws-pg-55437 (migrate deploy from scratch), 19 suites, jest -i
+  PASS __tests__/integration/application-health-reads-real-postgres.test.js
+  PASS __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js
+  PASS __tests__/integration/document-precheck-api.test.js
+  PASS __tests__/integration/document-precheck-flow.test.js
+  PASS __tests__/integration/draft-explicit-id-routes-to-its-application-real-postgres.test.js
+  PASS __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js
+  PASS __tests__/integration/heal-null-holders-real-postgres.test.js
+  PASS __tests__/integration/health-door-walk-real-postgres.test.js
+  PASS __tests__/integration/holder-marker-prisma-real-postgres.test.js
+  PASS __tests__/integration/holder-read-witness-real-postgres.test.js
+  PASS __tests__/integration/holder-write-doors-witness-real-postgres.test.js
+  PASS __tests__/integration/prepare-non-draft-guard.test.js
+  PASS __tests__/integration/preview-get-writes-nothing-real-postgres.test.js
+  PASS __tests__/integration/r1-application-reads-neutral-real-postgres.test.js
+  PASS __tests__/integration/r1-billing-doors-neutral-real-postgres.test.js
+  PASS __tests__/integration/r1-cert-doc-finance-reads-neutral-real-postgres.test.js
+  PASS __tests__/integration/r1-task6-write-doors-neutral-real-postgres.test.js
+  PASS __tests__/integration/requirements-door.test.js
+  PASS __tests__/integration/without-tenant-scope-lazy.int.test.js
+  Test Suites: 19 passed, 19 total
+  Tests:       158 passed, 158 total
+  (health-door-walk runs the witness in THROW mode, NODE_ENV=test default; r1-task6-write-doors = the write-doors test;
+   the matrices run in the same default; 0 skipped — no "skipped" in the totals)
+## Unit — whole apps/backend/__tests__/unit (no DB), -w 4
+  Test Suites: 836 passed, 836 total
+  Tests:       11413 passed, 11413 total
+  incl. error-codes-source-pointers 5/5 (pointers refreshed after the merge: stripe-checkout-service 303/225/872/782)
+## Probes (this tree)
+  ratchet: PASS hardcode=26 todo=53 env-direct=101 dup-source=0
+  retired-words: PASS · no-skip: PASS 0 · no-secret: PASS layer1 0 hits, layer2 gitleaks clean
+  green-mask (scripts/ci/check-green-mask-assertions.js): PASS 1456 files, no net-new masks (baseline 15)
+## Not run here: LOCAL_GATE_FULL=1 local-gate.sh (coordinator runs it, per dispatch)
+
+## Re-review minor (2026-10-03): certified farm whose owner is not ACTIVE on the certificate holder
+Rule: decideFarmHolder → UNPLACED_OPERATOR_DECIDES (chosenEntityId null, evidence
+"certificate application holders=1 [<id>] …: owner not ACTIVE on <id>"); the personal-entity rule now applies only
+to farms with no certificate holder (operator 2026-09-07: a company holds its own certificate).
+RED (tests first, scratch postgres:17 ws-pg-55437, fresh SIGNING_KEY_DIR): 3 failed, 46 passed
+  ✕ unit: the certificate's entity where the owner is NOT an active member → unplaced, never the owner's personal entity
+  ✕ real-PG: final review I2 — leftCertFarm got leftPersonal / FARM_OWNER_SINGLE_PERSONAL_ENTITY
+  ✕ real-PG: --apply fills only NULL columns — leftCertFarm written
+GREEN: heal-null-holders-rules + heal-null-holders-real-postgres 49/49, 0 skipped · container removed
+Key mtime 1788623435 before and after · runbook rule table updated
+
+## m1-holder-backfill leak fix (2026-10-03)
+Fix: holder-write-doors-witness afterAll deletes report submissions / cycle BEFORE the certificate; the certificates
+created by holder-write-doors-witness, r1-cert-doc-finance-reads-neutral and heal-null-holders now carry
+holderDisplayName / holderType / submittedByUserId as the issuance path writes them (entity name+type, else the
+person + LEGACY_PERSON; submitterId, else the applicant).
+Same sequence, fresh ws-pg-55437, one jest -i invocation with an ordering sequencer (m1 forced last):
+  holder-write-doors-witness · r1-cert-doc-finance · heal-null-holders · m1-holder-backfill → 4/4 suites, 15/15
+  certificates left in the DB afterwards: 0
+All R1 real-PG suites (19) + m1-holder-backfill: 20/20 suites, 159/159, 0 skipped; expected files unchanged;
+  certificates with NULL holderDisplayName afterwards: 0
+Whole apps/backend/__tests__/integration serially (-i), fresh DB: 96 passed, 9 failed, 1 skipped suite (105 of 106);
+  m1-holder-backfill PASSES. The 9 failing suites are all in the main-baseline failing list recorded in
+  evidence/remove-workspace-mode/task-6/gate.txt (a0-pr2-per-hop-invariant, m1-erasure-holder-survives,
+  m1-submit-enforcement, m2a-submit-enforcement, officer-review-round-trip, onsite-decision-mint-e2e,
+  staff-chain-assign-then-see, staff-scope-contract, status-writer-audit-default-invariant).
+Key mtime 1788623435 before and after every run.
+
+## Merge of main ec502d24 (autosave-lost-reply, about page, Sentry, deps) — 2026-10-03
+Conflicts: applications.js (one hunk: autosave's draftSaveClockFrom/submitClockFrom kept, findOrCreateApplicationForHealth
+keeps R1's 5th `scope` param) · BACKLOG-FOUND.md (both sides). Auto-merged: autosave's saveApplicantDraftInOrder +
+computeDraftWrite; R1's options-object lookups (:396, :427) and every `await holderScope(req)` 5th argument
+(:748, :1616, :1728, :1826, :1838) intact; positional guard (assertOptionsObject) intact.
+error-codes pointers refreshed: DRAFT_OUT_OF_ORDER → application-applicant-query-methods.js:256,
+DRAFT_NOT_LATEST → applications.js:1006 · error-codes-source-pointers 5/5
+Fresh ws-pg-55437 (removed after): 19 R1 real-PG suites + m1-holder-backfill + draft-renewal-save-on-one-connection +
+draft-save-repeat-is-harmless (draft-explicit-id is in the R1 list) = 22/22 suites, 169/169, 0 skipped; expected
+files unchanged (no diff)
+Unit folder: 840/840 suites, 11563/11563 · ratchet PASS 26/53/101/0 · key mtime 1788623435 before/after

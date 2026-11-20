@@ -1,0 +1,174 @@
+Task 3 — catalog.js / rules/*.js / evaluate.js — GREEN evidence (summary, no raw jest log per Global Constraints)
+
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/rules.test.js
+Date: 2026-09-27 · Node v24.21.0
+
+(no TZ set, host default) -> Test Suites: 1 passed, 1 total / Tests: 25 passed, 25 total
+TZ=UTC                     -> Test Suites: 1 passed, 1 total / Tests: 25 passed, 25 total
+TZ=America/Los_Angeles     -> Test Suites: 1 passed, 1 total / Tests: 25 passed, 25 total
+
+Full document-precheck unit dir (rules.test.js + Task 2's normalize.test.js, to
+confirm Task 2 is unaffected):
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/
+-> Test Suites: 2 passed, 2 total / Tests: 80 passed, 80 total (55 normalize.js + 25 rules.test.js)
+
+Test list (rules.test.js, 25 tests):
+  constants (5): OCR_CONFIDENCE_MIN=60 · NAME_SIMILARITY_MIN re-exported (0.85,
+    not a second constant) · CATALOG has a non-empty `source` on exactly the 7
+    canonical slots · only company_reg carries
+    `validity:{maxAgeMonths:6,source:'facts.md:50'}` · evaluate() throws
+    TypeError for a slotId outside the 7-slot scope
+  READABILITY (4): PASS · UNREADABLE (empty text) · UNREADABLE (OCR confidence
+    below OCR_CONFIDENCE_MIN) · PAGE_COUNT (pinned directly on
+    rules/readability.js with a synthetic catalog entry — no production slot
+    has expectedPages, see catalog.js's doc comment / task-3-report.md)
+  DOC_TYPE (4): MATCH · NOT_FOUND · UNREADABLE (never NOT_FOUND when unreadable)
+    · land_lease is always NOT_FOUND (no sourced phrase, even on land-shaped text)
+  CROSS_MATCH (5): MATCH (name + citizen-id-last-4) · MISMATCH (id doesn't
+    match, evidenceSnippet masked) · cross-match-missing-reference (INDIVIDUAL,
+    no Entity -> NOT_FOUND, never MISMATCH) · unreadable-short-circuits
+    (DOC_TYPE UNREADABLE + CROSS_MATCH NOT_FOUND despite full reference data on
+    file) · previous_cert always NOT_FOUND (no sourced reference field)
+  VALIDITY (5): PASS at exactly 6 months · EXPIRED one day over the boundary ·
+    DATE_NOT_FOUND (no date in text) · no VALIDITY flag at all for land_deed
+    (no validity rule) · sanity check on the Bangkok boundary fixture itself
+  SIGNATURE (1): always MANUAL, checked across 3 different slots
+  no-raw-id (1): reasonTH/evidenceSnippet never match /\d{13}/ across every
+    check, in a scenario that deliberately produces an id MISMATCH (not vacuous)
+
+apps/backend/keys/private.pem: not present in this worktree before or after
+(directory listing unchanged: quarantine-* subdirs + README.md only) — N/A.
+
+Lint: npx eslint services/document-precheck/{catalog,evaluate}.js
+  services/document-precheck/rules/*.js __tests__/unit/document-precheck/rules.test.js
+  -> 0 problems.
+
+Probes:
+  scripts/probes/no-skip.sh   -> PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+  scripts/probes/no-secret.sh -> PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+
+=== Fix round 1 (task-3-review.md) ===
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/rules.test.js
+Date: 2026-09-27 · Node v24.21.0
+
+(no TZ set, host default) -> Test Suites: 1 passed, 1 total / Tests: 40 passed, 40 total
+TZ=UTC                     -> Test Suites: 2 passed, 2 total / Tests: 95 passed, 95 total (full document-precheck dir)
+TZ=America/Los_Angeles     -> Test Suites: 2 passed, 2 total / Tests: 95 passed, 95 total (full document-precheck dir)
+(no TZ set)                -> Test Suites: 2 passed, 2 total / Tests: 95 passed, 95 total (full document-precheck dir)
+(95 = 55 normalize.test.js unaffected + 40 rules.test.js, up from 25)
+
+New/changed tests (15 net new, rules.test.js):
+  C1 (5): trailing tone mark -> MISMATCH · mid-word tone mark -> MISMATCH ·
+    CLOSE OCR variant -> MATCH · prefix-of-a-different-name -> not MATCH ·
+    "ทุน" inside "ทุนจดทะเบียน" -> not MATCH
+  I1 (2): CATALOG declares referenceCombine ANY on exactly the 3 land slots ·
+    a company-held deed with an unrelated applicant on file -> MATCH
+  I2 (2): id absent from the document, on file -> NOT_FOUND · a different
+    valid-checksum id found -> MISMATCH
+  I3 (2): registered 2560 / issued 1 ก.ย. 2569, evaluated same year -> PASS
+    (labeled date wins over the earlier unlabeled registration date) ·
+    2 unlabeled dates -> DATE_NOT_FOUND
+  I4 (3): OCR-inserted space -> MATCH · one-character OCR error -> MATCH ·
+    Thai-digit "๓" + inserted space against "น.ส.3" -> MATCH (plus the
+    pre-existing "clearly different document -> NOT_FOUND" now also proves
+    the tolerance is small, not unlimited)
+  I5 (2, replacing the old NOT_FOUND expectations): land_lease DOC_TYPE and
+    previous_cert CROSS_MATCH now assert the flag is ABSENT, not NOT_FOUND
+  M1 (folded into the existing PASS/EXPIRED validity tests): reasonTH must
+    contain "2569" (Buddhist era) and must not match /\d{4}-\d{2}-\d{2}/
+
+Code changes:
+  normalize.js: +3 lines — exports levenshteinDistance (no other change;
+    confirmed by diff against 6d4ac44e)
+  catalog.js: land_deed/land_lease/land_consent gain referenceCombine:'ANY'
+  rules/doc-type.js: word-preserving whitespace removal + a small (±1 char)
+    Levenshtein-tolerant window search, reusing normalize.js's export; returns
+    null (no flag) when catalogEntry.phrases is empty, checked before UNREADABLE
+  rules/cross-match.js: name matching rewritten to extract token-boundary
+    candidates and classify each with normalize.nameMatchLevel (no more
+    substring search on whitespace-stripped text); per-pair status is now
+    MATCH/MISMATCH/NOT_FOUND (ids absent from the doc -> NOT_FOUND, not
+    MISMATCH); combine() implements ALL (default) and ANY (land docs) per
+    catalogEntry.referenceCombine; returns null when catalogEntry.reference is
+    empty, checked before UNREADABLE
+  rules/validity.js: anchors on the "ออกให้ ณ วันที่" label (+ 3 OCR-tolerant
+    variants) via parseThaiDates on a window right after the label; falls back
+    to a single unlabeled date, or DATE_NOT_FOUND when multiple dates are
+    found and none is labeled; reasonTH/evidenceSnippet use utils/thai-format
+    formatThaiDate (Buddhist era) instead of an ISO string
+  evaluate.js: DOC_TYPE/CROSS_MATCH flags are filtered out when null, the same
+    way VALIDITY already was
+
+Lint (files this fix round authored): npx eslint services/document-precheck/
+  {catalog,evaluate}.js services/document-precheck/rules/*.js
+  __tests__/unit/document-precheck/rules.test.js -> 0 problems.
+  (normalize.js has 6 PRE-EXISTING eslint errors unrelated to the 3-line
+  export this round added — confirmed by diff against 6d4ac44e; logged to
+  BACKLOG-FOUND.md, not fixed, out of this fix round's scope)
+
+Probes:
+  scripts/probes/no-skip.sh   -> PASS
+  scripts/probes/no-secret.sh -> PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+  scripts/probes/ratchet.sh   -> PASS: hardcode=26 todo=53 env-direct=101
+    dup-source=0 (no increase over baseline; dup-source stayed 0, confirming
+    levenshteinDistance was reused, not copied)
+
+apps/backend/keys/private.pem: not present in this worktree before or after
+this fix round either (unchanged).
+
+=== Fix round 2 (task-3-rereview-1.md) ===
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest __tests__/unit/document-precheck/rules.test.js
+Date: 2026-09-27 · Node v24.21.0
+
+(no TZ set, host default) -> Test Suites: 1 passed, 1 total / Tests: 48 passed, 48 total
+TZ=UTC                     -> Test Suites: 2 passed, 2 total / Tests: 103 passed, 103 total (full document-precheck dir)
+TZ=America/Los_Angeles     -> Test Suites: 2 passed, 2 total / Tests: 103 passed, 103 total (full document-precheck dir)
+(no TZ set)                -> Test Suites: 2 passed, 2 total / Tests: 103 passed, 103 total (full document-precheck dir)
+(103 = 55 normalize.test.js unaffected + 48 rules.test.js, up from 40)
+
+New tests (8 net new, rules.test.js):
+  N1 (3): "น.ส. สมศรี"/"น.ส.มาลี" in LAND_DEED -> NOT_FOUND (no false MATCH
+    on the short phrase "น.ส.3" via a 1-deletion edit) · "น.ส. ๓" printed
+    still MATCHes (regression pin — exact containment needs no tolerance)
+  N2 (2): OCR-garbled digits right after the label -> DATE_NOT_FOUND, not a
+    fallback to the registration date · an unrelated later dated line does
+    not bind through the label -> DATE_NOT_FOUND
+  N3 (3): a label glued to the name, a whole line glued with no spaces, and
+    a name OCR-over-split across 5 single-syllable tokens -> all not
+    MISMATCH (2 of the 3 actually resolve to genuine MATCH; the glued-whole-
+    line case resolves to NOT_FOUND — both outcomes satisfy the re-review's
+    "MATCH or NOT_FOUND, never MISMATCH")
+
+Code changes:
+  rules/doc-type.js: MIN_LEN_FOR_EDIT_TOLERANCE=8 — the ±1 Levenshtein search
+    only runs for phrases at or above 8 compact characters (fixes "น.ส.3"
+    matching via one deletion to "น.ส."); exact-after-normalization matching
+    (which needed no tolerance) is unchanged for every phrase length
+  rules/validity.js: LABEL_DATE_WINDOW_CHARS shrunk 40->24 and now applied
+    to a strictly whitespace-trimmed remainder right after the earliest
+    label match; once a label is found, checkValidity commits to it — a
+    failure to parse a date there is DATE_NOT_FOUND with NO fallback to the
+    single-unlabeled-date path (that path now only runs when no label is
+    found anywhere)
+  rules/cross-match.js: WINDOW_SLACK_TOKENS 1->6 (still whole-token windows
+    only, so the fix-round-1 prefix-boundary fix is unaffected) · new
+    NAME_LABEL_PREFIXES peel ("ชื่อ"/"ชื่อสกุล"/"ชื่อ-สกุล") tried alongside the
+    unpeeled candidate at every window, best rank wins · NAME pair status is
+    now 3-way (nameLevelToStatus): EXACT/CLOSE->MATCH, TONE_ONLY->MISMATCH,
+    DIFFERENT->NOT_FOUND (was binary MATCH/MISMATCH) · combine()'s ANY branch
+    updated to handle a NOT_FOUND NAME pair correctly (any MATCH->MATCH, else
+    any MISMATCH->MISMATCH, else NOT_FOUND)
+
+Lint (files this fix round touched): npx eslint services/document-precheck/
+  {catalog,evaluate}.js services/document-precheck/rules/*.js
+  __tests__/unit/document-precheck/rules.test.js -> 0 problems.
+
+Probes:
+  scripts/probes/no-skip.sh   -> PASS
+  scripts/probes/no-secret.sh -> PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+  scripts/probes/ratchet.sh   -> PASS: hardcode=26 todo=53 env-direct=101
+    dup-source=0 (no increase; dup-source still 0 — no new Levenshtein/date
+    regex was written, only reused)
+
+apps/backend/keys/private.pem: not present in this worktree before or after
+this fix round either (unchanged).

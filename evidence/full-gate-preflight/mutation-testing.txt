@@ -1,0 +1,109 @@
+==============================================================
+### MUT A: write-probe -> no-op (only mkdir -p left) applied. diff vs original:
+772,773d771
+<     : 2>/dev/null >"$probe" || infra_abort "cannot write inside the evidence directory $1" "$CHOWN_HINT"
+<     rm -f "$probe" 2>/dev/null || infra_abort "cannot delete $probe — the evidence directory is not fully usable" "$CHOWN_HINT"
+### mutant selftest exit=1
+*** X FAILED: exit 0 != 3
+*** X FAILED: output does not mention 'ABORT'
+*** X FAILED: output does not mention 'chown'
+*** X2 FAILED: the gate built a checkout or a database before preflight 2 had decided
+full-gate --selftest: 4 assertion(s) FAILED
+
+==============================================================
+### MUT B: preflight 3 disabled applied. diff vs original:
+860c860
+< if [ "$DRY" != "1" ]; then
+---
+> if false; then
+### mutant selftest exit=1
+*** S FAILED: exit 2 != 3
+*** S FAILED: output does not mention 'ABORT'
+*** S FAILED: output does not mention 'infra'
+*** S2 FAILED: the gate built a checkout or a scratch database before proving it could reach Postgres
+full-gate --selftest: 4 assertion(s) FAILED
+
+==============================================================
+### MUT C: check log append instead of truncate applied. diff vs original:
+1002c1002
+<     : 2>/dev/null >"$logfile" || infra_abort "cannot open the check log $logfile for writing, so '$id' was not started" "$CHOWN_HINT"
+---
+>     : 2>/dev/null >>"$logfile" || infra_abort "cannot open the check log $logfile for writing, so '$id' was not started" "$CHOWN_HINT"
+### mutant selftest exit=1
+*** V2 FAILED: probe-ci.log holds 2 run(s) — two runs were appended into a single artifact
+full-gate --selftest: 1 assertion(s) FAILED
+
+==============================================================
+### MUT D: cleanup teardown back on stdout applied. diff vs original:
+798c798
+<     [ "$DB_CREATED" = "1" ] && { echo "[full-gate] dropping scratch database $SCRATCH_DB" >&"$GATE_STDOUT"; drop_scratch_db; }
+---
+>     [ "$DB_CREATED" = "1" ] && { echo "[full-gate] dropping scratch database $SCRATCH_DB"; drop_scratch_db; }
+### mutant selftest exit=1
+*** W FAILED: cleanup() wrote into the check's log — one artifact now describes the run AND its teardown
+full-gate --selftest: 1 assertion(s) FAILED
+
+==============================================================
+### MUT E: abort no longer deletes the logs it wrote applied. diff vs original:
+665d664
+<     for f in "${TOUCHED_LOGS[@]:-}"; do [ -n "$f" ] && rm -f "$f" 2>/dev/null; done
+### mutant selftest exit=1
+*** O4 FAILED: the aborted run left committable check logs behind, or left no ABORTED marker
+full-gate --selftest: 1 assertion(s) FAILED
+
+==============================================================
+### MUT F: check-log redact failure no longer aborts applied. diff vs original:
+1024c1024
+<             || infra_abort "redaction of the check log $logfile failed, so '$id' has no usable log" \
+---
+>             || : "redaction of the check log $logfile failed, so '$id' has no usable log" \
+### mutant selftest exit=1
+*** AA FAILED: exit 0 != 3
+*** AA FAILED: output does not mention 'ABORT'
+*** AA2 FAILED: an attestation was written for a run whose logs could not be redacted
+full-gate --selftest: 3 assertion(s) FAILED
+
+==============================================================
+### MUT G: reason redact failure no longer aborts applied. diff vs original:
+1039c1039
+<         || infra_abort "redaction of the reason text for '$id' failed" \
+---
+>         || : "redaction of the reason text for '$id' failed" \
+### mutant selftest exit=1
+*** AB FAILED: exit 0 != 3
+*** AB FAILED: output does not mention 'ABORT'
+*** AB2 FAILED: a NOT-RUN entry lost its reason instead of stopping the run
+full-gate --selftest: 3 assertion(s) FAILED
+
+==============================================================
+### MUT H: both redact guards neutered (the a804877b regression) applied. diff vs original:
+1024c1024
+<             || infra_abort "redaction of the check log $logfile failed, so '$id' has no usable log" \
+---
+>             || : "redaction of the check log $logfile failed, so '$id' has no usable log" \
+1039c1039
+<         || infra_abort "redaction of the reason text for '$id' failed" \
+---
+>         || : "redaction of the reason text for '$id' failed" \
+### mutant selftest exit=1
+*** AA FAILED: exit 0 != 3
+*** AA FAILED: output does not mention 'ABORT'
+*** AA2 FAILED: an attestation was written for a run whose logs could not be redacted
+*** AB FAILED: exit 0 != 3
+*** AB FAILED: output does not mention 'ABORT'
+*** AB2 FAILED: a NOT-RUN entry lost its reason instead of stopping the run
+full-gate --selftest: 6 assertion(s) FAILED
+
+==============================================================
+### MUT I: concurrency lock disabled applied. diff vs original:
+814c814
+< if mkdir "$LOCK_DIR" 2>/dev/null; then
+---
+> if true; then
+### mutant selftest exit=1
+*** AC FAILED: exit 0 != 2
+*** AC FAILED: output does not mention 'REFUSED'
+*** AC FAILED: output does not mention 'already gating'
+*** AD FAILED: output does not mention 'taking over a lock'
+full-gate --selftest: 4 assertion(s) FAILED
+

@@ -1,0 +1,59 @@
+GREEN — CI run 30869674406 บน HEAD 02e1c7a6 (PR #744) — orchestrator ตรวจเอง 2026-08-04
+คู่กับ RED ที่ evidence/AUTH-01/A/red-ci-unique-constraint-name.txt (run 30869301075 บน a52f1ad4)
+
+ทำไมต้องเป็น CI: เครื่อง sandbox รัน suite นี้ไม่ได้เลย — agent proxy ตอบ 403 ต่อ
+binaries.prisma.sh ⇒ `new PrismaClient()` โยน "did not initialize yet" (ดู
+red-a5-jest-blocked.txt) CI จึงเป็น "เลนพิสูจน์" ไม่ใช่แค่ gate
+
+--- check runs ทั้งหมด (pull_request_read method=get_check_runs, total_count=24) ---
+success : Test · Migration Drift Check · Auth Hardening Gate · BI Contract Gate ·
+          UX/UI Baseline Gate · E2E Tests · ERP Regression Gate · Runtime Readiness ·
+          Build Success · Enforcement Guardrails · Lint & Format · Frontend Lint ·
+          Flutter Analyze & Test · Mock Journeys (web-app) · System Integrity Check ·
+          Workflow Paths Check · Security Audit · Secret Scanning · SAST (Semgrep) ·
+          Run QC Golden Journey
+skipped : Deploy to Staging · Promote main → deploy/production · CodeQL Analysis ·
+          Dependency Review        (ทั้งสี่ไม่ยิงบน PR โดยการออกแบบ)
+failure : ไม่มี
+
+job Test = id 91869203163 · started 01:46:40Z · completed 01:48:30Z · conclusion success
+https://github.com/jonmaxmore/GACP-Certification-Application/actions/runs/30869674406/job/91869203163
+
+--- ข้อพิสูจน์ว่า integration/identity-links รันจริงบน Postgres ไม่ได้ skip ---
+
+(1) โครงสร้าง job บังคับไว้แล้ว — .github/workflows/ci.yml:501-518 step
+    "Assert real-Postgres suites actually ran (not skipped)" อยู่ **ใน job Test เดียวกัน**
+    และ exit 1 เมื่อ numTotalTestSuites !== 4 หรือ skipped > 0 หรือ passed === 0
+    ⇒ job success เป็นไปไม่ได้ถ้า suite ใดใน 4 ตัวไม่รันหรือ self-skip
+
+(2) หลักฐานตรงจาก postgres service log ของ job เดียวกัน — statement ของ suite นี้
+    ปรากฏ **สองรอบ** (รอบแรกจาก step curated subset, รอบสองจาก step guard):
+
+    01:48:25.084 [151] ERROR:  duplicate key value violates unique constraint "identity_links_provider_subject_key"
+    01:48:25.084 [151] DETAIL:  Key (provider, subject)=(healthid, shared-subject-1785808105082) already exists.
+    01:48:25.104 [151] ERROR:  duplicate key value violates unique constraint "identity_links_provider_subject_key"
+    01:48:25.104 [151] STATEMENT:  INSERT INTO "identity_links" ("id","userId","provider","subject") VALUES ($1,$2,'healthid',$3)
+    01:48:25.119 [151] ERROR:  new row for relation "identity_links" violates check constraint "identity_links_provider_ck"
+    01:48:25.119 [151] DETAIL:  Failing row contains (..., bogus, bad-bogus, ...)
+    01:48:25.121 [151] ERROR:  new row for relation "identity_links" violates check constraint "identity_links_provider_ck"
+    01:48:25.121 [151] DETAIL:  Failing row contains (..., mock, bad-mock, ...)
+    01:48:25.123 [151] ERROR:  ... (..., LOCAL, bad-LOCAL, ...)
+    01:48:25.124 [151] ERROR:  ... (..., , bad-, ...)
+    (บล็อกเดียวกันปรากฏอีกชุดที่ ~01:48:00 = อีกรอบหนึ่ง)
+
+    ⇒ ทั้ง UNIQUE และ CHECK ถูกยิงจริงจากเทสต์ ไม่ใช่การอ่านสคีมาเฉย ๆ
+    ⇒ CHECK ปฏิเสธ 'mock' ได้จริงบน Postgres — ยืนยันมติที่ตัด mock ออกจาก vocabulary
+
+(3) รอบก่อนหน้า (RED) พิสูจน์ในทางกลับกันว่า suite นี้ไม่ได้ผ่านแบบว่าง: มันทำ job
+    ตกจริงเมื่อ assertion ผิด — `1 failed, 603 passed` ไม่ใช่ `0 total`
+
+--- ข้อที่ CI พิสูจน์แทนสิ่งที่เครื่อง sandbox ทำไม่ได้ ---
+Migration Drift Check = success  ⇒ prisma schema กับ migration ตรงกัน (แทน
+                                    `prisma validate` / `migrate diff` ที่รันไม่ได้)
+Test = success                   ⇒ suite ใหม่รันบน Postgres จริงและเขียว
+
+--- ข้อจำกัดที่บันทึกตามจริง ---
+บรรทัด "passed=… skipped=… suites=…" ที่ step guard พิมพ์ออกมา ดึงผ่าน get_job_logs
+ไม่ได้ (endpoint คืนเฉพาะช่วงท้าย log ซึ่งเป็น dump ของ postgres service container)
+ข้อสรุปว่า suites=4 / skipped=0 จึงมาจาก (1) โครงสร้าง job + (2) หลักฐานตรงข้างบน
+ไม่ได้มาจากการอ่านบรรทัดนั้นด้วยตา — บันทึกไว้เพื่อไม่ให้ใครอ่านแล้วเข้าใจว่าอ่านเห็น

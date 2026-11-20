@@ -1,0 +1,77 @@
+Task 6 — RED evidence (summary; raw jest logs not committed). Node v24.21.0, NODE_OPTIONS unset,
+command: npx jest --config jest.config.cjs <file>  (from the worktree root), base 2b1a71fe
+
+=== RED 0: apps/backend/__tests__/unit/document-precheck/service.test.js, no service.js/processor yet ===
+    Cannot find module '../../../services/document-precheck/service' from '__tests__/unit/document-precheck/service.test.js'
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+
+=== RED 1: same file, service.js + processor as throwing stubs (queue-service + route untouched) ===
+    ✕ a slot outside CATALOG (sop_cultivation) creates no row and adds no job (2 ms)
+    ✕ a land_deed upload creates a PENDING row at RULES_VERSION and adds one job carrying the file
+    ✕ a re-upload into the same slot (any spelling) supersedes the earlier row; other slots are untouched
+    ✕ enqueue-failure: queue.add throws → the row is FAILED with exactly the failure flag, and the call resolves
+    ✕ the queue not initialised (no Redis) is the same failure: FAILED + the failure flag
+    ✕ land_deed: DONE with exactly the checks CATALOG defines for it (no VALIDITY rule → 4 flags) (1 ms)
+    ✕ OCR confidence is the mean of the page confidences; NONE stores null text and null confidence (1 ms)
+    ✕ a row that is no longer PENDING exits without extracting (the supersede guard)
+    ✕ precheck-supersede-race: B arrives while A is extracting → A's flags are discarded and A stays SUPERSEDED
+    ✕ extraction PRECHECK_TIMEOUT on a non-final attempt rethrows and leaves the row PENDING for the retry
+    ✕ an OCR failure on the final attempt → FAILED + the failure flag, and does not throw (1 ms)
+    ✕ a non-extraction exception (reference load) → FAILED + the flag at once, even on a non-final attempt
+    ✕ the processor: attempt 1 of 2 fails → rethrows, PENDING; attempt 2 of 2 fails → FAILED + flag. Nothing is left PENDING (1 ms)
+    ✕ failPrecheck (the queue's last-resort failed handler) marks a still-PENDING row FAILED and leaves a DONE row alone
+    ✕ INDIVIDUAL: applicant name, entity type, and only the last 4 digits of the citizen ID — never the full ID
+    ✕ JURISTIC: entity name, juristic ID and the director's name from payload.director — the director's ID card is not carried
+    ✕ a whole run never writes the full citizen ID to a log line, a flag, or the reference
+    ✕ the owner sets applicantAcknowledgedAt once; a second call keeps the first time
+    ✕ anyone else is refused (FORBIDDEN) and nothing is written; an unknown id is NOT_FOUND
+    ✕ initQueues creates document-precheck with the brief's job options and a sandboxed processor file — even though pdf-processor.js is absent (11 ms)
+    ✕ a job that failed its LAST attempt is marked FAILED; a failure with a retry left is not (1 ms)
+    ✕ an in-scope upload creates a PENDING pre-check for exactly this document and adds the job (33 ms)
+    ✕ enqueue-failure-still-uploads: the queue add throws → 200 with the unchanged body, and the row is FAILED with the failure flag (7 ms)
+    ✓ even enqueueForUpload itself throwing (database down) leaves the upload response unchanged (6 ms)
+    ✓ an out-of-scope slot uploads exactly as before and creates no pre-check (6 ms)
+Tests:       23 failed, 2 passed, 25 total
+Green-born (PIN, not fix): the two ✓ above pass before the hook exists because the route never calls
+the pre-check yet — they pin that the upload response stays unchanged, they do not prove a fix.
+
+=== RED 2: apps/backend/__tests__/integration/document-precheck-flow.test.js — scratch Postgres 17 127.0.0.1:5436 (migrate deploy), same stubs ===
+    ✕ a land_deed upload creates a PENDING row; the processor gives DONE with exactly the checks CATALOG defines (4) (1 ms)
+    ✕ a scanned (PNG) land_deed goes through real tesseract: DONE, OCR method, a real confidence
+    ✕ a slot outside scope (sop_cultivation) creates no row (3 ms)
+    ✕ precheck-supersede-race: upload A → upload B (same slot) → A's job runs after B exists: A's flags are not written, A is SUPERSEDED (1 ms)
+    ✕ precheck-supersede-race, in flight: B lands while A is extracting → A ends SUPERSEDED with no flags
+    ✕ a processor exception yields FAILED plus the flag after the retry; nothing is left PENDING (1 ms)
+    ✕ enqueue-failure-still-uploads: the queue add throws → POST /draft-documents still returns 200 and the row is FAILED with the failure flag (352 ms)
+Tests:       7 failed, 7 total
+failure reasons: 12 x 'not implemented' (stub); enqueue-failure-still-uploads: route 200 but
+      Received: null  (no precheck row for the uploaded documentId)
+
+=== Fix round 1 (task-6-review.md I1, I2, M1, M2, M3) — RED on 63bfb34f + the new tests, Node 24, NODE_OPTIONS unset ===
+-- I1: error-codes-catalog.test.js + error-codes-source-pointers.test.js --
+PASS apps/backend/__tests__/unit/error-codes-source-pointers.test.js
+FAIL apps/backend/__tests__/unit/error-codes-catalog.test.js
+    +   "PRECHECK_TIMEOUT",
+    +   "PRECHECK_ABORTED",
+    +   "TESSERACT_TERMINATED",
+Tests:       1 failed, 17 passed, 18 total
+-- unit service.test.js (new tests fail, 25 old pass) --
+    ✕ a queue add that never settles is given up after ENQUEUE_TIMEOUT_MS (2 s): FAILED + the failure flag (10001 ms)
+    ✕ supersede + insert take pg_advisory_xact_lock on (applicationId, canonical slot) first, inside the transaction (2 ms)
+    ✕ maps every spelling of an in-scope slot (old key, canonical v2 id, alias) to its CATALOG key; others to null
+    ✕ a NUL character in the extracted text is stripped before the write: DONE, text and flags carry no NUL (5 ms)
+    ✕ I2: a queue add that never settles (unreachable Redis) → the route answers 200 unchanged within ~2 s, and the row is FAILED (10002 ms)
+Tests:       5 failed, 25 passed, 30 total
+   (the two 'never settles' tests hit their 10 s test timeout: the add was awaited unbounded; jest then did not exit because the
+    supertest request never answered — the RED jest process was stopped by PID; one upload it left was removed)
+-- integration document-precheck-flow.test.js on scratch PG17 (5436) --
+    ✕ two concurrent uploads into one slot → exactly one PENDING row, the other SUPERSEDED (28 ms)
+Tests:       1 failed, 7 passed, 8 total
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+        "PENDING",
+    -   "SUPERSEDED",
+    +   "PENDING",

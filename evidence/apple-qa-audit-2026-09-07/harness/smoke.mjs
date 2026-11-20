@@ -1,0 +1,15 @@
+import { chromium } from './lib.mjs';
+const B = 'https://demo.gacpth.com';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 900 } });
+const errs = [];
+p.on('console', m => { if (m.type() === 'error') errs.push(m.text().slice(0, 160)); });
+p.on('pageerror', e => errs.push('PAGEERROR ' + String(e.message).slice(0, 160)));
+const t0 = Date.now();
+const r = await p.goto(B, { waitUntil: 'networkidle', timeout: 60000 });
+console.log('status', r.status(), '| load', Date.now() - t0, 'ms');
+console.log('title', JSON.stringify(await p.title()));
+console.log('h1', JSON.stringify((await p.locator('h1').first().textContent().catch(() => null))?.trim().slice(0,90) ?? null));
+await p.screenshot({ path: process.argv[2] + '/landing-1440.png', fullPage: true });
+console.log('console errors:', errs.length, errs.slice(0,3));
+await b.close();

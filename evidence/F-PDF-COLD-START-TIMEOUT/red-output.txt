@@ -1,0 +1,308 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/pdf-generator-warmup.test.js (31.679 s)
+  F-PDF-COLD-START-TIMEOUT — pdf-generator.service
+    × warmUp() launches the browser and primes the render path (setContent + page.pdf ran) (17 ms)
+    × warmUp() is fail-soft: puppeteer.launch rejects → warmUp resolves without throwing, one warn logged (3 ms)
+    × initialize() de-dupes concurrent launches (warm-up racing a real request shares ONE puppeteer.launch call) (30016 ms)
+    √ initialize() launches again on the NEXT call after a failed launch (no permanently-stuck lock) (6 ms)
+
+  ● F-PDF-COLD-START-TIMEOUT — pdf-generator.service › warmUp() launches the browser and primes the render path (setContent + page.pdf ran)
+
+    TypeError: pdfGenerator.warmUp is not a function
+
+    [0m [90m 54 |[39m         launchMock[33m.[39mmockResolvedValue(browser)[33m;[39m
+     [90m 55 |[39m
+    [31m[1m>[22m[39m[90m 56 |[39m         [36mawait[39m pdfGenerator[33m.[39mwarmUp()[33m;[39m
+     [90m    |[39m                            [31m[1m^[22m[39m
+     [90m 57 |[39m
+     [90m 58 |[39m         expect(launchMock)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m 59 |[39m         expect(browser[33m.[39mnewPage)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m[0m
+
+      at Object.warmUp (__tests__/unit/pdf-generator-warmup.test.js:56:28)
+
+  ● F-PDF-COLD-START-TIMEOUT — pdf-generator.service › warmUp() is fail-soft: puppeteer.launch rejects → warmUp resolves without throwing, one warn logged
+
+    TypeError: pdfGenerator.warmUp is not a function
+
+    [0m [90m 67 |[39m         [36mconst[39m warnSpy [33m=[39m jest[33m.[39mspyOn(console[33m,[39m [32m'warn'[39m)[33m.[39mmockImplementation(() [33m=>[39m {})[33m;[39m
+     [90m 68 |[39m
+    [31m[1m>[22m[39m[90m 69 |[39m         [36mawait[39m expect(pdfGenerator[33m.[39mwarmUp())[33m.[39mresolves[33m.[39mtoBeUndefined()[33m;[39m
+     [90m    |[39m                                   [31m[1m^[22m[39m
+     [90m 70 |[39m
+     [90m 71 |[39m         expect(warnSpy)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m 72 |[39m         expect(warnSpy[33m.[39mmock[33m.[39mcalls[[35m0[39m][33m.[39mjoin([32m' '[39m))[33m.[39mtoMatch([35m/\[PDF\] warm-up failed/[39m)[33m;[39m[0m
+
+      at Object.warmUp (__tests__/unit/pdf-generator-warmup.test.js:69:35)
+
+  ● F-PDF-COLD-START-TIMEOUT — pdf-generator.service › initialize() de-dupes concurrent launches (warm-up racing a real request shares ONE puppeteer.launch call)
+
+    thrown: "Exceeded timeout of 30000 ms for a test.
+    Add a timeout value to this test to increase the timeout, if this is a long-running test. See https://jestjs.io/docs/api#testname-fn-timeout."
+
+    [0m [90m 74 |[39m     })[33m;[39m
+     [90m 75 |[39m
+    [31m[1m>[22m[39m[90m 76 |[39m     test([32m'initialize() de-dupes concurrent launches (warm-up racing a real request shares ONE puppeteer.launch call)'[39m[33m,[39m [36masync[39m () [33m=>[39m {
+     [90m    |[39m     [31m[1m^[22m[39m
+     [90m 77 |[39m         [36mconst[39m pdfGenerator [33m=[39m freshService()[33m;[39m
+     [90m 78 |[39m         [36mconst[39m browser [33m=[39m fakeBrowser()[33m;[39m
+     [90m 79 |[39m         [36mlet[39m resolveLaunch[33m;[39m[0m
+
+      at test (__tests__/unit/pdf-generator-warmup.test.js:76:5)
+      at Object.describe (__tests__/unit/pdf-generator-warmup.test.js:22:1)
+
+FAIL __tests__/unit/pdf-warmup-boot-hook.test.js
+  [F-PDF-COLD-START-TIMEOUT] server.js boot hook — PDF warm-up
+    × extractBootHookSource returns a non-empty block that calls warmUp() without awaiting it (2 ms)
+    × boot-init invokes pdf-generator.service.warmUp() exactly once (2 ms)
+    × warmUp() resolving logs the [boot] completion line (3 ms)
+    × fail-soft: warmUp() rejects → boot hook does not throw, one [boot] warn logged (2 ms)
+    × fail-soft: require() itself throws synchronously (module load failure) → outer catch logs, no crash (1 ms)
+
+  ● [F-PDF-COLD-START-TIMEOUT] server.js boot hook — PDF warm-up › extractBootHookSource returns a non-empty block that calls warmUp() without awaiting it
+
+    pdf-warmup-boot-hook.test.js: marker comment "// [F-PDF-COLD-START-TIMEOUT] Boot-time Puppeteer warm-up" not found in server.js — has the boot hook been removed or moved? Update this test extraction logic.
+
+    [0m [90m 42 |[39m     [36mconst[39m markerIdx [33m=[39m src[33m.[39mindexOf([33mMARKER[39m)[33m;[39m
+     [90m 43 |[39m     [36mif[39m (markerIdx [33m<[39m [35m0[39m) {
+    [31m[1m>[22m[39m[90m 44 |[39m         [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 45 |[39m             [32m`pdf-warmup-boot-hook.test.js: marker comment "${MARKER}" not found in server.js`[39m
+     [90m 46 |[39m             [33m+[39m [32m' — has the boot hook been removed or moved? Update this test extraction logic.'[39m[33m,[39m
+     [90m 47 |[39m         )[33m;[39m[0m
+
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:44:15)
+      at Object.extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:162:23)
+
+  ● [F-PDF-COLD-START-TIMEOUT] server.js boot hook — PDF warm-up › boot-init invokes pdf-generator.service.warmUp() exactly once
+
+    pdf-warmup-boot-hook.test.js: marker comment "// [F-PDF-COLD-START-TIMEOUT] Boot-time Puppeteer warm-up" not found in server.js — has the boot hook been removed or moved? Update this test extraction logic.
+
+    [0m [90m 42 |[39m     [36mconst[39m markerIdx [33m=[39m src[33m.[39mindexOf([33mMARKER[39m)[33m;[39m
+     [90m 43 |[39m     [36mif[39m (markerIdx [33m<[39m [35m0[39m) {
+    [31m[1m>[22m[39m[90m 44 |[39m         [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 45 |[39m             [32m`pdf-warmup-boot-hook.test.js: marker comment "${MARKER}" not found in server.js`[39m
+     [90m 46 |[39m             [33m+[39m [32m' — has the boot hook been removed or moved? Update this test extraction logic.'[39m[33m,[39m
+     [90m 47 |[39m         )[33m;[39m[0m
+
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:44:15)
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:145:24)
+      at Object.runBootHook (__tests__/unit/pdf-warmup-boot-hook.test.js:170:34)
+
+  ● [F-PDF-COLD-START-TIMEOUT] server.js boot hook — PDF warm-up › warmUp() resolving logs the [boot] completion line
+
+    pdf-warmup-boot-hook.test.js: marker comment "// [F-PDF-COLD-START-TIMEOUT] Boot-time Puppeteer warm-up" not found in server.js — has the boot hook been removed or moved? Update this test extraction logic.
+
+    [0m [90m 42 |[39m     [36mconst[39m markerIdx [33m=[39m src[33m.[39mindexOf([33mMARKER[39m)[33m;[39m
+     [90m 43 |[39m     [36mif[39m (markerIdx [33m<[39m [35m0[39m) {
+    [31m[1m>[22m[39m[90m 44 |[39m         [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 45 |[39m             [32m`pdf-warmup-boot-hook.test.js: marker comment "${MARKER}" not found in server.js`[39m
+     [90m 46 |[39m             [33m+[39m [32m' — has the boot hook been removed or moved? Update this test extraction logic.'[39m[33m,[39m
+     [90m 47 |[39m         )[33m;[39m[0m
+
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:44:15)
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:145:24)
+      at Object.runBootHook (__tests__/unit/pdf-warmup-boot-hook.test.js:175:34)
+
+  ● [F-PDF-COLD-START-TIMEOUT] server.js boot hook — PDF warm-up › fail-soft: warmUp() rejects → boot hook does not throw, one [boot] warn logged
+
+    pdf-warmup-boot-hook.test.js: marker comment "// [F-PDF-COLD-START-TIMEOUT] Boot-time Puppeteer warm-up" not found in server.js — has the boot hook been removed or moved? Update this test extraction logic.
+
+    [0m [90m 42 |[39m     [36mconst[39m markerIdx [33m=[39m src[33m.[39mindexOf([33mMARKER[39m)[33m;[39m
+     [90m 43 |[39m     [36mif[39m (markerIdx [33m<[39m [35m0[39m) {
+    [31m[1m>[22m[39m[90m 44 |[39m         [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 45 |[39m             [32m`pdf-warmup-boot-hook.test.js: marker comment "${MARKER}" not found in server.js`[39m
+     [90m 46 |[39m             [33m+[39m [32m' — has the boot hook been removed or moved? Update this test extraction logic.'[39m[33m,[39m
+     [90m 47 |[39m         )[33m;[39m[0m
+
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:44:15)
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:145:24)
+      at Object.runBootHook (__tests__/unit/pdf-warmup-boot-hook.test.js:181:42)
+
+  ● [F-PDF-COLD-START-TIMEOUT] server.js boot hook — PDF warm-up › fail-soft: require() itself throws synchronously (module load failure) → outer catch logs, no crash
+
+    pdf-warmup-boot-hook.test.js: marker comment "// [F-PDF-COLD-START-TIMEOUT] Boot-time Puppeteer warm-up" not found in server.js — has the boot hook been removed or moved? Update this test extraction logic.
+
+    [0m [90m 42 |[39m     [36mconst[39m markerIdx [33m=[39m src[33m.[39mindexOf([33mMARKER[39m)[33m;[39m
+     [90m 43 |[39m     [36mif[39m (markerIdx [33m<[39m [35m0[39m) {
+    [31m[1m>[22m[39m[90m 44 |[39m         [36mthrow[39m [36mnew[39m [33mError[39m(
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 45 |[39m             [32m`pdf-warmup-boot-hook.test.js: marker comment "${MARKER}" not found in server.js`[39m
+     [90m 46 |[39m             [33m+[39m [32m' — has the boot hook been removed or moved? Update this test extraction logic.'[39m[33m,[39m
+     [90m 47 |[39m         )[33m;[39m[0m
+
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:44:15)
+      at extractBootHookSource (__tests__/unit/pdf-warmup-boot-hook.test.js:145:24)
+      at Object.runBootHook (__tests__/unit/pdf-warmup-boot-hook.test.js:191:34)
+
+FAIL __tests__/unit/certificate-download-cold-start-retry.test.js
+  F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry
+    × cold-start timeout on attempt 1 → route retries once → 200 with the PDF bytes (48 ms)
+    × cold-start failure on BOTH attempts → 500, exactly two calls (no infinite retry) (16 ms)
+    √ genuine render/data error → NO retry, called exactly once, 500 (10 ms)
+    √ happy path (already-warm browser) → single call, no retry log (10 ms)
+
+  ● F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry › cold-start timeout on attempt 1 → route retries once → 200 with the PDF bytes
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 500
+
+    [0m [90m 75 |[39m         [36mconst[39m response [33m=[39m [36mawait[39m request(app)[33m.[39m[36mget[39m([32m'/api/certificates/cert-1/download'[39m)[33m;[39m
+     [90m 76 |[39m
+    [31m[1m>[22m[39m[90m 77 |[39m         expect(response[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 78 |[39m         expect(mockGetCertificatePdf)[33m.[39mtoHaveBeenCalledTimes([35m2[39m)[33m;[39m
+     [90m 79 |[39m         expect(logger[33m.[39mwarn)[33m.[39mtoHaveBeenCalledWith(expect[33m.[39mstringMatching([35m/cold-start/i[39m))[33m;[39m
+     [90m 80 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/certificate-download-cold-start-retry.test.js:77:33)
+
+  ● F-PDF-COLD-START-TIMEOUT — /api/certificates/:id/download retry › cold-start failure on BOTH attempts → 500, exactly two calls (no infinite retry)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 200
+
+    [0m [90m 86 |[39m         [36mconst[39m response [33m=[39m [36mawait[39m request(app)[33m.[39m[36mget[39m([32m'/api/certificates/cert-1/download'[39m)[33m;[39m
+     [90m 87 |[39m
+    [31m[1m>[22m[39m[90m 88 |[39m         expect(response[33m.[39mstatus)[33m.[39mtoBe([35m500[39m)[33m;[39m
+     [90m    |[39m                                 [31m[1m^[22m[39m
+     [90m 89 |[39m         expect(mockGetCertificatePdf)[33m.[39mtoHaveBeenCalledTimes([35m2[39m)[33m;[39m
+     [90m 90 |[39m     })[33m;[39m
+     [90m 91 |[39m[0m
+
+      at Object.toBe (__tests__/unit/certificate-download-cold-start-retry.test.js:88:33)
+
+FAIL __tests__/unit/pdf-cold-start-classification.test.js
+  F-PDF-COLD-START-TIMEOUT — isColdStartError
+    × puppeteer TimeoutError (by .name, the real shape puppeteer throws) → true (retry-worthy) (1 ms)
+    × browser launch failure → true (retry-worthy) (1 ms)
+    × navigation/setContent timeout message → true (retry-worthy) (1 ms)
+    × generic "timed out" phrasing → true (retry-worthy) (1 ms)
+    × certificate not found (data error) → false (not retry-worthy)
+    × template/render TypeError → false (not retry-worthy) (1 ms)
+    × no error object → false (not retry-worthy) (1 ms)
+    × undefined → false (not retry-worthy) (1 ms)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › puppeteer TimeoutError (by .name, the real shape puppeteer throws) → true (retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 20 |[39m         [[32m'generic "timed out" phrasing'[39m[33m,[39m [36mnew[39m [33mError[39m([32m'Waiting for target timed out'[39m)][33m,[39m
+     [90m 21 |[39m     ])([32m'%s → true (retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 22 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 23 |[39m     })[33m;[39m
+     [90m 24 |[39m
+     [90m 25 |[39m     test[33m.[39meach([[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:22:29)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › browser launch failure → true (retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 20 |[39m         [[32m'generic "timed out" phrasing'[39m[33m,[39m [36mnew[39m [33mError[39m([32m'Waiting for target timed out'[39m)][33m,[39m
+     [90m 21 |[39m     ])([32m'%s → true (retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 22 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 23 |[39m     })[33m;[39m
+     [90m 24 |[39m
+     [90m 25 |[39m     test[33m.[39meach([[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:22:29)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › navigation/setContent timeout message → true (retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 20 |[39m         [[32m'generic "timed out" phrasing'[39m[33m,[39m [36mnew[39m [33mError[39m([32m'Waiting for target timed out'[39m)][33m,[39m
+     [90m 21 |[39m     ])([32m'%s → true (retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 22 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 23 |[39m     })[33m;[39m
+     [90m 24 |[39m
+     [90m 25 |[39m     test[33m.[39meach([[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:22:29)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › generic "timed out" phrasing → true (retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 20 |[39m         [[32m'generic "timed out" phrasing'[39m[33m,[39m [36mnew[39m [33mError[39m([32m'Waiting for target timed out'[39m)][33m,[39m
+     [90m 21 |[39m     ])([32m'%s → true (retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 22 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 23 |[39m     })[33m;[39m
+     [90m 24 |[39m
+     [90m 25 |[39m     test[33m.[39meach([[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:22:29)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › certificate not found (data error) → false (not retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 29 |[39m         [[32m'undefined'[39m[33m,[39m undefined][33m,[39m
+     [90m 30 |[39m     ])([32m'%s → false (not retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 31 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 32 |[39m     })[33m;[39m
+     [90m 33 |[39m })[33m;[39m
+     [90m 34 |[39m[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:31:29)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › template/render TypeError → false (not retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 29 |[39m         [[32m'undefined'[39m[33m,[39m undefined][33m,[39m
+     [90m 30 |[39m     ])([32m'%s → false (not retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 31 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 32 |[39m     })[33m;[39m
+     [90m 33 |[39m })[33m;[39m
+     [90m 34 |[39m[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:31:29)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › no error object → false (not retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 29 |[39m         [[32m'undefined'[39m[33m,[39m undefined][33m,[39m
+     [90m 30 |[39m     ])([32m'%s → false (not retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 31 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 32 |[39m     })[33m;[39m
+     [90m 33 |[39m })[33m;[39m
+     [90m 34 |[39m[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:31:29)
+
+  ● F-PDF-COLD-START-TIMEOUT — isColdStartError › undefined → false (not retry-worthy)
+
+    TypeError: pdfGenerator.isColdStartError is not a function
+
+    [0m [90m 29 |[39m         [[32m'undefined'[39m[33m,[39m undefined][33m,[39m
+     [90m 30 |[39m     ])([32m'%s → false (not retry-worthy)'[39m[33m,[39m (_label[33m,[39m err) [33m=>[39m {
+    [31m[1m>[22m[39m[90m 31 |[39m         expect(pdfGenerator[33m.[39misColdStartError(err))[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m    |[39m                             [31m[1m^[22m[39m
+     [90m 32 |[39m     })[33m;[39m
+     [90m 33 |[39m })[33m;[39m
+     [90m 34 |[39m[0m
+
+      at isColdStartError (__tests__/unit/pdf-cold-start-classification.test.js:31:29)
+
+Test Suites: 4 failed, 4 total
+Tests:       18 failed, 3 passed, 21 total
+Snapshots:   0 total
+Time:        33.83 s, estimated 35 s
+Ran all test suites matching /pdf-generator-warmup|pdf-cold-start-classification|certificate-download-cold-start-retry|pdf-warmup-boot-hook/i.

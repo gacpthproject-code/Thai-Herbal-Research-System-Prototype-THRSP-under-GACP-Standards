@@ -1,0 +1,104 @@
+FAIL __tests__/integration/refund-kinds-real-postgres.test.js (13.624 s)
+    ✓ only the excess is credited, the status does not move, M2 stays paid and the inspection gates still pass (628 ms)
+    ✓ an M1 paid twice: exactly the second payment is refundable, DOC_FEE_PAID and M1 paid stay (358 ms)
+    ✕ a M1 paid once has no excess: any duplicate-charge refund is refused and nothing is written (237 ms)
+    ✕ a M2 paid once has no excess: any duplicate-charge refund is refused and nothing is written (280 ms)
+    ✓ an invalid amount (zero) is refused and nothing is written (186 ms)
+    ✓ an invalid amount (negative) is refused and nothing is written (200 ms)
+    ✓ an invalid amount (not a number) is refused and nothing is written (181 ms)
+    ✓ an invalid amount (a numeric string) is refused and nothing is written (170 ms)
+    ✓ an invalid amount (missing) is refused and nothing is written (216 ms)
+    ✓ an invalid amount (a fraction of a satang) is refused and nothing is written (157 ms)
+    ✓ a refund beyond the excess not yet refunded is refused (446 ms)
+    ✓ the same request twice records one refund; two concurrent requests with one key record one refund (428 ms)
+    ✓ a request with no idempotency key is refused (147 ms)
+    ✓ the full-invoice refund door is gone (151 ms)
+    ✕ provider cancellation before document review: the whole M1 is credited, M1 is unpaid, the application is CANCELLED (212 ms)
+    ✓ provider cancellation at AUDIT_CONFIRMED before the inspection starts: M2 is unpaid, scheduling refuses, a second call is the same record (236 ms)
+    ✓ provider cancellation is refused once the milestone service started (§7.1), and nothing is written (331 ms)
+    ✓ provider cancellation needs a reason from the list and a note (152 ms)
+    ✓ after a duplicate refund, a provider cancellation credits only what is left, and nothing more can be refunded (399 ms)
+      ✕ system_admin_dtam (own organization) cannot record any refund (304 ms)
+      ✕ system_admin_dtam (other organization) cannot record any refund (302 ms)
+      ✓ finance_officer_dtam (own organization) cannot record any refund (250 ms)
+      ✓ system_admin_platform (other organization) cannot record any refund (246 ms)
+      ✓ finance_officer_platform (other organization) cannot record any refund (267 ms)
+      ✓ finance_officer_platform (none organization) cannot record any refund (271 ms)
+      ✕ system_admin_dtam reads refund status in the other organization: 403 (143 ms)
+      ✓ finance_officer_dtam reads refund status in the other organization: 403 (143 ms)
+      ✓ finance_officer_platform reads refund status in the other organization: 403 (135 ms)
+      ✓ system_admin_dtam reads refund status in the own organization: 200 (143 ms)
+      ✓ finance_officer_dtam reads refund status in the own organization: 200 (138 ms)
+      ✕ system_admin_platform reads refund status in the other organization: 200 (134 ms)
+      ✕ revert-last-transition and force-status both refuse, and the status stays CANCELLED (255 ms)
+      ✕ revert refuses a target force-status refuses (a paid state the gateway alone writes) (163 ms)
+      ✕ an inspection start that commits while the cancellation waits wins: the cancellation is refused (1674 ms)
+      ✕ a cancellation that commits while the inspection start waits wins: the start is refused (1681 ms)
+      ✕ on M2 the record carries the deadline the payment set: 60 Bangkok working days under v1.3 (216 ms)
+      ✕ on M1 the reason does not apply and nothing is written (204 ms)
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › a M1 paid once has no excess: any duplicate-charge refund is refused and nothing is written
+    Expected: 409
+    Received: 201
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › a M2 paid once has no excess: any duplicate-charge refund is refused and nothing is written
+    Expected: 409
+    Received: 201
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › provider cancellation before document review: the whole M1 is credited, M1 is unpaid, the application is CANCELLED
+    Expected: "ยกเลิกการให้บริการ: กรมการแพทย์แผนไทยและการแพทย์ทางเลือก หรือหน่วยงานของรัฐที่มีอำนาจ ยุติหรือระงับการรับรอง GACP สำหรับชนิดพืชสมุนไพรหรือรูปแบบการปลูกที่ขอรับรอง"
+    Received: "ยกเลิกการให้บริการ: กรมการแพทย์แผนไทยและการแพทย์ทางเลือก หรือหน่วยงานของรัฐที่มีอำนาจ ยุติหรือระงับการรับรอง GACP สำหรับชนิดพืชสมุนไพรหรือรูปแบบการปลูกที่ขอรับรอง (กรมแจ้งหยุดรับรองพืชชนิดนี้)"
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › H1: refunds are company money, each role stays in its own organization › system_admin_dtam (own organization) cannot record any refund
+    Expected: 403
+    Received: 201
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › H1: refunds are company money, each role stays in its own organization › system_admin_dtam (other organization) cannot record any refund
+    Expected: 403
+    Received: 201
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › H1: refunds are company money, each role stays in its own organization › system_admin_dtam reads refund status in the other organization: 403
+    Expected: 403
+    Received: 200
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › H1: refunds are company money, each role stays in its own organization › system_admin_platform reads refund status in the other organization: 200
+    Expected: 200
+    Received: 403
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › M1: a CANCELLED application with a refund is not reopened by an admin hatch › revert-last-transition and force-status both refuse, and the status stays CANCELLED
+    Received promise resolved instead of rejected
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › M1: a CANCELLED application with a refund is not reopened by an admin hatch › revert refuses a target force-status refuses (a paid state the gateway alone writes)
+    Received promise resolved instead of rejected
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › M2: the "service not started" check and the service start cannot interleave › an inspection start that commits while the cancellation waits wins: the cancellation is refused
+    Expected: 409
+    Received: 201
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › M2: the "service not started" check and the service start cannot interleave › a cancellation that commits while the inspection start waits wins: the start is refused
+    Expected: 409
+    Received: 200
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › reason (ง): the company could not inspect within the window after the milestone-2 payment › on M2 the record carries the deadline the payment set: 60 Bangkok working days under v1.3
+  ● order 22: duplicate-charge and provider-cancellation refunds (real Postgres) › reason (ง): the company could not inspect within the window after the milestone-2 payment › on M1 the reason does not apply and nothing is written
+    Expected: 409
+    Received: 201
+FAIL __tests__/integration/payment-terms-rollout-real-postgres.test.js
+    ✓ the runtime default is v1.3, and each reproduced deploy resolves its own version (195 ms)
+      ✓ (a) a payment-terms-th-v1.1-only applicant is asked to accept payment-terms-th-v1.2 before the next checkout; the order then carries payment-terms-th-v1.2 (785 ms)
+      ✓ (b) an order minted under payment-terms-th-v1.1 and still in flight settles from its webhook after payment-terms-th-v1.2 ships, keeping its payment-terms-th-v1.1 stamp (500 ms)
+      ✕ (c) re-entering an in-flight payment-terms-th-v1.1 order after accepting payment-terms-th-v1.2 hands back the same order, stamped payment-terms-th-v1.2, and it settles (558 ms)
+      ✓ (a) a payment-terms-th-v1.2-only applicant is asked to accept payment-terms-th-v1.3 before the next checkout; the order then carries payment-terms-th-v1.3 (699 ms)
+      ✓ (b) an order minted under payment-terms-th-v1.2 and still in flight settles from its webhook after payment-terms-th-v1.3 ships, keeping its payment-terms-th-v1.2 stamp (465 ms)
+      ✕ (c) re-entering an in-flight payment-terms-th-v1.2 order after accepting payment-terms-th-v1.3 hands back the same order, stamped payment-terms-th-v1.3, and it settles (555 ms)
+  ● payment-terms roll-outs, on a real Postgres › payment-terms-th-v1.1 → payment-terms-th-v1.2 › (c) re-entering an in-flight payment-terms-th-v1.1 order after accepting payment-terms-th-v1.2 hands back the same order, stamped payment-terms-th-v1.2, and it settles
+    Expected: "payment-terms-th-v1.2"
+    Received: "payment-terms-th-v1.1"
+  ● payment-terms roll-outs, on a real Postgres › payment-terms-th-v1.2 → payment-terms-th-v1.3 › (c) re-entering an in-flight payment-terms-th-v1.2 order after accepting payment-terms-th-v1.3 hands back the same order, stamped payment-terms-th-v1.3, and it settles
+    Expected: "payment-terms-th-v1.3"
+    Received: "payment-terms-th-v1.2"
+FAIL __tests__/unit/company-inspection-window.test.js
+    ✕ v1.3 sets 60 working days (4 ms)
+    ✕ a payment on Wed 7 Oct 2026 is due by the end of Thu 7 Jan 2027 in Bangkok (6 holidays skipped) (1 ms)
+    ✕ counts from the Bangkok date of the payment, not the UTC date (2 ms)
+    ✕ a payment under an older version, or with no payment date, has no window (2 ms)
+    ✕ the reason finance picks states the window of the newest version (2 ms)
+  ● the company inspection window › v1.3 sets 60 working days
+    Expected: [{"termsVersion": "payment-terms-th-v1.3", "workingDays": 60}]
+    Received: undefined
+  ● the company inspection window › a payment on Wed 7 Oct 2026 is due by the end of Thu 7 Jan 2027 in Bangkok (6 holidays skipped)
+  ● the company inspection window › counts from the Bangkok date of the payment, not the UTC date
+  ● the company inspection window › a payment under an older version, or with no payment date, has no window
+  ● the company inspection window › the reason finance picks states the window of the newest version
+    Expected substring: "ภายใน 60 วันทำการ นับจากวันที่ท่านชำระค่าบริการงวดที่ 2"
+    Received string:    "บริษัทไม่สามารถตรวจประเมินแปลงได้ด้วยเหตุฝ่ายบริษัท เช่น ไม่มีผู้ตรวจที่จะไปตรวจได้"
+Test Suites: 3 failed, 3 total
+Tests:       20 failed, 29 passed, 49 total

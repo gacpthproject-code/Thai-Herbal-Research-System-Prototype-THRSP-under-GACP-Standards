@@ -1,0 +1,1438 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/provider-directory-hardening.test.js
+  P0-D staff-directory hardening — /api/system/providers
+    providerId edit forbid
+      ✓ PATCH /:id — differing providerId → 400 PROVIDER_ID_EDIT_FORBIDDEN, no write (43 ms)
+      ✓ PATCH /:id — identical providerId is an idempotent no-op (2xx, providerId NOT in update data) (11 ms)
+      ✓ PATCH /:id — dashed-but-identical providerId also passes as no-op (21 ms)
+      ✓ PUT /:id — differing providerId → 400 PROVIDER_ID_EDIT_FORBIDDEN, no write (23 ms)
+      ✓ PUT /:id — identical providerId is an idempotent no-op (2xx, providerId NOT in update data) (11 ms)
+      ✓ PUT /:id — dashed-but-identical providerId also passes as no-op (9 ms)
+    tenant scope on PATCH/PUT/DELETE
+      ✓ PATCH /:id — cross-tenant target → 404, no write (no existence disclosure) (10 ms)
+      ✓ PATCH /:id — PLATFORM_ADMIN bypasses the org filter (cross-tenant role) (9 ms)
+      ✓ PUT /:id — cross-tenant target → 404, no write (no existence disclosure) (9 ms)
+      ✓ PUT /:id — PLATFORM_ADMIN bypasses the org filter (cross-tenant role) (10 ms)
+      ✓ DELETE /:id — cross-tenant target → 404, no write (10 ms)
+      ✓ same-tenant PATCH still works (positive control) (8 ms)
+    session-epoch stamp on role/isActive/password changes
+      ✓ PATCH role change stamps sessionsRevokedAt (9 ms)
+      ✓ PATCH isActive change stamps sessionsRevokedAt (8 ms)
+      ✓ PUT password change stamps sessionsRevokedAt (8 ms)
+      ✓ PATCH name-only change does NOT stamp sessionsRevokedAt (8 ms)
+      ✓ PATCH re-submitting the UNCHANGED role does NOT stamp sessionsRevokedAt (8 ms)
+      ✓ PATCH unchanged isActive:true (already ACTIVE) does NOT stamp (10 ms)
+      ✓ PUT with UNCHANGED role but a new password still stamps (credential mutation) (9 ms)
+      ✓ DELETE stamps sessionsRevokedAt on the soft delete (7 ms)
+    self-guards
+      ✓ PATCH /:id — own role CHANGE → 403 SELF_ROLE_CHANGE_FORBIDDEN, no write (8 ms)
+      ✓ PATCH /:id — own status CHANGE → 403 SELF_DISABLE_FORBIDDEN, no write (8 ms)
+      ✓ PATCH /:id — own name/email edits stay allowed (8 ms)
+      ✓ PATCH /:id — own edit re-submitting the UNCHANGED role passes as a profile edit (7 ms)
+      ✓ PATCH /:id — own isActive:true while already ACTIVE is a no-op edit, not a 403 (8 ms)
+      ✓ PUT /:id — own role CHANGE → 403 SELF_ROLE_CHANGE_FORBIDDEN, no write (7 ms)
+      ✓ PUT /:id — own status CHANGE → 403 SELF_DISABLE_FORBIDDEN, no write (8 ms)
+      ✓ PUT /:id — own name/email edits stay allowed (8 ms)
+      ✓ PUT /:id — own edit re-submitting the UNCHANGED role passes as a profile edit (7 ms)
+      ✓ PUT /:id — own isActive:true while already ACTIVE is a no-op edit, not a 403 (7 ms)
+      ✓ DELETE /:id — self-delete → 403 SELF_DISABLE_FORBIDDEN, no write (7 ms)
+    last-admin guard (ROLE_ADMIN_CANNOT_BE_LAST)
+      ✓ PATCH demoting the last active ADMIN → 409 + code, no write (7 ms)
+      ✓ PATCH isActive=false on the last active ADMIN → 409 + code, no write (7 ms)
+      ✓ DELETE targeting the last active ADMIN → 409 + code, no write (8 ms)
+      ✓ PATCH demoting an ADMIN when another active admin exists → passes (7 ms)
+      ✓ PATCH demoting a NON-admin target skips the admin count entirely (7 ms)
+    audit emission (best-effort)
+      ✓ PATCH role change writes USER_ROLE_UPDATED with before/after metadata (8 ms)
+      ✓ PATCH name-only change does NOT write the role-update audit row (6 ms)
+      ✓ PATCH re-submitting the UNCHANGED role does NOT write a before==after audit row (7 ms)
+      ✓ audit failure NEVER blocks the mutation (best-effort) (8 ms)
+    S2 — tenant scope on unlock / disable-2fa
+      ✓ POST /:id/unlock — cross-tenant target → 404, no write (7 ms)
+      ✓ POST /:id/disable-2fa — cross-tenant target → 404, no write (6 ms)
+      ✓ POST /:id/unlock — same-tenant target still works (positive control) (7 ms)
+      ✓ POST /:id/disable-2fa — same-tenant target still works (positive control) (7 ms)
+    S6 — target lookups run inside withoutTenantScope
+      ✓ PATCH /:id target lookup is wrapped (7 ms)
+      ✓ POST /:id/unlock target lookup is wrapped (7 ms)
+    GET /roles
+      ✓ includes Tier-16 ACCOUNT_DTAM + ACCOUNT_PLATFORM, excludes PLATFORM_ADMIN and HEALTH (8 ms)
+      ✓ keeps the FE-expected value/label shape and the legacy entries (9 ms)
+    mutation gate
+      ✓ PATCH /:id — document_reviewer role gets 403, no write (8 ms)
+      ✓ PATCH /:id — dispatcher role gets 403, no write (7 ms)
+      ✓ PATCH /:id — field_inspector role gets 403, no write (7 ms)
+      ✓ PATCH /:id — finance_officer_dtam role gets 403, no write (8 ms)
+      ✓ PATCH /:id — finance_officer_platform role gets 403, no write (8 ms)
+      ✓ PATCH /:id — finance_officer_platform role gets 403, no write (6 ms)
+      ✓ PUT /:id — document_reviewer role gets 403, no write (7 ms)
+      ✓ PUT /:id — dispatcher role gets 403, no write (7 ms)
+      ✓ PUT /:id — field_inspector role gets 403, no write (7 ms)
+      ✓ PUT /:id — finance_officer_dtam role gets 403, no write (7 ms)
+      ✓ PUT /:id — finance_officer_platform role gets 403, no write (7 ms)
+      ✓ PUT /:id — finance_officer_platform role gets 403, no write (8 ms)
+      ✓ DELETE /:id — document_reviewer role gets 403, no write (8 ms)
+      ✓ DELETE /:id — dispatcher role gets 403, no write (7 ms)
+      ✓ DELETE /:id — field_inspector role gets 403, no write (7 ms)
+      ✓ DELETE /:id — finance_officer_dtam role gets 403, no write (7 ms)
+      ✓ DELETE /:id — finance_officer_platform role gets 403, no write (6 ms)
+      ✓ DELETE /:id — finance_officer_platform role gets 403, no write (7 ms)
+      ✓ DELETE /:id — PLATFORM_ADMIN is allowed through the gate (8 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: [AuthService] Login attempt: {"accountType":"INDIVIDUAL","authType":"LEGACY","expectedPortal":"LEGACY","loginId":"1-XXXX-XXXX-X-0123","service":"auth-service","timestamp":"2026-09-26T09:37:04.795Z"}
+[32minfo[39m: [AuthService] User found: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.798Z"}
+[32minfo[39m: [AuthService] Comparing password... {"service":"auth-service","timestamp":"2026-09-26T09:37:04.799Z"}
+[32minfo[39m: [AuthService] Password match: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.799Z"}
+[32minfo[39m: [AuthService] Login successful for user: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.800Z"}
+[32minfo[39m: [AuthService] Login attempt: {"accountType":"INDIVIDUAL","authType":"LEGACY","expectedPortal":"LEGACY","loginId":"9-XXXX-XXXX-X-9999","service":"auth-service","timestamp":"2026-09-26T09:37:04.803Z"}
+[32minfo[39m: [AuthService] User found: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.804Z"}
+[32minfo[39m: [AuthService] User not found {"service":"auth-service","timestamp":"2026-09-26T09:37:04.805Z"}
+[32minfo[39m: [AuthService] Login error: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.805Z"}
+[32minfo[39m: [AuthService] Login attempt: {"accountType":"INDIVIDUAL","authType":"LEGACY","expectedPortal":"LEGACY","loginId":"1-XXXX-XXXX-X-0123","service":"auth-service","timestamp":"2026-09-26T09:37:04.830Z"}
+[32minfo[39m: [AuthService] User found: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.832Z"}
+[32minfo[39m: [AuthService] Comparing password... {"service":"auth-service","timestamp":"2026-09-26T09:37:04.833Z"}
+[32minfo[39m: [AuthService] Password match: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.833Z"}
+[32minfo[39m: [AuthService] Password incorrect {"service":"auth-service","timestamp":"2026-09-26T09:37:04.834Z"}
+[32minfo[39m: [AuthService] Login error: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.835Z"}
+[32minfo[39m: [AuthService] Login attempt: {"accountType":"INDIVIDUAL","authType":"LEGACY","expectedPortal":"LEGACY","loginId":"1-XXXX-XXXX-X-0123","service":"auth-service","timestamp":"2026-09-26T09:37:04.837Z"}
+[32minfo[39m: [AuthService] User found: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.838Z"}
+[32minfo[39m: [AuthService] Login error: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.839Z"}
+[32minfo[39m: [AuthService] Login attempt: {"accountType":"INDIVIDUAL","authType":"LEGACY","expectedPortal":"LEGACY","loginId":"1-XXXX-XXXX-X-0123","service":"auth-service","timestamp":"2026-09-26T09:37:04.840Z"}
+[32minfo[39m: [AuthService] User found: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.841Z"}
+[32minfo[39m: [AuthService] Comparing password... {"service":"auth-service","timestamp":"2026-09-26T09:37:04.842Z"}
+[32minfo[39m: [AuthService] Password match: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.843Z"}
+[32minfo[39m: [AuthService] Password incorrect {"service":"auth-service","timestamp":"2026-09-26T09:37:04.843Z"}
+[32minfo[39m: [AuthService] Login error: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.844Z"}
+[32minfo[39m: [AuthService] Login attempt: {"accountType":"INDIVIDUAL","authType":"LEGACY","expectedPortal":"LEGACY","loginId":"1-XXXX-XXXX-X-0123","service":"auth-service","timestamp":"2026-09-26T09:37:04.846Z"}
+[32minfo[39m: [AuthService] User found: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.846Z"}
+[32minfo[39m: [AuthService] Comparing password... {"service":"auth-service","timestamp":"2026-09-26T09:37:04.847Z"}
+[32minfo[39m: [AuthService] Password match: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.847Z"}
+[32minfo[39m: [AuthService] Login successful for user: {"service":"auth-service","timestamp":"2026-09-26T09:37:04.848Z"}
+[32minfo[39m: [AuthService] MFA challenge required at mint boundary {"service":"auth-service","timestamp":"2026-09-26T09:37:04.855Z","userId":"user-2fa"}
+[32minfo[39m: [AuthService] MFA challenge required at mint boundary {"service":"auth-service","timestamp":"2026-09-26T09:37:04.858Z","userId":"user-2fa-2"}
+[32minfo[39m: [AuthService] MFA challenge required at mint boundary {"service":"auth-service","timestamp":"2026-09-26T09:37:04.859Z","userId":"user-legacy"}
+[31merror[39m: [Password] session revoke after change failed for user-123: redis down {"service":"auth-password","timestamp":"2026-09-26T09:37:04.870Z"}
+[32minfo[39m: [Password] User not found {"service":"auth-password","timestamp":"2026-09-26T09:37:04.872Z"}
+PASS __tests__/unit/auth-service.test.js
+  PrismaAuthService
+    login()
+      ✓ should return user and tokens on successful login (8 ms)
+      ✓ should throw error when user not found (26 ms)
+      ✓ should throw error when password is incorrect (7 ms)
+      ✓ should throw error when account is locked (3 ms)
+      ✓ should lock account after 5 failed attempts (5 ms)
+      ✓ should reset login attempts on successful login (5 ms)
+    issueTokensForAuthenticatedUser()
+      ✓ mints access + refresh tokens for an already-verified user (3 ms)
+      ✓ signs with the provider secret for a provider role (2 ms)
+      ✓ returns mfaRequired (NO tokens minted) when the resolved user has twoFactorEnabled=true (2 ms)
+      ✓ defaults twoFactorMethod to TOTP when the user row has none set (2 ms)
+      ✓ honors the legacy mfaEnabled fallback column (mid-migration DB) (1 ms)
+    checkIdentifierExists()
+      ✓ should return true if identifier exists (1 ms)
+      ✓ should return false if identifier does not exist (2 ms)
+      ✓ should return false for empty identifier (1 ms)
+      ✓ should use correct hash field for JURISTIC account type (2 ms)
+      ✓ should use correct hash field for COMMUNITY_ENTERPRISE account type (1 ms)
+    changePassword()
+      ✓ should change password successfully (2 ms)
+      ✓ does not fail the change if session revoke throws (best-effort, BE-AUTH-03-02) (2 ms)
+      ✓ should throw error if user not found (3 ms)
+      ✓ should throw error if old password is incorrect (1 ms)
+    getProfile()
+      ✓ should return user profile (1 ms)
+      ✓ should return null if user not found (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/no-self-service-password-reset.test.js
+  no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17)
+    ✕ the backend mounts no reset route, neither the request nor the token redemption (3 ms)
+    ✕ no router or server mount names a password-reset or recovery path (28 ms)
+    ✕ no controller, service or schema can start or complete a reset any more (1 ms)
+    ✕ no backend code mints or looks up a password-reset token (56 ms)
+    ✕ no error-code remediation sends anyone to a forgot-password endpoint or a reset token (91 ms)
+    ✕ the web app has no forgot-password or reset page, route, link, call, sitemap entry or copy (46 ms)
+    ✓ the mobile app has no forgot-password screen, route or button (8 ms)
+    ✓ the API contract documents no reset path and no email verification (2 ms)
+  no email or SMS transport is configured outside the ops alerting stack (operator 2026-09-15 / 2026-09-16)
+    ✓ nodemailer is not a dependency (1 ms)
+    ✓ the secrets catalog has no SMTP, email or SMS row (1 ms)
+    ✓ no env template, generator or compose file configures a mail or SMS relay (14 ms)
+    ✓ the email template engine that rendered for the deleted email service is gone (1 ms)
+    ✓ no error code documents the deleted email/SMS notification providers (1 ms)
+
+  ● no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17) › the backend mounts no reset route, neither the request nor the token redemption
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /['"`]\/reset-password/
+    Received string:      "
+
+    const express = require('express');
+    const { safeErrorMessage, respondError } = require('../../../shared/api-response');
+    const router = express.Router();
+    const AuthController = require('../../../controllers/auth-controller');
+    const upload = require('../../../middleware/upload-middleware');
+    const refuseMultipart = require('../../../middleware/refuse-multipart');
+    const { authenticateHealth } = require('../../../middleware/auth-middleware');
+    const { validate } = require('../../../middleware/validate');
+    const {
+        healthLoginSchema,
+        healthRegisterSchema,
+        resetPasswordWithTokenSchema,
+        checkIdentifierSchema,
+        changePasswordSchema,
+    } = require('../../../shared/schemas/auth-schemas');
+
+
+
+    router.post('/login', validate(healthLoginSchema), (req, res) => AuthController.login(req, res));
+
+
+
+
+
+
+
+
+
+
+
+
+    router.post('/register', refuseMultipart, validate(healthRegisterSchema), (req, res) => AuthController.register(req, res));
+
+
+
+
+
+
+    router.post('/reset-password/:token', validate(resetPasswordWithTokenSchema), async (req, res) => {
+        try {
+            const authService = require('../../../services/prisma-auth-service');
+            const result = await authService.resetPasswordWithToken(req.params.token, req.body.newPassword);
+            res.json(result);
+        } catch (error) {
+            res.status(400).json({ success: false, error: safeErrorMessage(error) });
+        }
+    });
+
+
+    router.post('/check-identifier', validate(checkIdentifierSchema), (req, res) => AuthController.checkIdentifier(req, res));
+
+
+
+    router.post('/refresh', (req, res) => AuthController.refreshToken(req, res));
+
+
+    router.post('/logout', (req, res) => AuthController.logout(req, res));
+
+
+
+    router.get('/me', authenticateHealth, (req, res) => AuthController.getMe(req, res));
+    router.patch('/me', authenticateHealth, (req, res) => AuthController.updateProfile(req, res));
+    router.post('/change-password', authenticateHealth, validate(changePasswordSchema), (req, res) => AuthController.changePassword(req, res));
+    router.post('/me/avatar', authenticateHealth, upload.single('avatar'), (req, res) => AuthController.uploadAvatar(req, res));
+    router.get('/verify', authenticateHealth, (req, res) => AuthController.verifyToken(req, res));
+
+
+
+
+
+
+    const pdpaService = require('../../../services/pdpa-service');
+    const { auditLogger, AuditCategory } = require('../../../middleware/audit-logger');
+    const { getRequestIp } = require('../../../utils/client-ip');
+
+    router.get('/me/export', authenticateHealth, async (req, res) => {
+        try {
+            const exportPayload = await pdpaService.assembleUserDataExport(req.user.id);
+            try {
+                await auditLogger.log({
+                    category: AuditCategory.SECURITY,
+                    action: 'PDPA_EXPORT',
+                    actorId: req.user.id,
+                    actorRole: req.user.role || 'health',
+                    resourceType: 'USER',
+                    resourceId: req.user.id,
+                    ipAddress: getRequestIp(req),
+                    userAgent: req.headers['user-agent'],
+                    metadata: { regulation: 'PDPA-S30' },
+                });
+            } catch (_auditErr) {
+                
+            }
+            
+            
+            const filename = `gacp-data-export-${req.user.id}-${new Date().toISOString().slice(0, 10)}.json`;
+            res.setHeader('Content-Type', 'application/json');
+            res.setHeader('Content-Disposition', `attachment; filename=\"${filename}\"`);
+            return res.send(JSON.stringify(exportPayload, null, 2));
+        } catch (error) {
+            return respondError(res, req, error);
+        }
+    });
+
+    router.delete('/me/delete', authenticateHealth, async (req, res) => {
+        try {
+            const { password, reason } = req.body || {};
+            const result = await pdpaService.softDeleteUser({
+                userId: req.user.id,
+                password,
+                reason,
+            });
+            try {
+                await auditLogger.log({
+                    category: AuditCategory.SECURITY,
+                    action: 'PDPA_DELETE_REQUESTED',
+                    actorId: req.user.id,
+                    actorRole: req.user.role || 'health',
+                    resourceType: 'USER',
+                    resourceId: req.user.id,
+                    ipAddress: getRequestIp(req),
+                    userAgent: req.headers['user-agent'],
+                    metadata: {
+                        regulation: 'PDPA-S33',
+                        reason: reason || null,
+                        retainUntil: result.retainUntil,
+                    },
+                });
+            } catch (_auditErr) {
+                
+            }
+            
+            
+            res.clearCookie('auth_token', { path: '/' });
+            res.clearCookie('refresh_token', { path: '/' });
+            res.clearCookie('csrf_token', { path: '/' });
+            return res.json({ success: true, data: result });
+        } catch (error) {
+            
+            const statusMap = {
+                INVALID_CREDENTIALS: 401,
+                PDPA_PASSWORD_REQUIRED: 400,
+                PDPA_LEGAL_HOLD: 403,
+                PDPA_ALREADY_DELETED: 409,
+                USER_NOT_FOUND: 404,
+            };
+            const status = statusMap[error.code] || 500;
+            return res.status(status).json({
+                success: false,
+                error: safeErrorMessage(error),
+                code: error.code || 'PDPA_DELETE_FAILED',
+            });
+        }
+    });
+
+
+    const prefsService = require('../../../services/notification-preferences-service');
+    router.get('/me/notification-prefs', authenticateHealth, async (req, res) => {
+        try {
+            const data = await prefsService.getPrefs(req.user.id);
+            return res.json({ success: true, data });
+        } catch (error) {
+            return respondError(res, req, error);
+        }
+    });
+    router.put('/me/notification-prefs', authenticateHealth, async (req, res) => {
+        try {
+            const data = await prefsService.updatePrefs(req.user.id, req.body || {});
+            return res.json({ success: true, data });
+        } catch (error) {
+            return res.status(400).json({ success: false, error: safeErrorMessage(error) });
+        }
+    });
+
+    module.exports = router;
+
+    "
+
+      54 |     it('the backend mounts no reset route, neither the request nor the token redemption', () => {
+      55 |         const routes = stripComments(read(path.join(BACKEND, 'routes', 'api', 'auth', 'auth-health.js')));
+    > 56 |         expect(routes).not.toMatch(/['"`]\/reset-password/);
+         |                            ^
+      57 |         expect(routes).not.toMatch(/requestPasswordReset|resetPasswordSchema\b|resetPasswordWithToken/);
+      58 |     });
+      59 |
+
+      at Object.toMatch (__tests__/unit/no-self-service-password-reset.test.js:56:28)
+
+  ● no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17) › no router or server mount names a password-reset or recovery path
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 5
+
+    - Array []
+    + Array [
+    +   "apps/backend/routes/api/auth/auth-health.js",
+    +   "apps/backend/routes/api/system/provider.js",
+    +   "apps/backend/server.js",
+    + ]
+
+      69 |             .filter((f) => RECOVERY_MOUNT.test(codeLines(read(f))))
+      70 |             .map((f) => path.relative(REPO, f));
+    > 71 |         expect(offenders).toEqual([]);
+         |                           ^
+      72 |     });
+      73 |
+      74 |     it('no controller, service or schema can start or complete a reset any more', () => {
+
+      at Object.toEqual (__tests__/unit/no-self-service-password-reset.test.js:71:27)
+
+  ● no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17) › no controller, service or schema can start or complete a reset any more
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /requestPasswordReset|resetPasswordWithToken/
+    Received string:      "const { prisma } = require('./prisma-database');
+    const bcrypt = require('bcryptjs');
+    const jwtConfig = require('../config/jwt-security');
+    const {
+        CANONICAL_ROLES,
+        normalizeRole,
+        isProviderRole,
+    } = require('../shared/canonical-rbac');
+    const crypto = require('crypto');
+    const { createLogger } = require('../shared/logger');
+    const { maskThaiId, computeLookupHmac } = require('../utils/field-encryption');
+    const { identityLookupColumns } = require('./auth/identity-lookup-columns');
+    const { resolveCanonicalIdForWrite } = require('../shared/fk-token');
+    const { hasUsableSecondFactor } = require('../shared/second-factor');
+    const { assertAccountCanHoldSession } = require('../shared/account-status');
+    const logger = createLogger('auth-service');
+
+
+
+
+
+
+
+    function useHmacLookup() {
+        return process.env.AUTH_LOOKUP_USE_HMAC === 'true';
+    }
+
+
+
+
+
+
+    const tokenRevocationService = require('./token-revocation-service');
+
+
+    const BCRYPT_ROUNDS = parseInt(process.env.BCRYPT_ROUNDS, 10) || 12;
+
+
+    const { changePassword, resetPasswordWithToken } = require('./auth/password-management');
+    const { ensurePersonalIndividualEntity } = require('./entity-service');
+    class PrismaAuthService {
+        
+
+        
+        _sanitizeInput(data) {
+            const cleaned = { ...(data || {}) };
+            for (const key of [
+                '_idCardImage', 'idCardImage',
+                '_confirmPassword', 'confirmPassword',
+                '_acceptTerms', 'acceptTerms',
+                'acceptedTermsOfService', 'acceptedPrivacyPolicy', 'acceptedConsent',
+                
+                
+                
+                
+                
+                'canonicalId', 'canonicalIdLegacy',
+            ]) {
+                delete cleaned[key];
+            }
+            return cleaned;
+        }
+
+        
+        _resolveIdentity(sanitizedInput) {
+            const { identifier, healthId, providerId, ...userData } = sanitizedInput;
+            const cleanHealthId = String(healthId || '').replace(/-/g, '').trim() || null;
+            const cleanProviderId = String(providerId || '').replace(/-/g, '').trim() || null;
+            const cleanIdentifier = String(identifier || userData.idCard || '').replace(/-/g, '').trim() || null;
+
+            if (cleanHealthId && cleanProviderId) {
+                throw new Error('Identity conflict: both healthId and providerId are not allowed');
+            }
+
+            const requestedRole = userData.role || 'HEALTH';
+            const canonicalRole = normalizeRole(requestedRole)
+                || (String(userData.accountType || '').toUpperCase() === 'PROVIDER'
+                    ? CANONICAL_ROLES.DOCUMENT_REVIEWER
+                    : CANONICAL_ROLES.HEALTH);
+            const isProvider = isProviderRole(canonicalRole);
+            const actualIdentifier = isProvider
+                ? (cleanProviderId || cleanIdentifier)
+                : (cleanHealthId || cleanIdentifier);
+
+            if (!actualIdentifier || !/^\\d{13}$/.test(actualIdentifier)) {
+                throw new Error('Invalid identity number: expected 13 digits');
+            }
+
+            const authType = isProvider ? 'PROVIDER_ID' : 'HEALTH_ID';
+            
+            
+            
+            
+            const role = canonicalRole
+                || (isProvider ? CANONICAL_ROLES.FIELD_INSPECTOR : CANONICAL_ROLES.HEALTH);
+            const accountType = isProvider
+                ? 'PROVIDER'
+                : (String(userData.accountType || '').toUpperCase() === 'PROVIDER' ? 'INDIVIDUAL' : (userData.accountType || 'INDIVIDUAL'));
+
+            return { userData, actualIdentifier, authType, role, accountType, isProvider };
+        }
+
+        
+        async _resolveVerificationStatus() {
+            let ocrBypass = false;
+            try {
+                
+                
+                
+                
+                
+                const row = await prisma.systemConfig.findUnique({
+                    where: { key: 'ocr_bypass_enabled' },
+                    select: { value: true },
+                });
+                if (row) {
+                    ocrBypass = String(row.value).trim().toLowerCase() === 'true';
+                }
+            } catch (_e) {
+                
+            }
+            if (!ocrBypass) {
+                ocrBypass = String(process.env.ENABLE_OCR_BYPASS || 'false').trim().toLowerCase() === 'true';
+            }
+            return {
+                status: ocrBypass ? 'ACTIVE' : 'PENDING_VERIFICATION',
+                
+                
+            };
+        }
+
+        
+        _generateHashes(actualIdCard, authType) {
+            
+            
+            
+            
+            return identityLookupColumns(actualIdCard, authType);
+        }
+
+        
+
+        async register(data) {
+            const sanitized = this._sanitizeInput(data);
+            const identity = this._resolveIdentity(sanitized);
+            const hashes = this._generateHashes(identity.actualIdentifier, identity.authType);
+
+            logger.info('[AuthService] Register:', {
+                authType: identity.authType,
+                id: identity.actualIdentifier ? maskThaiId(identity.actualIdentifier) : null,
+            });
+
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            const [verification, defaultOrg, hashedPassword] = await Promise.all([
+                this._resolveVerificationStatus(),
+                prisma.organization.findUnique({ where: { slug: 'default' } }),
+                bcrypt.hash(identity.userData.password, BCRYPT_ROUNDS),
+            ]);
+            if (!defaultOrg) {
+                const err = new Error('Default organization missing — DB not seeded');
+                err.code = 'NO_DEFAULT_ORG';
+                throw err;
+            }
+
+            
+            
+            
+            
+            
+            
+            const user = await prisma.$transaction(async (tx) => {
+                const created = await tx.user.create({
+                    data: {
+                        ...identity.userData,
+                        organizationId: defaultOrg.id,
+                        
+                        
+                        
+                        
+                        
+                        
+                        
+                        canonicalId: resolveCanonicalIdForWrite({
+                            actualIdentifier: identity.actualIdentifier,
+                            isProvider: identity.isProvider,
+                            precomputedHmac: identity.isProvider
+                                ? hashes.providerIdHmac
+                                : hashes.healthIdHmac,
+                        }),
+                        role: identity.role,
+                        accountType: identity.accountType,
+                        
+                        idCard: identity.actualIdentifier,
+                        idCardHash: hashes.idCardHash,
+                        
+                        
+                        
+                        idCardHmac: hashes.idCardHmac,
+                        
+                        authType: identity.authType,
+                        healthId: identity.isProvider ? null : identity.actualIdentifier,
+                        healthIdHash: hashes.healthIdHash,
+                        healthIdHmac: hashes.healthIdHmac,
+                        providerId: identity.isProvider ? identity.actualIdentifier : null,
+                        providerIdHash: hashes.providerIdHash,
+                        providerIdHmac: hashes.providerIdHmac,
+                        password: hashedPassword,
+                        ...verification,
+                    },
+                });
+
+                if (!identity.isProvider && created.healthId) {
+                    
+                    
+                    
+                    
+                    
+                    await ensurePersonalIndividualEntity({ user: created, tx, isNewUser: true });
+                }
+
+                return created;
+            });
+
+            
+            if (user.status !== verification.status) {
+                logger.info('[AuthService] Status mismatch. Forcing update...');
+                return await prisma.user.update({
+                    where: { id: user.id },
+                    data: { status: verification.status },
+                });
+            }
+            return user;
+        }
+        async login(loginId, password, accountType, options = {}) {
+            const { healthId, providerId } = options;
+            const actualLoginId = healthId || providerId || loginId;
+            
+            
+            
+            
+            const explicitPortal = String(options.expectedPortal || '').toUpperCase();
+            const expectedPortal = ['HEALTH', 'PROVIDER'].includes(explicitPortal)
+                ? explicitPortal
+                : (healthId ? 'HEALTH' : (providerId ? 'PROVIDER' : null));
+            logger.info('[AuthService] Login attempt:', {
+                loginId: actualLoginId ? maskThaiId(actualLoginId) : null,
+                authType: healthId ? 'HEALTH_ID' : (providerId ? 'PROVIDER_ID' : 'LEGACY'),
+                expectedPortal: expectedPortal || 'LEGACY',
+                accountType,
+            });
+            try {
+                
+                
+                
+                
+                
+                
+                
+                
+                const cleanedLoginId = String(actualLoginId || '').replace(/-/g, '').trim();
+                const isNumericId = /^\\d{13}$/.test(cleanedLoginId);
+
+                
+                
+                
+                
+                
+                
+                
+                
+                if (!isNumericId) {
+                    logger.info('[AuthService] Login rejected: identifier is not a 13-digit national ID');
+                    throw new Error('Invalid credentials');
+                }
+                
+                
+                const useHmac = useHmacLookup();
+                const loginIdHash = useHmac
+                    ? computeLookupHmac(cleanedLoginId)
+                    : crypto.createHash('sha256').update(cleanedLoginId).digest('hex');
+                const idCardCol = useHmac ? 'idCardHmac' : 'idCardHash';
+                const healthIdCol = useHmac ? 'healthIdHmac' : 'healthIdHash';
+                const providerIdCol = useHmac ? 'providerIdHmac' : 'providerIdHash';
+
+                const whereClause = {
+                    OR: [
+                        { [idCardCol]: loginIdHash },
+                        { [healthIdCol]: loginIdHash },
+                        { [providerIdCol]: loginIdHash },
+                    ],
+                };
+                
+                if (healthId) {
+                    whereClause.OR = [
+                        { [healthIdCol]: loginIdHash },
+                        { [idCardCol]: loginIdHash },
+                    ];
+                } else if (providerId) {
+                    whereClause.OR = [
+                        { [providerIdCol]: loginIdHash },
+                        { [idCardCol]: loginIdHash },
+                    ];
+                }
+                const user = await prisma.user.findFirst({ where: whereClause });
+                logger.info('[AuthService] User found:', user ? 'YES' : 'NO', user ? `(authType: ${user.authType})` : '');
+                if (!user) {
+                    logger.info('[AuthService] User not found');
+                    throw new Error('Invalid credentials');
+                }
+                if (user.healthId && user.providerId) {
+                    throw new Error('Identity conflict: account has both healthId and providerId');
+                }
+                const canonicalRole = normalizeRole(user.role) || CANONICAL_ROLES.HEALTH;
+                const accountIsProvider = isProviderRole(canonicalRole);
+
+                
+                
+                
+                if (expectedPortal === 'HEALTH' && accountIsProvider) {
+                    throw new Error('Health login requires a health account. Use /auth/provider/login.');
+                }
+                if (expectedPortal === 'PROVIDER' && !accountIsProvider) {
+                    throw new Error('Provider login requires a provider account. Use /auth/health/login.');
+                }
+                
+                if (providerId && !accountIsProvider) {
+                    throw new Error('Provider login requires a provider account');
+                }
+                if (healthId && accountIsProvider) {
+                    throw new Error('Health login requires a health account');
+                }
+                
+                if (user.isLocked && user.lockedUntil && new Date() < user.lockedUntil) {
+                    const remainingMs = user.lockedUntil.getTime() - new Date().getTime();
+                    const remainingMin = Math.ceil(remainingMs / 60000);
+                    throw new Error(`Account locked. Try again in ${remainingMin} minutes.`);
+                }
+                
+                if (user.isLocked && user.lockedUntil && new Date() >= user.lockedUntil) {
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: { isLocked: false, lockedUntil: null, loginAttempts: 0 },
+                    });
+                }
+                logger.info('[AuthService] Comparing password...');
+                const passwordMatch = await bcrypt.compare(password, user.password);
+                logger.info('[AuthService] Password match:', passwordMatch ? 'YES' : 'NO');
+                if (!passwordMatch) {
+                    logger.info('[AuthService] Password incorrect');
+                    
+                    const newAttempts = (user.loginAttempts || 0) + 1;
+                    const updateData = { loginAttempts: newAttempts };
+                    if (newAttempts >= 5) {
+                        updateData.isLocked = true;
+                        updateData.lockedUntil = new Date(Date.now() + 15 * 60 * 1000); 
+                    }
+                    await prisma.user.update({
+                        where: { id: user.id },
+                        data: updateData,
+                    });
+                    if (newAttempts >= 5) {
+                        throw new Error('Account locked due to too many failed attempts.');
+                    }
+                    throw new Error('Invalid credentials');
+                }
+                
+                
+                
+                
+                
+                assertAccountCanHoldSession(user);
+                logger.info('[AuthService] Login successful for user:', user.id);
+                
+                await prisma.user.update({
+                    where: { id: user.id },
+                    data: { loginAttempts: 0, isLocked: false, lockedUntil: null, lastLoginAt: new Date() },
+                });
+                
+                
+                
+                
+                
+                
+                
+                
+                const twoFactorEnabled = hasUsableSecondFactor(user);
+
+                
+                
+                
+                
+                
+                
+                if (twoFactorEnabled) {
+                    
+                    
+                    
+                    
+                    
+                    logger.info('[AuthService] MFA challenge required', { userId: user.id });
+                    return {
+                        user,
+                        mfaRequired: true,
+                        twoFactorMethod: 'TOTP',
+                    };
+                }
+
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                return await this.issueTokensForAuthenticatedUser(user, options);
+            } catch (error) {
+                logger.info('[AuthService] Login error:', error.message);
+                throw error;
+            }
+        }
+
+        
+        async issueTokensForAuthenticatedUser(user, options = {}) {
+            
+            
+            assertAccountCanHoldSession(user);
+            const canonicalRole = normalizeRole(user.role) || CANONICAL_ROLES.HEALTH;
+            const accountIsProvider = isProviderRole(canonicalRole);
+            const resolvedUserType = user.authType === 'PROVIDER_ID'
+                ? 'PROVIDER_ID'
+                : 'HEALTH_ID';
+            const twoFactorEnabled = hasUsableSecondFactor(user);
+
+            if (twoFactorEnabled) {
+                logger.info('[AuthService] MFA challenge required at mint boundary', { userId: user.id });
+                return {
+                    user,
+                    mfaRequired: true,
+                    twoFactorMethod: 'TOTP',
+                };
+            }
+
+            const sessionFamilyId = crypto.randomUUID();
+            const tokenPayload = {
+                id: user.id,
+                role: user.role,
+                canonicalRole,
+                userType: resolvedUserType,
+                accountType: user.accountType,
+                accountTier: user.accountTier || 'NORMAL',
+                authType: user.authType,
+                twoFactorEnabled,
+                
+                
+                
+                organizationId: user.organizationId || null,
+                
+                
+                
+                email: user.email || null,
+                
+                sessionFamilyId,
+            };
+            
+            
+            const tokenType = accountIsProvider ? 'provider' : 'public';
+            const token = jwtConfig.generateToken(tokenPayload, tokenType);
+            
+            
+            
+            
+            const refreshJti = await tokenRevocationService.issueRefreshToken(user.id, {
+                ipAddress: options.ipAddress || null,
+                userAgent: options.userAgent || null,
+                deviceId: options.deviceId || null,
+            });
+            const refreshToken = jwtConfig.generateRefreshToken(
+                { ...tokenPayload, jti: refreshJti },
+                tokenType,
+            );
+            return { user, token, refreshToken };
+        }
+
+        async getProfile(userId) {
+            return await prisma.user.findUnique({ where: { id: userId } });
+        }
+        
+        async updateProfile(userId, data) {
+            const ALLOWED_FIELDS = [
+                'firstName', 'lastName', 'phoneNumber', 'email',
+                'address', 'province', 'district', 'subdistrict', 'zipCode',
+                'companyName', 'representativeName', 'representativePosition',
+                'communityName', 'privacySettings', 'notificationSettings',
+            ];
+            const safeData = {};
+            for (const key of ALLOWED_FIELDS) {
+                if (data[key] !== undefined) {
+                    safeData[key] = data[key];
+                }
+            }
+            if (Object.keys(safeData).length === 0) {
+                throw new Error('No valid fields to update');
+            }
+            return await prisma.user.update({
+                where: { id: userId },
+                data: safeData,
+            });
+        }
+        async checkIdentifierExists(identifier, accountType = 'INDIVIDUAL') {
+            const cleanId = (identifier || '').replace(/-/g, '');
+            if (!cleanId) {
+                return false;
+            }
+            
+            
+            
+            const useHmac = useHmacLookup();
+            const hashed = useHmac
+                ? computeLookupHmac(cleanId)
+                : crypto.createHash('sha256').update(cleanId).digest('hex');
+            let where;
+            switch (accountType) {
+                case 'JURISTIC':
+                    where = useHmac ? { taxIdHmac: hashed } : { taxIdHash: hashed };
+                    break;
+                case 'COMMUNITY_ENTERPRISE':
+                    where = useHmac ? { communityRegistrationNoHmac: hashed } : { communityRegistrationNoHash: hashed };
+                    break;
+                case 'INDIVIDUAL':
+                default:
+                    where = useHmac ? { idCardHmac: hashed } : { idCardHash: hashed };
+                    break;
+            }
+            const existing = await prisma.user.findFirst({ where });
+            return !!existing;
+        }
+        
+
+        async changePassword(userId, oldPassword, newPassword) { return changePassword(userId, oldPassword, newPassword); }
+        async resetPasswordWithToken(token, newPassword) { return resetPasswordWithToken(token, newPassword); }
+        
+        async registerHealthUser(body, idCardImagePath) {
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            const normalizedIdentifier = String(
+                body?.healthId || body?.idCard || body?.identifier || '',
+            ).replace(/-/g, '').trim();
+            const isValid = Boolean(
+                body?.password
+                && body?.phoneNumber
+                && normalizedIdentifier
+                && /^\\d{13}$/.test(normalizedIdentifier)
+                && body?.firstName
+                && body?.lastName,
+            );
+            if (!isValid) {
+                return {
+                    status: 400,
+                    body: {
+                        success: false,
+                        error: 'INDIVIDUAL requires: healthId/identifier (13 digits), password, phoneNumber, firstName, lastName',
+                        code: 'VALIDATION_ERROR',
+                        messageTh: 'กรุณากรอกข้อมูลให้ครบถ้วน: เลขบัตรประชาชน 13 หลัก, รหัสผ่าน, เบอร์โทร, ชื่อ, นามสกุล',
+                    },
+                };
+            }
+            const userData = {
+                ...body,
+                accountType: 'INDIVIDUAL',
+                identifier: normalizedIdentifier,
+                healthId: normalizedIdentifier,
+                idCardImage: idCardImagePath,
+            };
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            for (const privilegedKey of [
+                'role', 'canonicalRole', 'status', 'verificationStatus',
+                'ministryVerified', 'accountTier', 'organizationId', 'canonicalId',
+                'authType', 'userType', 'isProvider',
+                'providerId', 'providerIdHash', 'healthIdHash', 'idCardHash',
+            ]) {
+                delete userData[privilegedKey];
+            }
+            try {
+                const user = await this.register(userData);
+                return {
+                    status: 201,
+                    body: { success: true, message: 'ลงทะเบียนสำเร็จ', data: { user } },
+                };
+            } catch (error) {
+                
+                
+                
+                
+                
+                
+                logger.error('[AuthService] registerHealthUser failed', {
+                    errCode: error?.code || null,
+                    errName: error?.name || null,
+                    errMessage: error?.message || String(error),
+                    prismaMeta: error?.meta || null,
+                    stack: error?.stack,
+                });
+                let message = 'การลงทะเบียนล้มเหลว กรุณาลองใหม่อีกครั้ง';
+                let code = 'REGISTER_FAILED';
+                let statusCode = 500;
+                if (error.code === 'P2002') {
+                    const target = error.meta?.target || [];
+                    const targetField = Array.isArray(target) ? target[0] : target;
+                    statusCode = 400;
+                    code = 'DUPLICATE_IDENTIFIER';
+                    if (targetField === 'idCardHash' || (typeof targetField === 'string' && targetField.includes('idCardHash'))) {
+                        message = 'เลขบัตรประชาชนนี้ถูกลงทะเบียนแล้ว';
+                    } else if (targetField === 'taxIdHash' || (typeof targetField === 'string' && targetField.includes('taxIdHash'))) {
+                        message = 'เลขทะเบียนนิติบุคคลนี้ถูกลงทะเบียนแล้ว';
+                    } else if (targetField === 'communityRegistrationNoHash' || (typeof targetField === 'string' && targetField.includes('communityRegistrationNoHash'))) {
+                        message = 'เลขทะเบียนวิสาหกิจชุมชนนี้ถูกลงทะเบียนแล้ว';
+                    } else if (targetField === 'phoneNumber' || (typeof targetField === 'string' && targetField.includes('phoneNumber'))) {
+                        message = 'เบอร์โทรศัพท์นี้ถูกใช้งานแล้ว';
+                    } else if (targetField === 'email' || (typeof targetField === 'string' && targetField.includes('email'))) {
+                        message = 'อีเมลนี้ถูกใช้งานแล้ว';
+                    } else {
+                        message = 'ข้อมูลนี้ถูกลงทะเบียนในระบบแล้ว';
+                    }
+                } else if (error.message && error.message.includes('Invalid file format')) {
+                    statusCode = 400;
+                    code = 'INVALID_FILE';
+                    message = 'รูปแบบไฟล์ไม่ถูกต้อง กรุณาอัปโหลดไฟล์ JPG, PNG หรือ PDF';
+                }
+                return {
+                    status: statusCode,
+                    body: { success: false, error: message, code },
+                };
+            }
+        }
+    }
+    module.exports = new PrismaAuthService();
+    "
+
+      76 |         const code = (...segments) => stripComments(read(path.join(BACKEND, ...segments)));
+      77 |         expect(code('controllers', 'auth-controller', 'auth-session-security-handlers.js')).not.toMatch(/requestPasswordReset/);
+    > 78 |         expect(code('services', 'prisma-auth-service.js')).not.toMatch(/requestPasswordReset|resetPasswordWithToken/);
+         |                                                                ^
+      79 |         expect(code('services', 'auth', 'password-management.js')).not.toMatch(/requestPasswordReset|resetPasswordWithToken/);
+      80 |
+      81 |         const authSchemas = require('../../shared/schemas/auth-schemas');
+
+      at Object.toMatch (__tests__/unit/no-self-service-password-reset.test.js:78:64)
+
+  ● no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17) › no backend code mints or looks up a password-reset token
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 6
+
+    - Array []
+    + Array [
+    +   "apps/backend/routes/api/provider/handlers/admin-user-actions-helpers.js: passwordResetToken: hashResetToken(plainToken),",
+    +   "apps/backend/routes/api/provider/handlers/admin-user-actions-helpers.js: passwordResetExpiry: expiry,",
+    +   "apps/backend/services/auth/password-management.js: passwordResetToken: hashedToken,",
+    +   "apps/backend/services/auth/password-management.js: passwordResetExpiry: { gte: new Date() },",
+    + ]
+
+      105 |             }
+      106 |         }
+    > 107 |         expect(offenders).toEqual([]);
+          |                           ^
+      108 |     });
+      109 |
+      110 |     it('no error-code remediation sends anyone to a forgot-password endpoint or a reset token', () => {
+
+      at Object.toEqual (__tests__/unit/no-self-service-password-reset.test.js:107:27)
+
+  ● no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17) › no error-code remediation sends anyone to a forgot-password endpoint or a reset token
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "INVALID_PASSWORD",
+    + ]
+
+      113 |             .filter(([, v]) => /forgot|request-password-reset|reset token/i.test(`${v.remediation} ${v.messageEn} ${v.messageTh}`))
+      114 |             .map(([k]) => k);
+    > 115 |         expect(pointing).toEqual([]);
+          |                          ^
+      116 |     });
+      117 |
+      118 |     // Both sweeps check the file PATH as well as the code: a page re-added as
+
+      at Object.toEqual (__tests__/unit/no-self-service-password-reset.test.js:115:26)
+
+  ● no password reset of any kind: not by email or SMS, not through staff (operator 2026-09-16 / 2026-09-17) › the web app has no forgot-password or reset page, route, link, call, sitemap entry or copy
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "apps/web-app/src/app/provider/management/page.tsx",
+    + ]
+
+      132 |             .filter((f) => RESET_SURFACE_PATH.test(path.relative(WEB, f)) || RESET_SURFACE_CODE.test(stripComments(read(f))))
+      133 |             .map((f) => path.relative(REPO, f));
+    > 134 |         expect(offenders).toEqual([]);
+          |                           ^
+      135 |     });
+      136 |
+      137 |     it('the mobile app has no forgot-password screen, route or button', () => {
+
+      at Object.toEqual (__tests__/unit/no-self-service-password-reset.test.js:134:27)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/session-epoch-refresh.test.js
+  [BE-AUTH-03-03] /refresh session-epoch gate
+    ✓ (a) rejects an RT whose iat predates sessionsRevokedAt → 401 REFRESH_TOKEN_REVOKED (4 ms)
+    ✓ (b) allows an RT whose iat is AFTER sessionsRevokedAt (post-change re-login) → mints (1 ms)
+    ✓ (b2) allows an RT when sessionsRevokedAt is NULL (never changed password) → mints (2 ms)
+    ✓ (d) fail-CLOSED: user re-fetch returns null → no mint (401) (5 ms)
+    ✓ (d2) fail-CLOSED: user re-fetch THROWS → no mint (401/503) (2 ms)
+  [BE-AUTH-03-03] password-management stamps sessionsRevokedAt
+    ✓ (c) changePassword sets sessionsRevokedAt on the update (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/password-reset-routes-behaviour.test.js
+  the applicant auth router redeems no reset token (operator 2026-09-17)
+    ✕ POST /reset-password/:token reaches no route and no service (3 ms)
+    ✓ no other reset or recovery path is mounted either (2 ms)
+    ✕ the route table names no password reset or recovery path (2 ms)
+    ✓ positive control: the walk does reach a mounted route (2 ms)
+  the staff directory router issues no reset token (operator 2026-09-17)
+    ✕ POST /:id/force-password-reset reaches no route, writes nothing and returns no token (2 ms)
+    ✕ the route table names no password reset or recovery action (1 ms)
+    ✓ positive control: POST /:id/unlock is still mounted and sets no password (2 ms)
+    ✓ positive control: POST /:id/disable-2fa is still mounted and sets no password (6 ms)
+
+  ● the applicant auth router redeems no reset token (operator 2026-09-17) › POST /reset-password/:token reaches no route and no service
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      153 |         const res = await callRouter(authHealthRouter, 'POST', '/reset-password/staff-issued-token', { newPassword: 'NotARealPassword-1' });
+      154 |
+    > 155 |         expect(res.unmatched).toBe(true);
+          |                               ^
+      156 |         expect(mockRedeemToken).not.toHaveBeenCalled();
+      157 |         expect(mockUserUpdate).not.toHaveBeenCalled();
+      158 |     });
+
+      at Object.toBe (__tests__/unit/password-reset-routes-behaviour.test.js:155:31)
+
+  ● the applicant auth router redeems no reset token (operator 2026-09-17) › the route table names no password reset or recovery path
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "POST /reset-password/:token",
+    + ]
+
+      170 |         // positive control: the table is the real one (login and change-password are there)
+      171 |         expect(table).toEqual(expect.arrayContaining(['POST /login', 'POST /change-password']));
+    > 172 |         expect(table.filter((row) => RECOVERY_PATH.test(row) && row !== 'POST /change-password')).toEqual([]);
+          |                                                                                                   ^
+      173 |     });
+      174 |
+      175 |     it('positive control: the walk does reach a mounted route', async () => {
+
+      at Object.toEqual (__tests__/unit/password-reset-routes-behaviour.test.js:172:99)
+
+  ● the staff directory router issues no reset token (operator 2026-09-17) › POST /:id/force-password-reset reaches no route, writes nothing and returns no token
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      186 |         const res = await callRouter(providerDirectoryRouter, 'POST', '/staff-1/force-password-reset');
+      187 |
+    > 188 |         expect(res.unmatched).toBe(true);
+          |                               ^
+      189 |         expect(res.body).toBeUndefined();
+      190 |         expect(mockUserUpdate).not.toHaveBeenCalled();
+      191 |         expect(mockAuditLog).not.toHaveBeenCalled();
+
+      at Object.toBe (__tests__/unit/password-reset-routes-behaviour.test.js:188:31)
+
+  ● the staff directory router issues no reset token (operator 2026-09-17) › the route table names no password reset or recovery action
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "POST /:id/force-password-reset",
+    + ]
+
+      195 |         const table = routeTable(providerDirectoryRouter);
+      196 |         expect(table).toEqual(expect.arrayContaining(['POST /:id/unlock', 'POST /:id/disable-2fa']));
+    > 197 |         expect(table.filter((row) => RECOVERY_PATH.test(row))).toEqual([]);
+          |                                                                ^
+      198 |     });
+      199 |
+      200 |     // Staff administration that stays: neither sets a password.
+
+      at Object.toEqual (__tests__/unit/password-reset-routes-behaviour.test.js:197:64)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-26T09:37:06.897Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0120","service":"auth-service","timestamp":"2026-09-26T09:37:07.249Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0129","service":"auth-service","timestamp":"2026-09-26T09:37:07.598Z"}
+FAIL __tests__/unit/auth-service-audit-fixes.test.js
+  B-01: Password Reset
+    ✓ the service exposes no way to request a reset (1 ms)
+    ✕ the service exposes no way to redeem a reset token (2 ms)
+  H-05: updateProfile Whitelist
+    ✓ should allow whitelisted fields (1 ms)
+    ✓ should BLOCK role escalation attempt (1 ms)
+    ✓ should BLOCK status manipulation (5 ms)
+    ✓ should BLOCK password change via profile update (1 ms)
+    ✓ should throw when no valid fields provided (9 ms)
+  H-04: OCR Bypass Toggle (ENABLE_OCR_BYPASS)
+    ✓ should default to PENDING_VERIFICATION when bypass is off (354 ms)
+    ✓ should auto-approve when ENABLE_OCR_BYPASS=true (env bypass) (348 ms)
+    ✓ should auto-approve ALL IDs when bypass is on (no ID-ending-in-9 exception) (344 ms)
+
+  ● B-01: Password Reset › the service exposes no way to redeem a reset token
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Array []
+    + Array [
+    +   "resetPasswordWithToken",
+    + ]
+
+      87 |         const methods = Object.getOwnPropertyNames(Object.getPrototypeOf(authService));
+      88 |         expect(methods).toContain('changePassword'); // positive control: the real class
+    > 89 |         expect(methods.filter((name) => /reset|recover/i.test(name))).toEqual([]);
+         |                                                                       ^
+      90 |
+      91 |         const passwordManagement = require('../../services/auth/password-management');
+      92 |         expect(Object.keys(passwordManagement)).toEqual(['changePassword']);
+
+      at Object.toEqual (__tests__/unit/auth-service-audit-fixes.test.js:89:71)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/admin-user-actions-helpers.test.js
+  no password-reset token builder is exported
+    ✕ exports only the unlock / disable-2FA builders and the caller guard (3 ms)
+  buildUnlockPayload
+    ✓ clears lock flag, lockedUntil, and loginAttempts (2 ms)
+    ✓ records updatedBy from the actor (1 ms)
+    ✓ falls back to null updatedBy when actorId missing (1 ms)
+    ✓ sets updatedAt to a Date (1 ms)
+  buildDisableTwoFactorPayload
+    ✓ disables 2FA and wipes secret + backup codes (2 ms)
+    ✓ records updatedBy from the actor (1 ms)
+  isAdminCaller
+    ✓ รับผู้ดูแลทั้งสองฝั่ง ไม่สนตัวพิมพ์ (2 ms)
+    ✓ rejects every other role (1 ms)
+    ✓ rejects null/undefined/empty (2 ms)
+
+  ● no password-reset token builder is exported › exports only the unlock / disable-2FA builders and the caller guard
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 3
+
+      Array [
+        "buildDisableTwoFactorPayload",
+    +   "buildForceResetPayload",
+        "buildUnlockPayload",
+    +   "generateResetToken",
+    +   "hashResetToken",
+        "isAdminCaller",
+      ]
+
+      27 | describe('no password-reset token builder is exported', () => {
+      28 |     it('exports only the unlock / disable-2FA builders and the caller guard', () => {
+    > 29 |         expect(Object.keys(load()).sort()).toEqual([
+         |                                            ^
+      30 |             'buildDisableTwoFactorPayload',
+      31 |             'buildUnlockPayload',
+      32 |             'isAdminCaller',
+
+      at Object.toEqual (__tests__/admin-user-actions-helpers.test.js:29:44)
+
+Test Suites: 4 failed, 3 passed, 7 total
+Tests:       12 failed, 124 passed, 136 total
+Snapshots:   0 total
+Time:        6.022 s
+Ran all test suites matching /__tests__\/admin-user-actions-helpers.test.js|__tests__\/unit\/auth-service-audit-fixes.test.js|__tests__\/unit\/auth-service.test.js|__tests__\/unit\/no-self-service-password-reset.test.js|__tests__\/unit\/password-reset-routes-behaviour.test.js|__tests__\/unit\/provider-directory-hardening.test.js|__tests__\/unit\/session-epoch-refresh.test.js/i.

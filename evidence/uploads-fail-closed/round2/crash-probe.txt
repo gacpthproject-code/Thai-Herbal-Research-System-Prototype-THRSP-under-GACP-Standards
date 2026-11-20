@@ -1,0 +1,140 @@
+Reviewer's crash-point probe (/tmp/secrev-uploads/probes/move-crash-points.sh), copied to
+/tmp/uploads-r2 with only its work folder changed, run against the move script before (30cba4b1d)
+and after (3ff6e576f) the L1 fix. Note: the probe's 'rerun exit=' is grep's status, not the script's;
+the script's own exit is measured by the unit test (1 before, 0 after).
+
+## move-crash-points.sh (reviewer's probe, work dir moved to <B>) against the script BEFORE the L1 fix (30cba4b1d)
+=== X0 same device: SIGKILL between linkSync and unlinkSync, then rerun (Jev MEDIUM)
+move-crash-points.sh: line 17: <pid> Killed                  node -r "$B/kill-after-link.js" "$S" --apply --to "$V" --uploads-dir "$U" > /dev/null 2>&1
+crash exit=137
+<B>/x0/uploads/gacp-pdfs/receipts-1.pdf ino=5159072 nlink=2
+<B>/x0/uploads/gacp-pdfs/receipts-2.pdf ino=5159073 nlink=1
+<B>/x0/vault/gacp-pdfs/receipts-1.pdf ino=5159072 nlink=2
+applied: moved: 1 · already in place: 0 · conflicts: 0 · same file as the destination: 1 · destination inside the uploads folder: 0 · errors: 0
+refused to unlink: a source is the same file as its destination (a symlink or an alias mount); nothing of it was removed
+left in the public folder: 1
+rerun exit=0 public=1
+=== X1 cross-device (/dev/shm): SIGKILL after copyFileSync, before unlink, then rerun
+move-crash-points.sh: line 22: <pid> Killed                  node -r "$B/kill-after-copy.js" "$S" --apply --to "$V" --uploads-dir "$U" > /dev/null 2>&1
+crash exit=137 public=3 vault=1
+applied: moved: 2 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+rerun exit=0 public=0 vault=3
+=== X2 cross-device: a partial destination (truncated copy) already there
+applied: moved: 1 · already in place: 0 · conflicts: 1 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 1
+exit=0 public=1 source-kept=yes
+=== X3 read-only destination (bind + remount ro) under unshare -rm
+  move failed (ENOENT)
+  move failed (ENOENT)
+applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 2
+left in the public folder: 2
+exit=1
+public=2 vault=0
+=== X4 full destination filesystem (tmpfs 64k, cross-device), 100k files
+  move failed (ENOSPC)
+  move failed (ENOSPC)
+  move failed (ENOSPC)
+applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 3
+left in the public folder: 3
+exit=1
+vault-files: 0
+public=3
+=== X5 same-device full filesystem: a hard link needs no data blocks
+applied: moved: 1 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+exit=0
+=== X6 race: two concurrent --apply into one --to, 200 files x 10 rounds (same device)
+rounds=10 lost=0
+=== X7 race, cross-device (/dev/shm), 200 files x 5 rounds
+rounds=5 lost=0
+
+## same probe against the script AFTER the L1 fix (3ff6e576f)
+=== X0 same device: SIGKILL between linkSync and unlinkSync, then rerun (Jev MEDIUM)
+move-crash-points.sh: line 17: <pid> Killed                  node -r "$B/kill-after-link.js" "$S" --apply --to "$V" --uploads-dir "$U" > /dev/null 2>&1
+crash exit=137
+<B>/x0/uploads/gacp-pdfs/receipts-1.pdf ino=5159072 nlink=2
+<B>/x0/uploads/gacp-pdfs/receipts-2.pdf ino=5159073 nlink=1
+<B>/x0/vault/gacp-pdfs/receipts-1.pdf ino=5159072 nlink=2
+applied: moved: 1 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+rerun exit=0 public=0
+=== X1 cross-device (/dev/shm): SIGKILL after copyFileSync, before unlink, then rerun
+move-crash-points.sh: line 22: <pid> Killed                  node -r "$B/kill-after-copy.js" "$S" --apply --to "$V" --uploads-dir "$U" > /dev/null 2>&1
+crash exit=137 public=3 vault=1
+applied: moved: 2 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+rerun exit=0 public=0 vault=3
+=== X2 cross-device: a partial destination (truncated copy) already there
+applied: moved: 1 · already in place: 0 · conflicts: 1 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 1
+exit=0 public=1 source-kept=yes
+=== X3 read-only destination (bind + remount ro) under unshare -rm
+  move failed (ENOENT)
+  move failed (ENOENT)
+applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 2
+left in the public folder: 2
+exit=1
+public=2 vault=0
+=== X4 full destination filesystem (tmpfs 64k, cross-device), 100k files
+  move failed (ENOSPC)
+  move failed (ENOSPC)
+  move failed (ENOSPC)
+applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 3
+left in the public folder: 3
+exit=1
+vault-files: 0
+public=3
+=== X5 same-device full filesystem: a hard link needs no data blocks
+applied: moved: 1 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+exit=0
+=== X6 race: two concurrent --apply into one --to, 200 files x 10 rounds (same device)
+rounds=10 lost=0
+=== X7 race, cross-device (/dev/shm), 200 files x 5 rounds
+rounds=5 lost=0
+
+## same probe against the FINAL script (48b606d47: same-entry check after Jev)
+=== X0 same device: SIGKILL between linkSync and unlinkSync, then rerun (Jev MEDIUM)
+move-crash-points.sh: line 17: <pid> Killed                  node -r "$B/kill-after-link.js" "$S" --apply --to "$V" --uploads-dir "$U" > /dev/null 2>&1
+crash exit=137
+<B>/x0/uploads/gacp-pdfs/receipts-1.pdf ino=5138597 nlink=2
+<B>/x0/uploads/gacp-pdfs/receipts-2.pdf ino=5138598 nlink=1
+<B>/x0/vault/gacp-pdfs/receipts-1.pdf ino=5138597 nlink=2
+applied: moved: 1 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+rerun exit=0 public=0
+=== X1 cross-device (/dev/shm): SIGKILL after copyFileSync, before unlink, then rerun
+move-crash-points.sh: line 22: <pid> Killed                  node -r "$B/kill-after-copy.js" "$S" --apply --to "$V" --uploads-dir "$U" > /dev/null 2>&1
+crash exit=137 public=3 vault=1
+applied: moved: 2 · already in place: 1 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+rerun exit=0 public=0 vault=3
+=== X2 cross-device: a partial destination (truncated copy) already there
+applied: moved: 1 · already in place: 0 · conflicts: 1 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 1
+exit=0 public=1 source-kept=yes
+=== X3 read-only destination (bind + remount ro) under unshare -rm
+  move failed (ENOENT)
+  move failed (ENOENT)
+applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 2
+left in the public folder: 2
+exit=1
+public=2 vault=0
+=== X4 full destination filesystem (tmpfs 64k, cross-device), 100k files
+  move failed (ENOSPC)
+  move failed (ENOSPC)
+  move failed (ENOSPC)
+applied: moved: 0 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 3
+left in the public folder: 3
+exit=1
+vault-files: 0
+public=3
+=== X5 same-device full filesystem: a hard link needs no data blocks
+applied: moved: 1 · already in place: 0 · conflicts: 0 · same file as the destination: 0 · destination inside the uploads folder: 0 · errors: 0
+left in the public folder: 0
+exit=0
+=== X6 race: two concurrent --apply into one --to, 200 files x 10 rounds (same device)
+rounds=10 lost=0
+=== X7 race, cross-device (/dev/shm), 200 files x 5 rounds
+rounds=5 lost=0

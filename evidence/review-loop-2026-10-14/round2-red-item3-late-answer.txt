@@ -1,0 +1,223 @@
+[run] target=127.0.0.1:5447/gacp_rl2 head=2dfdafad3 dirty=3 files=__tests__/unit/application-review-revision-methods.test.js __tests__/unit/revision-resubmit-door.test.js __tests__/integration/answer-doors-stop-the-revision-clock-real-postgres.test.js
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-14T07:59:01.054Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-14T07:59:01.058Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-14T07:59:01.060Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-14T07:59:01.171Z"}
+PASS __tests__/unit/application-review-revision-methods.test.js
+  submitRevision — re-entry target (audit 2.9)
+    ✓ routes a REVISION_REQUESTED resubmit back to ASSIGNED_FOR_REVIEW (not SUBMITTED) (102 ms)
+    ✓ lands a DRAFT resubmit at PENDING_DOC_FEE via the two SSOT-legal hops, not bare SUBMITTED (F-REVISION-DOOR-NO-QUOTATION fix) (34 ms)
+    ✓ issues both quotations once a DRAFT resubmit reaches PENDING_DOC_FEE (F-REVISION-DOOR-NO-QUOTATION fix) (3 ms)
+    ✓ 422s an incomplete DRAFT through this door instead of letting it reach PENDING_DOC_FEE (Ruling 7 / MAJOR-2 fix) (3 ms)
+    ✓ the DRAFT leg carries nextRequiredAction PAY_PHASE_1 + the front door's DRAFT copy (2 ms)
+    ✓ the REVISION_REQUESTED leg carries no nextRequiredAction and keeps its own message unchanged (2 ms)
+    ✓ hands the writer the User UUID (not the plaintext national ID) and writes no revision_deadlines row itself (1 ms)
+    ✓ stamps the User UUID into revision_deadlines.updatedBy on the EXPIRED path (2 ms)
+
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-14T07:59:01.927Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-14T07:59:01.930Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-14T07:59:01.931Z"}
+info: [SubmitRevision] Submitted successfully {"appNumber":"APP-RL2-19-02FE2F6A","id":"3e8a71e1-395e-43ab-a47f-8a6c5087ed1e","previousStatus":"REVISION_REQUESTED","service":"gacp-backend","timestamp":"2026-10-14T07:59:03.061Z"}
+info: [CAR Upload] Application APP-RL2-21-02FE2F6A - 1 files uploaded {"service":"gacp-backend","timestamp":"2026-10-14T07:59:03.166Z"}
+error: [revision-resubmit] POST /:id/revision-resubmit failed: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:566:25\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at applyWithDefaultAuditInInternalTx (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:565:16)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1451:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/revision-resubmit.js:202:9","timestamp":"2026-10-14T07:59:03.260Z"}
+error: [Applications Submit] Error: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"clientVersion":"5.22.0","name":"PrismaClientUnknownRequestError","service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1455:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1381:17\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1380:13","timestamp":"2026-10-14T07:59:03.380Z"}
+error: Request error: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"clientVersion":"5.22.0","name":"PrismaClientUnknownRequestError","service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1455:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1381:17\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1380:13","timestamp":"2026-10-14T07:59:03.382Z"}
+error: [Applications Submit] Error: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"clientVersion":"5.22.0","name":"PrismaClientUnknownRequestError","service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1455:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1381:17\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1380:13","timestamp":"2026-10-14T07:59:03.527Z"}
+error: Request error: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"clientVersion":"5.22.0","name":"PrismaClientUnknownRequestError","service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1455:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1381:17\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications.js:1380:13","timestamp":"2026-10-14T07:59:03.528Z"}
+error: [Revision] Error: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"clientVersion":"5.22.0","name":"PrismaClientUnknownRequestError","service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1455:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/services/application-service/application-review-revision-methods.js:287:21\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at ApplicationService.submitRevision (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-service/application-review-revision-methods.js:219:13)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/application-workflow-handlers.js:274:24","timestamp":"2026-10-14T07:59:03.692Z"}
+error: Request error: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"clientVersion":"5.22.0","name":"PrismaClientUnknownRequestError","service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1455:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/services/application-service/application-review-revision-methods.js:287:21\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at ApplicationService.submitRevision (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-service/application-review-revision-methods.js:219:13)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/application-workflow-handlers.js:274:24","timestamp":"2026-10-14T07:59:03.693Z"}
+info: [SubmitRevision] Submitted successfully {"appNumber":"APP-RL2-31-02FE2F6A","id":"25612e2c-178e-4a16-904d-6ed040ba76db","previousStatus":"REVISION_REQUESTED","service":"gacp-backend","timestamp":"2026-10-14T07:59:03.781Z"}
+error: [CAR Upload] Error: 
+Invalid `client.revisionDeadline.updateMany()` invocation in
+/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35
+
+  955 
+  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {
+  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }
+→ 958     await client.revisionDeadline.updateMany(
+Error occurred during query execution:
+ConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: "P0001", message: "rl2: the revision clock refuses to stop", severity: "ERROR", detail: None, column: None, hint: None }), transient: false }) {"clientVersion":"5.22.0","name":"PrismaClientUnknownRequestError","service":"gacp-backend","stack":"PrismaClientUnknownRequestError: \nInvalid `client.revisionDeadline.updateMany()` invocation in\n/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:35\n\n  955 \n  956 async function stopRevisionClock(client, { applicationId, lockedStatus, toStatus, actorId }) {\n  957     if (!REVISION_ANSWER_EDGES.has(`${String(lockedStatus || '').toUpperCase()}->${String(toStatus).toUpperCase()}`)) { return; }\n→ 958     await client.revisionDeadline.updateMany(\nError occurred during query execution:\nConnectorError(ConnectorError { user_facing_error: None, kind: QueryError(PostgresError { code: \"P0001\", message: \"rl2: the revision clock refuses to stop\", severity: \"ERROR\", detail: None, column: None, hint: None }), transient: false })\n    at $n.handleRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:7505)\n    at $n.handleAndLogRequestError (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6623)\n    at $n.request (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:121:6307)\n    at l (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:9633)\n    at stopRevisionClock (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:958:5)\n    at writeStatusRow (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1395:13)\n    at writeApplicationStatus (/home/ubuntu/work/wt-review-loop/apps/backend/services/application-status-writer.js:1455:19)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications-car.js:319:7\n    at Proxy._transactionWithCallback (/home/ubuntu/work/GACP-Certification-Application/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/runtime/library.js:130:8000)\n    at /home/ubuntu/work/wt-review-loop/apps/backend/routes/api/applications/applications-car.js:318:5","timestamp":"2026-10-14T07:59:03.857Z"}
+info: [CAR Upload] Application APP-RL2-33-02FE2F6A - 1 files uploaded {"service":"gacp-backend","timestamp":"2026-10-14T07:59:03.926Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-14T07:59:04.081Z"}
+FAIL __tests__/integration/answer-doors-stop-the-revision-clock-real-postgres.test.js
+  ประตูตอบคำขอแก้ไขทุกบาน หยุดนาฬิกาในธุรกรรมเดียวกับสถานะ (real Postgres)
+    ✓ POST /:id/revision-resubmit: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น (203 ms)
+    ✓ POST /submit from REVISION_REQUESTED: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น (130 ms)
+    ✓ POST /submit from CAR_PENDING: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น (111 ms)
+    ✓ PUT /:id/revision: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น (94 ms)
+    ✓ POST /:id/car: ตอบแล้ว แถว revision_deadlines เป็น SUBMITTED โดยผู้ยื่น (98 ms)
+    ✓ POST /:id/revision-resubmit: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง (146 ms)
+    ✓ POST /submit from REVISION_REQUESTED: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง (156 ms)
+    ✓ POST /submit from CAR_PENDING: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง (149 ms)
+    ✓ PUT /:id/revision: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง (168 ms)
+    ✓ POST /:id/car: ถ้านาฬิกาหยุดไม่ได้ สถานะไม่ขยับ และกดซ้ำได้เมื่อหายขัดข้อง (139 ms)
+    ✕ POST /:id/revision-resubmit: ตอบหลังเลยกำหนด = ถูกปฏิเสธอย่างที่ /submit ปฏิเสธ คำขอถูกยกเลิก และนาฬิกาบันทึกว่าพลาด (คำสั่ง 28) (62 ms)
+
+  ● ประตูตอบคำขอแก้ไขทุกบาน หยุดนาฬิกาในธุรกรรมเดียวกับสถานะ (real Postgres) › POST /:id/revision-resubmit: ตอบหลังเลยกำหนด = ถูกปฏิเสธอย่างที่ /submit ปฏิเสธ คำขอถูกยกเลิก และนาฬิกาบันทึกว่าพลาด (คำสั่ง 28)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+    -   400,
+    -   "REVISION_DEADLINE_EXCEEDED",
+    +   200,
+    +   undefined,
+      ]
+
+      204 |         asApplicant();
+      205 |         const res = await doors.resubmit(id);
+    > 206 |         expect([res.status, res.body.code]).toEqual([400, 'REVISION_DEADLINE_EXCEEDED']);
+          |                                             ^
+      207 |         expect(await statusOf(id)).toBe('EXPIRED');
+      208 |         expect((await clockOf(id)).status).toBe('FAILED');
+      209 |     });
+
+      at Object.toEqual (__tests__/integration/answer-doors-stop-the-revision-clock-real-postgres.test.js:206:45)
+
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.630Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.645Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.656Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.669Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.679Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.689Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.701Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.723Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.733Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.744Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.754Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.765Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.775Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.785Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.796Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.805Z"}
+error: [farm-access] ACTIVE-membership lookup failed — degrading to solo-owner-only scope {"error":"Cannot read properties of undefined (reading 'findMany')","service":"farm-access","timestamp":"2026-10-14T07:59:04.814Z"}
+FAIL __tests__/unit/revision-resubmit-door.test.js
+  who may send a filing back
+    ✓ an unauthenticated caller reaches nothing (49 ms)
+    ✓ a filing outside the caller's holders is 404 — the holder scope is in the query, not a check after (16 ms)
+    ✓ R2 Task 12: the submit guard decides before anything else; its refusal moves nothing (11 ms)
+  the happy path
+    ✓ walks REVISION_REQUESTED → ASSIGNED_FOR_REVIEW through the writer (10 ms)
+    ✓ answers with the papers that were returned (11 ms)
+    ✓ an ACCEPTED slot is not asked for again — that is the whole point (10 ms)
+    ✓ the door writes no revision clock of its own: the writer stops it inside the status transaction (10 ms)
+  a late answer is refused before the papers are looked at (order 28)
+    ✕ past the deadline: 400 REVISION_DEADLINE_EXCEEDED, the answer /submit gives, and nothing else happens here (12 ms)
+    ✓ the clock is read after the state check: a filing not under revision never reaches it (10 ms)
+    ✕ within the deadline the answer goes through, after one read of the clock (11 ms)
+  refusals move nothing
+    ✓ a stale file is refused and NAMES the paper (10 ms)
+    ✓ the WRONG STATE is reported before the papers are looked at (10 ms)
+    ✓ a filing with no outstanding request is refused, not waved through (11 ms)
+    ✓ 404 outside the caller's holders leaves the revision clock running: a refusal is not an answer (order 28) (9 ms)
+    ✓ 403 by the submit guard leaves the revision clock running: a refusal is not an answer (order 28) (9 ms)
+    ✓ 409 wrong state leaves the revision clock running: a refusal is not an answer (order 28) (11 ms)
+    ✓ 409 stale paper leaves the revision clock running: a refusal is not an answer (order 28) (9 ms)
+    ✓ 409 nothing requested leaves the revision clock running: a refusal is not an answer (order 28) (11 ms)
+
+  ● a late answer is refused before the papers are looked at (order 28) › past the deadline: 400 REVISION_DEADLINE_EXCEEDED, the answer /submit gives, and nothing else happens here
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      152 |         mockAssertRevisionNotExpired.mockResolvedValue({ expired: true, dueAt: ASKED_AT });
+      153 |         const res = await post();
+    > 154 |         expect(res.status).toBe(400);
+          |                            ^
+      155 |         expect(res.body.code).toBe('REVISION_DEADLINE_EXCEEDED');
+      156 |         expect(mockAssertRevisionNotExpired).toHaveBeenCalledWith(
+      157 |             expect.objectContaining({ id: 'app-1' }),
+
+      at Object.toBe (__tests__/unit/revision-resubmit-door.test.js:154:28)
+
+  ● a late answer is refused before the papers are looked at (order 28) › within the deadline the answer goes through, after one read of the clock
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      173 |         const res = await post();
+      174 |         expect(res.status).toBe(200);
+    > 175 |         expect(mockAssertRevisionNotExpired).toHaveBeenCalledTimes(1);
+          |                                              ^
+      176 |     });
+      177 | });
+      178 |
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/revision-resubmit-door.test.js:175:46)
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       3 failed, 34 passed, 37 total
+Snapshots:   0 total
+Time:        4.539 s, estimated 5 s
+Ran all test suites matching __tests__/unit/application-review-revision-methods.test.js|__tests__/unit/revision-resubmit-door.test.js|__tests__/integration/answer-doors-stop-the-revision-clock-real-postgres.test.js.
+[run] exit=1

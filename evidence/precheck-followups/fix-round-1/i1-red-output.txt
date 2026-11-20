@@ -1,0 +1,235 @@
+FAIL __tests__/unit/document-precheck/service.test.js (6.015 s)
+  enqueueForUpload
+    ✓ a slot outside CATALOG (sop_cultivation) creates no row and adds no job (11 ms)
+    ✕ a land_deed upload creates a PENDING row at RULES_VERSION and adds one job carrying the file (31 ms)
+    ✓ a re-upload into the same slot (any spelling) supersedes the earlier row; other slots are untouched (3 ms)
+    ✓ enqueue-failure: queue.add throws → the row is FAILED with exactly the failure flag, and the call resolves (34 ms)
+    ✓ the queue not initialised (no Redis) is the same failure: FAILED + the failure flag (2 ms)
+    ✓ a queue add that never settles is given up after ENQUEUE_TIMEOUT_MS (2 s): FAILED + the failure flag (2003 ms)
+    ✓ supersede + insert take pg_advisory_xact_lock on (applicationId, canonical slot) first, inside the transaction (3 ms)
+  catalogKeyFor
+    ✓ maps every spelling of an in-scope slot (old key, canonical v2 id, alias) to its CATALOG key; others to null (2 ms)
+  runPrecheck
+    ✓ land_deed: DONE with exactly the checks CATALOG defines for it (no VALIDITY rule → 4 flags) (7 ms)
+    ✓ a NUL character in the extracted text is stripped before the write: DONE, text and flags carry no NUL (3 ms)
+    ✓ OCR confidence is the mean of the page confidences; NONE stores null text and null confidence (4 ms)
+    ✓ a row that is no longer PENDING exits without extracting (the supersede guard) (3 ms)
+    ✓ precheck-supersede-race: B arrives while A is extracting → A's flags are discarded and A stays SUPERSEDED (5 ms)
+    ✓ extraction PRECHECK_TIMEOUT on a non-final attempt rethrows and leaves the row PENDING for the retry (2 ms)
+    ✓ an OCR failure on the final attempt → FAILED + the failure flag, and does not throw (2 ms)
+    ✓ a non-extraction exception (reference load) → FAILED + the flag at once, even on a non-final attempt (2 ms)
+    ✓ the processor: attempt 1 of 2 fails → rethrows, PENDING; attempt 2 of 2 fails → FAILED + flag. Nothing is left PENDING (4 ms)
+    ✓ failPrecheck (the queue's last-resort failed handler) marks a still-PENDING row FAILED and leaves a DONE row alone (4 ms)
+  loadReference
+    ✓ INDIVIDUAL: applicant name, entity type, and only the last 4 digits of the citizen ID — never the full ID (3 ms)
+    ✓ JURISTIC: entity name, juristic ID and the director's name from payload.director — the director's ID card is not carried (2 ms)
+    ✓ a whole run never writes the full citizen ID to a log line, a flag, or the reference (4 ms)
+  acknowledge
+    ✓ the owner sets applicantAcknowledgedAt once; a second call keeps the first time (8 ms)
+    ✓ anyone else is refused (FORBIDDEN) and nothing is written; an unknown id is NOT_FOUND (2 ms)
+  retireForDocument
+    ✓ no organizationId → refused before any write (3 ms)
+    ✓ no applicationId → refused before any write (2 ms)
+    ✓ no owner at all → refused before any write (2 ms)
+  queue-service: the document-precheck queue
+    ✓ initQueues creates document-precheck with the brief's job options and a sandboxed processor file — even though pdf-processor.js is absent (10 ms)
+    ✓ a job that failed its LAST attempt is marked FAILED; a failure with a retry left is not (4 ms)
+    ✓ a job Bull failed for stalling past its limit (attemptsMade < attempts, isFailed true) is marked FAILED (2 ms)
+    ✓ when Redis cannot say the job state, the stall message still marks FAILED and a retry-left failure still does not (3 ms)
+    ✓ a `failed` event with no job (Bull could not load it) is ignored without throwing (2 ms)
+  POST /draft-documents — the pre-check hook
+    ✓ an in-scope upload creates a PENDING pre-check for exactly this document and adds the job (222 ms)
+    ✓ enqueue-failure-still-uploads: the queue add throws → 200 with the unchanged body, and the row is FAILED with the failure flag (21 ms)
+    ✓ I2: a queue add that never settles (unreachable Redis) → the route answers 200 unchanged within ~2 s, and the row is FAILED (2023 ms)
+    ✓ even enqueueForUpload itself throwing (database down) leaves the upload response unchanged (21 ms)
+    ✓ an out-of-scope slot uploads exactly as before and creates no pre-check (19 ms)
+
+  ● enqueueForUpload › a land_deed upload creates a PENDING row at RULES_VERSION and adds one job carrying the file
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      {"absPath": "/uploads/application-drafts/deed.pdf", "mimeType": "application/pdf", "precheckId": "pc-3"},
+    - {"jobId": "pc-3"},
+
+    Number of calls: 1
+
+      377 |         // Fix round 1 (I1): the Bull job id IS the pre-check id, so the stale sweep
+      378 |         // can ask the queue whether this row's job is still waiting.
+    > 379 |         expect(mockQueueRef.current.add).toHaveBeenCalledWith(
+          |                                          ^
+      380 |             { precheckId: result.precheckId, absPath: args.absPath, mimeType: args.mimeType },
+      381 |             { jobId: result.precheckId },
+      382 |         );
+
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-29T12:21:06.945Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-29T12:21:06.948Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-29T12:21:06.949Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":2,"scanned":2,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.203Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.234Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.263Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.300Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.320Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.340Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.358Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.377Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.398Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.426Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.445Z"}
+[32minfo[39m: [precheck-stale-sweep] done {"errors":0,"failed":1,"scanned":1,"service":"document-precheck-stale-sweep","skipped":0,"timestamp":"2026-09-29T12:21:07.461Z"}
+FAIL __tests__/integration/document-precheck-stale-sweep.test.js
+  stale PENDING pre-check sweep (real Postgres)
+    ✕ the cutoff is 10 minutes, the hard ceiling 60 (3 ms)
+    ✓ stale PENDING → FAILED + one failure flag; fresh PENDING and settled rows untouched; tenant-safe; idempotent (170 ms)
+    asks the queue before failing a row (fix round 1, I1)
+      ✕ job waiting at 11 min → row PENDING (30 ms)
+      ✕ job active at 11 min → row PENDING (33 ms)
+      ✕ job delayed at 11 min → row PENDING (18 ms)
+      ✕ job completed at 11 min → row FAILED (20 ms)
+      ✕ job failed at 11 min → row FAILED (18 ms)
+      ✕ job null at 11 min → row FAILED (19 ms)
+      ✓ job waiting at 61 min → row FAILED (20 ms)
+      ✓ the queue cannot answer (getJob throws) → FAILED, and the sweep reports no error (29 ms)
+      ✓ no queue at all (not initialised) → FAILED (16 ms)
+      ✕ a live job is counted as such, not as failed (14 ms)
+
+  ● stale PENDING pre-check sweep (real Postgres) › the cutoff is 10 minutes, the hard ceiling 60
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 3600000
+    Received: undefined
+
+      123 |     test('the cutoff is 10 minutes, the hard ceiling 60', () => {
+      124 |         expect(sweep.STALE_PENDING_AFTER_MS).toBe(10 * MINUTE);
+    > 125 |         expect(sweep.HARD_CEILING_MS).toBe(60 * MINUTE);
+          |                                       ^
+      126 |     });
+      127 |
+      128 |     test('stale PENDING → FAILED + one failure flag; fresh PENDING and settled rows untouched; tenant-safe; idempotent', async () => {
+
+
+  ● stale PENDING pre-check sweep (real Postgres) › asks the queue before failing a row (fix round 1, I1) › job waiting at 11 min → row PENDING
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PENDING"
+    Received: "FAILED"
+
+      202 |             const queue = fakeQueue(state ? { [row.id]: state } : {});
+      203 |             await sweep.runStalePrecheckSweep({ now: NOW, queue });
+    > 204 |             expect((await rowOf(row.id)).status).toBe(expected);
+          |                                                  ^
+      205 |             expect(await flagsOf(row.id)).toHaveLength(expected === 'FAILED' ? 1 : 0);
+      206 |             if (ageMinutes < 60) {
+      207 |                 expect(queue.getJob).toHaveBeenCalledWith(row.id);
+
+
+  ● stale PENDING pre-check sweep (real Postgres) › asks the queue before failing a row (fix round 1, I1) › job active at 11 min → row PENDING
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PENDING"
+    Received: "FAILED"
+
+      202 |             const queue = fakeQueue(state ? { [row.id]: state } : {});
+      203 |             await sweep.runStalePrecheckSweep({ now: NOW, queue });
+    > 204 |             expect((await rowOf(row.id)).status).toBe(expected);
+          |                                                  ^
+      205 |             expect(await flagsOf(row.id)).toHaveLength(expected === 'FAILED' ? 1 : 0);
+      206 |             if (ageMinutes < 60) {
+      207 |                 expect(queue.getJob).toHaveBeenCalledWith(row.id);
+
+
+  ● stale PENDING pre-check sweep (real Postgres) › asks the queue before failing a row (fix round 1, I1) › job delayed at 11 min → row PENDING
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "PENDING"
+    Received: "FAILED"
+
+      202 |             const queue = fakeQueue(state ? { [row.id]: state } : {});
+      203 |             await sweep.runStalePrecheckSweep({ now: NOW, queue });
+    > 204 |             expect((await rowOf(row.id)).status).toBe(expected);
+          |                                                  ^
+      205 |             expect(await flagsOf(row.id)).toHaveLength(expected === 'FAILED' ? 1 : 0);
+      206 |             if (ageMinutes < 60) {
+      207 |                 expect(queue.getJob).toHaveBeenCalledWith(row.id);
+
+
+  ● stale PENDING pre-check sweep (real Postgres) › asks the queue before failing a row (fix round 1, I1) › job completed at 11 min → row FAILED
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "b55f5b50-a624-435f-a950-ec68627ea2b1"
+
+    Number of calls: 0
+
+      205 |             expect(await flagsOf(row.id)).toHaveLength(expected === 'FAILED' ? 1 : 0);
+      206 |             if (ageMinutes < 60) {
+    > 207 |                 expect(queue.getJob).toHaveBeenCalledWith(row.id);
+          |                                      ^
+      208 |             }
+      209 |         });
+      210 |
+
+
+  ● stale PENDING pre-check sweep (real Postgres) › asks the queue before failing a row (fix round 1, I1) › job failed at 11 min → row FAILED
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "d35d476b-3c91-4ba9-8793-45995fa68916"
+
+    Number of calls: 0
+
+      205 |             expect(await flagsOf(row.id)).toHaveLength(expected === 'FAILED' ? 1 : 0);
+      206 |             if (ageMinutes < 60) {
+    > 207 |                 expect(queue.getJob).toHaveBeenCalledWith(row.id);
+          |                                      ^
+      208 |             }
+      209 |         });
+      210 |
+
+
+  ● stale PENDING pre-check sweep (real Postgres) › asks the queue before failing a row (fix round 1, I1) › job null at 11 min → row FAILED
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "a17faa37-fa50-4b47-a583-a7982882948f"
+
+    Number of calls: 0
+
+      205 |             expect(await flagsOf(row.id)).toHaveLength(expected === 'FAILED' ? 1 : 0);
+      206 |             if (ageMinutes < 60) {
+    > 207 |                 expect(queue.getJob).toHaveBeenCalledWith(row.id);
+          |                                      ^
+      208 |             }
+      209 |         });
+      210 |
+
+
+  ● stale PENDING pre-check sweep (real Postgres) › asks the queue before failing a row (fix round 1, I1) › a live job is counted as such, not as failed
+
+    expect(received).toBeGreaterThanOrEqual(expected)
+
+    Matcher error: received value must be a number or bigint
+
+    Received has value: undefined
+
+      229 |             const row = await precheck(app, { status: 'PENDING', ageMinutes: 30 });
+      230 |             const stats = await sweep.runStalePrecheckSweep({ now: NOW, queue: fakeQueue({ [row.id]: 'waiting' }) });
+    > 231 |             expect(stats.live).toBeGreaterThanOrEqual(1);
+          |                                ^
+      232 |             expect((await rowOf(row.id)).status).toBe('PENDING');
+      233 |             // leave nothing PENDING for the next test's sweep to count
+      234 |             await sweep.runStalePrecheckSweep({ now: NOW, queue: null });
+
+
+Test Suites: 2 failed, 2 total
+Tests:       9 failed, 39 passed, 48 total
+Snapshots:   0 total
+Time:        7.166 s, estimated 8 s
+Ran all test suites matching __tests__/integration/document-precheck-stale-sweep.test.js|__tests__/unit/document-precheck/service.test.js.

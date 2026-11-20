@@ -1,0 +1,193 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+FAIL __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js
+  host table
+    ✓ names staging on this host locally and demo over ssh to 119.59.105.140, nothing else (4 ms)
+  every wrapper is bound to its host and logs every run
+    ✓ staff-mfa-roster.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (50 ms)
+    ✓ staff-first-signin-report.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (75 ms)
+    ✓ staff-2fa-emergency-reset.sh refuses an unknown slot and a foreign host before touching docker, and logs both refusals (53 ms)
+    ✓ the roster on staging runs the file inside the image after the slot check, never copies from the checkout, and logs done (143 ms)
+    ✓ a container outside its slot, or an image without the script, is refused with the reason logged (113 ms)
+    ✓ the roster on demo goes over ssh to the fixed target with the fixed key and runs inside gacp-backend-demo (80 ms)
+    ✓ the emergency reset forwards its four references (Thai included) to the file in the image and logs the mfa-clear event; short usage is refused (221 ms)
+  mfa-flag-on-staging.sh
+    ✓ turns the flag on, revokes sessions with --event flag-on right after the flag reads on, writes the once-per-host marker, refuses a second apply, and rollback reopens it (203 ms)
+    ✓ when the revoke step refuses, the run exits 2, says the flag is on but sessions stand, writes no marker, and logs refused (62 ms)
+    ✓ refuses off this host before reading any file (20 ms)
+  mfa-flag-on-demo.sh
+    ✓ runs from this host over ssh to the fixed demo target, carries the revoke step with --event flag-on in the remote script, and keeps the once-per-host marker (126 ms)
+    ✓ a refused remote run leaves no marker and is logged as refused; a foreign host never reaches ssh (45 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-staging.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (137 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (75 ms)
+    ✓ (c) on → rollback → on → on refuses the last (176 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (184 ms)
+  order 108(1): every flag-on revokes sessions (mfa-flag-on-demo.sh)
+    ✓ (a) on → rollback → on revokes twice, the rollback records flag-off in the database between them, and all three runs are logged (154 ms)
+    ✓ (b) on → on refuses the second without revoking, and logs the refusal (105 ms)
+    ✓ (c) on → rollback → on → on refuses the last (158 ms)
+    ✓ a rollback whose flag-off record fails keeps the marker, so the next apply is refused until a rollback records it (270 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-staging.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (83 ms)
+    ✓ a well-formed stamp restores that backup (96 ms)
+  review M1: rollback STAMP is exactly YYYYMMDD-HHMMSS before any use (mfa-flag-on-demo.sh)
+    ✓ every injection payload is refused with exit 2, logged as bad stamp, and nothing runs (103 ms)
+    ✓ a well-formed stamp restores that backup (93 ms)
+  review L1: the caller cannot move the state or platform directory
+    ✕ the lib a production run sources names both directories as literals and reads no STAFF_2FA_ variable (2 ms)
+    ✕ STAFF_2FA_STATE_DIR and STAFF_2FA_PLATFORM_DIR from the caller move neither the marker, the log, nor the files edited (83 ms)
+
+  ● review L1: the caller cannot move the state or platform directory › the lib a production run sources names both directories as literals and reads no STAFF_2FA_ variable
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /STAFF_2FA_/
+    Received string:      "#!/usr/bin/env bash
+    # คำสั่ง 105 ข้อ 4
+
+    S2FA_HOSTS=\"$(cd \"$(dirname \"${BASH_SOURCE[0]}\")/..\" && pwd)/staff-2fa-hosts.tsv\"
+    S2FA_STATE_DIR=${STAFF_2FA_STATE_DIR:-/home/ubuntu/work/state/ops/staff-2fa}
+    S2FA_PLATFORM_DIR=${STAFF_2FA_PLATFORM_DIR:-/opt/gacp-platform}
+    S2FA_LOG=$S2FA_STATE_DIR/runs.log
+    S2FA_SSH_KEY=/home/ubuntu/.ssh/id_ed25519_newhost
+    S2FA_REMOTE_DIR=/app/apps/backend
+    S2FA_DETAIL=
+
+    s2fa_log() {
+      mkdir -p \"$S2FA_STATE_DIR\"
+      [ -e \"$S2FA_LOG\" ] || install -m 0600 /dev/null \"$S2FA_LOG\"
+      chmod 0600 \"$S2FA_LOG\"
+      printf '%s\\t%s\\t%s\\t%s\\t%s\\t%s\\t%s\\n' \"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" \"$S2FA_SCRIPT\" \"$(hostname)\" \"${S2FA_SLOT:-?}\" \"$S2FA_EVENT\" \"$1\" \"$2\" >> \"$S2FA_LOG\"
+    }
+
+    s2fa_exit_log() {
+      local rc=$? outcome
+      case $rc in 0) outcome=done;; 2) outcome=refused;; *) outcome=failed;; esac
+      s2fa_log \"$outcome\" \"exit=$rc${S2FA_DETAIL:+ $S2FA_DETAIL}\"
+    }
+
+    s2fa_refuse() {
+      [ -n \"${S2FA_SCRIPT:-}\" ] || { echo \"s2fa_bind must run before s2fa_refuse\" >&2; exit 70; }
+      echo \"$1\" >&2
+      S2FA_DETAIL=$2
+      exit 2
+    }
+
+    s2fa_bind() {
+      S2FA_SCRIPT=$1; S2FA_SLOT=${2:-}; S2FA_EVENT=$3
+      trap s2fa_exit_log EXIT
+      local row
+      row=$(awk -F'\\t' -v s=\"$S2FA_SLOT\" '!/^#/ && $1==s' \"$S2FA_HOSTS\")
+      [ -n \"$row\" ] || s2fa_refuse \"ไม่รู้จัก slot '$S2FA_SLOT' (ใช้ได้: $(awk -F'\\t' '!/^#/ && NF {print $1}' \"$S2FA_HOSTS\" | tr '\\n' ' '))\" \"unknown slot\"
+      IFS=$'\\t' read -r S2FA_SLOT S2FA_RUN_FROM S2FA_REACH S2FA_CONTAINER S2FA_SLOT_ENV <<< \"$row\"
+      [ \"$(hostname)\" = \"$S2FA_RUN_FROM\" ] || s2fa_refuse \"สคริปต์นี้สำหรับ $S2FA_SLOT รันได้เฉพาะบนเครื่อง $S2FA_RUN_FROM (เครื่องนี้คือ $(hostname))\" \"wrong host\"
+    }
+
+    s2fa_on_host() {
+      case \"$S2FA_REACH\" in
+        local) \"$@\";;
+        \"ssh \"*) ssh -i \"$S2FA_SSH_KEY\" -o IdentitiesOnly=yes \"${S2FA_REACH#ssh }\" \"echo $(printf '%q ' \"$@\" | base64 -w0) | base64 -d | bash\";;
+      esac
+    }
+
+    s2fa_on_host_stdin() {
+      case \"$S2FA_REACH\" in
+        local) \"$@\";;
+        \"ssh \"*) ssh -i \"$S2FA_SSH_KEY\" -o IdentitiesOnly=yes \"${S2FA_REACH#ssh }\" \"$*\";;
+      esac
+    }
+
+    s2fa_container_check() {
+      s2fa_on_host docker ps --filter \"name=^${S2FA_CONTAINER}\\$\" --filter status=running -q | grep -q . \\
+        || s2fa_refuse \"ไม่พบคอนเทนเนอร์ $S2FA_CONTAINER ที่กำลังทำงานบน $S2FA_SLOT\" \"container not running\"
+      if [ \"$S2FA_SLOT_ENV\" != - ]; then
+        s2fa_on_host docker exec \"$S2FA_CONTAINER\" node -e \"process.exit(process.env.GACP_DEPLOY_SLOT==='$S2FA_SLOT_ENV'?0:1)\" \\
+          || s2fa_refuse \"คอนเทนเนอร์ $S2FA_CONTAINER ไม่ได้ประกาศ GACP_DEPLOY_SLOT=$S2FA_SLOT_ENV\" \"slot env mismatch\"
+      fi
+      S2FA_IMAGE=$(s2fa_on_host docker inspect -f '{{.Config.Image}}' \"$S2FA_CONTAINER\")
+      S2FA_TAG=${S2FA_IMAGE##*:}
+      [ -n \"$S2FA_TAG\" ] && [ \"$S2FA_IMAGE\" = \"ghcr.io/jonmaxmore/gacp-backend:$S2FA_TAG\" ] \\
+        || s2fa_refuse \"อ่าน tag ของอิมเมจ $S2FA_CONTAINER ไม่ได้\" \"image tag unreadable\"
+      echo \"$S2FA_CONTAINER on $S2FA_SLOT runs image tag $S2FA_TAG\"
+    }
+
+    s2fa_node_script() {
+      s2fa_on_host docker exec \"$S2FA_CONTAINER\" test -f \"$S2FA_REMOTE_DIR/scripts/ops/$1\" \\
+        || s2fa_refuse \"อิมเมจ tag $S2FA_TAG ที่ $S2FA_CONTAINER รันอยู่ไม่มี scripts/ops/$1 ให้ deploy sha ที่มีไฟล์นี้ก่อน (สคริปต์ไม่คัดลอกโค้ดจาก checkout)\" \"script not in image\"
+      s2fa_on_host docker exec -w \"$S2FA_REMOTE_DIR\" \"$S2FA_CONTAINER\" node \"scripts/ops/$1\" \"${@:2}\"
+    }
+    "
+
+      390 |     test('the lib a production run sources names both directories as literals and reads no STAFF_2FA_ variable', () => {
+      391 |         const lib = fs.readFileSync(LIB, 'utf8');
+    > 392 |         expect(lib).not.toMatch(/STAFF_2FA_/);
+          |                         ^
+      393 |         expect(lib.split('\n').filter((line) => /^S2FA_(STATE|PLATFORM)_DIR=/.test(line))).toEqual([
+      394 |             `S2FA_STATE_DIR=${PRODUCTION_DIRS.state}`,
+      395 |             `S2FA_PLATFORM_DIR=${PRODUCTION_DIRS.platform}`,
+
+
+  ● review L1: the caller cannot move the state or platform directory › STAFF_2FA_STATE_DIR and STAFF_2FA_PLATFORM_DIR from the caller move neither the marker, the log, nor the files edited
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -  6
+    + Received  + 10
+
+      Object {
+    -   "elsewhere": Array [],
+    +   "elsewhere": Array [
+    +     "flag-on.staging.done",
+    +     "runs.log",
+    +   ],
+        "first": 0,
+    -   "fixedPlatformFlag": true,
+    -   "marker": true,
+    -   "otherPlatformFlag": false,
+    +   "fixedPlatformFlag": false,
+    +   "marker": false,
+    +   "otherPlatformFlag": true,
+        "revokes": Array [
+    +     "flag-on",
+          "flag-on",
+        ],
+    -   "second": 2,
+    -   "third": false,
+    +   "second": 1,
+    +   "third": true,
+      }
+
+      415 |             marker: fs.existsSync(marker(env, 'staging')),
+      416 |             revokes: flagEvents(env),
+    > 417 |         }).toEqual({ first: 0, second: 2, elsewhere: [], third: false, otherPlatformFlag: false, fixedPlatformFlag: true, marker: true, revokes: ['flag-on'] });
+          |            ^
+      418 |         expect(runLog(env).map((row) => [row[5], row[6]])).toEqual([['done', 'exit=0 tag=main-abc marker=written'], ['refused', 'exit=2 already applied']]);
+      419 |     });
+      420 | });
+
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 25 passed, 27 total
+Snapshots:   0 total
+Time:        3.682 s, estimated 4 s
+Ran all test suites matching __tests__/unit/staff-2fa-ops-scripts-host-bound.test.js.

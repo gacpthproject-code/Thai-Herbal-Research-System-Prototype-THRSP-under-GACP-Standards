@@ -1,0 +1,183 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Optional module load skipped (@prisma/client): not found
+
+      13 |   } catch (error) {
+      14 |     const message = error && error.code === 'MODULE_NOT_FOUND' ? 'not found' : error.message;
+    > 15 |     console.warn(`[jest-setup] Optional module load skipped (${modulePath}): ${message}`);
+         |             ^
+      16 |     return null;
+      17 |   }
+      18 | }
+
+      at warn (jest.setup.js:15:13)
+      at Object.safeRequire (jest.setup.js:53:16)
+
+FAIL __tests__/unit/application-status-writer-audit-default.test.js
+  application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1)
+    ✕ (a) onAudit omitted + bare client → opens an internal tx and emits ONE canonical row bound to that tx (11 ms)
+    ✕ (a) envelope: canonical event + transition fields + actorRole in metadata (4 ms)
+    ✕ (a) onAudit omitted + caller-supplied tx handle → emits into the CALLER tx, no nested tx (3 ms)
+    ✓ (a) client without an auditLog namespace → no internal tx, exactly one UPDATE (legacy stub shape preserved) (4 ms)
+    ✓ (b) onAudit function → callback fires once, writer emits nothing itself, no internal tx (3 ms)
+    ✓ (b) onAudit function that throws is still swallowed (fail-open unchanged) (3 ms)
+    ✓ (c) onAudit false → deliberate silence: no callback, no default row, no internal tx (2 ms)
+    ✕ fail-open: a failing default emission inside the internal tx still lands the status write (3 ms)
+    ✕ fail-open: a failing default emission inside a CALLER tx does not throw to the caller (5 ms)
+    ✕ a real UPDATE failure inside the internal tx is re-thrown, not swallowed as an audit hiccup (4 ms)
+
+  ● application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1) › (a) onAudit omitted + bare client → opens an internal tx and emits ONE canonical row bound to that tx
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      146 |
+      147 |         // status UPDATE ran inside the writer's own transaction …
+    > 148 |         expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+          |                                     ^
+      149 |         expect(tx.application.update).toHaveBeenCalledTimes(1);
+      150 |         expect(prisma.application.update).not.toHaveBeenCalled();
+      151 |         expect(updated).toMatchObject({ id: APP_ID, status: 'PENDING_DOC_FEE' });
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/application-status-writer-audit-default.test.js:148:37)
+
+  ● application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1) › (a) envelope: canonical event + transition fields + actorRole in metadata
+
+    TypeError: Cannot read properties of undefined (reading '0')
+
+      164 |         await writeApplicationStatus(baseArgs(prisma));
+      165 |
+    > 166 |         const entry = mockAuditState.hookCallback.mock.calls[0][0];
+          |                                                                ^
+      167 |         expect(entry).toMatchObject({
+      168 |             event: 'APPLICATION_STATUS_TRANSITION',
+      169 |             applicationId: APP_ID,
+
+      at Object.<anonymous> (__tests__/unit/application-status-writer-audit-default.test.js:166:64)
+
+  ● application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1) › (a) onAudit omitted + caller-supplied tx handle → emits into the CALLER tx, no nested tx
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      194 |
+      195 |         expect(callerTx.application.update).toHaveBeenCalledTimes(1);
+    > 196 |         expect(mockAuditState.hookFactory).toHaveBeenCalledTimes(1);
+          |                                            ^
+      197 |         expect(mockAuditState.hookFactory.mock.calls[0][0].tx).toBe(callerTx);
+      198 |         expect(mockAuditState.hookCallback).toHaveBeenCalledTimes(1);
+      199 |     });
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/application-status-writer-audit-default.test.js:196:44)
+
+  ● application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1) › fail-open: a failing default emission inside the internal tx still lands the status write
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+      276 |         // status write must NOT depend on availability of the audit log
+      277 |         // (application-status-writer.js — "audit failure must NOT block status writes").
+    > 278 |         expect(tx.application.update).toHaveBeenCalledTimes(1);
+          |                                       ^
+      279 |         expect(prisma.application.update).toHaveBeenCalledTimes(1);
+      280 |         expect(updated).toMatchObject({ id: APP_ID, status: 'PENDING_DOC_FEE' });
+      281 |         expect(warnSpy).toHaveBeenCalled();
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/application-status-writer-audit-default.test.js:278:39)
+
+  ● application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1) › fail-open: a failing default emission inside a CALLER tx does not throw to the caller
+
+    expect(jest.fn()).toHaveBeenCalled()
+
+    Expected number of calls: >= 1
+    Received number of calls:    0
+
+      290 |             .resolves.toMatchObject({ id: APP_ID, status: 'PENDING_DOC_FEE' });
+      291 |         expect(callerTx.application.update).toHaveBeenCalledTimes(1);
+    > 292 |         expect(warnSpy).toHaveBeenCalled();
+          |                         ^
+      293 |     });
+      294 |
+      295 |     // ------------------------------------------------- errors still surface
+
+      at Object.toHaveBeenCalled (__tests__/unit/application-status-writer-audit-default.test.js:292:25)
+
+  ● application-status-writer — onAudit tri-state / audit-by-default (PR-A0-1) › a real UPDATE failure inside the internal tx is re-thrown, not swallowed as an audit hiccup
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"id": "app-a0-1", "organizationId": "org-1", "status": "PENDING_DOC_FEE"}
+
+      305 |         const prisma = makeBareClient(tx);
+      306 |
+    > 307 |         await expect(writeApplicationStatus(baseArgs(prisma, { expectedVersion: 3 })))
+          |               ^
+      308 |             .rejects.toMatchObject({ code: 'CONCURRENCY_CONFLICT' });
+      309 |         // no fail-open retry for a business error — exactly one attempt
+      310 |         expect(prisma.application.update).not.toHaveBeenCalled();
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/application-status-writer-audit-default.test.js:307:15)
+
+  console.warn
+    [jest-setup] Optional module load skipped (@prisma/client): not found
+
+      13 |   } catch (error) {
+      14 |     const message = error && error.code === 'MODULE_NOT_FOUND' ? 'not found' : error.message;
+    > 15 |     console.warn(`[jest-setup] Optional module load skipped (${modulePath}): ${message}`);
+         |             ^
+      16 |     return null;
+      17 |   }
+      18 | }
+
+      at warn (jest.setup.js:15:13)
+      at Object.safeRequire (jest.setup.js:53:16)
+
+FAIL __tests__/integration/status-writer-audit-default-invariant.test.js
+  ● Test suite failed to run
+
+    Cannot find module '.prisma/client/default' from '../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js'
+
+    Require stack:
+      /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js
+      __tests__/integration/status-writer-audit-default-invariant.test.js
+
+      28 | 'use strict';
+      29 |
+    > 30 | const { PrismaClient } = require('@prisma/client');
+         |                          ^
+      31 | const { writeApplicationStatus } = require('../../services/application-status-writer');
+      32 |
+      33 | const HAS_DB = Boolean(process.env.DATABASE_URL);
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.<anonymous> (../../node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js:2:6)
+      at Object.require (__tests__/integration/status-writer-audit-default-invariant.test.js:30:26)
+
+Test Suites: 2 failed, 2 total
+Tests:       6 failed, 4 passed, 10 total
+Snapshots:   0 total
+Time:        1.109 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/application-status-writer-audit-default.test.js|__tests__\/integration\/status-writer-audit-default-invariant.test.js/i.
+[jest-teardown] Prisma disconnect warning: Cannot find module '.prisma/client/default'
+Require stack:
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@prisma+client@5.22.0_prisma@5.22.0/node_modules/@prisma/client/default.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/apps/backend/jest.teardown.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-util@29.7.0/node_modules/jest-util/build/requireOrImportModule.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-util@29.7.0/node_modules/jest-util/build/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/FailedTestsInteractiveMode.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/plugins/FailedTestsInteractive.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/watch.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/cli/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/@jest+core@29.7.0/node_modules/@jest/core/build/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-cli@29.7.0/node_modules/jest-cli/build/run.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-cli@29.7.0/node_modules/jest-cli/build/index.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest-cli@29.7.0/node_modules/jest-cli/bin/jest.js
+- /home/user/GACP-Certification-Application/.claude/worktrees/agent-af83f1241f0725d4b/node_modules/.pnpm/jest@29.7.0/node_modules/jest/bin/jest.js

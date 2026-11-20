@@ -1,0 +1,357 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-27T11:41:53.323Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-27T11:41:53.328Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-27T11:41:53.329Z"}
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-09-27T11:42:02.354Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-09-27T11:42:02.356Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-09-27T11:42:02.357Z"}
+FAIL __tests__/unit/invoice-pdf-truth.test.js (9.768 s)
+  [fix/invoice-pdf-truth] generateInvoicePdf — real render, company payer
+    ✓ never prints the DTAM switchboard number (21 ms)
+    ✓ never prints contact@gacpth.com (the ministry/platform address, not the issuer) (31 ms)
+    ✕ never prints a gmail address (5 ms)
+    ✕ prints finance@gacpth.com as the company contact (587 ms)
+    ✕ names the charge ค่าบริการ, not ค่าธรรมเนียม GACP (579 ms)
+    ✕ labels a juristic payer with company-name / Tax ID, never person labels (555 ms)
+    ✕ titles the document ใบวางบิล / ใบแจ้งหนี้ (finance-documents-three-rulings: 3 docs, not 4) (557 ms)
+  [fix/invoice-pdf-truth] generateInvoicePdf — real render, individual payer (labels unchanged)
+    ✕ keeps the individual payer labels exactly as before (2648 ms)
+  [fix/invoice-pdf-truth] generateReceiptPdf — real render, company payer
+    ✓ never prints the DTAM switchboard number or its email (37 ms)
+    ✕ never prints a gmail address, and prints finance@gacpth.com instead (2 ms)
+    ✓ names the charge ค่าบริการ, not ค่าธรรมเนียม GACP (16 ms)
+    ✕ labels a juristic payer with company-name / Tax ID, never person labels (585 ms)
+  [fix/invoice-pdf-truth] buildCompanyContactLine — no phone while PENDING/empty, never the ministry number
+    ✕ never contains the DTAM switchboard, a gmail address, or a PENDING placeholder (1 ms)
+    ✕ omits the phone segment entirely while contactPhone is PENDING (today's real config) (1 ms)
+    ✕ prints the real phone once PLATFORM_CONTACT_PHONE is set, through the actual env-override path (60 ms)
+  [fix/invoice-pdf-truth] serviceTypeLabel — legacy STATE rows stay untouched
+    ✕ keeps the legacy STATE labels exactly as they were (retired separately) (1 ms)
+    ✕ the real checkout serviceType (unmapped, hits the fallback) says ค่าบริการ, not ค่าธรรมเนียม (7 ms)
+  [fix/invoice-pdf-truth] buildAdjustmentNoteContext — company contact line (credit/debit notes share this)
+    ✕ COMPANY_CONTACT_LINE is present and never the ministry line (2 ms)
+
+  ● [fix/invoice-pdf-truth] generateInvoicePdf — real render, company payer › never prints a gmail address
+
+    TypeError: expect(received).not.toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has type:  object
+    Received has value: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      109 |
+      110 |     it('never prints a gmail address', () => {
+    > 111 |         expect(text).not.toMatch(/gmail\.com/i);
+          |                          ^
+      112 |     });
+      113 |
+      114 |     it('prints finance@gacpth.com as the company contact', () => {
+
+      at Object.toMatch (__tests__/unit/invoice-pdf-truth.test.js:111:26)
+
+  ● [fix/invoice-pdf-truth] generateInvoicePdf — real render, company payer › prints finance@gacpth.com as the company contact
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "finance@gacpth.com"
+    Received object: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      113 |
+      114 |     it('prints finance@gacpth.com as the company contact', () => {
+    > 115 |         expect(text).toContain('finance@gacpth.com');
+          |                      ^
+      116 |     });
+      117 |
+      118 |     it('names the charge ค่าบริการ, not ค่าธรรมเนียม GACP', () => {
+
+      at Object.toContain (__tests__/unit/invoice-pdf-truth.test.js:115:22)
+
+  ● [fix/invoice-pdf-truth] generateInvoicePdf — real render, company payer › names the charge ค่าบริการ, not ค่าธรรมเนียม GACP
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "ค่าบริการ GACP"
+    Received object: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      118 |     it('names the charge ค่าบริการ, not ค่าธรรมเนียม GACP', () => {
+      119 |         expect(text).not.toContain('ค่าธรรมเนียม GACP');
+    > 120 |         expect(text).toContain('ค่าบริการ GACP');
+          |                      ^
+      121 |     });
+      122 |
+      123 |     it('labels a juristic payer with company-name / Tax ID, never person labels', () => {
+
+      at Object.toContain (__tests__/unit/invoice-pdf-truth.test.js:120:22)
+
+  ● [fix/invoice-pdf-truth] generateInvoicePdf — real render, company payer › labels a juristic payer with company-name / Tax ID, never person labels
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "ชื่อบริษัท / Company Name"
+    Received object: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      122 |
+      123 |     it('labels a juristic payer with company-name / Tax ID, never person labels', () => {
+    > 124 |         expect(text).toContain('ชื่อบริษัท / Company Name');
+          |                      ^
+      125 |         expect(text).toContain('เลขประจำตัวผู้เสียภาษี / Tax ID');
+      126 |         expect(text).not.toContain('เลขประจำตัวประชาชน / ID No.');
+      127 |         expect(text).toContain('0105558123456');
+
+      at Object.toContain (__tests__/unit/invoice-pdf-truth.test.js:124:22)
+
+  ● [fix/invoice-pdf-truth] generateInvoicePdf — real render, company payer › titles the document ใบวางบิล / ใบแจ้งหนี้ (finance-documents-three-rulings: 3 docs, not 4)
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "ใบวางบิล"
+    Received object: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      129 |
+      130 |     it('titles the document ใบวางบิล / ใบแจ้งหนี้ (finance-documents-three-rulings: 3 docs, not 4)', () => {
+    > 131 |         expect(text).toContain('ใบวางบิล');
+          |                      ^
+      132 |         expect(text).toContain('ใบแจ้งหนี้');
+      133 |     });
+      134 | });
+
+      at Object.toContain (__tests__/unit/invoice-pdf-truth.test.js:131:22)
+
+  ● [fix/invoice-pdf-truth] generateInvoicePdf — real render, individual payer (labels unchanged) › keeps the individual payer labels exactly as before
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "ชื่อ-นามสกุล / Name"
+    Received object: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      141 |         );
+      142 |         const text = textOf(html);
+    > 143 |         expect(text).toContain('ชื่อ-นามสกุล / Name');
+          |                      ^
+      144 |         expect(text).toContain('เลขประจำตัวประชาชน / ID No.');
+      145 |         expect(text).not.toContain('ชื่อบริษัท / Company Name');
+      146 |     });
+
+      at Object.toContain (__tests__/unit/invoice-pdf-truth.test.js:143:22)
+
+  ● [fix/invoice-pdf-truth] generateReceiptPdf — real render, company payer › never prints a gmail address, and prints finance@gacpth.com instead
+
+    TypeError: expect(received).not.toMatch(expected)
+
+    Matcher error: received value must be a string
+
+    Received has type:  object
+    Received has value: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      176 |
+      177 |     it('never prints a gmail address, and prints finance@gacpth.com instead', () => {
+    > 178 |         expect(text).not.toMatch(/gmail\.com/i);
+          |                          ^
+      179 |         expect(text).toContain('finance@gacpth.com');
+      180 |     });
+      181 |
+
+      at Object.toMatch (__tests__/unit/invoice-pdf-truth.test.js:178:26)
+
+  ● [fix/invoice-pdf-truth] generateReceiptPdf — real render, company payer › labels a juristic payer with company-name / Tax ID, never person labels
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value:  "ชื่อบริษัท / Company Name"
+    Received object: {"data": [37, 80, 68, 70, 45, 49, 46, 52, 10, 37, …], "type": "Buffer"}
+
+      185 |
+      186 |     it('labels a juristic payer with company-name / Tax ID, never person labels', () => {
+    > 187 |         expect(text).toContain('ชื่อบริษัท / Company Name');
+          |                      ^
+      188 |         expect(text).toContain('เลขประจำตัวผู้เสียภาษี / Tax ID');
+      189 |         expect(text).not.toContain('เลขประจำตัว / ID No.');
+      190 |     });
+
+      at Object.toContain (__tests__/unit/invoice-pdf-truth.test.js:187:22)
+
+  ● [fix/invoice-pdf-truth] buildCompanyContactLine — no phone while PENDING/empty, never the ministry number › never contains the DTAM switchboard, a gmail address, or a PENDING placeholder
+
+    TypeError: tpl.buildCompanyContactLine is not a function
+
+      193 | describe('[fix/invoice-pdf-truth] buildCompanyContactLine — no phone while PENDING/empty, never the ministry number', () => {
+      194 |     it('never contains the DTAM switchboard, a gmail address, or a PENDING placeholder', () => {
+    > 195 |         const line = tpl.buildCompanyContactLine();
+          |                          ^
+      196 |         expect(line).not.toContain('0-2591-7007');
+      197 |         expect(line).not.toMatch(/gmail\.com/i);
+      198 |         expect(line).not.toMatch(/PENDING/);
+
+      at Object.buildCompanyContactLine (__tests__/unit/invoice-pdf-truth.test.js:195:26)
+
+  ● [fix/invoice-pdf-truth] buildCompanyContactLine — no phone while PENDING/empty, never the ministry number › omits the phone segment entirely while contactPhone is PENDING (today's real config)
+
+    TypeError: tpl.buildCompanyContactLine is not a function
+
+      201 |     it('omits the phone segment entirely while contactPhone is PENDING (today\'s real config)', () => {
+      202 |         if (String(PLATFORM_ISSUER.contactPhone).startsWith('PENDING')) {
+    > 203 |             const line = tpl.buildCompanyContactLine();
+          |                              ^
+      204 |             expect(line).not.toMatch(/โทร/);
+      205 |             expect(line).toContain('อีเมล:');
+      206 |         }
+
+      at Object.buildCompanyContactLine (__tests__/unit/invoice-pdf-truth.test.js:203:30)
+
+  ● [fix/invoice-pdf-truth] buildCompanyContactLine — no phone while PENDING/empty, never the ministry number › prints the real phone once PLATFORM_CONTACT_PHONE is set, through the actual env-override path
+
+    TypeError: freshTpl.buildCompanyContactLine is not a function
+
+      213 |         jest.isolateModules(() => {
+      214 |             const freshTpl = require('../../services/pdf/invoice-template-service');
+    > 215 |             line = freshTpl.buildCompanyContactLine();
+          |                             ^
+      216 |         });
+      217 |         if (prevPhone === undefined) { delete process.env.PLATFORM_CONTACT_PHONE; } else { process.env.PLATFORM_CONTACT_PHONE = prevPhone; }
+      218 |         expect(line).toContain('โทร: 02-000-0000');
+
+      at buildCompanyContactLine (__tests__/unit/invoice-pdf-truth.test.js:215:29)
+      at Object.isolateModules (__tests__/unit/invoice-pdf-truth.test.js:213:14)
+
+  ● [fix/invoice-pdf-truth] serviceTypeLabel — legacy STATE rows stay untouched › keeps the legacy STATE labels exactly as they were (retired separately)
+
+    TypeError: tpl.serviceTypeLabel is not a function
+
+      223 | describe('[fix/invoice-pdf-truth] serviceTypeLabel — legacy STATE rows stay untouched', () => {
+      224 |     it('keeps the legacy STATE labels exactly as they were (retired separately)', () => {
+    > 225 |         expect(tpl.serviceTypeLabel('PHASE_1_STATE_FEE')).toBe('ค่าธรรมเนียมรัฐ ขั้นที่ 1 (ตรวจเอกสาร)');
+          |                    ^
+      226 |         expect(tpl.serviceTypeLabel('APPLICATION_FEE')).toBe('ค่าธรรมเนียมยื่นคำขอ GACP');
+      227 |         expect(tpl.serviceTypeLabel('PHASE_2_STATE_FEE')).toBe('ค่าธรรมเนียมรัฐ ขั้นที่ 2 (ตรวจประเมิน)');
+      228 |         expect(tpl.serviceTypeLabel('AUDIT_FEE')).toBe('ค่าธรรมเนียมการตรวจประเมิน');
+
+      at Object.serviceTypeLabel (__tests__/unit/invoice-pdf-truth.test.js:225:20)
+
+  ● [fix/invoice-pdf-truth] serviceTypeLabel — legacy STATE rows stay untouched › the real checkout serviceType (unmapped, hits the fallback) says ค่าบริการ, not ค่าธรรมเนียม
+
+    TypeError: tpl.serviceTypeLabel is not a function
+
+      231 |
+      232 |     it('the real checkout serviceType (unmapped, hits the fallback) says ค่าบริการ, not ค่าธรรมเนียม', () => {
+    > 233 |         expect(tpl.serviceTypeLabel('CERTIFICATION_CHECKOUT_M1')).toBe('ค่าบริการ GACP');
+          |                    ^
+      234 |         expect(tpl.serviceTypeLabel('CERTIFICATION_CHECKOUT_M1')).not.toContain('ค่าธรรมเนียม');
+      235 |     });
+      236 | });
+
+      at Object.serviceTypeLabel (__tests__/unit/invoice-pdf-truth.test.js:233:20)
+
+  ● [fix/invoice-pdf-truth] buildAdjustmentNoteContext — company contact line (credit/debit notes share this) › COMPANY_CONTACT_LINE is present and never the ministry line
+
+    expect(received).toBeDefined()
+
+    Received: undefined
+
+      253 |             { docNumber: 'CN-TEST-1', docTypeTh: 'ใบลดหนี้', docTypeEn: 'CREDIT NOTE' },
+      254 |         );
+    > 255 |         expect(ctx.COMPANY_CONTACT_LINE).toBeDefined();
+          |                                          ^
+      256 |         expect(ctx.COMPANY_CONTACT_LINE).not.toContain('0-2591-7007');
+      257 |         expect(ctx.COMPANY_CONTACT_LINE).not.toContain('contact@gacpth.com');
+      258 |         expect(ctx.MINISTRY_CONTACT_LINE).toBeUndefined();
+
+      at Object.toBeDefined (__tests__/unit/invoice-pdf-truth.test.js:255:42)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/finance-contact-email-mirror.test.js
+  finance contact email mirrors the web constant
+    ✕ backend FINANCE_CONTACT_EMAIL === web FINANCE_EMAIL (3 ms)
+    ✕ FINANCE_CONTACT_EMAIL is finance@gacpth.com (operator ruling 2026-09-26 — gacpth.com addresses stay) (2 ms)
+    ✕ PLATFORM_ISSUER.contactEmail defaults to FINANCE_CONTACT_EMAIL, never a personal gmail (1 ms)
+
+  ● finance contact email mirrors the web constant › backend FINANCE_CONTACT_EMAIL === web FINANCE_EMAIL
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "finance@gacpth.com"
+    Received: undefined
+
+      34 | describe('finance contact email mirrors the web constant', () => {
+      35 |     test('backend FINANCE_CONTACT_EMAIL === web FINANCE_EMAIL', () => {
+    > 36 |         expect(FINANCE_CONTACT_EMAIL).toBe(feLiteral('FINANCE_EMAIL'));
+         |                                       ^
+      37 |     });
+      38 |
+      39 |     test('FINANCE_CONTACT_EMAIL is finance@gacpth.com (operator ruling 2026-09-26 — gacpth.com addresses stay)', () => {
+
+      at Object.toBe (__tests__/unit/finance-contact-email-mirror.test.js:36:39)
+
+  ● finance contact email mirrors the web constant › FINANCE_CONTACT_EMAIL is finance@gacpth.com (operator ruling 2026-09-26 — gacpth.com addresses stay)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "finance@gacpth.com"
+    Received: undefined
+
+      38 |
+      39 |     test('FINANCE_CONTACT_EMAIL is finance@gacpth.com (operator ruling 2026-09-26 — gacpth.com addresses stay)', () => {
+    > 40 |         expect(FINANCE_CONTACT_EMAIL).toBe('finance@gacpth.com');
+         |                                       ^
+      41 |     });
+      42 |
+      43 |     test('PLATFORM_ISSUER.contactEmail defaults to FINANCE_CONTACT_EMAIL, never a personal gmail', () => {
+
+      at Object.toBe (__tests__/unit/finance-contact-email-mirror.test.js:40:39)
+
+  ● finance contact email mirrors the web constant › PLATFORM_ISSUER.contactEmail defaults to FINANCE_CONTACT_EMAIL, never a personal gmail
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: undefined
+    Received: "Kannyway@gmail.com"
+
+      48 |             return;
+      49 |         }
+    > 50 |         expect(PLATFORM_ISSUER.contactEmail).toBe(FINANCE_CONTACT_EMAIL);
+         |                                              ^
+      51 |         expect(PLATFORM_ISSUER.contactEmail).not.toMatch(/gmail\.com/i);
+      52 |     });
+      53 | });
+
+      at Object.toBe (__tests__/unit/finance-contact-email-mirror.test.js:50:46)
+
+Test Suites: 2 failed, 2 total
+Tests:       17 failed, 4 passed, 21 total
+Snapshots:   0 total
+Time:        10.129 s
+Ran all test suites matching __tests__/unit/invoice-pdf-truth.test.js|__tests__/unit/finance-contact-email-mirror.test.js.

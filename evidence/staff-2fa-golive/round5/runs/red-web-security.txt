@@ -1,0 +1,59 @@
+PASS src/app/provider/profile/security/__tests__/change-password-card.test.tsx
+  /provider/profile/security — change own password
+    ✓ shows a change-password form with three masked fields (96 ms)
+    ✓ posts the current and new password to the staff door, then signs out to the staff login (76 ms)
+    ✓ a mismatched confirmation is refused before the network (26 ms)
+    ✓ a wrong current password shows the backend reason and keeps the officer signed in (21 ms)
+FAIL src/app/provider/profile/security/__tests__/mfa-reenrol.test.tsx
+  /provider/profile/security — 2FA enabled: move to a new device
+    ✓ asks for the current code before anything is set up, and never calls setup on its own (85 ms)
+    ✓ sends the current code with setup, then shows the new QR and says the old one still works (124 ms)
+    ✓ a wrong current code is refused and nothing moves (27 ms)
+    ✓ after MFA_REENROL_RESTART the QR step closes and the officer is told to start again (78 ms)
+    ✓ a store outage is not reported as a wrong code (17 ms)
+    ✓ the backup-code path sends { backupCode } to setup, upper case with the dash, whatever was typed (22 ms)
+    ✓ after a backup code the NEW backup codes are shown once, and confirm waits for the saved checkbox (29 ms)
+    ✓ the QR step says the old device and old backup codes stop at confirmation, other sign-ins end, and the owner is told (24 ms)
+    ✓ verify carries backupCodesSaved: true, and the done card confirms the move without showing any code (52 ms)
+    ✕ the status label keeps saying เปิดใช้งาน through the whole move, because /mfa/status says 2FA is on (review L3) (28 ms)
+    ✓ 401 MFA_CODE_REQUIRED after a wrong app code shows one Thai message for both, and the officer stays signed in (18 ms)
+    ✓ 401 MFA_CODE_REQUIRED after a wrong or used backup code shows one Thai message for both, and the officer stays signed in (22 ms)
+    ✓ 429 from the limiter tells the officer to wait 15 minutes, not that the code is wrong (19 ms)
+    ✓ a real-shaped 403 MFA_REENROL_SESSION_MISMATCH from setup asks the officer to sign in again (17 ms)
+    ✓ a real-shaped MFA_REENROL_RESTART from verify closes the QR step (41 ms)
+  /provider/profile/security — 2FA not enabled: first enrolment confirms the saved backup codes
+    ✕ the status label says ยังไม่เปิดใช้งาน before enrolment and เปิดใช้งาน once /mfa/status reports it on (review L3) (27 ms)
+    ✓ the QR step shows the codes and the checkbox, verify sends backupCodesSaved: true, and the done card lists no code (23 ms)
+  /provider/profile/security — disabling 2FA
+    ✓ a wrong code shows the Thai error and keeps the person signed in on the same page (16 ms)
+    ✓ when the server says disabling is not allowed, the form is gone and the page points at moving to a new device (7 ms)
+    ✓ a sign-in with a backup code offers the move without a second code, and sends the proof flag (18 ms)
+    ✓ without that sign-in the button is not offered (6 ms)
+  ● /provider/profile/security — 2FA enabled: move to a new device › the status label keeps saying เปิดใช้งาน through the whole move, because /mfa/status says 2FA is on (review L3)
+    expect(received).toBe(expected) // Object.is equality
+    Expected: "สถานะ:เปิดใช้งาน"
+    Received: "สถานะ:ยังไม่เปิดใช้งาน"
+      289 |         await startWithBackupCode('A1B2-C3D4');
+      290 |         expect(text()).toContain('ขั้นตอนที่ 1');
+    > 291 |         expect(statusLine()).toBe('สถานะ:เปิดใช้งาน');
+          |                              ^
+      292 |         type(qrCodeInput(), '123456');
+      293 |         await tickSaved();
+      294 |         await act(async () => { buttonWith('ยืนยันและเปิดใช้งาน')!.click(); });
+  ● /provider/profile/security — 2FA not enabled: first enrolment confirms the saved backup codes › the status label says ยังไม่เปิดใช้งาน before enrolment and เปิดใช้งาน once /mfa/status reports it on (review L3)
+    expect(received).toBe(expected) // Object.is equality
+    Expected: "สถานะ:เปิดใช้งาน"
+    Received: "สถานะ:ยังไม่เปิดใช้งาน"
+      421 |         await flush(10);
+      422 |         expect(text()).toContain('เปิดใช้งานการยืนยันตัวตนสองชั้นแล้ว');
+    > 423 |         expect(statusLine()).toBe('สถานะ:เปิดใช้งาน');
+          |                              ^
+      424 |     });
+      425 |
+      426 |     it('the QR step shows the codes and the checkbox, verify sends backupCodesSaved: true, and the done card lists no code', async () => {
+Test Suites: 1 failed, 1 passed, 2 total
+Tests:       2 failed, 23 passed, 25 total
+Snapshots:   0 total
+Time:        2.955 s
+Ran all test suites matching src/app/provider/profile/security.
+jest exit 1

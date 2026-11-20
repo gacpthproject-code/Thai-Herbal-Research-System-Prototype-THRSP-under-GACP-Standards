@@ -1,0 +1,77 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-13T09:50:19.341Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-13T09:50:19.346Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-13T09:50:19.348Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/site-contact-request-job-real-postgres.test.js:45:25)
+      at Object.require (routes/api/audit/scheduling.js:37:54)
+      at Object.require (__tests__/integration/site-contact-request-job-real-postgres.test.js:65:42)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/site-contact-request-job-real-postgres.test.js:45:25)
+      at Object.require (routes/api/audit/scheduling.js:37:54)
+      at Object.require (__tests__/integration/site-contact-request-job-real-postgres.test.js:65:42)
+
+[31merror[39m: [site-contact-request] notice for APP-contactask-13-ddbef586 threw: test: the notice store is unavailable {"service":"gacp-backend","timestamp":"2026-10-13T09:50:20.028Z"}
+[33mwarn[39m: [site-contact-request] ask for APP-contactask-13-ddbef586 reached nobody; released for the next run {"service":"gacp-backend","timestamp":"2026-10-13T09:50:20.029Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-13T09:50:20.351Z"}
+FAIL __tests__/integration/site-contact-request-job-real-postgres.test.js
+  the applicant is asked to add the person on site (real Postgres)
+    ✓ a filing without one asks the applicant and the holder once; filings with one, past their visit, or decided are not asked (496 ms)
+    ✓ a notice that throws leaves the application unasked: the dispatcher is not told it was asked, and the next run asks (147 ms)
+    ✕ a run that dies before its notice goes out leaves the application unasked, and a later run asks it (113 ms)
+
+  ● the applicant is asked to add the person on site (real Postgres) › a run that dies before its notice goes out leaves the application unasked, and a later run asks it
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 4
+    + Received  + 1
+
+    - Array [
+    -   "0644c7a4-871b-4ee7-a97a-89e1024630c5",
+    -   "e0ab89d8-3afd-4b57-bb35-7e5c010c4580",
+    - ]
+    + Array []
+
+      134 |
+      135 |         await runSiteContactRequests({ now: new Date(Date.now() + 2 * HOUR) });
+    > 136 |         expect(await askedParties(row)).toEqual([fx.applicant.id, fx.holderMember.id].sort());
+          |                                         ^
+      137 |         expect((await queueItemOf(row)).siteContactRequestedAt).toEqual(expect.any(String));
+      138 |
+      139 |         mockNotice.hung.reject(new Error('test: the abandoned run ends'));
+
+      at Object.toEqual (__tests__/integration/site-contact-request-job-real-postgres.test.js:136:41)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 2 passed, 3 total
+Snapshots:   0 total
+Time:        1.816 s, estimated 7 s
+Ran all test suites matching __tests__/integration/site-contact-request-job-real-postgres.test.js.
+exit=1

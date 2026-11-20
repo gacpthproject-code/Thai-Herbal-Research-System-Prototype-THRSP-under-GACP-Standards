@@ -1,0 +1,10 @@
+# รอบ 7 chore/staff-2fa-golive (แก้ gate 72717d506 ที่ล้มใหม่ 1 ชุด + รวม main cea595670)
+
+| ข้อ | ต้นเหตุ | แก้ที่ | RED | GREEN |
+|---|---|---|---|---|
+| 1 pdpa-final-sweep: POST /api/mfa/verify ตอบ 500 | กรณี (a) mock เก่า: เส้น verify ออก jti ของ session เองที่ `routes/api/identity/mfa.js:722` (ผูกหลักฐานย้ายเครื่อง คำสั่ง 89 ก) แต่ mock ของ `config/jwt-security` ในเทสต์ไม่มี `generateJti` ของจริง export (jwt-security.js:348) และ generateToken ตัด payload.jti ก่อนเซ็น (บรรทัด 198) โปรดักชันไม่โยน | `apps/backend/__tests__/unit/pdpa-final-sweep.test.js:69` เติม `generateJti: jest.fn(() => 'jti-session')` แบบเดียวกับ `mfa-verify-guards.test.js:35` assertion 4 ข้อคงเดิม | `runs/red-pdpa-final-sweep-on-72717d506-mock.txt` (2 failed, 2 passed) · `runs/red-logged-error-72717d506.txt` (TypeError: jwtConfig.generateJti is not a function ที่ mfa.js:722) | `runs/green-pdpa-final-sweep-2a63b6dc1.txt` (4 passed) · `runs/mocked-pdpa-final-sweep.txt` ใน heavy.sh (4 passed) |
+| 2 mock เก่าตัวอื่นที่ยิง /mfa/verify หรือโหลด mfa.js | ไม่มี: mfa-challenge-binding ยิง /verify ถึง 400/401 ก่อนจุดออก token · mfa-roundtrip ยิง /setup และ /verify-setup เท่านั้น | ไม่แก้ | — | `runs/mocked-*.txt` 16 ชุด ผ่านทุกชุด (รายชื่อใน `runs/job.txt`) |
+| 3 รวม origin/main cea595670 | ชน HARNESS_LOG.md 1 ก้อน เก็บทั้งสองฝั่ง main ขึ้นก่อน · อีก 4 ไฟล์รวมอัตโนมัติ · error-codes `--markdown` แล้ว `--validate` 472 | merge commit `2a63b6dc1` | — | `runs/merged-*.txt` 7 ชุดที่คุมไฟล์ที่รวมอัตโนมัติ ผ่านทุกชุด · probe admin-side-split PASS 639 runtime files (รันตรง rc=0) |
+| 4 ชุด MFA/auth บน Postgres จริง | — | — | — | `runs/db-*.txt` 6 ชุด (sessions-revoked 11, one-code 10, emergency-reset 11, backup-code-rebind 3, doors-force-setup 25, always-on-notices 2) · `runs/redis-*.txt` 3 ชุดซ้ำบน Redis จริง ผ่านทุกชุด |
+
+งานหนักหนึ่งงาน: `harness/job-round7.sh` ผ่าน heavy.sh บนหัว `2a63b6dc1` 09:59:09-10:00:50 · Postgres 17 + Redis 7 ชั่วคราวบน loopback ลบแล้ว · `runs/job.txt` สรุป 32 ชุด 0 ล้ม · gitleaks ทีละไฟล์ `runs/gitleaks-files.txt` no leaks ทุกไฟล์

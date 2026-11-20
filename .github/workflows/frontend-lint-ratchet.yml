@@ -1,0 +1,49 @@
+name: Frontend Lint Ratchet
+
+# Tier-2 preventive control: ensure the web-app ESLint warning count never
+# exceeds the committed baseline (scripts/ci/frontend-lint-baseline.json).
+# Forces tech debt to monotonically decrease.
+#
+# Path-filtered to web-app changes only — backend-only PRs do not need to
+# rerun the frontend lint. This is why the job is NOT in `build-success.needs`
+# in ci.yml: GitHub paths filters skip the job for unrelated PRs, and
+# `needs:` would treat a skipped job as "not succeeded" and break the gate.
+
+on:
+  pull_request:
+    paths:
+      - 'apps/web-app/**'
+      - 'scripts/ci/check-frontend-lint-ratchet.js'
+      - 'scripts/ci/frontend-lint-baseline.json'
+      - '.github/workflows/frontend-lint-ratchet.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'apps/web-app/**'
+      - 'scripts/ci/check-frontend-lint-ratchet.js'
+      - 'scripts/ci/frontend-lint-baseline.json'
+      - '.github/workflows/frontend-lint-ratchet.yml'
+
+jobs:
+  frontend-lint-ratchet:
+    name: Frontend Lint Ratchet
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Check frontend lint ratchet
+        run: node scripts/ci/check-frontend-lint-ratchet.js

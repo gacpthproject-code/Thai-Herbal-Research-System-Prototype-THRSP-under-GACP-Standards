@@ -1,0 +1,49 @@
+# Round 5 GREEN
+## web: src/app/health/applications + src/lib/services + src/lib/__tests__ (jest, Node 24)
+Test Suites: 113 passed, 113 total
+Tests:       1251 passed, 1251 total
+## the round-5 tests
+      round 5: a save refused with APPLICATION_NOT_EDITABLE
+        ✓ drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+        ✓ the submit gate refuses while the id is refused, then lets the new draft through after the drop
+      round 5: a save refused with APPLICATION_NOT_FOUND
+        ✓ drops the id, keeps the answers, says so, and the next save has no id and makes a new draft
+        ✓ the submit gate refuses while the id is refused, then lets the new draft through after the drop
+    ✓ round 5: no wizard on screen and the id is refused (APPLICATION_NOT_EDITABLE): blocked, the id dropped, the answers kept
+    ✓ round 5: no wizard on screen and the id is refused (APPLICATION_NOT_FOUND): blocked, the id dropped, the answers kept
+  round 5: a filing leaves the wizard empty for the next application
+    ✓ step 6 path: file X, leave, "ยื่นคำขอใหม่", edit gives exactly 1 POST with no id, and a new draft
+    ✓ step 6 path: the wizard is NOT emptied while it is still on screen (no bounce to step 1 mid-navigation)
+    ✓ preview path (no wizard on screen): emptied as soon as the filing is accepted
+    ✓ a resubmit leaves the wizard too (the application is no longer editable)
+    ✓ filing X from the preview page does not touch a store that is about another application
+    ✓ a refused filing keeps everything (nothing was filed)
+  round 5: the gate dropped a refused id
+    ✓ blocks the filing and says the answers become a new draft
+  round 5: an accepted filing lets go of the wizard
+    ✓ a first filing accepted by the server: the wizard forgets it
+    ✓ a resubmit accepted by the server: the wizard forgets it
+    ✓ a quotation-gate refusal after filing (legacy rail) still forgets it: it IS filed
+    ✓ a refused filing keeps the wizard
+    ✓ nothing submitted (already past filing): nothing to forget here
+  round 5: the wizard does not outlive its user
+    ✓ logout empties the wizard store and removes its persisted copy
+    ✓ a sign-in as a DIFFERENT account empties it too (no logout in between)
+    ✓ the same account signing in again keeps the wizard
+  round 5: resetting the wizard lets go of the application
+    ✓ resetWizard drops applicationId and the quotation display, not only the answers
+    ✓ detachApplication drops only the id, keeps every answer, and marks them unsent
+## tsc --noEmit: exit 0 · eslint on the 12 touched web files: 0 errors (1 pre-existing warning, use-application-flow-store.ts isStepComplete 'stated')
+
+## backend: 30 suites that reach /draft, /prepare or draft-documents (grep of __tests__), real postgres:17 on 127.0.0.1:5449 after prisma migrate deploy, container removed after
+Test Suites: 30 passed, 30 total
+Tests:       363 passed, 363 total
+  POST /api/applications/draft routes an explicit id to its own application (real Postgres)
+    ✓ an explicit id in REVISION_REQUESTED updates THAT application and leaves the other DRAFT untouched
+    ✓ an explicit id in CAR_PENDING updates THAT application and leaves the other DRAFT untouched
+    ✓ WITHOUT the id the same edit lands on the latest DRAFT, not on the application being corrected (why the client now sends it)
+    ✓ an explicit id in a non-editable status is refused (the Bug 2.3 guard) and nothing is written
+    ✓ round 5: an explicit id belonging to ANOTHER user is 404 and neither user's rows change
+    ✓ round 5: a soft-deleted id is 404 and nothing is written
+    ✓ round 5: an id that never existed is 404 and nothing is minted
+(0 skipped)

@@ -1,0 +1,105 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/a0-pr2-work-activity-fence.test.js
+  PR-A0-2 F1 — a failing work-activity emission must not cost the CALLER its transaction
+    ✓ [harness] the fake reproduces the abort: a failed statement kills the tx and COMMIT discards silently (6 ms)
+    ✕ the caller tx survives a failing work-activity emission and the status write COMMITS (32 ms)
+    ✕ the failing work-activity emission is unwound to a SAVEPOINT (not merely swallowed) (11 ms)
+    ✕ a caller tx whose work-activity emission SUCCEEDS keeps the activity and leaves no orphan savepoint (15 ms)
+    ✕ BOTH submit hops survive: hop 2 still commits after hop 1 tripped the work-activity failure (10 ms)
+    ✓ [pin] bare client + failing work-activity: no savepoint is attempted, the write still lands (11 ms)
+    ✓ [pin] bare client, happy path: the activity is created, still no savepoint (14 ms)
+
+  ● PR-A0-2 F1 — a failing work-activity emission must not cost the CALLER its transaction › the caller tx survives a failing work-activity emission and the status write COMMITS
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "SUBMITTED"
+    Received: "DRAFT"
+
+      420 |
+      421 |         // The whole point: the business write is still there.
+    > 422 |         expect(db.committed.status).toBe('SUBMITTED');
+          |                                     ^
+      423 |         expect(db.statements).toContain('COMMIT');
+      424 |         expect(db.statements).not.toContain('COMMIT -> silently ROLLBACK (tx was aborted)');
+      425 |         // …and the canonical audit row committed with it.
+
+      at Object.toBe (__tests__/unit/a0-pr2-work-activity-fence.test.js:422:37)
+
+  ● PR-A0-2 F1 — a failing work-activity emission must not cost the CALLER its transaction › the failing work-activity emission is unwound to a SAVEPOINT (not merely swallowed)
+
+    expect(received).toHaveLength(expected)
+
+    Expected length: 1
+    Received length: 0
+    Received array:  []
+
+      440 |         const opened = db.statements.filter((s) => /^tx:SAVEPOINT a0_work_activity$/.test(s));
+      441 |         const unwound = db.statements.filter((s) => /^tx:ROLLBACK TO SAVEPOINT a0_work_activity$/.test(s));
+    > 442 |         expect(opened).toHaveLength(1);
+          |                        ^
+      443 |         expect(unwound).toHaveLength(1);
+      444 |         // the savepoint spellings must agree on both ends
+      445 |         expect(opened[0].replace('SAVEPOINT ', '')).toContain('a0_work_activity');
+
+      at Object.toHaveLength (__tests__/unit/a0-pr2-work-activity-fence.test.js:442:24)
+
+  ● PR-A0-2 F1 — a failing work-activity emission must not cost the CALLER its transaction › a caller tx whose work-activity emission SUCCEEDS keeps the activity and leaves no orphan savepoint
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "tx:RELEASE SAVEPOINT a0_work_activity"
+    Received array: ["BEGIN", "tx:UPDATE application", "tx:SAVEPOINT a0_audit_emit", "tx:SELECT pg_advisory_xact_lock(1, 2)", "tx:INSERT auditLog", "tx:RELEASE SAVEPOINT a0_audit_emit", "tx:SELECT stageActivityConfig", "tx:SELECT workActivity", "tx:SELECT slaPolicy", "tx:INSERT workActivity", …]
+
+      456 |         expect(db.committed.status).toBe('SUBMITTED');
+      457 |         expect(db.activityRows.length).toBeGreaterThan(0);
+    > 458 |         expect(db.statements).toContain('tx:RELEASE SAVEPOINT a0_work_activity');
+          |                               ^
+      459 |         expect(db.statements).toContain('COMMIT');
+      460 |     });
+      461 |
+
+      at Object.toContain (__tests__/unit/a0-pr2-work-activity-fence.test.js:458:31)
+
+  ● PR-A0-2 F1 — a failing work-activity emission must not cost the CALLER its transaction › BOTH submit hops survive: hop 2 still commits after hop 1 tripped the work-activity failure
+
+    current transaction is aborted, commands ignored until end of transaction block
+
+      128 |
+      129 | function abortedTxError() {
+    > 130 |     const e = new Error('current transaction is aborted, commands ignored until end of transaction block');
+          |               ^
+      131 |     e.code = '25P02';
+      132 |     return e;
+      133 | }
+
+      at abortedTxError (__tests__/unit/a0-pr2-work-activity-fence.test.js:130:15)
+      at abortedTxError (__tests__/unit/a0-pr2-work-activity-fence.test.js:177:58)
+      at Object.guard [as update] (__tests__/unit/a0-pr2-work-activity-fence.test.js:184:21)
+      at update (services/application-status-writer.js:734:45)
+      at applyStatusUpdate (services/application-status-writer.js:806:25)
+      at __tests__/unit/a0-pr2-work-activity-fence.test.js:472:13
+      at Object.$transaction (__tests__/unit/a0-pr2-work-activity-fence.test.js:346:23)
+      at Object.<anonymous> (__tests__/unit/a0-pr2-work-activity-fence.test.js:470:9)
+
+Test Suites: 1 failed, 1 total
+Tests:       4 failed, 3 passed, 7 total
+Snapshots:   0 total
+Time:        0.885 s, estimated 1 s
+Ran all test suites matching /__tests__\/unit\/a0-pr2-work-activity-fence.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

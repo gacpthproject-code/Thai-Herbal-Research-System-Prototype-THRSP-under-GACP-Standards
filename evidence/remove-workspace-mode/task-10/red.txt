@@ -1,0 +1,87 @@
+# R2 Task 10 — RED (before implementation) — 2026-10-03
+Tree: feat/remove-workspace-mode HEAD e9b8bcf7 + new/rewritten tests only (no src change).
+Real Postgres: throwaway postgres:17 on :55437 (prisma migrate deploy, jest -i). Never staging/demo.
+Signing key mtime (GACP-Certification-Application/apps/backend/keys/*.pem): 1788623435 before and after.
+
+Command: SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs -i \
+  __tests__/unit/farm-entityid-stamp.test.js __tests__/unit/farm-permission-gates.test.js \
+  __tests__/unit/applications-draft-formdata-allowlist.test.js __tests__/unit/draft-document-delete-removes-bytes.test.js \
+  __tests__/integration/farm-create-holder-real-postgres.test.js
+
+Result: Test Suites: 3 failed, 2 passed, 5 total · Tests: 16 failed, 43 passed, 59 total (0 skipped)
+
+FAIL integration/farm-create-holder-real-postgres.test.js (real server, real engine, real PG)
+  x no entityId -> 400 APPLICATION_HOLDER_REQUIRED ... photo discarded        (Received 201: farm created on the header's entity)
+  x MANAGER B on C -> 403 ... nothing written, photo discarded                (403 returned, but files +1: the stored photo is orphaned)
+  x VIEWER V on C -> 403 ... photo discarded                                  (files +1)
+  x stranger S names C -> 403 ...                                             (Received 201: body entityId ignored, farm made on S's personal entity)
+  x missing required fields with a photo -> 400 ... photo discarded           (400 returned, files +1)
+  x the body names the holder, not the header: header PA + body C -> farm on C (entityId = PA)
+  x GET /api/wizard/* -> 404 with ENABLE_PROVIDER_LEGACY_ALIAS=true           (Received 200 on /api/wizard/config)
+  x POST /api/wizard/submit and /prepare -> 404 and create nothing            (Received 500)
+  passing at base (pins): A on PA -> 201 entityId PA, photo kept · A on C -> 201 · /provider-cms still mounted (Deprecation header)
+
+FAIL unit/farm-permission-gates.test.js
+  x POST /farms without entityId -> 400 APPLICATION_HOLDER_REQUIRED, nothing created
+  x without entityId the active-entity header is no fallback -> still 400
+  x POST /farms passes body.entityId to createFarm and checks FARM_CREATE on it
+  x the body names the holder, not the header: header PA + body C -> checked and written on C
+  x FARM_CREATE is checked on the personal entity too (its OWNER passes by role)
+  x denied -> 403 ENTITY_PERMISSION_DENIED, nothing created
+  (pin) missing required fields -> 400 before the holder is checked
+
+FAIL unit/farm-entityid-stamp.test.js
+  x createFarm without entityId throws and writes nothing
+  x createFarm without entityId throws inside an active-entity context too (no fallback)
+  (pins) stamps options.entityId · explicit entityId wins over ALS · body entityId never reaches the row
+
+PASS (moved cases, PIN not fix — green from birth on the live door)
+  unit/applications-draft-formdata-allowlist.test.js: "does not let an autosave author the uploadedDocuments record"
+  unit/draft-document-delete-removes-bytes.test.js: "moved: absolute path outside /uploads REFUSED",
+    "moved: sibling directory sharing the root prefix REFUSED", "moved: record removed even when its path is refused"
+
+Note: the orphaned photos the RED run left in apps/backend/public/uploads (gitignored) were deleted by hand after the run.
+
+## ROUND 1 (review I1 + M1) — RED on 013de5c6 + new/updated tests only — 2026-10-03
+Real PG :55437 (fresh postgres:17, migrate deploy, -i). Key mtime 1788623435 before/after.
+Result: Test Suites 3 failed, 1 passed (4) · Tests 4 failed, 33 passed (37), 0 skipped
+  x unit/entity-permission-denied-copy.test.js — suite fails: Cannot find module '../../shared/entity-permission-denied'
+    (the single copy source does not exist; every door carries its own "...ในพื้นที่ทำงาน" literal)
+  x farm-permission-gates "denied → 403 ENTITY_PERMISSION_DENIED, nothing created" (body.error is the old workspace literal)
+  x farm-permission-gates "POST plot denied → 403 ..." (body.message is the old workspace literal)
+  x a-company-holds-its-own-certificate "การปฏิเสธบอกเป็นภาษาไทยว่าต้องทำอะไรต่อ" (issuance copy says สลับไปพื้นที่ทำงาน, not spec §3.7)
+  x a-company-holds-its-own-certificate "นิติบุคคลที่ยื่นในนามบุคคล → blockingIssue ที่อ่านรู้เรื่อง" (same, submit door)
+M1 (500 path) — PIN on 013de5c6 (the discard exists), proven by mutation:
+  "a create that fails after the upload is stored → 500; nothing written, photo discarded"
+  with the catch-block `if (!created) discardRejectedUpload(req.file)` deleted from farms.js:
+    x 1 failed / 11 passed — files: Expected [] Received [ "<ts>-<uuid>.png" ] (the orphan); farms.js restored (git diff empty).
+
+## ROUND 2 (review I1a, I1b) — RED on e3794e44 + new/updated tests only — 2026-10-03
+Real PG :55437 (fresh postgres:17, migrate deploy, -i). Key mtime 1788623435 before/after.
+Result: Test Suites 4 failed (4) · Tests 16 failed, 68 passed (84), 0 skipped
+  holder-scope-real-postgres (expectDenied: code, error = messageTh = catalogue Thai, message = catalogue English):
+    x case 7 V create draft · x renewal by VIEWER · x case 3 V submits D (messageTh was "เกิดข้อผิดพลาดภายในระบบ":
+      sendErrorResponse fell back to the INTERNAL_SERVER_ERROR copy for this code) · x C8 bundle unlink/delete
+    x case 4 B deletes D · x checkout V, B · x /payments/create V, B · x /payments/phase1 V, B
+  farm-create-holder-real-postgres: x MANAGER B on C (no messageTh)
+  a-company-holds-its-own-certificate: x issuance copy (was the draft-oriented §3.7 sentence)
+  entity-permission-denied-copy:
+    x scan of all runtime code: 16 sites built the answer themselves — 11 hand-built bodies, payments.js:123,
+      applications.js:387 (literal message), application-submit-guard.js:148 (Thai literal),
+      renewal-service.js:351 (Thai literal), entity-effective-permissions-service.js:260 (literal Error)
+      (+ the catalogue entry itself, then excluded as the source). The Error rule was then widened to
+      "code set within 2 lines", which also caught application-bundles.js:151 and
+      application-draft-query-methods.js:267 (literal English Error messages).
+    x the one body shape (helper missing) · x sendErrorResponse override (messageTh = INTERNAL copy)
+
+## ROUND 3 — RED on 3d5fc593 + new/updated tests only — 2026-10-03 (key mtime 1788623435 before/after)
+backend: a-company-holds-its-own-certificate + entity-permission-denied-copy: 2 failed / 42 passed
+  x "ประเภทผู้ถือไม่ตรงกับที่ประกาศ (นิติบุคคล vs บุคคลธรรมดา)" (type-mismatch issuance path: message named "ใบรับรองเดิม")
+  x "การปฏิเสธบอกเป็นภาษาไทยว่าต้องทำอะไรต่อ" (same message, catalogue pinned)
+guard gap: the round-2 rules (entity-permission-denied-copy.test.js:66-74 on 3d5fc593) run on the new samples:
+  MISSED constant code + literal error · MISSED constant code + literal messageTh · MISSED local const code + literal message
+  · MISSED local const code + literal message (multi-line body) · MISSED constant code + literal message argument
+  (the new ownDenialMessages() flags all 10 samples and passes the 4 single-source shapes; real tree: 0 hits)
+web: entity-permission-denial.test.ts + api-client.test.ts: 2 failed / 28 passed
+  x "exports the canonical code and the generic Thai fallback" · x "falls back to the ... Thai copy ... (shape C)"
+  (fallback was 'ไม่มีสิทธิ์ดำเนินการนี้ ติดต่อเจ้าของ workspace')

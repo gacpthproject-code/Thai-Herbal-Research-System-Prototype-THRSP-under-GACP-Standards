@@ -1,0 +1,31 @@
+FAIL __tests__/unit/payment-terms-gate-slip.test.js
+    × granted PAYMENT_TERMS consent passes (26 ms)
+    √ S5: a consent granted under an OLDER terms version does not satisfy the gate (re-disclosure on version bump) (3 ms)
+    √ no consent row throws PAYMENT_TERMS_NOT_ACCEPTED (409) (1 ms)
+    √ missing actorUserId fails CLOSED (rogue caller cannot skip the gate) (2 ms)
+    √ a lookup failure surfaces as the gate error (never silently opens) (2 ms)
+    √ recordApplicationSlipUpload is wired through the gate (source check) (2 ms)
+  ● [Q4] assertPaymentTermsAcceptedForSlip — pre-payment disclosure gate › granted PAYMENT_TERMS consent passes
+    Received promise rejected instead of resolved
+FAIL __tests__/unit/payment-slip-service-fanout.test.js
+    × application upload fires one send() per ACCOUNT recipient with type and channels (15 ms)
+    √ subscription upload also routes through the PAYMENT_SLIP_UPLOADED fanout (13 ms)
+    × upload path swallows fanout failure (preserves .catch discipline) (2 ms)
+    √ fires single send() with PAYMENT_SLIP_APPROVED to uploader (77 ms)
+    √ uploader-resolver queries by canonicalId/healthId/id (canonical fallback chain) (28 ms)
+    √ skips dispatch when uploader cannot be resolved (no send() invoked) (11 ms)
+    √ fires single send() with PAYMENT_SLIP_REJECTED carrying the reason in payload (3 ms)
+    √ reject path swallows fanout failure (caller still gets the rejection result) (2 ms)
+  ● recordSlipUpload — PAYMENT_SLIP_UPLOADED fanout (R3-B) › application upload fires one send() per ACCOUNT recipient with type and channels
+  ● recordSlipUpload — PAYMENT_SLIP_UPLOADED fanout (R3-B) › upload path swallows fanout failure (preserves .catch discipline)
+    Received promise rejected instead of resolved
+FAIL __tests__/unit/payment-slip-stage-a2-uploadedby.test.js
+    × flag ON: stamps the HMAC token (what req.user.canonicalId carries) into attachments.uploadedBy (4 ms)
+    × flag OFF: stamps the national ID (byte-for-byte today) into attachments.uploadedBy (2 ms)
+    × stamps actorId = actorUserId (User.id), NOT the token/national-ID in uploadedBy (2 ms)
+    √ a caller that does not thread actorUserId is REJECTED by the Q4 terms gate (contract change 2026-07-08) (2 ms)
+  ● STAGE A.2 — Attachment dual-write stamps the route-resolved uploadedBy › flag ON: stamps the HMAC token (what req.user.canonicalId carries) into attachments.uploadedBy
+  ● STAGE A.2 — Attachment dual-write stamps the route-resolved uploadedBy › flag OFF: stamps the national ID (byte-for-byte today) into attachments.uploadedBy
+  ● STAGE A.2 — status-transition audit actorId is the non-PII User UUID › stamps actorId = actorUserId (User.id), NOT the token/national-ID in uploadedBy
+Test Suites: 3 failed, 3 total
+Tests:       6 failed, 12 passed, 18 total

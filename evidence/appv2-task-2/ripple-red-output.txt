@@ -1,0 +1,87 @@
+# Task 2 RIPPLE RED — the neighbour suites, captured in-session AFTER the two
+# source files were changed and BEFORE any neighbour assertion was touched.
+#
+# This is the second RED of this task. The first (red-output.txt) is the new
+# suite failing before the catalog and the folds existed. This one is the proof
+# that the fold actually MOVED the canon: every failure below is a test that had
+# written down the OLD canonical id as a literal.
+#
+# Command: cd apps/backend && npx jest __tests__/document-slots.test.js \
+#   __tests__/unit/upload-slot-canonicalisation.test.js \
+#   __tests__/unit/upload-rules-three-layers.test.js \
+#   __tests__/unit/admin-requirement-rules-routes.test.js \
+#   __tests__/unit/requirement-rule-service.test.js \
+#   __tests__/unit/m2a-doc-requirements.test.js \
+#   __tests__/unit/m2a-doc-requirements-doors.test.js \
+#   __tests__/unit/application-document-slot-supersession.test.js \
+#   __tests__/unit/draft-document-reupload-replaces-slot.test.js \
+#   __tests__/unit/error-codes-catalog.test.js --runInBand
+#
+# Output below is the run's own lines, filtered through
+#   | grep -E "^(PASS|FAIL|Tests:|Test Suites:)|●|✕|×"
+# (jest prints one console.warn block per suite about DATABASE_URL; the same
+# block is present verbatim in baseline-before.txt and test-output.txt).
+# ---------------------------------------------------------------------------
+PASS __tests__/unit/draft-document-reupload-replaces-slot.test.js (5.325 s)
+FAIL __tests__/unit/admin-requirement-rules-routes.test.js
+    × 201: the row is created under the caller and an audit row is emitted (17 ms)
+    × a slot written through an old alias is stored canonical (LAND_TITLE → land_deed) (11 ms)
+    × all three dimensions omitted = a rule that binds everyone (201, NULLs stored) (10 ms)
+    × 201: landTenure/areaType/certScope reach the row and the audit row (10 ms)
+  ● POST / — new law enters as a row › 201: the row is created under the caller and an audit row is emitted
+  ● POST / — new law enters as a row › a slot written through an old alias is stored canonical (LAND_TITLE → land_deed)
+  ● POST / — new law enters as a row › all three dimensions omitted = a rule that binds everyone (201, NULLs stored)
+  ● POST / — new law enters as a row › 201: landTenure/areaType/certScope reach the row and the audit row
+PASS __tests__/unit/error-codes-catalog.test.js
+FAIL __tests__/unit/m2a-doc-requirements-doors.test.js
+    × JURISTIC with no company registration on file → 422, and NOTHING is written (30 ms)
+    × with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers (107 ms)
+    × the stamped set is still enforced on resubmit → 422 before any write (10 ms)
+    × one linked case short of a document refuses the WHOLE bundle → 422, no transaction opened (28 ms)
+    × every linked case is stamped inside the existing transaction, applicant data intact (11 ms)
+    × a stamped slot the server cannot see → 422, no status write (23 ms)
+    × an applicant missing a stamped document → 422, the deadline row is untouched (22 ms)
+    × a stamped slot the server cannot see → 422, submitRevision never runs (21 ms)
+    × a DRAFT here is a FIRST submit — todays law is read and the missing document is refused (10 ms)
+    × a satisfied DRAFT is stamped BY THE DOOR — the snapshot travels as server data, not as client formData (10 ms)
+FAIL __tests__/unit/upload-slot-canonicalisation.test.js
+    × the known contradictions are exactly the listed one (2 ms)
+  ● a slot cannot hold two rules › the known contradictions are exactly the listed one
+FAIL __tests__/unit/requirement-rule-service.test.js
+    × stores the slot in canonical form, so a rule written through an alias still fires (2 ms)
+    × writes an audit row carrying the substance of the rule (2 ms)
+PASS __tests__/unit/upload-rules-three-layers.test.js
+FAIL __tests__/unit/m2a-doc-requirements.test.js
+    × JURISTIC with no server-side COMPANY_REG → 422 APPLICATION_INCOMPLETE naming the slot (3 ms)
+    × a rule with every dimension NULL binds even the INDIVIDUAL filing (2 ms)
+    × a renewal is judged by the RENEWAL law, never by a word this codebase does not speak (1 ms)
+    × an ApplicationDocument row satisfies it through documentType — the row id is NOT a slot (2 ms)
+    × a client flag alone is worth nothing — documents[].uploaded = true still 422s (1 ms)
+    × the stamped set is still enforced — a stamped slot gone missing is a 422 (2 ms)
+    × records the rules consulted and the slots they demanded, canonically (1 ms)
+FAIL __tests__/unit/application-document-slot-supersession.test.js
+    × the second upload becomes the slot document and the first is kept as history (3 ms)
+    × the ภท.11 slot uploaded six times leaves six rows and ONE current document (2 ms)
+    × two spellings of the same slot are the same slot (1 ms)
+    × a different slot is untouched by the replacement (2 ms)
+    × re-syncing one documentId corrects that row instead of superseding it (1 ms)
+    × a later upload can take the emptied slot (1 ms)
+    × an upload into a slot the migration left undecided takes the slot and outranks them (1 ms)
+FAIL __tests__/document-slots.test.js
+      × should have required fields for each slot (11 ms)
+Test Suites: 7 failed, 3 passed, 10 total
+Tests:       32 failed, 165 passed, 197 total
+
+# ---------------------------------------------------------------------------
+# The four representative diffs, from the same run (grep -E "●|Expected|Received"):
+#
+#   admin-requirement-rules-routes.test.js:311   Expected: "land_deed"    Received: "land_rights"
+#   requirement-rule-service.test.js:198         Expected: "company_reg"  Received: "juristic_reg_6m"
+#   upload-slot-canonicalisation.test.js:137     - Expected - 0  + Received + 5   (new contradictions)
+#   document-slots.test.js:23                    Expected path: "required"  Received path: []
+#                                                Received value: {...slotId: "land_rights", sourceHint: ...}
+#
+# Every one of them is a literal that said the old canon. None is a behaviour
+# assertion: the fixtures that FEED the old spelling in (COMPANY_REG_RULE,
+# STAMP.slotIds, `slotId: 'LAND_TITLE'`) were left exactly as they were, which
+# is what proves "old uploads keep counting".

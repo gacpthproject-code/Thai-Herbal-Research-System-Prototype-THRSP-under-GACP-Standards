@@ -1,0 +1,311 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - link "ข้ามไปยังเนื้อหาหลัก" [ref=e2] [cursor=pointer]:
+    - /url: "#main-content"
+  - generic [ref=e3]:
+    - banner [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - link "GACP Platform ระบบรับรองมาตรฐาน GACP" [ref=e7] [cursor=pointer]:
+            - /url: /health/dashboard
+            - generic [ref=e9]:
+              - generic [ref=e10]: GACP Platform
+              - generic [ref=e11]: ระบบรับรองมาตรฐาน GACP
+          - navigation "เมนูหลัก" [ref=e12]:
+            - link "แดชบอร์ด" [ref=e13] [cursor=pointer]:
+              - /url: /health/dashboard
+              - img [ref=e14]
+              - text: แดชบอร์ด
+            - link "คำขอรับรอง" [ref=e17] [cursor=pointer]:
+              - /url: /health/applications
+              - img [ref=e18]
+              - text: คำขอรับรอง
+            - link "การชำระเงิน" [ref=e21] [cursor=pointer]:
+              - /url: /health/payments
+              - img [ref=e22]
+              - text: การชำระเงิน
+            - link:
+              - /url: /health/certificates
+              - img
+              - text: ใบรับรอง
+            - link:
+              - /url: /health/planting
+              - img
+              - text: การปลูก
+            - link:
+              - /url: /health/profile
+              - img
+              - text: โปรไฟล์
+            - link:
+              - /url: /health/workspaces
+              - img
+              - text: ทีมงาน
+            - link:
+              - /url: /health/surveys
+              - img
+              - text: แบบสำรวจ
+            - link:
+              - /url: /health/herbs
+              - img
+              - text: สมุนไพร
+            - link:
+              - /url: /help
+              - img
+              - text: ช่วยเหลือ
+            - button "เพิ่มเติม" [ref=e25] [cursor=pointer]:
+              - text: เพิ่มเติม
+              - generic [ref=e26]: ▾
+        - generic [ref=e27]:
+          - generic [ref=e28]:
+            - button "รอยต่อ พิสูจน์ท่อ เจ้าของ" [disabled] [ref=e29]:
+              - img [ref=e30]
+              - generic [ref=e33]: รอยต่อ พิสูจน์ท่อ
+              - generic [ref=e34]: เจ้าของ
+            - link "สร้าง workspace ใหม่" [ref=e35] [cursor=pointer]:
+              - /url: /health/workspaces/new
+              - img [ref=e36]
+          - button "เปิดโหมดมืด" [ref=e37] [cursor=pointer]:
+            - img [ref=e38]
+          - button "สลับภาษาเป็นภาษาอังกฤษ" [ref=e40] [cursor=pointer]:
+            - generic [ref=e41]:
+              - img [ref=e42]
+              - text: EN
+          - button "แจ้งเตือน" [ref=e45] [cursor=pointer]:
+            - img [ref=e46]
+          - button "โปรไฟล์" [ref=e49] [cursor=pointer]:
+            - generic [ref=e50]: ร
+            - generic [ref=e51]: รอยต่อ พิสูจน์ท่อ
+            - img [ref=e52]
+    - main [ref=e54]:
+      - main [ref=e56]:
+        - generic [ref=e58]:
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - heading "ตรวจสอบคำขอก่อนชำระเงินและยื่นทางการ" [level=1] [ref=e61]
+              - paragraph [ref=e62]: แสดงข้อมูลจากระบบทั้งหมดแบบไม่ตัดฟิลด์ เพื่อใช้เป็นเอกสารราชการ
+            - generic [ref=e63]:
+              - button "พิมพ์เอกสาร" [ref=e64] [cursor=pointer]:
+                - img [ref=e65]
+                - text: พิมพ์เอกสาร
+              - button "กลับไปแก้ไข" [ref=e69] [cursor=pointer]:
+                - img [ref=e70]
+                - text: กลับไปแก้ไข
+          - main [ref=e73]:
+            - generic [ref=e74]: ข้อมูลครบถ้วน พร้อมออกใบแจ้งหนี้งวดที่ 1
+            - generic [ref=e75]:
+              - heading "ข้อมูลผู้ยื่นคำขอ" [level=2] [ref=e76]
+              - generic [ref=e77]:
+                - generic [ref=e78]:
+                  - paragraph [ref=e79]: ชื่อ-นามสกุล
+                  - paragraph [ref=e80]: รอยต่อ พิสูจน์ท่อ
+                - generic [ref=e81]:
+                  - paragraph [ref=e82]: โทรศัพท์
+                  - paragraph [ref=e83]: "0892692465"
+                - generic [ref=e84]:
+                  - paragraph [ref=e85]: อีเมล
+                  - paragraph [ref=e86]: phase0.seams.1787067867710@example.test
+            - generic [ref=e87]:
+              - heading "ข้อมูลจากขั้นตอนที่ 1" [level=2] [ref=e88]
+              - generic [ref=e89]:
+                - generic [ref=e90]:
+                  - paragraph [ref=e91]: พืชที่ขอรับรอง
+                  - paragraph [ref=e92]: cannabis
+                - generic [ref=e93]:
+                  - paragraph [ref=e94]: ประเภทบริการ
+                  - paragraph [ref=e95]: ขอรับรองใหม่
+                - generic [ref=e96]:
+                  - paragraph [ref=e97]: วัตถุประสงค์
+                  - paragraph [ref=e98]: "-"
+                - generic [ref=e99]:
+                  - paragraph [ref=e100]: รูปแบบการปลูก
+                  - paragraph [ref=e101]: กลางแจ้ง
+            - generic [ref=e102]:
+              - heading "ข้อมูลฟาร์มและพื้นที่" [level=2] [ref=e103]
+              - generic [ref=e104]:
+                - generic [ref=e105]:
+                  - paragraph [ref=e106]: ชื่อฟาร์ม
+                  - paragraph [ref=e107]: ฟาร์มรอยต่อ A
+                - generic [ref=e108]:
+                  - paragraph [ref=e109]: มาตรฐาน
+                  - paragraph [ref=e110]: GACP
+                - generic [ref=e111]:
+                  - paragraph [ref=e112]: รูปแบบการปลูก
+                  - paragraph [ref=e113]: OUTDOOR
+                - generic [ref=e114]:
+                  - paragraph [ref=e115]: ขนาดพื้นที่
+                  - paragraph [ref=e116]: 5 ตร.ม.
+                - generic [ref=e117]:
+                  - paragraph [ref=e118]: ชนิดพืช
+                  - paragraph [ref=e119]: cannabis
+                - generic [ref=e120]:
+                  - paragraph [ref=e121]: ที่ตั้ง
+                  - paragraph [ref=e122]: 1/1 หมู่ 1, สุเทพ, เมือง, เชียงใหม่, 50200
+            - generic [ref=e123]:
+              - heading "ข้อมูลการผลิต" [level=2] [ref=e124]
+              - generic [ref=e125]:
+                - generic [ref=e126]:
+                  - paragraph [ref=e127]: วันเริ่มปลูก
+                  - paragraph [ref=e128]: "-"
+                - generic [ref=e129]:
+                  - paragraph [ref=e130]: วันคาดเก็บเกี่ยว
+                  - paragraph [ref=e131]: "-"
+                - generic [ref=e132]:
+                  - paragraph [ref=e133]: ผลผลิตคาดการณ์
+                  - paragraph [ref=e134]: "-"
+            - generic [ref=e135]:
+              - heading "เอกสารแนบ" [level=2] [ref=e136]
+              - table [ref=e138]:
+                - rowgroup [ref=e139]:
+                  - row "เอกสาร สถานะ เปิดดู" [ref=e140]:
+                    - columnheader "เอกสาร" [ref=e141]
+                    - columnheader "สถานะ" [ref=e142]
+                    - columnheader "เปิดดู" [ref=e143]
+                - rowgroup [ref=e144]:
+                  - 'row "เอกสาร M1 #1 อัปโหลดแล้ว เปิด" [ref=e145]':
+                    - 'cell "เอกสาร M1 #1" [ref=e146]'
+                    - cell "อัปโหลดแล้ว" [ref=e147]:
+                      - generic [ref=e148]: อัปโหลดแล้ว
+                    - cell "เปิด" [ref=e149]:
+                      - button "เปิด" [ref=e150] [cursor=pointer]
+                  - 'row "เอกสาร M1 #2 อัปโหลดแล้ว เปิด" [ref=e151]':
+                    - 'cell "เอกสาร M1 #2" [ref=e152]'
+                    - cell "อัปโหลดแล้ว" [ref=e153]:
+                      - generic [ref=e154]: อัปโหลดแล้ว
+                    - cell "เปิด" [ref=e155]:
+                      - button "เปิด" [ref=e156] [cursor=pointer]
+                  - 'row "เอกสาร M1 #3 อัปโหลดแล้ว เปิด" [ref=e157]':
+                    - 'cell "เอกสาร M1 #3" [ref=e158]'
+                    - cell "อัปโหลดแล้ว" [ref=e159]:
+                      - generic [ref=e160]: อัปโหลดแล้ว
+                    - cell "เปิด" [ref=e161]:
+                      - button "เปิด" [ref=e162] [cursor=pointer]
+            - generic [ref=e163]:
+              - heading "สรุปค่าธรรมเนียม" [level=2] [ref=e164]
+              - generic [ref=e165]:
+                - generic [ref=e166]:
+                  - generic [ref=e167]: จำนวนรูปแบบการปลูก
+                  - generic [ref=e168]: "1"
+                - generic [ref=e169]:
+                  - generic [ref=e170]: งวดที่ 1 (รัฐ)
+                  - generic [ref=e171]: ฿5,000
+                - generic [ref=e172]:
+                  - generic [ref=e173]: งวดที่ 1 (แพลตฟอร์ม)
+                  - generic [ref=e174]: ฿500
+                - generic [ref=e175]:
+                  - generic [ref=e176]: รวมงวดที่ 1
+                  - generic [ref=e177]: ฿5,535
+                - generic [ref=e178]:
+                  - generic [ref=e179]: งวดที่ 2 (รัฐ)
+                  - generic [ref=e180]: ฿25,000
+                - generic [ref=e181]:
+                  - generic [ref=e182]: งวดที่ 2 (แพลตฟอร์ม)
+                  - generic [ref=e183]: ฿2,500
+                - generic [ref=e184]:
+                  - generic [ref=e185]: รวมงวดที่ 2
+                  - generic [ref=e186]: ฿27,675
+                - generic [ref=e188]:
+                  - generic [ref=e189]: รวมค่าธรรมเนียมภาครัฐ
+                  - generic [ref=e190]: ฿30,000
+                - generic [ref=e191]:
+                  - generic [ref=e192]: รวมค่าบริการแพลตฟอร์ม
+                  - generic [ref=e193]: ฿3,000
+                - generic [ref=e194]:
+                  - generic [ref=e195]: ยอดรวมทั้งสิ้น
+                  - generic [ref=e196]: ฿33,210
+            - generic [ref=e197]:
+              - heading "เอกสารการเงินงวดที่ 1" [level=2] [ref=e198]
+              - generic [ref=e199]:
+                - generic [ref=e200]:
+                  - paragraph [ref=e201]: ใบเสนอราคา (ภาครัฐ)
+                  - paragraph [ref=e202]: QT-202608180029
+                - generic [ref=e203]:
+                  - paragraph [ref=e204]: ใบแจ้งหนี้ (ภาครัฐ)
+                  - paragraph [ref=e205]: INV-202608180038
+                  - generic [ref=e206]: pending
+                - generic [ref=e207]:
+                  - paragraph [ref=e208]: ใบเสนอราคา (แพลตฟอร์ม)
+                  - paragraph [ref=e209]: QT-202608180030
+                - generic [ref=e210]:
+                  - paragraph [ref=e211]: ใบแจ้งหนี้ (แพลตฟอร์ม)
+                  - paragraph [ref=e212]: INV-202608180039
+                  - generic [ref=e213]: pending
+          - generic [ref=e214]:
+            - generic [ref=e215]:
+              - generic [ref=e216]: "สถานะงวดที่ 1: PENDING"
+              - generic [ref=e217]: "ขั้นตอนถัดไป: PAY_PHASE_1"
+            - generic [ref=e218]:
+              - button "กลับไปรายการคำขอ" [ref=e219] [cursor=pointer]
+              - button "เปิดรายการใบแจ้งหนี้งวดที่ 1" [ref=e220] [cursor=pointer]
+              - button "สร้างรายการชำระงวดที่ 1 / ฿5,535" [ref=e221] [cursor=pointer]
+    - contentinfo "ข้อมูลกระทรวงและลิงก์ส่วนล่าง" [ref=e223]:
+      - generic [ref=e224]:
+        - generic [ref=e225]:
+          - generic [ref=e226]:
+            - generic [ref=e227]: GACP
+            - generic [ref=e228]:
+              - paragraph [ref=e229]: กรมการแพทย์แผนไทยและการแพทย์ทางเลือก
+              - paragraph [ref=e230]: Department of Thai Traditional and Alternative Medicine, Ministry of Public Health
+          - generic [ref=e231]:
+            - generic [ref=e232]: "ที่อยู่:"
+            - text: 88/23 หมู่ 4 ตำบลตลาดขวัญ อำเภอเมืองนนทบุรี จังหวัดนนทบุรี 11000
+          - paragraph [ref=e233]:
+            - img [ref=e234]
+            - text: โทร
+            - link "โทรศัพท์ 0-2591-7007" [ref=e236] [cursor=pointer]:
+              - /url: tel:+6625917007
+              - text: 0-2591-7007
+          - paragraph [ref=e237]:
+            - img [ref=e238]
+            - link "ส่งอีเมลถึง contact@gacpth.com" [ref=e241] [cursor=pointer]:
+              - /url: mailto:contact@gacpth.com
+              - text: contact@gacpth.com
+        - navigation "ลิงก์ส่วนล่าง" [ref=e242]:
+          - heading "เกี่ยวกับและความช่วยเหลือ" [level=2] [ref=e243]
+          - list [ref=e244]:
+            - listitem [ref=e245]:
+              - link "เกี่ยวกับ GACP" [ref=e246] [cursor=pointer]:
+                - /url: /about
+            - listitem [ref=e247]:
+              - link "นโยบายการเข้าถึงเว็บไซต์" [ref=e248] [cursor=pointer]:
+                - /url: /accessibility
+            - listitem [ref=e249]:
+              - link "นโยบายความเป็นส่วนตัว" [ref=e250] [cursor=pointer]:
+                - /url: /privacy
+            - listitem [ref=e251]:
+              - link "ข้อกำหนดการใช้งาน" [ref=e252] [cursor=pointer]:
+                - /url: /terms
+            - listitem [ref=e253]:
+              - link "แผนผังเว็บไซต์" [ref=e254] [cursor=pointer]:
+                - /url: /sitemap.xml
+            - listitem [ref=e255]:
+              - link "วิธีใช้งานระบบ" [ref=e256] [cursor=pointer]:
+                - /url: /help
+        - generic [ref=e257]:
+          - heading "ระบบและเวอร์ชัน" [level=2] [ref=e258]
+          - generic [ref=e259]:
+            - generic [ref=e260]:
+              - term [ref=e261]: ปรับปรุงล่าสุด
+              - definition [ref=e262]: ปัจจุบัน
+            - generic [ref=e263]:
+              - term [ref=e264]: เว็บไซต์กรม
+              - definition [ref=e265]:
+                - link "เว็บไซต์กรมการแพทย์แผนไทยและการแพทย์ทางเลือก dtam.moph.go.th (เปิดในแท็บใหม่)" [ref=e266] [cursor=pointer]:
+                  - /url: https://dtam.moph.go.th
+                  - text: dtam.moph.go.th
+          - paragraph [ref=e267]:
+            - text: ระบบนี้รับรองโดยกรมการแพทย์แผนไทยและการแพทย์ทางเลือก
+            - text: เป็นเว็บไซต์ของรัฐบาลไทย ใช้งานฟรี ไม่มีค่าใช้จ่ายแอบแฝง
+      - generic [ref=e269]:
+        - generic [ref=e270]: © 2569 (2026) กรมการแพทย์แผนไทยและการแพทย์ทางเลือก · สงวนลิขสิทธิ์
+        - generic [ref=e271]:
+          - text: หากพบปัญหาในการเข้าถึงเว็บไซต์ โปรดติดต่อ
+          - link "แจ้งปัญหาการเข้าถึงผ่านอีเมล contact@gacpth.com" [ref=e272] [cursor=pointer]:
+            - /url: mailto:contact@gacpth.com
+            - text: contact@gacpth.com
+  - region "Notifications alt+T"
+  - button "Open Next.js Dev Tools" [ref=e278] [cursor=pointer]:
+    - img [ref=e279]
+  - alert [ref=e282]
+```

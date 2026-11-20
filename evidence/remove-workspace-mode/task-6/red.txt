@@ -1,0 +1,140 @@
+# Task 6 RED — health door walk + witness throw in tests (summaries only)
+Tree: worktree at bbf70ec0 + ONLY the new/changed tests, fixtures and the config flip (no conversions).
+Postgres 17 throwaway on 127.0.0.1:5447 (migrated, plant species seeded). Node v24.21.0, plain jest -i.
+
+## Unit (config at bbf70ec0, new tests): holder-read-witness + throw-guard
+5 failed, 97 passed, 102 total — default under NODE_ENV=test was 'shadow', not 'throw'
+
+## Door walk (health-door-walk-real-postgres) — THROW-mode RED, fix round 1
+Recorded by running the round-1 walk (param mounts fixed, by-id rows seeded) on bbf70ec0 + the tests,
+fixtures and config flip only, with the NODE_ENV=test default (throw). 123 doors x A,B,V,S.
+Doors the witness refused (32):
+  /api/applications/:applicationId/statement -> Invoice.findMany,Quotation.findMany
+  /api/applications/:id/katorlor1 -> ApplicationDocument.findMany
+  /api/applications/:id/pdf -> ApplicationDocument.findMany
+  /api/applications/readiness -> Application.findMany,Farm.findMany
+  /api/applications/revision-deadline/:applicationId -> Application.findFirst
+  /api/audits/site-analysis/farm/:farmId -> Farm.findUnique
+  /api/audits/site-analysis/farm/:farmId/latest -> Farm.findUnique
+  /api/auth/health/me/export -> Application.findMany,Certificate.findMany,Farm.findMany,Invoice.findMany
+  /api/dashboard -> Certificate.count,Farm.count
+  /api/dashboard/stats -> Certificate.count,Farm.count
+  /api/dashboard/summary -> Certificate.count,Farm.count
+  /api/documents -> Application.findMany
+  /api/documents/:id -> Application.findMany
+  /api/farms/:farmId/plots -> Certificate.findMany
+  /api/farms/my/eligible-for-planting -> Certificate.findMany
+  /api/finance/credit-notes -> Invoice.findUnique
+  /api/lots/:id -> Farm.findMany
+  /api/lots/:id/label -> Farm.findMany
+  /api/lots/:id/qr -> Farm.findMany
+  /api/lots/:id/qr/print -> Farm.findMany
+  /api/lots/batch/:batchId -> Farm.findMany
+  /api/planting-cycles/capacity/summary -> Certificate.findMany
+  /api/plots/farms/:farmId/plots -> Certificate.findMany
+  /api/preview/applications/:id/preview -> Invoice.findFirst
+  /api/revision-deadline/:applicationId -> Application.findFirst
+  /api/site-analyses/farm/:farmId -> Farm.findUnique
+  /api/site-analyses/farm/:farmId/latest -> Farm.findUnique
+  /api/standards/:code/analyze/:applicationId -> Application.findFirst
+  /api/training-records/farm/:farmId -> Farm.findUnique
+  /api/training-records/farm/:farmId/compliance -> Farm.findUnique
+  /api/training-records/farm/:farmId/personnel -> Farm.findUnique
+  /api/training-records/farm/:farmId/summary -> Farm.findUnique
+Walk tests on that tree: 8 of 13 failed (with the write-door suite), incl. "every door 2xx for a legit actor"
+(the refused doors answered 500) and the neutrality comparison.
+(Round 0's list, 30 doors, was a shadow-mode reconstruction; it lacked credit-notes and standards analyze,
+which were unreachable then because the walk sent no ?originalInvoiceId and no standard row existed.)
+
+## Write doors (r1-task6-write-doors-neutral-real-postgres), clean RED tree, throw:
+  "A POST /quotes/:id/accept → Quote.findUnique",
+  "A POST /quotes/:id/reject → Quote.findUnique",
+  "A POST /applications/bundles/:id/submit → ApplicationDocument.findMany",
+  "A PUT /applications/:id/revision → ApplicationDocument.findMany",
+  "A PUT /revision-deadline/:id/submit → Application.findFirst",
+  "A POST /applications/:id/car → ApplicationDocument.findMany",
+  "A POST /planting-cycles/:id/activities → Farm.findUnique",
+  "B POST /quotes/:id/accept → Quote.findUnique",
+  "B POST /quotes/:id/reject → Quote.findUnique",
+  "B PUT /revision-deadline/:id/submit → Application.findFirst",
+  "B POST /planting-cycles/:id/activities → Farm.findUnique",
+  "S POST /quotes/:id/accept → Quote.findUnique",
+  "S POST /quotes/:id/reject → Quote.findUnique",
+  "S PUT /revision-deadline/:id/submit → Application.findFirst",
+  "A POST /applications/:id/car: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":null}",
+  "A POST /applications/bundles/:id/submit: expected {\"status\":422,\"code\":\"APPLICATION_INCOMPLETE\"} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"
+  "A POST /planting-cycles/:id/activities: expected {\"status\":201,\"code\":null} got {\"status\":403,\"code\":\"ENTITY_PERMISSION_DENIED\"}",
+  "A POST /quotes/:id/accept: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "A POST /quotes/:id/reject: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "A PUT /applications/:id/revision: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "A PUT /revision-deadline/:id/submit: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "B POST /planting-cycles/:id/activities: expected {\"status\":201,\"code\":null} got {\"status\":403,\"code\":\"ENTITY_PERMISSION_DENIED\"}",
+  "B POST /quotes/:id/accept: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "B POST /quotes/:id/reject: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "B PUT /revision-deadline/:id/submit: expected {\"status\":404,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "S POST /quotes/:id/accept: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "S POST /quotes/:id/reject: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "S PUT /revision-deadline/:id/submit: expected {\"status\":404,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "A POST /quotes/:id/accept → Quote.findUnique",
+  "A POST /quotes/:id/reject → Quote.findUnique",
+  "A POST /applications/bundles/:id/submit → ApplicationDocument.findMany",
+  "A PUT /applications/:id/revision → ApplicationDocument.findMany",
+  "A PUT /revision-deadline/:id/submit → Application.findFirst",
+  "A POST /applications/:id/car → ApplicationDocument.findMany",
+  "A POST /planting-cycles/:id/activities → Farm.findUnique",
+  "B POST /quotes/:id/accept → Quote.findUnique",
+  "B POST /quotes/:id/reject → Quote.findUnique",
+  "B PUT /revision-deadline/:id/submit → Application.findFirst",
+  "B POST /planting-cycles/:id/activities → Farm.findUnique",
+  "S POST /quotes/:id/accept → Quote.findUnique",
+  "S POST /quotes/:id/reject → Quote.findUnique",
+  "S PUT /revision-deadline/:id/submit → Application.findFirst",
+  "A POST /applications/:id/car: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":null}",
+  "A POST /applications/bundles/:id/submit: expected {\"status\":422,\"code\":\"APPLICATION_INCOMPLETE\"} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"
+  "A POST /planting-cycles/:id/activities: expected {\"status\":201,\"code\":null} got {\"status\":403,\"code\":\"ENTITY_PERMISSION_DENIED\"}",
+  "A POST /quotes/:id/accept: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "A POST /quotes/:id/reject: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "A PUT /applications/:id/revision: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "A PUT /revision-deadline/:id/submit: expected {\"status\":200,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "B POST /planting-cycles/:id/activities: expected {\"status\":201,\"code\":null} got {\"status\":403,\"code\":\"ENTITY_PERMISSION_DENIED\"}",
+  "B POST /quotes/:id/accept: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "B POST /quotes/:id/reject: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "B PUT /revision-deadline/:id/submit: expected {\"status\":404,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "S POST /quotes/:id/accept: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "S POST /quotes/:id/reject: expected {\"status\":403,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  "S PUT /revision-deadline/:id/submit: expected {\"status\":404,\"code\":null} got {\"status\":500,\"code\":\"INTERNAL_SERVER_ERROR\"}",
+  3/3 tests failed
+
+## Whole integration set, clean RED tree (throw default):
+  Test Suites: 16 failed, 1 skipped, 88 passed, 104 of 105 total
+  Tests:       46 failed, 13 skipped, 771 passed, 830 total
+  Witness-caused failures (the rest are the pre-existing list in green.txt):
+  [health-door-walk] the walk found the health GET doors, and every path parameter is in the map
+  [health-door-walk] no walked door reads a holder-bearing model unscoped (witness THROW, NODE_ENV=test default)
+  [health-door-walk] the stranger S never receives an id of C's or A's rows
+  [health-door-walk] the stranger S is refused on every by-id door keyed on C's or A's rows
+  [health-door-walk] counts equal list lengths for B (Review Focus 4), R1 divergences pinned with their R2 answer
+  [health-door-walk] counts equal list lengths for the filer A, statuses included
+  [health-door-walk] R1 is behaviour-neutral: every actor × door answers as main before the branch (9616ccdf)
+  [r1-task6-write-doors] no write door reads a holder-bearing model unscoped (witness THROW)
+  [r1-task6-write-doors] the filer A gets through every door it got through before (the reads ran, not just the status)
+  [r1-task6-write-doors] R1 is behaviour-neutral: every actor × door and every written row as on 9616ccdf
+  [r1-application-reads] read doors: every actor × header × door gives the pre-R1 status and row set
+  [r1-cert-doc-finance] write doors: report submission, pre-check acknowledge, quotation accept, checkout, submit, bundles, planting attachments
+  [application-health-reads] GET /dashboard/stats (witness shadow): the application count follows the holder scope, no unscoped Application read
+  [holder-write-doors] planting activity attachments run clean under witness throw (the cycle's Farm read converted in Task 6)
+
+## Reads the witness flagged in the RED integration run (model.op @ route, count):
+        6 ApplicationDocument.findMany @ GET /api/applications/:id/katorlor1
+        6 Invoice.findMany @ GET /api/applications/:id/statement
+        6 Quotation.findMany @ GET /api/applications/:id/statement
+       12 Certificate.count @ GET /api/dashboard/stats
+       12 Farm.count @ GET /api/dashboard/stats
+       12 Invoice.findFirst @ GET /api/preview/applications/:id/preview
+        1 ApplicationDocument.findMany @ POST /api/applications/bundles/:id/submit
+        1 ApplicationDocument.findMany @ POST /api/applications/:id/car
+       45 Farm.findUnique @ POST /api/planting-cycles/:id/activities
+        3 Quote.findUnique @ POST /api/quotes/:id/accept
+        3 Quote.findUnique @ POST /api/quotes/:id/reject
+        1 ApplicationDocument.findMany @ PUT /api/applications/:id/revision
+        3 Application.findFirst @ PUT /api/revision-deadline/:id/submit

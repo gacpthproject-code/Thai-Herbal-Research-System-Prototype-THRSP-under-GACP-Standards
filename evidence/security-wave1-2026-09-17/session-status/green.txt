@@ -1,0 +1,396 @@
+# SECU-03 follow-up GREEN — 2026-09-17T02:39:17Z — branch wave1/session-status (fix applied, uncommitted at run time)
+# cmd: cd apps/backend && npx jest --maxWorkers=2 __tests__/unit/disabled-account-cannot-hold-session.test.js __tests__/unit/auth-middleware-db-lookup.test.js __tests__/unit/canonicalid-rekey-stage0.test.js __tests__/unit/pdpa-final-sweep.test.js __tests__/unit/auth-middleware-jti-enforcement.test.js __tests__/unit/auth-middleware-provider-epoch-failclosed.test.js __tests__/unit/auth-middleware-refresh-not-access-token.test.js __tests__/unit/jwt-security-jti-minting.test.js __tests__/unit/auth-middleware-mfa-challenge-not-access-token.test.js
+# exit: 0
+# RED (red.txt) ran the first suite: 13 failed / 23 passed of 36. All 36 now pass.
+# The other 8 suites passed before the fix, failed after it (21 tests: fixture rows without `status`,
+# or a missing row pinned as a pass-through), and pass again with realistic rows (status ACTIVE, isDeleted false).
+# Mutation check: removing `isDeleted: true` from the middleware select → 4 soft-deleted-owner cases fail again.
+# Related suites (second run, summary appended at the end): 50 suites that load a changed module
+#   (39 found by a require-graph scan + 11 that name identity-service / the previous SECU-03 suites)
+#   47 PASS, 3 skipped = integration/{m1-erasure-holder-survives,officer-review-round-trip,public-scan-scope-contract}
+#   (need a local postgres; none reachable in this session — the same 3 skipped in the pre-change baseline,
+#   which was 36 passed / 3 skipped of 39, 346 tests).
+# eslint (changed files): exit 0 · scripts/probes/ratchet.sh: PASS hardcode=25 todo=53 env-direct=102 dup-source=0
+# scripts/probes/no-skip.sh: PASS
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/disabled-account-cannot-hold-session.test.js
+  SECU-03 — password login refuses a disabled applicant
+    ✓ an applicant disabled by an admin cannot log back in with the correct password (28 ms)
+    ✓ status SUSPENDED is refused (4 ms)
+    ✓ status LOCKED is refused (5 ms)
+    ✓ status INACTIVE is refused (4 ms)
+    ✓ a soft-deleted account is refused even when its status still reads ACTIVE (4 ms)
+    ✓ a disabled account with 2FA enrolled is refused, not handed an MFA challenge (4 ms)
+    ✓ a wrong password on a disabled account still answers INVALID_CREDENTIALS (no status oracle) (4 ms)
+    ✓ a newly registered applicant (PENDING_VERIFICATION) still logs in (10 ms)
+    ✓ re-enabling the account lets the applicant log in again (8 ms)
+  SECU-03 — tokens issued before the account was disabled stop working
+    ✓ refresh token issued before disableUser is refused (session-epoch stamp) (7 ms)
+    ✓ refresh token is refused when the account was deactivated by a write that did not stamp the epoch (7 ms)
+    ✓ refresh token minted after the disable stamp is still refused while the account is disabled (3 ms)
+    ✓ refresh token of a PDPA-erased account (isDeleted, status untouched) is refused (5 ms)
+    ✓ an ACTIVE applicant can still refresh (7 ms)
+    ✓ access token issued before disableUser is refused by authenticateHealth (7 ms)
+  SECU-03 — every access-token guard reads the owner's status itself
+    ✓ authenticateHealth refuses a token once the owner is SUSPENDED without an epoch stamp (6 ms)
+    ✓ authenticateProvider refuses a token once the owner is SUSPENDED without an epoch stamp (4 ms)
+    ✓ authenticateAny (staff token) refuses a token once the owner is SUSPENDED without an epoch stamp (4 ms)
+    ✓ authenticateAny (applicant token) refuses a token once the owner is SUSPENDED without an epoch stamp (10 ms)
+    ✓ authenticateHealth refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateProvider refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateAny (staff token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateAny (applicant token) refuses the token of a soft-deleted owner whose status still reads ACTIVE (3 ms)
+    ✓ authenticateHealth refuses a token whose owner row no longer exists (4 ms)
+    ✓ authenticateProvider refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateAny (staff token) refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateAny (applicant token) refuses a token whose owner row no longer exists (3 ms)
+    ✓ authenticateHealth still admits PENDING_VERIFICATION and a legacy lowercase status (5 ms)
+    ✓ authenticateProvider still admits PENDING_VERIFICATION and a legacy lowercase status (5 ms)
+    ✓ authenticateAny (staff token) still admits PENDING_VERIFICATION and a legacy lowercase status (4 ms)
+    ✓ authenticateAny (applicant token) still admits PENDING_VERIFICATION and a legacy lowercase status (6 ms)
+    ✓ a database outage keeps the applicant keep-alive (status cannot be read, the token is not refused) (2 ms)
+  SECU-03 — MFA completion and the shared mint site refuse a disabled account
+    ✓ an MFA challenge issued before the disable cannot be completed into a session (7 ms)
+    ✓ an MFA challenge for an ACTIVE account still completes (4 ms)
+    ✓ a 2FA account whose legacy status reads lowercase "active" can complete MFA (7 ms)
+    ✓ issueTokensForAuthenticatedUser will not mint for a disabled or deleted account (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/pdpa-final-sweep.test.js
+  [Sprint6 final sweep] PDPA regression guards
+    MFA verify response/JWT — no raw national ID
+      ✓ JWT payload from /verify omits providerId and healthId (54 ms)
+      ✓ JSON response body from /verify omits raw providerId/healthId (26 ms)
+    admin/users PROVIDER_USER_CREATED audit metadata — no raw providerId
+      ✓ persists masked providerId, never raw, into the AuditLog row (33 ms)
+    provider-directory mapProviderUser — masks raw providerId in response
+      ✓ mapProviderUser output never contains the raw 13-digit id (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/canonicalid-rekey-stage0.test.js
+  STAGE 0 (a) — resolveCanonicalIdForWrite (flag-gated)
+    ✓ flag OFF (default) → returns the national ID, byte-for-byte today (2 ms)
+    ✓ flag ON → returns the keyed-HMAC token (computeLookupHmac), not the national ID (2 ms)
+    ✓ flag ON → reuses a precomputed *Hmac when the caller already has it (no recompute drift) (1 ms)
+    ✓ flag ON + no national ID → falls back to userId (matches COALESCE(...,id) in the re-key) (2 ms)
+  STAGE 0 (a) — prisma-auth-service.register() canonicalId write
+    ✓ flag OFF → canonicalId = the national ID (byte-for-byte today) (2 ms)
+    ✓ flag ON → canonicalId = the keyed-HMAC token, never the national ID (2 ms)
+    ✓ strips client-supplied canonicalId / canonicalIdLegacy (mass-assignment defense) (1 ms)
+  STAGE 0 (a) — provider-user-service.createProviderUser canonicalId write
+    ✓ flag OFF → canonicalId = the providerId national ID (1 ms)
+    ✓ flag ON → canonicalId = the keyed-HMAC token (1 ms)
+  STAGE 0 (b) — auth-middleware fetchIdentityFromDb sets req.user.canonicalId
+    ✓ selects the *Hmac columns (7 ms)
+    ✓ flag OFF → req.user.canonicalId = national ID (sourced from DB column, == FK key today) (3 ms)
+    ✓ flag ON → req.user.canonicalId = the token (the *Hmac column), never the JWT or plaintext (2 ms)
+    ✓ flag ON + a row the re-key never touched → canonicalId = the COLUMN, not a derived token (3 ms)
+    ✓ flag ON + a re-keyed row → canonicalId = the column, which IS the token (2 ms)
+  STAGE 0 (b) — application-identity resolveHealthIdentity FK value
+    ✓ flag OFF → returns the healthId column value (national ID == FK key today) (2 ms)
+    ✓ flag ON → returns the canonicalId column value (the token, the post-re-key FK key) (1 ms)
+    ✓ buildHealthWhereClause prefers the stable applicant:{id} relation branch when a UUID is available (2 ms)
+    ✓ buildHealthWhereClause still returns {healthId} for legacy callers with no UUID (pre-re-key only) (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/auth-middleware-jti-enforcement.test.js
+  Auth Middleware — JTI Claim Enforcement
+    authenticateHealth
+      ✓ rejects token without jti claim with 401 TOKEN_NO_JTI (4 ms)
+      ✓ rejects token with empty-string jti with 401 TOKEN_NO_JTI (2 ms)
+      ✓ rejects token with whitespace-only jti with 401 TOKEN_NO_JTI (2 ms)
+      ✓ accepts token with a valid jti and calls next() (2 ms)
+    authenticateProvider
+      ✓ rejects token without jti claim with 401 TOKEN_NO_JTI (3 ms)
+      ✓ accepts provider token with a valid jti (2 ms)
+    authenticateAny
+      ✓ rejects token without jti claim with 401 TOKEN_NO_JTI (provider branch) (11 ms)
+      ✓ rejects token without jti claim with 401 TOKEN_NO_JTI (health branch) (5 ms)
+      ✓ accepts token with a valid jti (5 ms)
+    optionalAuth (anonymous fallback preserved)
+      ✓ does NOT reject anonymous (no-token) requests (2 ms)
+      ✓ does NOT reject when a token without jti is supplied — by design (4 ms)
+    LEGACY_NO_JTI_GRACE_UNTIL grace period
+      ✓ inside grace window: token without jti passes through with a console.warn (5 ms)
+      ✓ after grace deadline: token without jti is hard-rejected again (4 ms)
+      ✓ malformed ISO string: defaults to hard-reject (defensive) (4 ms)
+      ✓ grace window applies to authenticateProvider as well (4 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/auth-middleware-db-lookup.test.js
+  [Sprint6] Auth Middleware Post-Verify DB Identity Lookup
+    ✓ authenticateHealth populates req.user.healthId from DB lookup (not JWT) (6 ms)
+    ✓ authenticateHealth refuses a token whose owner row is gone (SECU-03 — was a pass-through) (4 ms)
+    ✓ authenticateHealth gracefully degrades when DB lookup throws (continues with null healthId) (2 ms)
+    ✓ legacy JWT carrying decoded.healthId is honoured as fallback when the DB column is null (2 ms)
+    ✓ blocklisted JTI returns 401 TOKEN_REVOKED and does NOT call DB lookup (4 ms)
+    ✓ token missing id/userId/sub/accountId returns 401 TOKEN_PAYLOAD_INVALID (2 ms)
+    ✓ authenticateProvider applies the same DB-lookup pattern (Sprint 6 C1) (12 ms)
+  [BE-EDGE-04] authenticateProvider failure-code mapping
+    ✓ no token → 401 NO_TOKEN (and never hits the DB) (3 ms)
+    ✓ valid provider-signed token but NON-provider role → 403 INVALID_ROLE (role check, not DB) (4 ms)
+    ✓ expired provider token → 401 TOKEN_EXPIRED (with expiredAt) (3 ms)
+    ✓ token signed with the WRONG secret (health token at a provider endpoint) → 401 INVALID_TOKEN (3 ms)
+    ✓ PROVIDER token at a health endpoint → 401 INVALID_TOKEN, no DB lookup (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [AUTH] Accepting legacy token without tokenType claim during grace window (authType=access). Unset LEGACY_UNTYPED_TOKEN_GRACE_UNTIL to close this.
+
+      356 |   }
+      357 |   if (verdict === 'legacy') {
+    > 358 |     console.warn(
+          |             ^
+      359 |       `[AUTH] Accepting legacy token without tokenType claim during grace window ` +
+      360 |       `(authType=${authType}). Unset LEGACY_UNTYPED_TOKEN_GRACE_UNTIL to close this.`,
+      361 |     );
+
+      at warn (middleware/auth-middleware.js:358:13)
+      at Object.rejectPurposeScopedToken [as authenticateHealth] (middleware/auth-middleware.js:501:9)
+      at Object.authenticateHealth (__tests__/unit/auth-middleware-refresh-not-access-token.test.js:154:30)
+
+PASS __tests__/unit/auth-middleware-refresh-not-access-token.test.js
+  TASK-2 — refresh token replayed on the access path
+    ✓ the refresh token verifies against the ACCESS verifier (same secret/iss/aud) (5 ms)
+    ✓ authenticateHealth REJECTS a refresh token presented as a Bearer access token (4 ms)
+    ✓ authenticateHealth REJECTS a refresh token supplied via the auth_token cookie (4 ms)
+    ✓ authenticateAny (health branch) REJECTS a refresh token (4 ms)
+    ✓ authenticateProvider REJECTS a provider-signed refresh token (3 ms)
+    ✓ the refresh token is rejected EVEN INSIDE the legacy-untyped grace window (3 ms)
+    ✓ a NORMAL access token still authenticates (no regression) (3 ms)
+    ✓ a legacy UNTYPED access token still authenticates inside the grace window (19 ms)
+    ✓ a legacy UNTYPED access token is rejected once the grace window has expired (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/auth-middleware-provider-epoch-failclosed.test.js
+  C4 — authenticateProvider fails CLOSED on !dbHealthy for privileged roles
+    ✓ field_inspector + DB read failure → 401 IDENTITY_UNVERIFIED (not passed through) (3 ms)
+    ✓ system_admin_dtam + DB read failure → 401 IDENTITY_UNVERIFIED (not passed through) (11 ms)
+    ✓ dispatcher + DB read failure → 401 IDENTITY_UNVERIFIED (not passed through) (2 ms)
+    ✓ document_reviewer + DB read failure → 401 IDENTITY_UNVERIFIED (not passed through) (3 ms)
+    ✓ finance_officer_dtam + DB read failure → 401 IDENTITY_UNVERIFIED (not passed through) (2 ms)
+    ✓ finance_officer_platform + DB read failure → 401 IDENTITY_UNVERIFIED (not passed through) (2 ms)
+    ✓ system_admin_platform + DB read failure → 401 IDENTITY_UNVERIFIED (not passed through) (3 ms)
+    ✓ DB HEALTHY provider (row returned) still passes through (3 ms)
+  C4 — HEALTH keeps the degraded-DB keep-alive (availability)
+    ✓ authenticateHealth + DB read failure → still next() (not 401) (4 ms)
+  C4 — authenticateAny provider branch fails CLOSED on !dbHealthy
+    ✓ provider (auditor) token via authenticateAny + DB failure → 401 IDENTITY_UNVERIFIED (3 ms)
+    ✓ HEALTH token via authenticateAny + DB failure → still keep-alive next() (3 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/jwt-security-jti-minting.test.js
+  jwt-security — JTI Minting Coverage
+    generateToken()
+      ✓ injects a non-empty jti when none is supplied (3 ms)
+      ✓ produces a DIFFERENT jti on each call (2 ms)
+      ✓ preserves caller-supplied jti via payload.jti (1 ms)
+      ✓ preserves caller-supplied jti via overrides.jwtid (7 ms)
+      ✓ strips payload-level jti so signing does not throw on duplicate claim (2 ms)
+      ✓ injects jti for provider tokens too (1 ms)
+    generateRefreshToken()
+      ✓ injects a non-empty jti (1 ms)
+      ✓ produces a DIFFERENT jti on each call (rotation precondition) (2 ms)
+      ✓ preserves caller-supplied payload.jti (1 ms)
+    End-to-end: minted token PASSES auth-middleware jti gate
+      ✓ health token minted by generateToken is accepted by authenticateHealth (3 ms)
+      ✓ provider token minted by generateToken is accepted by authenticateProvider (2 ms)
+    generateJti() helper is exposed
+      ✓ returns a non-empty string (1 ms)
+      ✓ returns a unique value on each call (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/auth-middleware-mfa-challenge-not-access-token.test.js
+  PENTEST A1 — mfa_challenge token is not an access token
+    ✓ authenticateHealth rejects a health mfa_challenge token (2FA bypass closed) (3 ms)
+    ✓ authenticateProvider rejects a provider purpose-scoped (mfa_setup) token (2 ms)
+    ✓ authenticateAny (provider branch) rejects a provider mfa_challenge token (2 ms)
+    ✓ authenticateAny (health branch) rejects a health mfa_challenge token (2 ms)
+    ✓ a NORMAL health access token (no purpose) clears the purpose gate (2 ms)
+
+Test Suites: 9 passed, 9 total
+Tests:       123 passed, 123 total
+Snapshots:   0 total
+Time:        4.266 s
+Ran all test suites matching /__tests__\/unit\/disabled-account-cannot-hold-session.test.js|__tests__\/unit\/auth-middleware-db-lookup.test.js|__tests__\/unit\/canonicalid-rekey-stage0.test.js|__tests__\/unit\/pdpa-final-sweep.test.js|__tests__\/unit\/auth-middleware-jti-enforcement.test.js|__tests__\/unit\/auth-middleware-provider-epoch-failclosed.test.js|__tests__\/unit\/auth-middleware-refresh-not-access-token.test.js|__tests__\/unit\/jwt-security-jti-minting.test.js|__tests__\/unit\/auth-middleware-mfa-challenge-not-access-token.test.js/i.
+
+
+# ===== related suites (second run) — per-suite verdicts and summary =====
+PASS __tests__/unit/auth-idp-routes.test.js
+PASS __tests__/unit/refresh-token-blocklist.test.js
+PASS __tests__/unit/thaid-identity-service.test.js
+PASS __tests__/unit/auth-idp-thaid-session.test.js
+PASS __tests__/unit/closing-review-fixes.test.js
+PASS __tests__/unit/audit-onsite-rbac.test.js
+PASS __tests__/unit/session-epoch-refresh.test.js
+PASS __tests__/unit/thaid-adapter.test.js
+PASS __tests__/unit/second-factor-is-totp-only.test.js
+PASS __tests__/integration/mfa-verify-guards.test.js
+PASS __tests__/integration/mfa-challenge-binding.test.js
+PASS __tests__/unit/public-plot-page-redacts-controlled-species.test.js
+PASS __tests__/unit/disabled-account-cannot-hold-session.test.js
+PASS __tests__/unit/plot-sign-says-the-certificate-state.test.js
+PASS __tests__/unit/provider-legacy-alias-flag.test.js
+PASS __tests__/unit/provider-me-token-class-guard.test.js
+PASS __tests__/unit/auth-provider-login-codes.test.js
+PASS __tests__/unit/auditor-decision-admin-exclusion.test.js
+PASS __tests__/unit/certificate-download-cold-start-retry.test.js
+PASS __tests__/unit/farm-access-is-recorded.test.js
+PASS __tests__/unit/interop-resolve.test.js
+PASS __tests__/unit/audit-reassign-eligibility-and-templates.test.js
+PASS __tests__/unit/pdpa-final-sweep.test.js
+PASS __tests__/unit/optional-auth-token-class-guard.test.js
+PASS __tests__/unit/pdf-warmup-boot-hook.test.js
+PASS __tests__/unit/provider-me-epoch-status-guard.test.js
+PASS __tests__/unit/uploads-access.test.js
+PASS __tests__/integration/mfa-roundtrip.test.js
+PASS __tests__/unit/canonicalid-rekey-stage0.test.js
+PASS __tests__/unit/every-sensitive-upload-is-decided-by-ownership.test.js
+PASS __tests__/unit/the-enrolment-loop-closes-end-to-end.test.js
+PASS __tests__/unit/revision-resubmit-finds-the-reuploaded-paper.test.js
+PASS __tests__/unit/auth-middleware-db-lookup.test.js
+PASS __tests__/unit/logout-session-revocation-sec-002.test.js
+PASS __tests__/unit/auth-middleware-jti-enforcement.test.js
+PASS __tests__/admin-user-service.test.js
+PASS __tests__/unit/auth-service.test.js
+PASS __tests__/unit/auth-middleware-refresh-not-access-token.test.js
+PASS __tests__/unit/auth-middleware-provider-epoch-failclosed.test.js
+PASS __tests__/unit/a-locked-out-officer-can-still-enrol.test.js
+PASS __tests__/unit/jwt-security-jti-minting.test.js
+PASS __tests__/unit/auth-guard-allocation.test.js
+PASS __tests__/unit/auth-middleware-mfa-challenge-not-access-token.test.js
+PASS __tests__/unit/reschedule-ownership-fail-closed.test.js
+PASS __tests__/unit/access-token-blocklist.test.js
+PASS __tests__/unit/server-boot-receipt-assert.test.js
+PASS __tests__/unit/no-email-leftovers-after-review.test.js
+Test Suites: 3 skipped, 47 passed, 47 of 50 total
+Tests:       18 skipped, 565 passed, 583 total
+Snapshots:   0 total
+Time:        23.677 s

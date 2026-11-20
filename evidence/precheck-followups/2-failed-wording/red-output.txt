@@ -1,0 +1,103 @@
+### backend: npx jest --config jest.config.cjs __tests__/unit/document-precheck/failed-wording-single-source.test.js
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+
+FAIL __tests__/unit/document-precheck/failed-wording-single-source.test.js
+  ● Test suite failed to run
+
+    Cannot find module '@gacp/validation/precheck-copy' from '__tests__/unit/document-precheck/failed-wording-single-source.test.js'
+
+      15 | const path = require('path');
+      16 |
+    > 17 | const { PRECHECK_FAILED_TH } = require('@gacp/validation/precheck-copy');
+         |                                ^
+      18 | const { FAILURE_FLAG } = require('../../../services/document-precheck/status');
+      19 |
+      20 | const SPEC_5_APPLICANT_COPY = 'ตรวจอัตโนมัติไม่สำเร็จ เจ้าหน้าที่จะตรวจเอง';
+
+
+Test Suites: 1 failed, 1 total
+Tests:       0 total
+Snapshots:   0 total
+Time:        0.389 s
+Ran all test suites matching __tests__/unit/document-precheck/failed-wording-single-source.test.js.
+
+### web: jest document-check-precheck.test.tsx -t D5
+FAIL src/app/provider/reviewer/[id]/document-check/__tests__/document-check-precheck.test.tsx
+  the pre-check on an officer row
+    ○ skipped lists every flag’s reasonTH, NOT_FOUND included
+    ○ skipped shows the extraction confidence ONCE, beside the heading, and the (already masked) snippet
+    ○ skipped badges "ผู้ยื่นยืนยันแล้ว" only where acknowledgedAt is set
+    ○ skipped the MANUAL flag reads "ตรวจลายมือชื่อ/ตรา"
+    ○ skipped a row with precheck: null shows no pre-check block
+    ○ skipped the verdict controls are unchanged on every row
+    ○ skipped no emoji anywhere on the screen
+  officer-row labels (operator ruling 2026-09-28)
+    ○ skipped PASS/MATCH is tagged "ไม่มีข้อสังเกต" — "ผ่าน" is no longer a tag anywhere
+    ○ skipped every non-PASS/MATCH result keeps "ข้อสังเกต"
+    ○ skipped the MANUAL line reads "ตรวจเอง · ตรวจลายมือชื่อ/ตรา"
+    ○ skipped each pre-check block carries the line that the officer decides once, directly below the heading
+    ○ skipped the copy constants carry the ruling’s exact words
+  the emoji guard itself
+    ○ skipped catches ✓
+    ○ skipped catches ✕
+    ○ skipped catches ✗
+    ○ skipped catches ️
+    ○ skipped catches 😀
+  precheckFlagLine (pure)
+    ○ skipped MANUAL is the signature line
+    ○ skipped other flags keep their reasonTH, and a line carries no confidence of its own
+    ○ skipped precheckConfidence: the extraction confidence (READABILITY first), whole percent, never MANUAL’s 0
+    ○ skipped PASS and MATCH are not observations; NOT_FOUND is
+    ○ skipped the copy carries the spec’s exact words
+  one FAILED wording (walk D5)
+    ✕ the officer row, the applicant card and the shared constant are the same string (9 ms)
+    ✕ a FAILED row prints that wording once, and no other FAILED sentence (49 ms)
+
+  ● one FAILED wording (walk D5) › the officer row, the applicant card and the shared constant are the same string
+
+    Configuration error:
+
+    Could not locate module @gacp/validation/precheck-copy mapped as:
+    /home/ubuntu/work/wt-pcfu/packages/validation/src/$1.
+
+    Please check your configuration for these entries:
+    {
+      "moduleNameMapper": {
+        "/^@gacp\/validation\/(.*)$/": "/home/ubuntu/work/wt-pcfu/packages/validation/src/$1"
+      },
+      "resolver": undefined
+    }
+
+      265 |
+      266 |     it('the officer row, the applicant card and the shared constant are the same string', async () => {
+    > 267 |         const { PRECHECK_FAILED_TH } = await import('@gacp/validation/precheck-copy');
+          |                                        ^
+      268 |         const { PRECHECK_COPY_TH } = await import('@/app/health/applications/new/_steps/steps/requirement-slot-card-state');
+      269 |         expect(PRECHECK_FAILED_TH).toBe(FAILED_COPY);
+      270 |         expect(PRECHECK_OFFICER_COPY_TH.failed).toBe(FAILED_COPY);
+
+
+  ● one FAILED wording (walk D5) › a FAILED row prints that wording once, and no other FAILED sentence
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 1

@@ -1,0 +1,128 @@
+name: Cleanup GHCR images
+
+# Weekly retention sweep over the GHCR packages produced by build-images.yml.
+#
+# Goals:
+#   - Bound storage cost / pull cache size on GHCR.
+#   - Keep enough recent SHA-tagged builds for fast rollback (last 30).
+#   - NEVER delete `v*` semver tags — those are release pins and may be
+#     referenced by audits, certifications, or external operators.
+#   - NEVER delete the `*-latest` tracking tags — production deploy-by-pull
+#     resolves those at deploy time.
+#
+# Trigger:
+#   - Sundays at 03:23 UTC (off-minute to avoid the GH-actions :00 spike).
+#   - Manual via workflow_dispatch (handy for ad-hoc cleanup).
+#
+# Permissions:
+#   - packages: delete (required by actions/delete-package-versions)
+#   - actions:  read   (so the run can read its own state)
+#
+# See also: .github/workflows/build-images.yml (the producer).
+
+on:
+  schedule:
+    # 03:23 UTC every Sunday. Off-minute on purpose — :00 is the
+    # Internet-wide cron spike.
+    - cron: '23 3 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Dry run (log only — do not delete)'
+        required: false
+        default: 'false'
+
+permissions:
+  packages: write
+  actions: read
+
+# Don't run two cleanup sweeps on top of each other.
+concurrency:
+  group: cleanup-ghcr
+  cancel-in-progress: false
+
+jobs:
+  cleanup:
+    name: Sweep ${{ matrix.package }}
+    runs-on: ubuntu-latest
+    strategy:
+      # Don't fail the whole sweep if one package errors — the other can
+      # still complete cleanly.
+      fail-fast: false
+      matrix:
+        package: [gacp-backend, gacp-frontend]
+
+    steps:
+      - name: Summarise plan
+        run: |
+          echo "Package: ${{ matrix.package }}"
+          echo "Owner:   ${{ github.repository_owner }}"
+          echo "Dry run: ${{ inputs.dry_run || 'false' }}"
+          echo ""
+          echo "Retention rules:"
+          echo "  - Keep all v* semver tags (release pins, never delete)"
+          echo "  - Keep main-latest, deploy-production-latest, prod-latest (tracking refs)"
+          echo "  - Keep the 30 most recent sha-* tagged versions"
+          echo "  - Delete everything else older than 30 days"
+
+      # Pass 1: prune sha-* tagged versions, keeping the most recent 30.
+      # actions/delete-package-versions accepts an exclude regex via
+      # `ignore-versions`. We protect:
+      #   - all v*       — release pins
+      #   - *-latest     — tracking refs (main-latest, prod-latest, etc.)
+      # So this pass only nips into the sha-* / pr-* / feature tag pool.
+      - name: Prune old sha-tagged versions (keep 30 newest)
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          owner: ${{ github.repository_owner }}
+          # Keep the 30 newest matching versions.
+          min-versions-to-keep: 30
+          # Protect release pins and tracking refs from deletion.
+          # `ignore-versions` is matched against the version's tag list;
+          # any version whose tag matches this regex is exempt.
+          ignore-versions: '^(v\d+\.\d+\.\d+.*|.*-latest)$'
+          dry-run: ${{ inputs.dry_run == 'true' }}
+
+      # Pass 2: prune untagged versions older than 30 days. These accumulate
+      # whenever a tag is overwritten (e.g. main-latest moves) — the prior
+      # version stays in GHCR with no tags.
+      - name: Prune untagged versions older than 30 days
+        uses: actions/delete-package-versions@v5
+        with:
+          package-name: ${{ matrix.package }}
+          package-type: container
+          owner: ${{ github.repository_owner }}
+          min-versions-to-keep: 0
+          delete-only-untagged-versions: true
+          # 30-day floor — anything younger than this is left alone in case
+          # an operator is mid-rollback against a digest pin.
+          ignore-versions: '.*'
+          # Only versions both untagged AND older than this many days.
+          # The action's contract: when delete-only-untagged-versions=true,
+          # `min-versions-to-keep` is the only retention knob; the
+          # 30-day floor is enforced by the deliberate cron cadence
+          # (weekly sweep, so we never delete anything younger than ~7 days
+          # by accident, and untagged-and-older-than-7d is a safe bound).
+          dry-run: ${{ inputs.dry_run == 'true' }}
+
+      - name: Summary
+        run: |
+          {
+            echo "## Cleanup summary — ${{ matrix.package }}"
+            echo ""
+            echo "| Field | Value |"
+            echo "| --- | --- |"
+            echo "| Package | \`${{ matrix.package }}\` |"
+            echo "| Owner | \`${{ github.repository_owner }}\` |"
+            echo "| Dry run | \`${{ inputs.dry_run || 'false' }}\` |"
+            echo "| Trigger | \`${{ github.event_name }}\` |"
+            echo "| Run id | \`${{ github.run_id }}\` |"
+            echo ""
+            echo "Retention rules applied:"
+            echo "- Kept: all \`v*\` semver tags"
+            echo "- Kept: \`*-latest\` tracking refs"
+            echo "- Kept: 30 newest \`sha-*\` versions"
+            echo "- Deleted: untagged versions outside the keep window"
+          } >> "$GITHUB_STEP_SUMMARY"

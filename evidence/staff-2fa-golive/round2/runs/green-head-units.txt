@@ -1,0 +1,134 @@
+PASS __tests__/unit/mfa-reenrol-hardening.test.js
+  the reviewer's 40-guess case on /verify-setup
+    ✓ 40 wrong codes from 40 addresses: the pending secret is deleted after the 5th, and nothing is ever swapped (448 ms)
+    ✓ from ONE address the /disable limiter answers 429 after 5 attempts (87 ms)
+  the pending secret belongs to the session that started it
+    ✓ another session of the same user with a VALID code for the pending secret is refused, gets no backup codes (22 ms)
+    ✓ a session without a token id cannot finish a re-enrol (22 ms)
+  a successful re-enrol revokes the other sessions and keeps this one
+    ✓ sessionsRevokedAt is stamped, the refresh tokens are revoked, the caller gets a fresh cookie that survives the stamp (37 ms)
+  the pending secret is deleted when the account's security state changes
+    ✓ DELETE /api/mfa/disable (25 ms)
+    ✓ password change (the function behind both change-password doors) (31 ms)
+    ✓ logout (the session revocation both logout doors run) (24 ms)
+    ✓ revoke all of the account's sessions (16 ms)
+  parallel wrong codes: at most 5 checks against the pending secret in total
+    ✓ k=5 parallel guesses per round, each from its own address (53 ms)
+    ✓ k=20 parallel guesses per round, each from its own address (158 ms)
+PASS __tests__/unit/mfa-setup-reenrol.test.js
+  enabled 2FA: /setup needs the current code
+    ✓ a session without a code cannot re-run setup — 401, the enabled factor is untouched (26 ms)
+    ✓ a wrong current code → 401, untouched (same verifier and answer as /disable) (16 ms)
+    ✓ the right current code starts a re-enrol with a new secret and new backup codes, but the old factor stays active until the new one is confirmed (11 ms)
+    ✓ verify-setup with a code from the NEW secret swaps the factor and the backup codes shown at /setup, in one service call that carries the audit event and the owner notice (30 ms)
+    ✓ verify-setup with a wrong code keeps the old factor (25 ms)
+    ✓ verify-setup with no re-enrol in progress changes nothing (8 ms)
+    ✓ the store for the pending secret is down → 503, nothing changed (10 ms)
+    ✓ the store goes down between /setup and /verify-setup → 503 at verify, the old factor stays (round 6: the attempt counter is a store write too) (17 ms)
+    ✓ a /setup that carries a code or a backup code goes through the MFA limiter (the one /disable uses) (15 ms)
+  order 89 ก: one backup code moves the factor to a new device
+    ✓ one unused backup code starts the move and is used up; the same code is refused the second time (18 ms)
+    ✓ a backup code is read with or without its dash (11 ms)
+    ✓ an unknown or non-string backup code is refused, counts in the limiter, and changes nothing (23 ms)
+    ✓ when the store is down the backup code is not used up (9 ms)
+    ✓ the move finishes only with the saved-codes confirmation, which spends no attempt, and the audit event and the notice name the backup-code method and a masked address (24 ms)
+  control: 2FA not enabled — first enrolment
+    ✓ /setup shows the backup codes once; /verify-setup enables only with the saved-codes confirmation, and nothing goes through the limiter (23 ms)
+    ✓ first enrolment never touches the pending store: it completes with the store down (15 ms)
+    ✓ the confirmation must be exactly true (30 ms)
+PASS __tests__/unit/second-factor-doors.test.js
+  no door clears another account's second factor
+    ✓ POST /api/admin/users/farmer-1/force-reset-mfa reaches no route; 2FA intact (53 ms)
+    ✓ POST /api/admin/users/staff-1/force-reset-mfa reaches no route; 2FA intact (28 ms)
+    ✓ POST /api/provider/directory/staff-1/disable-2fa reaches no route; 2FA intact (0) (32 ms)
+    ✓ POST /api/provider/directory/staff-1/disable-2fa reaches no route; 2FA intact (1) (11 ms)
+    ✓ an admin cannot use the directory door on their own account either (12 ms)
+    ✓ control: the directory router still answers its kept lifecycle action (unlock) (21 ms)
+  control: the owner still turns off their OWN 2FA with a code from their own app
+    ✓ DELETE /api/mfa/disable as staff-1 with a valid TOTP → 200, 2FA off, audit MFA_DISABLED (15 ms)
+    ✓ DELETE /api/mfa/disable as farmer-1 with a valid TOTP → 200, 2FA off, audit MFA_DISABLED (16 ms)
+    ✓ a wrong code is refused and nothing changes (16 ms)
+    ✓ it acts on the caller only: a code from another account's app does not work (12 ms)
+PASS __tests__/integration/mfa-roundtrip.test.js
+  [Tier 5] MFA HTTP round-trip integration
+    ✓ POST /setup issues a TOTP secret + QR URI and stores secret with enabled:false (27 ms)
+    ✓ POST /verify-setup with invalid TOTP returns 400, leaves twoFactorEnabled:false (10 ms)
+    ✓ POST /verify-setup with valid TOTP and the saved-codes confirmation enables MFA; the codes were shown once at /setup (9 ms)
+    ✓ POST /verify-setup without the saved-codes confirmation is refused and enables nothing (order 89 ก1) (10 ms)
+    ✓ DELETE /disable with valid TOTP nulls twoFactorSecret + twoFactorBackupCodes + sets twoFactorEnabled:false (9 ms)
+    ✓ DELETE /disable with invalid TOTP returns 401 and does NOT touch the MFA state (8 ms)
+PASS __tests__/unit/the-enrolment-loop-closes-end-to-end.test.js
+  วงลงทะเบียน MFA ต้องปิดครบวง
+    ✓ ตั๋วที่ประตูล็อกอินยื่นให้ เปิด /mfa/setup ได้ และได้ secret + QR + รหัสสำรอง 10 รหัสกลับมา (27 ms)
+    ✓ รหัส 6 หลักที่คิดจาก secret นั้น พร้อมคำยืนยันว่าบันทึกรหัสสำรองแล้ว ผ่าน /mfa/verify-setup ด้วยตั๋วใบเดิม (22 ms)
+    ✓ ไม่มีคำยืนยันว่าบันทึกรหัสสำรองแล้ว → 400 และยังไม่เปิด (คำสั่ง 89 ก1) (20 ms)
+    ✓ รหัสผิดยังถูกปฏิเสธ — ตั๋วเปิดประตูได้ ไม่ได้แปลว่าผ่านโดยไม่ต้องพิสูจน์ (18 ms)
+    ✓ ตั๋วของ MFA challenge เปิดประตูลงทะเบียนไม่ได้ (15 ms)
+PASS __tests__/unit/staff-2fa-emergency-reset-refuses.test.js
+  order 89 ข: the emergency reset refuses before it clears
+    ✓ goes only for a staff account with 2FA on and no unused backup code, asked by an active admin of its side (3 ms)
+    ✓ refuses when the flag is off (6 ms)
+    ✓ refuses when the flag is unset (1 ms)
+    ✓ refuses when the target does not exist (1 ms)
+    ✓ refuses when the target is deleted (1 ms)
+    ✓ refuses when the target is an applicant (1 ms)
+    ✓ refuses when the requester does not exist (1 ms)
+    ✓ refuses when the requester is not active (1 ms)
+    ✓ refuses when the requester is not an admin (1 ms)
+    ✓ refuses when the requester is the admin of the other side (1 ms)
+    ✓ refuses when the DTAM admin is of another organization (1 ms)
+    ✓ refuses when the target has no 2FA (1 ms)
+    ✓ refuses when the target is on the retired EMAIL method
+    ✓ refuses when the target still has an unused backup code (1 ms)
+    ✓ refuses when the target holds its codes as a JSON string (7 ms)
+    ✓ parseArgs needs all four inputs and nothing else (2 ms)
+PASS __tests__/unit/closing-review-fixes.test.js
+  [ClosingReview] NEW-1: twoFactor schema field names
+    ✓ pdpa-retention-job.js writes twoFactorSecret (not mfaSecret) (6 ms)
+    ✓ auth-session-security-handlers.js deleteMe writes twoFactorSecret (not mfaSecret) (1 ms)
+    ✓ prisma-auth-service.js login() reads twoFactorEnabled (with mfaEnabled legacy fallback) (2 ms)
+  [ClosingReview] NEW-2: actorIdentity healthId leak sweep
+    ✓ routes/api/cultivation/harvest-batches.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/auditor-audit-decision-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/auditor-inspection-start-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/workflow-revision-expirations-handler.js masks healthId in actorIdentity field (1 ms)
+    ✓ routes/api/provider/handlers/workflow-side-effects.js masks healthId in actorIdentity field (1 ms)
+    ✓ repo-wide sweep: no raw healthId write to actorIdentity field remains (9 ms)
+  [ClosingReview] NEW-5: mfa.js routes use canonical twoFactor* columns
+    ✓ POST /setup writes twoFactorSecret + twoFactorEnabled (not mfa*) (1 ms)
+    ✓ POST /verify-setup reads twoFactorSecret and writes twoFactorEnabled/twoFactorBackupCodes as a native array (1 ms)
+    ✓ POST /verify selects canonical twoFactor* trio in the user lookup (1 ms)
+    ✓ DELETE /disable writes twoFactorEnabled: false + nulls canonical columns (1 ms)
+    ✓ No live code references the broken mfaSecret/mfaBackupCodes column names (2 ms)
+  [ClosingReview] NEW-6: admin status override is transactional with audit
+    ✓ wraps application.update + audit write in prisma.$transaction (1 ms)
+    ✓ no longer uses the best-effort try/catch audit pattern
+    ✓ retries the whole transaction on audit P2002 sequence conflicts
+  [ClosingReview] NEW-4: applications.js duplicate logger cleanup
+    ✓ no duplicate logger.error calls in catch blocks (1 ms)
+PASS __tests__/unit/notification-preferences-service.test.js
+  normalize
+    ✓ returns empty channels for null/undefined input (3 ms)
+    ✓ drops legacy email/sms keys plus any other unknown key (channel concept removed — in-app only) (1 ms)
+    ✓ drops non-boolean channel values (1 ms)
+  getPrefs
+    ✓ returns empty channels for unknown user, and still names the always-on types for the screen (2 ms)
+    ✓ returns normalized notificationSettings (in-app only) (2 ms)
+    ✓ legacy-shaped stored value (email/sms only, no inApp ever written) does not crash — normalizes to empty entry (1 ms)
+  updatePrefs
+    ✓ writes normalized JSON (in-app only — email/sms are dropped on write) (1 ms)
+  isAllowed
+    ✓ default-allow when no settings (1 ms)
+    ✓ default-allow when type missing (1 ms)
+    ✓ default-allow when channel missing for the type (1 ms)
+    ✓ returns false when explicitly opted out (1 ms)
+    ✓ falls back to DB lookup when only userId is given (1 ms)
+    ✓ returns true when channel is unknown (1 ms)
+    ✓ email/sms channels no longer supported — always default-allow, even when the legacy value says opted-out (1 ms)
+Test Suites: 8 passed, 8 total
+Tests:       98 passed, 98 total
+Snapshots:   0 total
+Time:        5.427 s, estimated 6 s
+Ran all test suites matching __tests__/unit/mfa-setup-reenrol.test.js|__tests__/unit/mfa-reenrol-hardening.test.js|__tests__/unit/the-enrolment-loop-closes-end-to-end.test.js|__tests__/integration/mfa-roundtrip.test.js|__tests__/unit/notification-preferences-service.test.js|__tests__/unit/staff-2fa-emergency-reset-refuses.test.js|__tests__/unit/second-factor-doors.test.js|__tests__/unit/closing-review-fixes.test.js.
+jest exit 0

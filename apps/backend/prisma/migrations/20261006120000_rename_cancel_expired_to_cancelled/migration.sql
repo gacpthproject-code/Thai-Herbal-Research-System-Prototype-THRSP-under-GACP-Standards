@@ -1,0 +1,12 @@
+-- Application.status: the terminal state CANCEL_EXPIRED is renamed CANCELLED.
+-- Order 22 (operator 2026-10-06): when the company or the state cancels the
+-- service, the milestone that has not started is refunded and the application
+-- closes as cancelled. The terminal slot existed already, but its name and
+-- label said "expired", and expiry is EXPIRED. No code wrote the old spelling;
+-- any row still carrying it moves to the new one so the tree, which no longer
+-- knows CANCEL_EXPIRED, can read it.
+--
+-- Data only: status is a TEXT column with no CHECK.
+-- Rollback (manual, only before any provider-cancellation refund ran):
+--   UPDATE "applications" SET "status" = 'CANCEL_EXPIRED' WHERE "status" = 'CANCELLED';
+UPDATE "applications" SET "status" = 'CANCELLED' WHERE "status" = 'CANCEL_EXPIRED';

@@ -1,0 +1,38 @@
+# round-2 server, postgres:17 on 5452, three consecutive runs
+## run 1
+    ✓ the same payload with the same applicationId twice: one application, identical data, no new rows anywhere (307 ms)
+    ✓ a FIRST save (no id yet) whose reply was lost, retried with no id: still one new application, not two (121 ms)
+    ✓ C1: seq 2 applied, then seq 1 from the same session arrives: 409 DRAFT_OUT_OF_ORDER, nothing written, data stays seq 2 (114 ms)
+    ✓ C1: seq 1 and seq 2 racing for the same row: whatever the arrival order, the stored answers are seq 2 (245 ms)
+    ✓ C1: another session (another tab, a reload) is not compared, and a save with no clock (an older client) is not checked (69 ms)
+    ✓ C1: the clock cannot be forged through formData (the allowlist drops it) (29 ms)
+    ✓ fix round 2: with RLS_SHADOW_GUC=true an ordered save completes (no self-deadlock) (54 ms)
+    ✓ fix round 2: a document upload that commits between the save's read and its write is kept (51 ms)
+    ✓ fix round 2: submit naming a clock that is no longer the stored one is refused 409 DRAFT_NOT_LATEST (87 ms)
+Tests:       9 passed, 9 total
+## run 2
+    ✓ the same payload with the same applicationId twice: one application, identical data, no new rows anywhere (193 ms)
+    ✓ a FIRST save (no id yet) whose reply was lost, retried with no id: still one new application, not two (153 ms)
+    ✓ C1: seq 2 applied, then seq 1 from the same session arrives: 409 DRAFT_OUT_OF_ORDER, nothing written, data stays seq 2 (97 ms)
+    ✓ C1: seq 1 and seq 2 racing for the same row: whatever the arrival order, the stored answers are seq 2 (234 ms)
+    ✓ C1: another session (another tab, a reload) is not compared, and a save with no clock (an older client) is not checked (110 ms)
+    ✓ C1: the clock cannot be forged through formData (the allowlist drops it) (84 ms)
+    ✓ fix round 2: with RLS_SHADOW_GUC=true an ordered save completes (no self-deadlock) (74 ms)
+    ✓ fix round 2: a document upload that commits between the save's read and its write is kept (68 ms)
+    ✓ fix round 2: submit naming a clock that is no longer the stored one is refused 409 DRAFT_NOT_LATEST (198 ms)
+Tests:       9 passed, 9 total
+## run 3
+    ✓ the same payload with the same applicationId twice: one application, identical data, no new rows anywhere (239 ms)
+    ✓ a FIRST save (no id yet) whose reply was lost, retried with no id: still one new application, not two (149 ms)
+    ✓ C1: seq 2 applied, then seq 1 from the same session arrives: 409 DRAFT_OUT_OF_ORDER, nothing written, data stays seq 2 (98 ms)
+    ✓ C1: seq 1 and seq 2 racing for the same row: whatever the arrival order, the stored answers are seq 2 (231 ms)
+    ✓ C1: another session (another tab, a reload) is not compared, and a save with no clock (an older client) is not checked (54 ms)
+    ✓ C1: the clock cannot be forged through formData (the allowlist drops it) (23 ms)
+    ✓ fix round 2: with RLS_SHADOW_GUC=true an ordered save completes (no self-deadlock) (45 ms)
+    ✓ fix round 2: a document upload that commits between the save's read and its write is kept (30 ms)
+    ✓ fix round 2: submit naming a clock that is no longer the stored one is refused 409 DRAFT_NOT_LATEST (123 ms)
+Tests:       9 passed, 9 total
+
+Mutation: with FOR UPDATE removed the race test still passed 3 of 3 runs. The UPDATE's own row lock serialises the writes, so this test does not prove the read lock; the lock stays because the re-read-and-merge (the upload test) depends on reading under it.
+
+Backend draft/submit/wizard suites: 44 suites / 480 tests, 9 failing in m1-submit-enforcement and m2a-submit-enforcement. All 9 also fail with main e33666b9's backend sources (r1-local-gate.txt baseline run).

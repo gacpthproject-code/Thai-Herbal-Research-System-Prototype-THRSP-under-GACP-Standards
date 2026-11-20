@@ -1,0 +1,161 @@
+/**
+ * PHASE 0 — C12 RESUME DRIVER (one-off, 2026-08-19 round — DELETED after the run;
+ * source preserved at evidence/phase0/s05/C12-resume-driver-source.txt).
+ *
+ * Why this exists: the 2026-08-19 walk proved C12's fail-closed gate with ZERO
+ * evidence at 01:16 (C12-gate-premature-pass.txt — refused, row stayed
+ * AUDIT_CONFIRMED, 0 certs), then the inspect flow uploaded 5 photos + answered
+ * 24/24 checklist items at ~01:51 (C12-photos.txt) before the run failed on a
+ * reload-expectation that predated the F-ONSITE-STARTEDAT-LIES fix. Re-running
+ * the FULL C12 test would press "premature PASS" against a row that now carries
+ * real evidence — the refusal assertion would be dishonest. This driver walks
+ * ONLY the remaining hop, through the same real UI doors:
+ *   inspect → เริ่มตรวจ (GPS) → checklist seeded 24/24 from the SERVER (the
+ *   persistence proof) → ทบทวนผลการตรวจ → ตัดสินผล PASS → ส่งผลการตรวจ
+ *   → AUDIT_PASSED + certificates row.
+ *
+ * Same rules as s05: VERIFICATION of the remaining hop only, no /api/e2e/*,
+ * psql SELECT-only, credentials via env (G-3), no token in evidence.
+ */
+import { test, expect, type Page } from '@playwright/test';
+import { join } from 'node:path';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { login, dump, auditDump, psql, readVars, saveVars, EV } from './helpers';
+
+const SEG = 's05';
+const OUT = join(EV, SEG);
+mkdirSync(OUT, { recursive: true });
+
+const AUDITOR_LOGIN_ID = '2222222222222';
+const shot = (p: Page, name: string) => p.screenshot({ path: join(OUT, name), fullPage: true });
+const rows = <T>(sql: string): T[] => JSON.parse(psql(sql)) as T[];
+const one = <T>(sql: string): T | undefined => rows<T>(sql)[0];
+const bkk = () => new Date().toLocaleString('th-TH', { timeZone: 'Asia/Bangkok' });
+
+interface CertRow { id: string; certificateNumber: string; status: string }
+
+test('C12 resume — decision PASS on the persisted evidence → AUDIT_PASSED + certificate', async ({ browser }) => {
+  const V = readVars();
+  const APP = String(V.FARMER_MAIN_APP ?? '');
+  const OFFICER_PW = process.env.PHASE0_SEED_PW_OFFICER || '';
+  expect(APP, 'FARMER_MAIN_APP present in VARS').toBeTruthy();
+  expect(OFFICER_PW, 'PHASE0_SEED_PW_OFFICER set in the run command (G-3)').toBeTruthy();
+
+  dump(SEG, 'C12-resume', 'before', APP);
+  const before = one<{ status: string }>(`SELECT status FROM applications WHERE id='${APP}';`);
+  expect(before?.status, 'resume precondition — row still AUDIT_CONFIRMED').toBe('AUDIT_CONFIRMED');
+  const loc = one<{ location_data: Record<string, unknown> | null }>(
+    `SELECT id, "formData"->'locationData' AS location_data FROM applications WHERE id='${APP}';`,
+  );
+  const farmLat = typeof loc?.location_data?.latitude === 'number' ? (loc.location_data.latitude as number) : null;
+  const farmLng = typeof loc?.location_data?.longitude === 'number' ? (loc.location_data.longitude as number) : null;
+  const fix = { latitude: farmLat ?? 18.7883, longitude: farmLng ?? 98.9853 };
+
+  const audCtx = await browser.newContext({
+    permissions: ['geolocation'],
+    geolocation: fix,
+    recordVideo: { dir: join(OUT, 'video-auditor-c12-resume') },
+  });
+  const aud = await audCtx.newPage();
+  await login(aud, { kind: 'provider', id: AUDITOR_LOGIN_ID, pw: OFFICER_PW });
+  await aud.waitForURL(/\/provider\/(dashboard|audits|scheduler|applications|work|coordinator)/, { timeout: 120_000 });
+  await aud.waitForLoadState('domcontentloaded');
+
+  // The same real doors as the main spec: job sheet → ONSITE tab → inspect.
+  await aud.goto(`/provider/audits/${APP}`, { timeout: 200_000 });
+  await aud.waitForLoadState('domcontentloaded');
+  await aud.waitForTimeout(6000);
+  const onsiteTab = aud.getByRole('tab', { name: /เครื่องมือภาคสนาม|Field Tools/ });
+  await expect(onsiteTab, 'ONSITE tab present').toBeVisible({ timeout: 60_000 });
+  await onsiteTab.click();
+  const inspectEntry = aud.getByTestId('onsite-inspect-entry');
+  await expect(inspectEntry, 'onsite entry point').toBeVisible({ timeout: 30_000 });
+  await inspectEntry.click();
+  await aud.waitForURL(/\/provider\/audits\/.+\/inspect/, { timeout: 200_000 });
+  await aud.waitForLoadState('domcontentloaded');
+
+  // Start screen (honest post-fix state: no persisted start marker) → press.
+  const startBtn = aud.getByRole('button', { name: /^เริ่มตรวจ$|กำลังอ่านพิกัด/ });
+  const articles = aud.locator('article[data-checklist-id]');
+  await expect(startBtn.or(articles.first()), 'start screen or checklist').toBeVisible({ timeout: 90_000 });
+  if (await startBtn.isVisible().catch(() => false)) {
+    await startBtn.click();
+  }
+  await expect(articles.first(), 'checklist screen rendered').toBeVisible({ timeout: 120_000 });
+  await aud.waitForTimeout(3000);
+  const itemCount = await articles.count();
+  let answered = 0;
+  for (let i = 0; i < itemCount; i++) {
+    if ((await articles.nth(i).locator('button[role="radio"][aria-checked="true"]').count()) > 0) answered += 1;
+  }
+  await shot(aud, 'C12-09-checklist-persisted.png');
+  writeFileSync(
+    join(OUT, 'C12-checklist.txt'),
+    `${bkk()} (resume driver — fresh session, fresh context)\n` +
+      `answers seeded from the SERVER after a full new login: ${answered}/${itemCount}\n` +
+      `(uploaded and flushed by the 01:48-01:53 run — C12-photos.txt holds the 5 accepted photo POSTs;\n` +
+      ` this survival across a NEW browser context is the persistence proof the main spec's reload loop wanted)\n`,
+  );
+  expect(answered, 'every checklist answer survived into a brand-new session (server truth)').toBe(itemCount);
+
+  // Review → decision PASS (same buttons as the main spec).
+  await aud.getByRole('button', { name: /ทบทวนผลการตรวจ/ }).click();
+  await expect(aud.getByRole('button', { name: /ไปที่หน้าตัดสินผล/ }), 'review screen').toBeVisible({ timeout: 60_000 });
+  await shot(aud, 'C12-10-review.png');
+  await aud.getByRole('button', { name: /ไปที่หน้าตัดสินผล/ }).click();
+  const passOption = aud.getByRole('button', { name: 'ผ่าน', exact: true });
+  await expect(passOption, 'decision screen').toBeVisible({ timeout: 60_000 });
+  await passOption.click();
+  await aud.getByPlaceholder('สรุปผลการตรวจประเมินภาคสนาม').fill(
+    'Phase 0 C12 (resume) — ตรวจประเมินภาคสนามครบทุกข้อ มีภาพหลักฐานและบันทึกพิกัดครบ ผลการตรวจผ่าน',
+  );
+  await shot(aud, 'C12-11-decision.png');
+  const decisionResp = aud
+    .waitForResponse((r) => /\/audit\/onsite\/.+\/decision$/.test(r.url()) && r.request().method() === 'POST', { timeout: 180_000 })
+    .catch(() => null);
+  await aud.getByRole('button', { name: /ส่งผลการตรวจ/ }).click();
+  const dr = await decisionResp;
+  const dBody = dr ? (await dr.text().catch(() => '')).slice(0, 1200) : '';
+  writeFileSync(
+    join(OUT, 'C12-decision-response.txt'),
+    `${bkk()} (resume driver)\nPOST /api/audit/onsite/:auditId/decision {decision: PASS}\nstatus ${dr ? dr.status() : 'none'}\n${dBody}\n`,
+  );
+  await aud.waitForTimeout(4000);
+  await shot(aud, 'C12-12-decision-submitted.png');
+  expect(Boolean(dr && dr.status() === 200), 'the PASS was accepted on the real onsite evidence').toBe(true);
+  await expect(aud.getByTestId('done-screen-back-to-queue'), 'field app done screen').toBeVisible({ timeout: 60_000 });
+
+  let finalStatus = '';
+  for (let i = 0; i < 10 && finalStatus !== 'AUDIT_PASSED'; i++) {
+    finalStatus = one<{ status: string }>(`SELECT status FROM applications WHERE id='${APP}';`)?.status ?? '';
+    if (finalStatus !== 'AUDIT_PASSED') await aud.waitForTimeout(3000);
+  }
+  let certs: CertRow[] = [];
+  for (let i = 0; i < 10 && certs.length === 0; i++) {
+    certs = rows<CertRow>(`SELECT id, "certificateNumber", status FROM certificates WHERE "applicationId"='${APP}';`);
+    if (certs.length === 0) await aud.waitForTimeout(3000);
+  }
+  dump(SEG, 'C12', 'after', APP);
+  auditDump(SEG, 'C12', APP);
+  writeFileSync(
+    join(OUT, 'C12-certificate.txt'),
+    `${bkk()} (resume driver)\nstatus after PASS: ${finalStatus}\ncertificates (${certs.length}):\n${JSON.stringify(certs, null, 2)}\n` +
+      'RECORDED, NOT FIXED (plan §III C12 / ruling D2): the certificate is minted at AUDIT_PASSED by the\n' +
+      'writer hook — before APPROVED/CERTIFIED. Phase 0 documents this; the fix is a separate ticket.\n',
+  );
+  expect(finalStatus, 'C12 status = AUDIT_PASSED').toBe('AUDIT_PASSED');
+  expect(certs.length, 'a certificate row exists after the PASS').toBeGreaterThanOrEqual(1);
+  const certNumber = String(certs[0]?.certificateNumber || '');
+  if (certNumber) saveVars('CERT_NUMBER', certNumber);
+  writeFileSync(
+    join(OUT, 'C12-summary.txt'),
+    `${bkk()}\nC12 AUDIT_CONFIRMED → AUDIT_PASSED — completed across two recorded sessions:\n` +
+      `part 1 (01:16, main spec run): fail-closed proof — "ยืนยัน PASS" with ZERO evidence → refused (500),\n` +
+      `  row stayed AUDIT_CONFIRMED, 0 certificates (C12-gate-premature-pass.txt, C12-01..03 screenshots)\n` +
+      `part 2 (01:48-01:53, main spec run, after the startedAt + Permissions-Policy fixes): GPS check-in 200,\n` +
+      `  5/5 photos accepted WITH coordinates (C12-photos.txt), 24/24 checklist answers flushed\n` +
+      `part 3 (this resume driver, fresh session): answers still 24/24 from the server, review → PASS →\n` +
+      `  ${finalStatus} · certificates ${certs.length} (${certNumber})\n`,
+  );
+  await audCtx.close();
+});

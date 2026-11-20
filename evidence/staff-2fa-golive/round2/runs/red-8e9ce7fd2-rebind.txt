@@ -1,0 +1,64 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-20T12:42:49.732Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-20T12:42:49.736Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-20T12:42:49.737Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.165Z"}
+[32minfo[39m: [Auth MOPH] MFA setup required for: 1-XXXX-XXXX-X-4940 {"service":"gacp-backend","timestamp":"2026-10-20T12:42:51.212Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.233Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.238Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"AuditLog","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.262Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.316Z"}
+[32minfo[39m: [Auth MOPH] MFA challenge issued for: 5-XXXX-XXXX-X-3734 {"service":"gacp-backend","timestamp":"2026-10-20T12:42:51.324Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.334Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"AuditLog","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.349Z"}
+[33mwarn[39m: [MFA] jti single-use check failed (allowing — Redis issue): {"service":"gacp-backend","timestamp":"2026-10-20T12:42:51.356Z"}
+[32minfo[39m: [MFA] Login completed after MFA verification for: field_inspector e951379b-7d53-44a7-bde3-12ec4c49883f {"service":"gacp-backend","timestamp":"2026-10-20T12:42:51.364Z"}
+[31merror[39m: [SECURITY] ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE {"error":"Redis unavailable during GET on namespace \"auth\"","event":"ACCESS_TOKEN_BLOCKLIST_REDIS_OUTAGE","failMode":"OPEN","jtiPrefix":"6593fe02-567b-4b","recommendedAction":"Verify Redis health (auth:blocklist namespace). If a credential compromise is suspected during this window, manually invalidate affected sessions via revokeAllUserTokens(userId) or rotate the JWT signing key.","securityEvent":true,"service":"gacp-backend","severity":"CRITICAL","timestamp":"2026-10-20T12:42:51.381Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.384Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.414Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.439Z"}
+[33mwarn[39m: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-20T12:42:51.468Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-20T12:42:51.569Z"}
+FAIL __tests__/integration/staff-2fa-backup-code-rebind-real-postgres.test.js
+  order 89 ก: a staff member moves 2FA to a new device with one backup code (real Postgres, real HTTP)
+    ก1 enrolment
+      ✕ the backup codes are shown once at /setup; /verify-setup refuses to enable 2FA until the person confirms they saved them; the codes shown are the ones that sign in afterwards (156 ms)
+    ก2 ก3 ก4 moving the factor with a backup code
+      ✕ one unused backup code starts the move and is consumed; the same code, a wrong code, or no code at all is refused; five wrong codes from one address trip the limiter (176 ms)
+      ✕ confirming the new device moves the factor in one transaction: the old app and the old codes stop working, the new ones work, the audit row names the method and a masked address, and the notice reaches the owner despite the mute (1 ms)
+  ● order 89 ก: a staff member moves 2FA to a new device with one backup code (real Postgres, real HTTP) › ก1 enrolment › the backup codes are shown once at /setup; /verify-setup refuses to enable 2FA until the person confirms they saved them; the codes shown are the ones that sign in afterwards
+    TypeError: expect(received).toHaveLength(expected)
+    Matcher error: received value must have a length property whose value must be a number
+    Received has value: undefined
+      174 |             const setup = await mfaSetup(bearer, {});
+      175 |             expect(setup.status).toBe(200);
+    > 176 |             expect(setup.body.data.backupCodes).toHaveLength(10);
+          |                                                 ^
+      177 |             expect((await factor(staff.id)).twoFactorEnabled).toBe(false);
+      178 |             const code = mfaService.generateTOTP(setup.body.data.secret);
+      179 |
+  ● order 89 ก: a staff member moves 2FA to a new device with one backup code (real Postgres, real HTTP) › ก2 ก3 ก4 moving the factor with a backup code › one unused backup code starts the move and is consumed; the same code, a wrong code, or no code at all is refused; five wrong codes from one address trip the limiter
+    expect(received).toBe(expected) // Object.is equality
+    Expected: 200
+    Received: 401
+      222 |
+      223 |             const started = await mfaSetup(bearer, { backupCode: OLD_CODES[1] });
+    > 224 |             expect(started.status).toBe(200);
+          |                                    ^
+      225 |             expect(started.body.data).toEqual(expect.objectContaining({ reenrol: true, method: 'BACKUP_CODE' }));
+      226 |             expect(started.body.data.backupCodes).toHaveLength(10);
+      227 |             expect(started.body.data.secret).not.toBe(oldSecret);
+  ● order 89 ก: a staff member moves 2FA to a new device with one backup code (real Postgres, real HTTP) › ก2 ก3 ก4 moving the factor with a backup code › confirming the new device moves the factor in one transaction: the old app and the old codes stop working, the new ones work, the audit row names the method and a masked address, and the notice reaches the owner despite the mute
+    TypeError: Cannot destructure property 'bearer' of 'fx.rebind' as it is null.
+      247 |
+      248 |         test('confirming the new device moves the factor in one transaction: the old app and the old codes stop working, the new ones work, the audit row names the method and a masked address, and the notice reaches the owner despite the mute', async () => {
+    > 249 |             const { bearer, newSecret, newCodes } = fx.rebind;
+          |                     ^
+      250 |             const startedAt = Date.now();
+      251 |
+      252 |             const unconfirmed = await mfaVerifySetup(bearer, { code: mfaService.generateTOTP(newSecret) });
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 3 total
+Snapshots:   0 total
+Time:        2.989 s
+Ran all test suites matching __tests__/integration/staff-2fa-backup-code-rebind-real-postgres.test.js.
+jest exit 1

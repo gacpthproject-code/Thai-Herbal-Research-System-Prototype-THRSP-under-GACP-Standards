@@ -1,0 +1,47 @@
+# ชุดเทสต์ที่ 4f3dde1c9 (รันผ่าน ~/work/state/heavy.sh · --maxWorkers=2 · NODE_OPTIONS=--max-old-space-size=3072
+# · Postgres ชั่วคราว tbd-dsfinal-pg ที่ migrate จาก tree นี้ · SIGNING_KEY_DIR แยกของงานนี้)
+# baseline: ~/work/state/gate/out/evidence/gate/logs/e5c3849765b808ee09995720f7f68123c1eda25b
+#   suite-green.log และ integration-pg.log ระบุชื่อเทสต์ที่ไม่ผ่านชุดเดียวกัน 23 เทสต์ ใน 7 ชุด integration ทั้งหมด
+#   (brief เขียน main suite 33 แต่ log ใน baseline นี้มีชื่อ 23 รายการ จึงเทียบกับ 23 ชื่อนี้)
+
+## backend unit (ทุกเทสต์ยกเว้น __tests__/integration)
+Test Suites: 1 skipped, 903 passed, 903 of 904 total
+Tests:       39 skipped, 12347 passed, 12386 total
+ไม่ผ่าน 0 · ใหม่เทียบ baseline 0
+
+## backend integration (__tests__/integration)
+Test Suites: 7 failed, 1 skipped, 162 passed, 169 of 170 total
+Tests:       23 failed, 13 skipped, 1689 passed, 1725 total
+ชุดที่ไม่ผ่าน (ตรงชื่อกับ baseline ทุกชุด):
+- __tests__/integration/a0-pr2-per-hop-invariant.test.js
+- __tests__/integration/m1-erasure-holder-survives.test.js
+- __tests__/integration/m1-submit-enforcement.test.js
+- __tests__/integration/m2a-submit-enforcement.test.js
+- __tests__/integration/officer-review-round-trip.test.js
+- __tests__/integration/onsite-decision-mint-e2e.test.js
+- __tests__/integration/status-writer-audit-default-invariant.test.js
+เทียบชื่อเทสต์ทีละรายการ (ancestorTitles › title) กับ 23 ชื่อของ baseline: ใหม่ 0 · หายไป 0 · ข้าม 13 เท่า baseline
+หลังรัน คืนไฟล์ evidence/payer-block/after ที่เทสต์เขียนทับด้วย git restore
+
+## web jest (apps/web-app)
+Test Suites: 484 passed, 484 total
+Tests:       3939 passed, 3939 total
+
+## web tsc --noEmit (apps/web-app)
+exit 0 ไม่มี error (tsconfig ตั้ง incremental: true จึงใช้ tsconfig.tsbuildinfo เดิมและตรวจเฉพาะไฟล์ที่เปลี่ยนกับไฟล์ที่ขึ้นกับมัน ใช้เวลา 10 วินาที)
+
+## เทสต์เฉพาะชุดข้อมูลวิจัย แบบสำรวจ และรหัสข้อผิดพลาด (ที่ 4f3dde1c9 ก่อนรันชุดเต็ม)
+12 ชุด 241 เทสต์ผ่าน
+  unit: dataset-export-service, dataset-research-basis, dataset-routes, survey-service, survey-routes,
+        error-codes-source-pointers, error-codes-catalog, performed-by-never-reaches-a-public-scan
+  real Postgres: research-dataset-export, research-data-privacy, research-data-veto, survey-one-response
+web หน้า datasets: export-buttons-only-for-exporters และ datasets-tile-matches-who-exports 7/7
+
+## ตัวตรวจชุดข้อมูลวิจัย
+check-dataset.js --write-sample: K1-K13 ผ่าน (สร้าง docs/data/sample ใหม่ ไฟล์ข้อมูลไม่เปลี่ยน เปลี่ยนเฉพาะ manifest.json และ data-dictionary.md)
+check-dataset.selftest.js: selftest.txt ในโฟลเดอร์นี้ K1-K13 ผ่าน negative controls 62/62 ถูกจับ
+
+## อื่น ๆ
+extract-error-codes.js --validate: 443 codes reconciled
+ชั้นเบาของ local-gate: banned-terms ผ่าน · mojibake ผ่าน · architecture-doc (ARCH_REQUIRE_K6=1) ผ่าน · architecture-selftest ผ่าน (30 controls)
+  green-mask ไม่ผ่านที่สองไฟล์ซึ่งเหมือน main ทุกบรรทัด (finance-integrity-real-postgres.test.js มากับ main · survey-one-response-real-postgres.test.js มีบน main อยู่แล้ว) ไม่ใช่ของใหม่ของ branch นี้

@@ -1,0 +1,135 @@
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T07:08:02.832Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T07:08:02.836Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T07:08:02.838Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:46:47)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/staff-doors-hardening-real-postgres.test.js:46:47)
+
+warn: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-10-09T07:08:03.875Z"}
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+info: Loaded existing signing keys {"service":"signature-service","timestamp":"2026-10-09T07:08:03.890Z"}
+info: Signature service initialized {"service":"signature-service","timestamp":"2026-10-09T07:08:03.891Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T07:08:04.328Z"}
+FAIL __tests__/integration/staff-doors-hardening-real-postgres.test.js
+  staff doors hold (real Postgres)
+    a value typed over what the screen showed masked (L1)
+      ○ skipped a partial edit of a juristic registration number the screen showed masked is refused, and nothing changes
+      ○ skipped a stored ID that itself carries an X (a passport number) is sent back unchanged and does not block the save
+    the inspector's result door answers with what it decided, not the stored row (L2)
+      ○ skipped no snapshot, no legacy creator or IP column and no filing leave with the answer
+    the field app writes only while the visit stands and is still the inspector's (L3 L4 L5)
+      ○ skipped a writer that leaves the visit flag out is still held to the visit: nothing is written once the application left it (L3)
+      ○ skipped a checklist answer racing a reassignment that commits first is refused, and nothing is written (L4)
+      ○ skipped a decision racing a reassignment waits for the application row first: no deadlock, a clean refusal, nothing decided (L5)
+    a reschedule and a reassignment never write over each other (L6 I4 I5)
+      ○ skipped the applicant's reschedule request read before a reassignment keeps the reassignment it did not see (L6)
+      ○ skipped who may ask to move a visit: a member of the holder who may act on it; nobody outside it, and not a viewer
+      ○ skipped approving a reschedule read before a reassignment is refused and the reassignment stays (L6)
+      ○ skipped the reassignment checks the new inspector's day on the visit date read under the lock (L6)
+      ○ skipped a booking that waits on a long write answers a retriable 409, not a 500 (I5)
+      ○ skipped a reassignment that rolls back leaves no audit row behind (I4)
+    expiring an overdue revision by hand stays inside the caller's organization and read scope, on the real clock (L7)
+      ○ skipped another organization, a role outside dispatcher and DTAM admin, or a file outside the dispatcher's read scope: nothing expires
+      ○ skipped a caller-supplied clock is not honoured: a deadline still ahead does not expire
+    the dispatcher's edges carry their record at the status writer, whatever the door (I2)
+      ✕ a forced status change on a row whose filing says another state still cannot book a visit with no inspector or date (226 ms)
+      ✕ the writer refuses DOC_FEE_PAID -> ASSIGNED_FOR_REVIEW without its record, for any caller (56 ms)
+      ✕ the writer refuses AUDIT_FEE_PAID -> AUDIT_CONFIRMED without its record, for any caller (47 ms)
+
+  ● staff doors hold (real Postgres) › the dispatcher's edges carry their record at the status writer, whatever the door (I2) › a forced status change on a row whose filing says another state still cannot book a visit with no inspector or date
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Array [
+    -   409,
+    -   "AUDIT_BOOKING_USE_CALENDAR",
+    +   200,
+    +   undefined,
+      ]
+
+      339 |             const res = await request(app).post(`/api/provider/applications/${row.id}/workflow-transitions`)
+      340 |                 .send({ toState: 'AUDIT_CONFIRMED', force: true, reasonCode: 'SYSTEM_RECOVERY', comment: 'กู้สถานะที่ค้าง' });
+    > 341 |             expect([res.status, res.body.code]).toEqual([409, 'AUDIT_BOOKING_USE_CALENDAR']);
+          |                                                 ^
+      342 |             expect((await world.rowOf(row.id)).status).toBe('AUDIT_FEE_PAID');
+      343 |         });
+      344 |
+
+      at Object.toEqual (__tests__/integration/staff-doors-hardening-real-postgres.test.js:341:49)
+
+  ● staff doors hold (real Postgres) › the dispatcher's edges carry their record at the status writer, whatever the door (I2) › the writer refuses DOC_FEE_PAID -> ASSIGNED_FOR_REVIEW without its record, for any caller
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"applicationNumber": "APP-sdh-10-964d5e94", "appointmentLocation": null, "appointmentMode": null, "areaType": "OUTDOOR", "areaTypeIndex": 0, "attachments": null, "auditLocation": null, "auditMeetingUrl": null, "auditMode": null, "auditNotes": null, "auditResult": null, "auditorId": null, "batchId": null, "bundleId": null, "certificationPurpose": null, "certificationPurposes": [], "closedReason": null, "consentedPDPA": false, "createdAt": 2026-10-09T07:08:04.110Z, "createdBy": null, "createdByIp": null, "cultivationScopeCount": null, "deleteReason": null, "deletedAt": null, "deletedBy": null, "entityId": "d29bbb8c-232a-4c74-af42-7a261dae72ed", "formData": {"farmData": {"district": "เมือง", "latitude": 18.7883, "longitude": 98.9853, "postalCode": "50000", "province": "เชียงใหม่", "siteAddress": "99 หมู่ 1", "siteName": "แปลงทดสอบผู้จัดคิว", "subDistrict": "ทดสอบ"}, "workflowState": "ASSIGNED_FOR_REVIEW", "workflowStateUpdatedAt": "2026-10-09T07:08:04.131Z"}, "headAuditorId": null, "healthId": "sdh-applicant-964d5e94", "id": "f3623060-2550-4fd1-9fce-053efaeef5cd", "idempotencyKey": null, "isDeleted": false, "isPreviewReady": false, "labName": null, "labResultStatus": null, "labResults": null, "legalHold": false, "meetingUrl": null, "organizationId": "56aa5b3c-7ee3-4272-a8d6-e8c8c2807a0f", "personnelHygiene": null, "phase1Amount": 5885, "phase1ExpiresAt": null, "phase1InvoiceId": null, "phase1PaidAt": null, "phase1Status": "PENDING", "phase2Amount": 29425, "phase2ExpiresAt": null, "phase2InvoiceId": null, "phase2PaidAt": null, "phase2Status": "PENDING", "previewData": null, "previousCertNumber": null, "rejectCount": 0, "retainUntil": 2031-10-09T07:08:04.111Z, "reviewerId": null, "sameReviewerAuditor": false, "scheduledDate": null, "schedulerId": null, "serviceType": "new_application", "standardCode": null, "status": "ASSIGNED_FOR_REVIEW", "submissionHash": null, "submitterId": "b4752642-302f-4dfd-a40a-61e4cb949b9a", "supplementaryCriteria": null, "supplementarySkipped": false, "totalAreaTypes": 1, "updatedAt": 2026-10-09T07:08:04.133Z, "updatedBy": "e97b74d9-b293-4e72-8e1e-4c96b3fb8c8f", "updatedByIp": null, "uuid": "eb60421d-a25f-43db-9d3e-1577b5bffc5e", "version": 2, "workflowHistory": null}
+
+      348 |         ])('the writer refuses %s -> %s without its record, for any caller', async (from, to, milestones, code) => {
+      349 |             const row = await world.application(from, { milestones, reviewerId: from === 'AUDIT_FEE_PAID' ? fx.reviewerA.id : null });
+    > 350 |             await expect(writeApplicationStatus({
+          |                   ^
+      351 |                 prisma: world.raw, applicationId: row.id, fromStatus: from, toStatus: to,
+      352 |                 actorId: fx.adminA.id, actorRole: 'system_admin_dtam', reason: 'TEST_NO_RECORD',
+      353 |             })).rejects.toMatchObject({ code });
+
+      at expect (../../node_modules/.pnpm/expect@30.2.0/node_modules/expect/build/index.js:2116:15)
+      at expect (__tests__/integration/staff-doors-hardening-real-postgres.test.js:350:19)
+
+  ● staff doors hold (real Postgres) › the dispatcher's edges carry their record at the status writer, whatever the door (I2) › the writer refuses AUDIT_FEE_PAID -> AUDIT_CONFIRMED without its record, for any caller
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"applicationNumber": "APP-sdh-11-964d5e94", "appointmentLocation": null, "appointmentMode": null, "areaType": "OUTDOOR", "areaTypeIndex": 0, "attachments": null, "auditLocation": null, "auditMeetingUrl": null, "auditMode": null, "auditNotes": null, "auditResult": null, "auditorId": null, "batchId": null, "bundleId": null, "certificationPurpose": null, "certificationPurposes": [], "closedReason": null, "consentedPDPA": false, "createdAt": 2026-10-09T07:08:04.168Z, "createdBy": null, "createdByIp": null, "cultivationScopeCount": null, "deleteReason": null, "deletedAt": null, "deletedBy": null, "entityId": "d29bbb8c-232a-4c74-af42-7a261dae72ed", "formData": {"farmData": {"district": "เมือง", "latitude": 18.7883, "longitude": 98.9853, "postalCode": "50000", "province": "เชียงใหม่", "siteAddress": "99 หมู่ 1", "siteName": "แปลงทดสอบผู้จัดคิว", "subDistrict": "ทดสอบ"}, "workflowState": "AUDIT_CONFIRMED", "workflowStateUpdatedAt": "2026-10-09T07:08:04.195Z"}, "headAuditorId": null, "healthId": "sdh-applicant-964d5e94", "id": "cc4423cc-db84-4c84-b7b7-bf3f898bd8b7", "idempotencyKey": null, "isDeleted": false, "isPreviewReady": false, "labName": null, "labResultStatus": null, "labResults": null, "legalHold": false, "meetingUrl": null, "organizationId": "56aa5b3c-7ee3-4272-a8d6-e8c8c2807a0f", "personnelHygiene": null, "phase1Amount": 5885, "phase1ExpiresAt": null, "phase1InvoiceId": null, "phase1PaidAt": null, "phase1Status": "PENDING", "phase2Amount": 29425, "phase2ExpiresAt": null, "phase2InvoiceId": null, "phase2PaidAt": null, "phase2Status": "PENDING", "previewData": null, "previousCertNumber": null, "rejectCount": 0, "retainUntil": 2031-10-09T07:08:04.169Z, "reviewerId": "c23259b8-3998-4be8-bf4b-e139bf1f0279", "sameReviewerAuditor": false, "scheduledDate": null, "schedulerId": null, "serviceType": "new_application", "standardCode": null, "status": "AUDIT_CONFIRMED", "submissionHash": null, "submitterId": "b4752642-302f-4dfd-a40a-61e4cb949b9a", "supplementaryCriteria": null, "supplementarySkipped": false, "totalAreaTypes": 1, "updatedAt": 2026-10-09T07:08:04.197Z, "updatedBy": "e97b74d9-b293-4e72-8e1e-4c96b3fb8c8f", "updatedByIp": null, "uuid": "ea98f159-06c4-493d-b1c9-dbe2ddd308c7", "version": 2, "workflowHistory": null}
+
+      348 |         ])('the writer refuses %s -> %s without its record, for any caller', async (from, to, milestones, code) => {
+      349 |             const row = await world.application(from, { milestones, reviewerId: from === 'AUDIT_FEE_PAID' ? fx.reviewerA.id : null });
+    > 350 |             await expect(writeApplicationStatus({
+          |                   ^
+      351 |                 prisma: world.raw, applicationId: row.id, fromStatus: from, toStatus: to,
+      352 |                 actorId: fx.adminA.id, actorRole: 'system_admin_dtam', reason: 'TEST_NO_RECORD',
+      353 |             })).rejects.toMatchObject({ code });
+
+      at expect (../../node_modules/.pnpm/expect@30.2.0/node_modules/expect/build/index.js:2116:15)
+      at expect (__tests__/integration/staff-doors-hardening-real-postgres.test.js:350:19)
+
+Test Suites: 1 failed, 1 total
+Tests:       3 failed, 14 skipped, 17 total
+Snapshots:   0 total
+Time:        2.578 s, estimated 3 s
+Ran all test suites matching __tests__/integration/staff-doors-hardening-real-postgres.test.js with tests matching "I2".

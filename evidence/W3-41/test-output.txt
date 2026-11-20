@@ -1,0 +1,116 @@
+## Q2-D1 GREEN — targeted files
+# date: 2026-08-03T00:02:25Z | branch: feat/w2-03-checkout-ui | cmd: npx jest --config jest.config.cjs __tests__/unit/checkout-schedule-service.test.js __tests__/unit/stripe-checkout-engine.test.js
+PASS __tests__/unit/stripe-checkout-engine.test.js
+    ✓ the statement descriptor is exactly the locked value and within the 22-char limit (4 ms)
+    ✓ THB amounts convert to satang exactly (2 ms)
+    ✓ the client factory fails closed without a secret key (18 ms)
+    ✓ the webhook secret assertion fails closed (2 ms)
+    ✓ M1 checkout mints the order with the fee-service decomposition and a satang intent (32 ms)
+    ✓ mint stamps invoice.dueDate — billing.prisma requires it NOT NULL, so a mint without it crashes on the real DB (18 ms)
+    ✓ re-entry returns the open order instead of minting a sibling (3 ms)
+    ✓ concurrent double-checkout: winner mints, loser gets a clean 409 — never a raw P2002 (9 ms)
+    ✓ M2 is refused before the documents pass (canonical step 4 gate) (2 ms)
+    ✓ an unknown milestone is refused outright (2 ms)
+    ✓ a verified succeeded intent settles everything in ONE transaction (4 ms)
+    ✓ M2 settlement unlocks the dispatcher-2 queue state (2 ms)
+    ✓ an amount mismatch is an alert, NOT a settlement (1 ms)
+    ✓ an already-settled order is an idempotent no-op (1 ms)
+    ✓ an invalid signature is a 400 with zero side effects (58 ms)
+    ✓ a redelivered event id is a 200 no-op (insert-first dedup) (22 ms)
+    ✓ payment_intent.succeeded settles and stamps the event processed (11 ms)
+    ✓ an unrelated event type is acknowledged without settling anything (15 ms)
+    ✓ payment_intent.payment_failed records the failure without touching the order state (1 ms)
+PASS __tests__/unit/checkout-schedule-service.test.js
+    ✓ M1: mint Tue 2026-12-01 lands 2026-12-11 (skips the 05-06 weekend AND วันรัฐธรรมนูญ 12-10) (5 ms)
+    ✓ M2: mint Fri 2026-12-18 crosses year end to 2027-01-12 (skips 4 weekends + 12-31 + 01-01) (10 ms)
+    ✓ delegates to the canonical addWorkingDays (same instant, end-of-business-day convention) (10 ms)
+    ✓ window lengths come from config, not literals baked into the service (12 ms)
+    ✓ an unknown milestone throws a coded error — never a silent default window (8 ms)
+    ✓ unpaid (pending) and past due → true (2 ms)
+    ✓ unpaid but not yet past due → false (1 ms)
+    ✓ exactly at the due instant → false (strictly past-due only) (1 ms)
+    ✓ paid → false no matter how late (settlement writes paid — see checkout-settlement-service) (1 ms)
+    ✓ cancelled → false (1 ms)
+    ✓ missing dueDate or missing invoice → false, never a throw (1 ms)
+    ✓ builds the pending + strictly-past-due where clause with the given instant (1 ms)
+    ✓ working-day due (Tue 2026-08-11): PRE_DUE 08-06, DUE_DATE 08-11, OVERDUE_NOTICE skips วันแม่ to 08-13 (5 ms)
+    ✓ weekend due (Sat 2026-08-08): DUE_DATE shifts forward to Mon 08-10 (5 ms)
+    ✓ PRE_DUE walks back across a holiday: due Mon 2026-12-14 → 2026-12-08 (skips 12-13 weekend + 12-10) (4 ms)
+    ✓ imports the config and the ONE canonical calendar (1 ms)
+    ✓ no bare due-window literals — the M1/M2 day counts live in config only (1 ms)
+    ✓ no stored-overdue write path: no quoted overdue literal, no prisma, no mutation call (1 ms)
+    ✓ no holiday data of its own — the calendar lives in utils/working-days.js alone (1 ms)
+Test Suites: 2 passed, 2 total
+Tests:       38 passed, 38 total
+
+## Q2-D1 GREEN — full backend suite tail
+# date: 2026-08-03T00:02:28Z | cmd: cd apps/backend && npx jest --config jest.config.cjs (full log: scratchpad/full-suite.log)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/simple.test.js
+  Simple Test
+    ✓ should pass (2 ms)
+
+Summary of all failing tests
+FAIL __tests__/unit/dataset-export-service.test.js
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 5 skipped, 519 passed, 520 of 525 total
+Tests:       1 failed, 63 skipped, 6918 passed, 6982 total
+Snapshots:   0 total
+Time:        231.915 s
+Ran all test suites.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+## Q2-D2 GREEN + full suite
+# date: 2026-08-03T00:22:59Z | branch: feat/w2-03-checkout-ui
+# targeted: npx jest --config jest.config.cjs __tests__/unit/payment-reminder-job.test.js __tests__/unit/scheduler-renewal-job.test.js
+
+# full suite: npx jest --config jest.config.cjs (tail) — the 1 failure is the SAME pre-existing dataset-export DMMF failure as the Q2-D1 baseline above (ungenerated @prisma/client in this env)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/simple.test.js
+  Simple Test
+    ✓ should pass (2 ms)
+
+Summary of all failing tests
+FAIL __tests__/unit/dataset-export-service.test.js
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 5 skipped, 520 passed, 521 of 526 total
+Tests:       1 failed, 63 skipped, 6933 passed, 6997 total
+Snapshots:   0 total
+Time:        238.708 s
+Ran all test suites.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+# ratchet (bash scripts/check-done.sh ratchet):
+ratchet PASS — current: hardcode=43 todo=59 env-direct=169 dup-source=4 (baseline: 43/59/169/4 — delta 0)

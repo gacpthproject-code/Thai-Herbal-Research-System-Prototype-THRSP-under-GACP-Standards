@@ -1,0 +1,76 @@
+GREEN summary - purposes-pt-licensed (operator ruling 2026-10-05). Summaries only, no raw logs.
+Toolchain: node v24.21.0, NODE_OPTIONS=--max-old-space-size=3072 for the wide runs.
+
+BACKEND  (apps/backend; jest --config jest.config.cjs __tests__/unit __tests__/document-slots.test.js)
+  Test Suites: 857 passed, 857 total     Tests: 11748 passed, 11748 total
+  new files: certification-purposes-vocabulary (19) application-requirements-purpose-licences katorlor1-purpose-line (6)
+             applications-purpose-whitelist-doors (14)
+  error-codes-source-pointers 5/5 · error-codes-catalog green · extract-error-codes --validate: 395 entries reconciled
+  Integration (real Postgres) files were edited (fixtures MEDICAL/COMMERCIAL -> EXPORT) but NOT run: PENDING.
+
+WEB  (apps/web-app; jest, whole package)
+  Test Suites: 457 passed + 1 failed (client-upload-check, stale M1_PT11 slot id) -> fixed, re-run 8/8 passed
+  Tests: 3757 passed + 1 failed -> fixed.  tsc --noEmit: no output (clean).
+
+MOBILE  (flutter test in scratch copies made with git archive)
+  main d6a7fb1e : +101 ~2  All tests passed
+  this branch   : +111 ~2  All tests passed   (10 new: canonical_mapper 4, certification_purposes 3, step2_purposes 3)
+  no new failures vs main. flutter analyze on touched dirs: only pre-existing deprecated_member_use infos.
+
+PROBES
+  bash scripts/probes/ratchet.sh        PASS  hardcode=26 todo=53 env-direct=101 dup-source=0
+  bash scripts/probes/retired-words.sh  PASS
+  node scripts/ci/probe-gate.js         FAIL on 3 probes, none touched by this branch: deploy-drift, main-attestation-audit,
+                                        nginx-config-drift (host/main state, no waiver) ; all others PASS ; tier-check TIER=C
+Born-green pins (not fixes): web lib/__tests__/certification-purposes.test.ts, mobile certification_purposes_test.dart,
+  the draft-door "accepts" cases in applications-purpose-whitelist-doors.test.js.
+
+## fix round 1 (GREEN)
+purpose-licences-in-requirement-snapshot.test.js: 2/2 pass. m2a-doc-requirements-doors.test.js: 28/28 (3 stamp expectations now include licence_pt10, the EXPORT fixture).
+backend unit folder (before those 3 expectations were updated): 856/857 suites, 11730/11733 tests; the only 3 failures were those expectations; re-run of that suite alone green.
+ratchet 26/53/101/0 PASS; keys mtime unchanged.
+
+=== fix round 2 — GREEN ===
+    ✓ the form still prints its แพทย์ box, and it is never ticked (8 ms)
+    ✓ EXPORT ticks the ส่งออก box and prints no extra line (2 ms)
+    ✓ RESEARCH alone leaves the ส่งออก box empty and prints the licence line (2 ms)
+    ✓ RESEARCH + PROCESSING prints both, with their licence codes (2 ms)
+    ✓ EXPORT + PROCESSING ticks the box AND prints the line for the one the box cannot say (14 ms)
+    ✓ a retired word ticks nothing and prints nothing (2 ms)
+    ✓ a named non-cannabis plant has no ภ.ท. licence line (fix round 2) (2 ms)
+    ✓ EXPORT requires licence_pt10 (7 ms)
+    ✓ EXPORT requires kratom_export_licence and no licence_pt10 (5 ms)
+    ✓ the slot is named for section 10 of the kratom act, with no invented form number (3 ms)
+    ✓ PROCESSING asks for no licence slot, in either scope (3 ms)
+    ✓ RESEARCH asks for no licence slot, in either scope (3 ms)
+    ✓ the controlled_herb_license scope rule is gone for kratom (3 ms)
+    ✓ turmeric (12 ms)
+    ✓ ginger (3 ms)
+    ✓ plai (5 ms)
+    ✓ black_galangal (3 ms)
+    ✓ licence_pt11 appears exactly once, in slots, required list and stamp (3 ms)
+    ✓ scope PROCESSING alone (purpose RESEARCH) still requires licence_pt11 (3 ms)
+    ✓ one upload satisfies it (9 ms)
+    ✓ present, optional, and the filing is not held for it (3 ms)
+    ✓ submit-style judgement: only the purpose licence is missing, not the planting one (16 ms)
+    ✓ other herbs do not even show it (2 ms)
+Tests:       23 passed, 23 total
+Tests:       25 passed, 25 total
+backend unit folder: 857/858 suites, 11744/11750 tests; the 6 failures = finance-paper-text-inside-print-margin (puppeteer navigation timeout under load), re-run alone 6/6 pass
+web jest full: 458/458 suites after updating x2-fix-a-detail-config count 14->15 (1 failure before); web tsc clean; mobile flutter test 111 pass both new and HEAD; ratchet 26/53/101/0 PASS
+
+## fix round 3
+new tests 25/25 (3 files); backend unit folder: 860 suites, only m2a-doc-requirements failed once (fixture lacked purpose) -> fixed, 19/19; ratchet 26/53/101/0 PASS
+web jest 458/458 (3763), web tsc clean (round 3)
+
+## fix round 4 (summaries)
+integration (fresh Postgres 17 per run, migrate deploy OK): seed-herb-closes-obsolete-rules 2/2 pass; requirement-rules-as-of-filing-day 6/6 pass (also 6/6 on main); m1+m2a-submit-enforcement 9/9 fail on BOTH main f8daa816 and this tree = pre-existing
+ratchet 26/53/101/0 PASS
+backend unit folder: see line below
+backend unit folder (heavy.sh, maxWorkers=2): 860 suites; 1 failed (applications-prepare-server-owned-fields: fixture used retired purpose DOMESTIC, now refused by /prepare) -> fixture changed DOMESTIC->RESEARCH (not a weakening: the test is about persisting wizard answers; /prepare refusal of the retired word is pinned in applications-purpose-whitelist-doors) -> that suite 5/5 + whitelist doors pass. Other 859 suites / 11778 tests pass.
+
+--- fix round 5 (integration, one shared Postgres, --runInBand) ---
+failing = the 9 baseline suites (a0-pr2-per-hop-invariant, m1-erasure-holder-survives, m1-submit-enforcement, m2a-submit-enforcement, officer-review-round-trip, onsite-decision-mint-e2e, staff-chain-assign-then-see, staff-scope-contract, status-writer-audit-default-invariant)
++ onsite-evidence-unfreeze locally only (shared /tmp jest signing key bad decrypt; plant CAN now filed by the test itself)
+Tests: 32 failed, 13 skipped, 762 passed (baseline 31 failed, 788 passed of 832)
+fixed now: seed-herb-closes-obsolete-rules, requirement-rules-as-of-filing-day, health-door-walk, holder-write-doors-witness, renewal-wizard-holder-gate, r1-task6-write-doors-neutral

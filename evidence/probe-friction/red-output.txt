@@ -1,0 +1,223 @@
+RED — probe-friction (4 friction points), captured 2026-08-07T14:36:51Z
+branch: worktree-agent-a085bc8b4f202ef69  head: f03d3398
+
+All four selftests exist and FAIL against the unchanged behaviour (Law 3.11).
+Cases marked 'ok' in a RED block were green at birth = PINS, not fixes (Law 3.11).
+
+
+===============================================================================
+RED 1 — evidence/probe-results.json embeds this checkout absolute path
+cmd: bash scripts/check-done.sh --selftest
+===============================================================================
+--- selftest A: written JSON contains no absolute checkout path
+absolute paths found in /tmp/tmp.wVWNkYr9Ej/probe-results.json:
+/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/playwright/farmer-full-journey.spec.ts:425:        test.skip(\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/playwright/account-split-journey.spec.ts:138:        test.skip(\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/farmer-services-carpet.spec.ts:58:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/farmer-services-carpet.spec.ts:77:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/farmer-services-carpet.spec.ts:100:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/farmer-services-carpet.spec.ts:141:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/e2e-golden-scenario.spec.ts:90:        test.skip(!ApplicantToken, 'No Applicant token');\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/e2e-golden-scenario.spec.ts:117:            test.skip(true, `Farm API returned ${response.status()}`);\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/e2e-golden-scenario.spec.ts:123:        test.skip(!ApplicantToken || !farmId, 'Missing dependencies');\n/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/e2e-golden-scenario.spec.ts:162:            test.skip(true, `submit gated (${submitResponse.status()}) \u2014 draft incomplete by design; downstream payment/review stages skipped`);
+*** A FAILED: probe-results.json embeds the absolute checkout path (/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69) — it must be repo-root-relative
+
+--- selftest B: paths are still THERE, just relative (no blanket path stripping)
+ok — 'single calendar source: apps/backend/utils/working-days.js' present verbatim
+
+--- selftest C: output is valid JSON
+ok — parses
+
+--- selftest D: console summary does not print the absolute checkout path either
+/home/user/GACP-Certification-Application/.claude/worktrees/agent-a085bc8b4f202ef69/apps/web-app/e2e/e2e-golden-scenario.spec.ts:162:
+*** D FAILED: console summary still prints $ROOT-prefixed paths
+
+==================================================
+check-done --selftest: 2 assertion(s) FAILED
+exit=1
+
+NOTE (chronology, Law 3.11): case B also FAILED in the first RED run of this
+selftest, taken before holiday-single-source.sh was rewritten in the same session:
+    *** B FAILED: expected the calendar source path to survive as a repo-relative path
+It is green in the capture above only because that probe now relativises its own
+message; case A/D are the ones still red on the check-done.sh writer itself.
+Case C (valid JSON) was green at birth = PIN, not a fix.
+
+===============================================================================
+RED 2a — holiday-single-source counts a COMMENT/STRING mention as a calendar
+cmd: bash scripts/probes/holiday-single-source.sh --selftest
+(ssot-domains.txt still carries the old bare-token pattern at this point)
+===============================================================================
+--- selftest A → exit 0 (expected 0)
+PASS: single calendar source: apps/backend/utils/working-days.js
+
+--- selftest B → exit 1 (expected 0)
+FAIL: 2 holiday calendar declaration(s): apps/backend/services/workflow-handler-deps.js apps/backend/utils/working-days.js
+*** B FAILED: exit 1 != 0
+
+--- selftest C → exit 1 (expected 1)
+FAIL: 2 holiday calendar declaration(s): apps/backend/services/legacy-holidays.js apps/backend/utils/working-days.js
+
+--- selftest D → exit 1 (expected 1)
+FAIL: 2 holiday calendar declaration(s): apps/backend/utils/working-days.js apps/backend/config/calendar.js
+
+--- selftest E → exit 1 (expected 0)
+FAIL: 2 holiday calendar declaration(s): apps/backend/services/warn.js apps/backend/utils/working-days.js
+*** E FAILED: exit 1 != 0
+
+--- selftest F → exit 1 (expected 1)
+FAIL: 0 holiday calendar declaration(s): 
+
+--- selftest G → exit 2 (expected 2)
+BLOCKED: cannot read /tmp/tmp.p2imVcyosM/does-not-exist.txt — the holiday declaration pattern lives there (Law 3.6); refusing to guess it, so this is BLOCKED not PASS
+
+==================================================
+holiday-single-source --selftest: 2 assertion(s) FAILED
+exit=1
+
+===============================================================================
+RED 2b — ratchet count_dup_source counts a COMMENT mention as a source
+cmd: bash scripts/probes/ratchet.sh --selftest
+===============================================================================
+--- selftest A → dup-source excess 1 (expected 0)
+      dup [holiday-calendar] 2 sources: apps/backend/utils/working-days.js apps/backend/routes/deps.js
+*** A FAILED: excess 1 != 0
+
+--- selftest B → dup-source excess 1 (expected 1)
+      dup [holiday-calendar] 2 sources: apps/backend/services/legacy-holidays.js apps/backend/utils/working-days.js
+
+--- selftest C → dup-source excess 1 (expected 0)
+      dup [entity-legal-name] 2 sources: apps/backend/config/platform.js apps/backend/services/invoice-pdf.js
+*** C FAILED: excess 1 != 0
+
+--- selftest D → dup-source excess 1 (expected 1)
+      dup [entity-legal-name] 2 sources: apps/backend/config/platform.js apps/backend/services/invoice-pdf.js
+
+--- selftest E → dup-source excess 1 (expected 1)
+      dup [holiday-calendar] 2 sources: apps/backend/services/dup.js apps/backend/utils/working-days.js
+
+==================================================
+ratchet --selftest: 2 assertion(s) FAILED
+exit=1
+
+===============================================================================
+RED 3 — status-vocab reads metasyntactic prose placeholders as status claims
+cmd: bash scripts/probes/status-vocab.sh --selftest
+===============================================================================
+--- selftest A → exit 1 (expected 1)
+  ✗ QUEUE.md:3: DONE(probe:ci-615) — 'ci-615' has no line in scripts/probes/probe-registry.txt
+  → fix the claim (cite the real probe, or a CI run URL, or say PENDING/BLOCKED per CLAUDE.md §2).
+  → if the line is quoting a past violation on purpose, add '<path>::<name>' to scripts/probes/status-vocab-allowlist.txt.
+FAIL: 1 status claim(s) name a probe that does not exist (of 2 scanned in QUEUE.md + reports/**/*.md)
+
+--- selftest B → exit 0 (expected 0)
+PASS: 2 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (0 allowlisted quotation(s))
+
+--- selftest C → exit 0 (expected 0)
+  · reports/qc-evidence/audit.md:1: DONE(probe:ci-615) — allowlisted quotation (status-vocab-allowlist.txt)
+PASS: 2 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (1 allowlisted quotation(s))
+
+--- selftest C2 → exit 1 (expected 1)
+  · reports/qc-evidence/audit.md:1: DONE(probe:ci-615) — allowlisted quotation (status-vocab-allowlist.txt)
+  ✗ reports/qc-evidence/audit.md:2: DONE(probe:ci-999) — 'ci-999' has no line in scripts/probes/probe-registry.txt
+  → fix the claim (cite the real probe, or a CI run URL, or say PENDING/BLOCKED per CLAUDE.md §2).
+  → if the line is quoting a past violation on purpose, add '<path>::<name>' to scripts/probes/status-vocab-allowlist.txt.
+FAIL: 1 status claim(s) name a probe that does not exist (of 3 scanned in QUEUE.md + reports/**/*.md)
+
+--- selftest F → exit 0 (expected 0)
+PASS: 1 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (0 allowlisted quotation(s))
+
+--- selftest G → exit 1 (expected 0)
+  ✗ reports/orchestrator/r.md:1: DONE(probe:X) — 'X' has no line in scripts/probes/probe-registry.txt
+  ✗ reports/orchestrator/r.md:2: DONE(probe:NAME) — 'NAME' has no line in scripts/probes/probe-registry.txt
+  ✗ reports/orchestrator/r.md:3: DONE(probe:name) — 'name' has no line in scripts/probes/probe-registry.txt
+  ✗ reports/orchestrator/r.md:4: DONE(probe:probe-name) — 'probe-name' has no line in scripts/probes/probe-registry.txt
+  → fix the claim (cite the real probe, or a CI run URL, or say PENDING/BLOCKED per CLAUDE.md §2).
+  → if the line is quoting a past violation on purpose, add '<path>::<name>' to scripts/probes/status-vocab-allowlist.txt.
+FAIL: 4 status claim(s) name a probe that does not exist (of 5 scanned in QUEUE.md + reports/**/*.md)
+*** G FAILED: exit 1 != 0
+
+--- selftest H → exit 1 (expected 1)
+  ✗ reports/orchestrator/r.md:1: DONE(probe:X-615) — 'X-615' has no line in scripts/probes/probe-registry.txt
+  → fix the claim (cite the real probe, or a CI run URL, or say PENDING/BLOCKED per CLAUDE.md §2).
+  → if the line is quoting a past violation on purpose, add '<path>::<name>' to scripts/probes/status-vocab-allowlist.txt.
+FAIL: 1 status claim(s) name a probe that does not exist (of 2 scanned in QUEUE.md + reports/**/*.md)
+
+--- selftest D → exit 2 (expected 2)
+BLOCKED: probe registry not readable at scripts/probes/probe-registry.txt — cannot tell a real probe name from a made-up one, so this is BLOCKED, not PASS
+
+--- selftest E → exit 2 (expected 2)
+BLOCKED: neither QUEUE.md nor reports/ exists under /tmp/tmp.0TjfYUmXHc/E — a probe with nothing to scan reports BLOCKED, not PASS
+
+==================================================
+status-vocab --selftest: 1 assertion(s) FAILED
+exit=1
+
+===============================================================================
+RED 4 — session-check prints a cached probe summary with no age / no provenance
+cmd: bash scripts/session-check.sh --selftest
+===============================================================================
+--- selftest A: probe summary is labelled with its provenance and freshness
+    == git ==
+    worktree-agent-a085bc8b4f202ef69
+     M scripts/check-done.sh
+     M scripts/probes/holiday-single-source.sh
+     M scripts/probes/ratchet.sh
+     M scripts/probes/status-vocab.sh
+     M scripts/session-check.sh
+    ?? evidence/probe-friction/
+    f03d3398 Merge pull request #839: honest M4 status — status-vocab green on main
+    4be4cd5f fix(queue): honest status for M4 + disambiguate prose placeholders — status-vocab PASS
+    f9246d0c Merge pull request #837 from jonmaxmore/claude/pr-a0-2-audit-emission
+    
+    == last probe summary ==
+    holiday-single-source  PASS
+    no-secret              BLOCKED
+    no-skip                FAIL
+    ratchet                PASS
+    stripe-sdk-isolated    PASS
+    
+    == ratchet counters (current) ==
+    hardcode: 43
+    todo: 59
+    env-direct: 168
+    dup-source: 2
+    dead-route: DRAFT (no mechanical counter yet)
+*** A FAILED: no freshness label — the summary does not say when it was produced
+
+--- selftest B: session start does not mutate the tracked evidence files
+ok — both tracked artifacts untouched
+
+--- selftest C: it finishes fast enough to stay a session-start command
+    elapsed 0s
+ok
+
+--- selftest D: with a fresh run disabled, the cached fallback states the age and how to refresh
+    == git ==
+    worktree-agent-a085bc8b4f202ef69
+     M scripts/check-done.sh
+     M scripts/probes/holiday-single-source.sh
+     M scripts/probes/ratchet.sh
+     M scripts/probes/status-vocab.sh
+     M scripts/session-check.sh
+    ?? evidence/probe-friction/
+    f03d3398 Merge pull request #839: honest M4 status — status-vocab green on main
+    4be4cd5f fix(queue): honest status for M4 + disambiguate prose placeholders — status-vocab PASS
+    f9246d0c Merge pull request #837 from jonmaxmore/claude/pr-a0-2-audit-emission
+    
+    == last probe summary ==
+    holiday-single-source  PASS
+    no-secret              BLOCKED
+    no-skip                FAIL
+    ratchet                PASS
+    stripe-sdk-isolated    PASS
+    
+    == ratchet counters (current) ==
+    hardcode: 43
+    todo: 59
+    env-direct: 168
+    dup-source: 2
+    dead-route: DRAFT (no mechanical counter yet)
+*** D FAILED: cached fallback must name the file, its age, and the command to refresh
+
+--- selftest E: the ratchet block carries a freshness label too
+    == ratchet counters (current) ==
+    hardcode: 43
+    todo: 59
+*** E FAILED: ratchet counters printed with no indication of when they were measured
+
+==================================================
+session-check --selftest: 3 assertion(s) FAILED
+exit=1

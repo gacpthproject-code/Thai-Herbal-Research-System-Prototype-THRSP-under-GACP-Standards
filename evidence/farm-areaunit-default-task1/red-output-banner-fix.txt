@@ -1,0 +1,162 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/heal-plot-area-unit.test.js
+  heal-plot-area-unit — CLI arg guards
+    ○ skipped missing --reason refuses
+    ○ skipped missing --source refuses
+    ○ skipped missing --app refuses
+    ○ skipped unit outside the closed enum refuses
+    ○ skipped unit is validated case-insensitively — UI casing "Sqm" passes
+    ○ skipped unit "RAI" (uppercase) passes case-insensitive enum check
+    ○ skipped --app with a wildcard/comma batch refuses (no batch mode)
+    ○ skipped dry-run by default; --apply required to write
+    ○ skipped actor falls back to OS user when --actor is absent
+    ○ skipped --actor overrides the OS-user fallback
+    ○ skipped --target defaults to "plot" — existing CLI behavior byte-identical
+    ○ skipped unrecognized --target value refuses
+    ○ skipped --target farm with --plot passed refuses (formData.farmData is singular)
+    ○ skipped --target farm without --plot parses cleanly
+  heal-plot-area-unit — plot resolution
+    ○ skipped resolves by numeric index
+    ○ skipped resolves by exact plot name
+    ○ skipped out-of-range index refuses
+    ○ skipped unknown plot name refuses
+    ○ skipped ambiguous plot name refuses
+  heal-plot-area-unit — overwrite guard
+    ○ skipped plot already has a unit refuses — no overwrite path
+    ○ skipped plot with empty-string unit is treated as absent (healable)
+    ○ skipped plot with no areaUnit key is healable
+  heal-plot-area-unit — farm resolution guard
+    ○ skipped application with no formData.farmData refuses
+    ○ skipped application with formData.farmData present resolves without error
+  heal-plot-area-unit — farm overwrite guard
+    ○ skipped farm already has a unit refuses — no overwrite path
+    ○ skipped farm with empty-string unit is treated as absent (healable)
+    ○ skipped farm with no totalAreaUnit key is healable
+  heal-plot-area-unit — integrity assertion
+    ○ skipped clean single-key write passes
+    ○ skipped dry-run leaves the source object byte-identical (pin)
+    ○ skipped aborts when a server-owned key besides areaUnit would change
+    ○ skipped aborts when areaSize would change
+    ○ skipped aborts when GPS would change
+  heal-plot-area-unit — farm integrity assertion
+    ○ skipped clean single-key write passes
+    ○ skipped dry-run leaves the source object byte-identical (pin)
+    ○ skipped aborts when a server-owned key besides totalAreaUnit would change
+    ○ skipped aborts when totalAreaSize would change
+    ○ skipped aborts when GPS would change
+  heal-plot-area-unit — fixed audit text + event builders
+    ○ skipped exact required Thai note is present in both builders
+    ○ skipped workflow event carries applicationId, plot index/name, before->after, actor, reason, source
+    ○ skipped audit event carries the same fields plus resourceId/organizationId
+  heal-plot-area-unit — farm fixed audit text + event builders
+    ○ skipped exact required Thai note is present in both farm builders
+    ○ skipped farm workflow event carries applicationId, before->after, actor, reason, source (no plotIndex/plotName)
+    ○ skipped farm audit event carries the same fields plus resourceId/organizationId
+  heal-plot-area-unit — CLI main(): dry-run vs apply, transaction shape
+    dry-run — unlocked, read-only
+      ○ skipped reads the app via the OUTSIDE (unlocked) read; never opens a transaction, locks, or logs audit
+    apply — row lock / no-lost-update (review finding 2026-08-19)
+      ○ skipped never touches the OUTSIDE (unlocked) read — every read for apply goes through tx
+      ○ skipped locks the row (SELECT ... FOR UPDATE) before any tx read
+      ○ skipped writes formData + workflowHistory via updateMany guarded by the tx-read updatedAt, then audit_logs, then verifies — all inside one transaction
+      ○ skipped RACE: a concurrent write (e.g. the payment-webhook status writer) landing between "operator looked" and the lock is preserved, not overwritten — the write is built from the TX-locked read, not any earlier snapshot
+      ○ skipped updateMany count 0 (updatedAt guard tripped) aborts — no audit write, non-zero exit
+      ○ skipped post-write verification mismatch aborts (pin: written row does not match intent) — non-zero exit
+      ○ skipped application not found (lock query returns no row) refuses with non-zero exit
+      ○ skipped plot already has a unit (as read under the lock) refuses with non-zero exit and no write
+  heal-plot-area-unit — CLI main() --target farm: dry-run vs apply, transaction shape
+    dry-run — unlocked, read-only
+      ○ skipped reads the app via the OUTSIDE (unlocked) read; never opens a transaction, locks, or logs audit
+    apply — row lock / no-lost-update
+      ○ skipped never touches the OUTSIDE (unlocked) read — every read for apply goes through tx
+      ○ skipped locks the row (SELECT ... FOR UPDATE) before any tx read
+      ○ skipped writes formData.farmData.totalAreaUnit + workflowHistory (FARM_AREA_UNIT_HEALED) via updateMany guarded by the tx-read updatedAt, then audit_logs, then verifies — all inside one transaction
+      ○ skipped RACE: a concurrent write (e.g. the payment-webhook status writer) landing between "operator looked" and the lock is preserved, not overwritten
+      ○ skipped updateMany count 0 (updatedAt guard tripped) aborts — no audit write, non-zero exit
+      ○ skipped post-write verification mismatch aborts (pin: written row does not match intent) — non-zero exit
+      ○ skipped application not found (lock query returns no row) refuses with non-zero exit
+      ○ skipped farmData already has a unit (as read under the lock) refuses with non-zero exit and no write
+      ○ skipped application with no formData.farmData (as read under the lock) refuses with non-zero exit and no write
+      ○ skipped --plot passed with --target farm refuses at arg-parse time, before any DB read, non-zero exit
+  heal-plot-area-unit — formatRunBanner (byte-identical plot banner pin)
+    × default --target plot: Applying banner is byte-identical to the pre-farm (cdcab667) format (7 ms)
+    × default --target plot: Dry-run banner is byte-identical to the pre-farm (cdcab667) format (2 ms)
+    × explicit --target plot renders identically to the default (no target= leak either way) (1 ms)
+    × --target farm: Applying banner carries "target=farm " and drops plot= entirely (1 ms)
+    × --target farm: Dry-run banner carries "target=farm " and drops plot= entirely (1 ms)
+
+  ● heal-plot-area-unit — formatRunBanner (byte-identical plot banner pin) › default --target plot: Applying banner is byte-identical to the pre-farm (cdcab667) format
+
+    TypeError: heal.formatRunBanner is not a function
+
+    [0m [90m 841 |[39m         [36mconst[39m parsed [33m=[39m heal[33m.[39mparseArgs([[33m...[39margvFrom()[33m,[39m [32m'--apply'[39m])[33m;[39m
+     [90m 842 |[39m         expect(parsed[33m.[39mtarget)[33m.[39mtoBe([32m'plot'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 843 |[39m         expect(heal[33m.[39mformatRunBanner(parsed))[33m.[39mtoBe(
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 844 |[39m             [32m'Applying — app=app-1 plot=0 unit=Sqm'[39m[33m,[39m
+     [90m 845 |[39m         )[33m;[39m
+     [90m 846 |[39m     })[33m;[39m[0m
+
+      at Object.formatRunBanner (__tests__/unit/heal-plot-area-unit.test.js:843:21)
+
+  ● heal-plot-area-unit — formatRunBanner (byte-identical plot banner pin) › default --target plot: Dry-run banner is byte-identical to the pre-farm (cdcab667) format
+
+    TypeError: heal.formatRunBanner is not a function
+
+    [0m [90m 849 |[39m         [36mconst[39m parsed [33m=[39m heal[33m.[39mparseArgs(argvFrom())[33m;[39m
+     [90m 850 |[39m         expect(parsed[33m.[39mtarget)[33m.[39mtoBe([32m'plot'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 851 |[39m         expect(heal[33m.[39mformatRunBanner(parsed))[33m.[39mtoBe(
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 852 |[39m             [32m'Dry-run (nothing will be written; re-run with --apply to write) — app=app-1 plot=0 unit=Sqm'[39m[33m,[39m
+     [90m 853 |[39m         )[33m;[39m
+     [90m 854 |[39m     })[33m;[39m[0m
+
+      at Object.formatRunBanner (__tests__/unit/heal-plot-area-unit.test.js:851:21)
+
+  ● heal-plot-area-unit — formatRunBanner (byte-identical plot banner pin) › explicit --target plot renders identically to the default (no target= leak either way)
+
+    TypeError: heal.formatRunBanner is not a function
+
+    [0m [90m 856 |[39m     test([32m'explicit --target plot renders identically to the default (no target= leak either way)'[39m[33m,[39m () [33m=>[39m {
+     [90m 857 |[39m         [36mconst[39m parsed [33m=[39m heal[33m.[39mparseArgs([[33m...[39margvFrom({ target[33m:[39m [32m'plot'[39m })[33m,[39m [32m'--apply'[39m])[33m;[39m
+    [31m[1m>[22m[39m[90m 858 |[39m         expect(heal[33m.[39mformatRunBanner(parsed))[33m.[39mtoBe(
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 859 |[39m             [32m'Applying — app=app-1 plot=0 unit=Sqm'[39m[33m,[39m
+     [90m 860 |[39m         )[33m;[39m
+     [90m 861 |[39m     })[33m;[39m[0m
+
+      at Object.formatRunBanner (__tests__/unit/heal-plot-area-unit.test.js:858:21)
+
+  ● heal-plot-area-unit — formatRunBanner (byte-identical plot banner pin) › --target farm: Applying banner carries "target=farm " and drops plot= entirely
+
+    TypeError: heal.formatRunBanner is not a function
+
+    [0m [90m 864 |[39m         [36mconst[39m parsed [33m=[39m heal[33m.[39mparseArgs([[33m...[39mfarmArgvFrom()[33m,[39m [32m'--apply'[39m])[33m;[39m
+     [90m 865 |[39m         expect(parsed[33m.[39mtarget)[33m.[39mtoBe([32m'farm'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 866 |[39m         expect(heal[33m.[39mformatRunBanner(parsed))[33m.[39mtoBe(
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 867 |[39m             [32m'Applying — target=farm app=app-1 unit=Sqm'[39m[33m,[39m
+     [90m 868 |[39m         )[33m;[39m
+     [90m 869 |[39m     })[33m;[39m[0m
+
+      at Object.formatRunBanner (__tests__/unit/heal-plot-area-unit.test.js:866:21)
+
+  ● heal-plot-area-unit — formatRunBanner (byte-identical plot banner pin) › --target farm: Dry-run banner carries "target=farm " and drops plot= entirely
+
+    TypeError: heal.formatRunBanner is not a function
+
+    [0m [90m 871 |[39m     test([32m'--target farm: Dry-run banner carries "target=farm " and drops plot= entirely'[39m[33m,[39m () [33m=>[39m {
+     [90m 872 |[39m         [36mconst[39m parsed [33m=[39m heal[33m.[39mparseArgs(farmArgvFrom())[33m;[39m
+    [31m[1m>[22m[39m[90m 873 |[39m         expect(heal[33m.[39mformatRunBanner(parsed))[33m.[39mtoBe(
+     [90m     |[39m                     [31m[1m^[22m[39m
+     [90m 874 |[39m             [32m'Dry-run (nothing will be written; re-run with --apply to write) — target=farm app=app-1 unit=Sqm'[39m[33m,[39m
+     [90m 875 |[39m         )[33m;[39m
+     [90m 876 |[39m     })[33m;[39m[0m
+
+      at Object.formatRunBanner (__tests__/unit/heal-plot-area-unit.test.js:873:21)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 63 skipped, 68 total
+Snapshots:   0 total
+Time:        1.819 s, estimated 3 s
+Ran all test suites matching /__tests__\\unit\\heal-plot-area-unit.test.js/i with tests matching "formatRunBanner".

@@ -1,0 +1,20 @@
+full gate on 47b5046fd (run-gate.sh, compare.sh vs main 460817fdb):
+Test Suites: 7 failed, 2 skipped, 1128 passed, 1135 of 1137 total
+Tests:       18 failed, 52 skipped, 15015 passed, 15085 total
+NEW failures vs main gate 460817fdb:
+__tests__/integration/dispatcher-lock-order-real-postgres.test.js
+__tests__/integration/field-audit-clock-real-postgres.test.js
+__tests__/integration/quotation-states-both-instalments-real-postgres.test.js
+__tests__/unit/invoice-documents-fit-one-page.test.js
+failing on main's gate, not on this head (main's load flakes included):
+attestation /home/ubuntu/work/state/gate/out/evidence/gate/47b5046fd914137135b9854916405ccc47a3b0aa.json
+
+causes read from suite-green.log: quotation PDF route answered 500 with ENOSPC (disk full on the box during the run) and P1017 connection terminated; dispatcher-lock-order and field-audit-clock got 409 calendar conflicts (field-audit-clock flake proven on main in 4e7bdd590); invoice-documents-fit-one-page puppeteer navigation timeout under load
+rerun of the four suites alone on the branch head via heavy.sh (scratch Postgres):
+PASS __tests__/integration/quotation-states-both-instalments-real-postgres.test.js (24.127 s)
+PASS __tests__/integration/dispatcher-lock-order-real-postgres.test.js
+PASS __tests__/integration/field-audit-clock-real-postgres.test.js
+PASS __tests__/unit/invoice-documents-fit-one-page.test.js
+Tests:       34 passed, 34 total
+exit=0
+none of the four touches a file this branch changed (git diff dabc31f07..47b5046fd has no quotation, dispatcher, field-audit or pdf file)

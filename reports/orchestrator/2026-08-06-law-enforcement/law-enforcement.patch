@@ -1,0 +1,33 @@
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -22,18 +22,20 @@
+ แต่ละข้อระบุ enforcement — ข้อที่ยังเป็น `[DRAFT]` ต้องถูกแปลงเป็น probe โดยเร็วที่สุด
+ | # | กฎ | Enforcement |
+ |---|---|---|
+-| 3.1 | NO AUTO-MERGE / NO AUTO-DEPLOY | branch protection + ห้ามเรียก merge/deploy command |
+-| 3.2 | NO FABRICATED ANYTHING — status, score, spec, ตัวเลข, ผล test | probe `report-integrity` + spot re-probe โดย check-done |
++> **อ่านคอลัมน์ Enforcement ตามคำนำหน้า**: `[ACTIVE]` = รันอัตโนมัติ และทำให้ merge ไม่ผ่านได้จริง · `[MANUAL]` = มีกลไกแต่ต้องมีคนสั่งรัน · `[DRAFT]` = **ไม่มีกลไก** อาศัยวินัยของคน/agent เท่านั้น
++> ตรวจครั้งล่าสุด 2026-08-06 พร้อมตารางว่าแต่ละแถวต้องทำอะไรจึงกลับเป็น `[ACTIVE]`: `reports/orchestrator/2026-08-06-law-enforcement/PROPOSED-CLAUDE-MD-DIFF.md`
++| 3.1 | NO AUTO-MERGE / NO AUTO-DEPLOY | **`[DRAFT]`** — branch protection **ตั้งไม่ได้บนแพลนปัจจุบัน**: repo เป็น private และ `GET branches/main/protection` คืน 403 "Upgrade to GitHub Pro or make this repository public" ⇒ **ไม่มีอะไรกันการ merge เข้า main เชิงกล** · ฝั่ง deploy มีกลไกจริง (`deploy-staging.yml` = `workflow_dispatch` only · promote = `if:false` — #775) · ที่บังคับฝั่ง merge อยู่ตอนนี้คือ operator กดเอง + agent ไม่เรียก merge/deploy command · แก้กลับเป็น `[ACTIVE]` เมื่ออัปเกรดแพลนแล้วตั้ง protection ได้ |
++| 3.2 | NO FABRICATED ANYTHING — status, score, spec, ตัวเลข, ผล test | **`[MANUAL]`** probe `report-integrity` — จัดเป็น `manual-until:2026-09-15` ใน `scripts/probes/probe-registry.txt` เพราะยังเลือกไฟล์ `.md` ใหม่สุดอัตโนมัติ (ผ่านได้ด้วยไฟล์ plan) ต้องแก้ให้รับ path ชัดเจนก่อนจึงเสียบ CI ได้ |
+ | 3.3 | NO SECRET in code/log/report — รวม redact webhook payload | **ชั้น 1** probe `no-secret` (grep pin — ปัจจุบันครอบเฉพาะรูป Stripe) · **ชั้น 2** CI job `Secret Scanning` = **TruffleHog** (`.github/workflows/ci.yml`) คือชั้นที่รันจริง · probe ต้อง **fail-loud (BLOCKED)** เมื่อ deep scanner ที่อ้างไม่มีในเครื่อง — ห้าม PASS เงียบ |
+-| 3.4 | NO MONEY MUTATION by agent — อ่าน/flag/เสนอ diff เท่านั้น | probe `money-write-guard` `[DRAFT]` + code review gate |
+-| 3.5 | NO HARDCODE ใน business logic — ค่าธุรกิจทุกตัว (fee, VAT, URL, ID, deadline, ชื่อหน่วยงาน, ข้อความ Thai/EN ที่ซ้ำ) ต้องมาจาก config/constants/SSOT vocab เท่านั้น | probe `hardcode-ratchet` — **ตัวเลขเพิ่ม = CI fail** |
+-| 3.6 | SINGLE SOURCE OF TRUTH — ห้ามมี logic/ข้อมูลชุดเดียวกันสองที่ (holiday calendar, status vocab, fee table, ชื่อนิติบุคคล) | probe `sso-registry`: นับ source ต่อ domain ต้อง = 1 |
+-| 3.7 | NO SKIPPED TEST / NO ASSERTION REDUCTION เพื่อให้เขียว | probe `suite-green`: test count ≥ baseline, grep `.skip/.only` |
++| 3.4 | NO MONEY MUTATION by agent — อ่าน/flag/เสนอ diff เท่านั้น | **`[DRAFT]`** probe `money-write-guard` — **ยังไม่มีไฟล์นี้จริง** · ที่บังคับอยู่คือ code review + วินัยของ agent |
++| 3.5 | NO HARDCODE ใน business logic — ค่าธุรกิจทุกตัว (fee, VAT, URL, ID, deadline, ชื่อหน่วยงาน, ข้อความ Thai/EN ที่ซ้ำ) ต้องมาจาก config/constants/SSOT vocab เท่านั้น | **`[ACTIVE — ยังไม่ยืนยันบน runner]`** ตัวนับอยู่ใน `scripts/probes/ratchet.sh` (`count_hardcode:13`) **ไม่ใช่ไฟล์ชื่อ `hardcode-ratchet`** · เสียบเข้า CI ครั้งแรกโดย #813 ผ่าน `scripts/ci/probe-gate.js` ใน job `enforcement-guardrails` ⇒ "ตัวเลขเพิ่ม = CI fail" **จะเป็นจริงเมื่อเห็นผลรันเขียวบน runner หนึ่งครั้ง** |
++| 3.6 | SINGLE SOURCE OF TRUTH — ห้ามมี logic/ข้อมูลชุดเดียวกันสองที่ (holiday calendar, status vocab, fee table, ชื่อนิติบุคคล) | **`[ACTIVE — ครอบไม่ครบ]`** **ไม่มี probe ชื่อ `sso-registry`** · ของจริงคือ `count_dup_source` (`ratchet.sh:33`, domain ตาม `ssot-domains.txt`) + probe `holiday-single-source` ซึ่งครอบเฉพาะปฏิทินวันหยุด ⇒ domain อื่นที่ข้อนี้ระบุ (fee table, entity names, role identifiers) พึ่ง dup-source counter อย่างเดียว |
++| 3.7 | NO SKIPPED TEST / NO ASSERTION REDUCTION เพื่อให้เขียว | **`[MANUAL + WAIVED]`** `suite-green` จัดเป็น `manual` **ถาวร** (ซ้ำกับ job `Test`) ⇒ ไม่รันใน CI · ครึ่ง `.skip` ครอบโดย `no-skip` ซึ่งอยู่ในกอง `ci` แต่ **ถือ waiver ที่ operator เซ็นถึง 2026-09-15** (L-006) · ครึ่ง assertion-reduction ครอบโดย `scripts/ci/check-green-mask-assertions.js` ซึ่ง `[ACTIVE]` จริง |
+ | 3.8 | NO ROUTE-AROUND blocker — infra fail = รายงานตามจริง | manual — ตรวจใน report review |
+-| 3.9 | VERIFY-BEFORE-CLAIM — ทุก fact ใน report มี file:line / test name / artifact path | probe `report-integrity`: report ที่มี claim ไร้ reference = reject |
+-| 3.10 | EXPAND-BEFORE-CONTRACT — migration/refactor ต้อง expand ก่อน, contract เป็น PR แยกหลัง drain probe ผ่าน | migration review gate |
+-| 3.11 | RED-FIRST — test ใหม่ต้อง**เคย fail จริง** (แนบ output ที่ fail) ก่อนเขียน implementation | phase gate ใน check-done |
+-| 3.12 | agent แก้ CLAUDE.md / HARNESS.md / probe files ไม่ได้ — เสนอ diff เท่านั้น | CODEOWNERS + CI path guard |
++| 3.9 | VERIFY-BEFORE-CLAIM — ทุก fact ใน report มี file:line / test name / artifact path | **`[MANUAL]`** probe `report-integrity` — เงื่อนไขเดียวกับ 3.2 |
++| 3.10 | EXPAND-BEFORE-CONTRACT — migration/refactor ต้อง expand ก่อน, contract เป็น PR แยกหลัง drain probe ผ่าน | **`[DRAFT]`** — ไม่มี job หรือสคริปต์ชื่อ "migration review gate" อยู่จริง เป็นขั้นตอนที่คนตรวจ |
++| 3.11 | RED-FIRST — test ใหม่ต้อง**เคย fail จริง** (แนบ output ที่ fail) ก่อนเขียน implementation | **`[DRAFT]`** — `scripts/check-done.sh` ไม่มีตรรกะ phase เป็นวินัยของ agent + การตรวจของ operator (ต้องแนบ output ที่ fail จริง) |
++| 3.12 | agent แก้ CLAUDE.md / HARNESS.md / probe files ไม่ได้ — เสนอ diff เท่านั้น | **`[DRAFT]`** — `.github/CODEOWNERS` มีจริงและระบุ path ถูกต้อง แต่ **CODEOWNERS review บังคับได้ก็ต่อเมื่อมี branch protection ซึ่งตั้งไม่ได้ (ดู 3.1)** · และ **ไม่มี CI path guard อยู่จริง** — ไม่มี job ไหนตรวจว่า PR แตะไฟล์ operator-owned · ที่บังคับอยู่คือ agent ทำตามกฎเอง |
+ ## 4. DEFINITION OF DONE (ทุก work item)
+ ครบทุกข้อ ขาดข้อเดียว = PENDING:
+ 1. Phase gates ครบ: `PLAN → RED → GREEN → AUDIT → EVIDENCE → REPORT` (นิยาม HARNESS.md §3)

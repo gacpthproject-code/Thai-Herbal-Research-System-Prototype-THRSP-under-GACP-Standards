@@ -1,0 +1,230 @@
+PASS src/lib/services/__tests__/admin-service-b28-endpoint-urls.test.ts
+    √ listUsers GETs /admin/users with default pagination (6 ms)
+    √ disableUser PATCHes /admin/users/:id/disable with { reason } (UX-A1) (1 ms)
+    √ enableUser PATCHes /admin/users/:id/enable with empty body (UX-A1)
+    √ changeRole PATCHes /admin/users/:id/change-role with { newRole, reason } (UX-A3) (1 ms)
+    √ forceResetMfa POSTs /admin/users/:id/force-reset-mfa with { reason } (UX-A2 — NEW) (1 ms)
+    √ forceStatus POSTs /admin/applications/:id/force-status with { toStatus, reasonCode, reason } (UX-B1)
+    √ revertLastTransition POSTs /admin/applications/:id/revert-last-transition (UX-B2 — NEW) (1 ms)
+    √ listAuditLog GETs /admin/audit-log with structured filters (UX-C1) (1 ms)
+    √ auditLogExportUrl returns /api/admin/audit-log/export.csv with structured filters (UX-C1) (1 ms)
+    √ never calls any /provider/admin/* legacy URL (2 ms)
+PASS src/lib/services/__tests__/checkout-service.test.ts
+    √ POSTs /payments/checkout with exactly { applicationId, milestone } (6 ms)
+    √ returns the api client's envelope verbatim (1 ms)
+    √ ignores mockScenario entirely — still calls the real endpoint (1 ms)
+    √ treats a typo'd mode env value as live (fail-safe) (1 ms)
+    √ never calls the network and resolves HAPPY when no scenario is given (35 ms)
+    √ resolves HAPPY for an unknown scenario value (17 ms)
+    √ resolves CONFLICT_409 for 'conflict' (33 ms)
+    √ resolves SERVER_ERROR_500 for 'server-error' (32 ms)
+    √ resolves (not hangs, not rejects) TIMEOUT for 'timeout' (34 ms)
+    √ holds the promise for ~300ms so the loading state is visible (59 ms)
+    √ HAPPY carries the full M1 success shape (5000/500/35/535/5535 THB) (1 ms)
+    √ HAPPY sums: dtamFeeAmount + platformFeeGross === totalPayableAmount (1 ms)
+    √ HAPPY_NON_SUMMING deliberately does NOT sum — it exists to prove the UI renders the response instead of computing money
+    √ CONFLICT_409 matches the FE-visible error envelope
+    √ SERVER_ERROR_500 matches the catch-all failure envelope
+    √ TIMEOUT matches the api-client timeout envelope — no status, no code (3 ms)
+PASS src/lib/services/__tests__/auth-provider-first-render.test.tsx
+    √ first render matches the SSR snapshot (null user, loading) even when a session exists in localStorage (140 ms)
+    √ settles to anonymous, not-loading after mount when no session is stored (14 ms)
+PASS src/lib/i18n/__tests__/dictionary-parity.test.ts
+    √ every key in EN exists in TH (3 ms)
+    √ every key in TH exists in EN (1 ms)
+    √ TH and EN have identical key counts
+PASS src/lib/services/__tests__/audit-service.checklist.test.ts
+    √ wraps in {items:[...]} and maps YES->PASS, itemId->itemCode (1 ms)
+    √ maps NO->FAIL and NA->NA, omits empty notes
+    √ maps BE response->UI answer and preserves photoIds
+    √ GETs gps-verify with lat/lng query params (1 ms)
+PASS src/lib/services/__tests__/pdpa-erasure-service.test.ts
+    √ POSTs to /api/pdpa/erasure/request with the reason body (1 ms)
+    √ POSTs with empty body when reason is omitted
+    √ omits reason when it is an empty / whitespace-only string
+    √ returns the apiClient envelope on success (1 ms)
+    √ returns the envelope unchanged on success=false (does NOT throw)
+    √ POSTs to /api/pdpa/erasure/confirm with { requestId, token }
+    √ returns the envelope unchanged on success=false
+    √ POSTs to /api/pdpa/erasure/:id/cancel (1 ms)
+    √ URL-encodes the requestId so unusual characters do not break the path (8 ms)
+    √ returns the envelope unchanged on success=false
+PASS src/lib/services/__tests__/signed-file-url.test.tsx
+    √ asks the backend to mint a URL for the requested object (12 ms)
+    √ does not re-mint the same object twice while a mint is in flight (2 ms)
+    √ throws with a Thai reason the caller can show when the mint is refused (33 ms)
+    √ passes a non-/uploads url straight through without a mint (1 ms)
+    √ renders the <img> from the signed url the backend minted (22 ms)
+    √ shows a Thai failure state that names the cause and the next action (4 ms)
+    √ renders nothing and mints nothing for an empty source (2 ms)
+PASS src/lib/services/__tests__/preview-document.test.ts
+    √ ok → fetches the url as a blob and opens an object URL (noopener,noreferrer) (2 ms)
+    √ !ok → throws and never opens a tab (29 ms)
+    √ attaches a Bearer header when a stored access token exists
+    √ no token → no Authorization header (1 ms)
+PASS src/lib/services/__tests__/auth-service-activity.test.ts
+    √ cookie-only session (isAuthenticated()===false, but getUser() non-null) ARMS the idle timer
+    √ token-based (password-path) session still arms — baseline unchanged
+    √ no stored identity at all → does NOT arm (nothing to time out)
+    √ not a browser → never arms (existing guard unaffected by the fix)
+    √ cookie-only session: idle timeout invokes AuthService.logout(), which POSTs the backend logout endpoint (ends the httpOnly cookie server-side) (61 ms)
+    √ does NOT time out before the idle window elapses (no false-positive logout) (14 ms)
+PASS src/lib/services/__tests__/audit-service.wire.test.ts
+    √ startInspection posts {gps:{...}} nested, not flat gpsLat/gpsLng (fixes B6 on the FE-emission side) (1 ms)
+    √ getOnsiteContext GETs the applicationId route, not an auditId route (carried Ruling requirement C / pins Task-5 id-source) (1 ms)
+    √ submitDecision posts the decision payload verbatim
+    √ uploadPhoto multipart body carries gps as a JSON string field (matches the BE string-JSON.parse branch, fixes B7 on the FE-emission side) (3 ms)
+PASS src/lib/services/__tests__/auth-service-logout-csrf.test.ts
+    √ extracts x-csrf-token from the csrf_token cookie value
+    √ returns empty headers when no csrf_token cookie is present
+    √ url-decodes the token so it matches the raw cookie value (double-submit)
+    √ sends x-csrf-token equal to the csrf_token cookie value on the logout POST (10 ms)
+    √ mints a csrf_token cookie and sends a matching header when the session never seeded one (2 ms)
+PASS src/lib/services/__tests__/subscription-service-decimal-coercion.test.ts
+    √ listMyOrders coerces priceTHB "990.00" (Prisma Decimal string) to number 990 (22 ms)
+    √ cancelOrder coerces the single-record response
+    √ offers no way to create a subscription order (M3 — no membership fee)
+    √ passes error envelopes through untouched
+PASS src/lib/services/__tests__/auth-service-refresh-failure.test.ts
+    √ 503 keeps token + user, does NOT clear the cookie, does NOT emit session_expired (82 ms)
+    √ network error (fetch rejects) keeps token + user, no cookie clear, no session_expired (18 ms)
+    √ malformed 2xx body keeps the session (backend/proxy bug is not proof of expiry) (3 ms)
+    √ 503 schedules a bounded backoff retry that re-attempts the refresh (35 ms)
+    √ 401 clears the session, POSTs clear-cookie, emits session_expired (14 ms)
+    √ 403 also counts as definitive rejection (9 ms)
+    √ clamps a far-future expiry (years away) to the max safe delay
+    √ returns expiry minus buffer for normal-lifetime tokens (1 ms)
+    √ never returns a negative delay
+PASS src/lib/services/__tests__/admin-service-revoke-errors.test.ts
+    √ 500 CERTIFICATE_REVOKE_FAILED: message is Thai cause + next action, not the code (4 ms)
+    √ 400 INVALID_REVOCATION_REQUEST: message is Thai cause + next action, not the code (2 ms)
+    √ network failure (fetch rejects): code REQUEST_FAILED, message is Thai and does not claim the revoke failed for certain (46 ms)
+    √ timeout (AbortError): code REQUEST_FAILED, message is Thai, no English client text (1 ms)
+    √ 502 with a non-JSON body (gateway page): code HTTP_502, message is the Thai server-error copy (1 ms)
+    √ an unknown code the client echoes verbatim still gets Thai copy, never the code (1 ms)
+PASS src/lib/services/__tests__/use-entity-permissions.test.ts
+    √ OWNER on INDIVIDUAL → personal (solo farmer)
+    √ OWNER on JURISTIC → workspace
+    √ worker (MANAGER/VIEWER) on someone else's INDIVIDUAL entity → workspace (by design, Wave-B)
+    √ null membership (no active entity resolved) → treated as personal (legacy solo paths) (1 ms)
+    √ personal → always true (solo unchanged)
+    √ loading → true (fail-open until resolved; BE authoritative)
+    √ fetch error → true (fail-OPEN: hiding on flaky fetch = false lockout)
+    √ 404 not-a-member → false (hide) (1 ms)
+    √ loaded → membership test on the effective set
+    √ null / undefined membership → personal (the load / no-workspace / degraded state), NOT a lockout (1 ms)
+    √ the full null → personal → has() chain stays fail-OPEN for ANY permission
+    √ personal / loading / error ALL resolve to the same fail-OPEN (so re-labelling null cannot change the outcome) (1 ms)
+    √ success + workspace payload → loaded with the effective set (1 ms)
+    √ success + personal payload → personal (has() always true)
+    √ anti-probe 404 (JSON envelope → code harvested) → not-member (the ONE case that hides)
+    √ bare/infra 404 (no JSON envelope, no code) → error, not a lockout (1 ms)
+    √ any other failure (500 / network / empty body) → error (fail-OPEN)
+    √ IRRIGATION → ACTIVITY_IRRIGATION
+    √ FERTILIZER → ACTIVITY_FERTILIZER (1 ms)
+    √ PEST_CONTROL → ACTIVITY_PEST_CONTROL
+    √ WEED_CONTROL → ACTIVITY_WEED_CONTROL
+    √ INSPECTION → ACTIVITY_INSPECTION
+    √ INCIDENT → ACTIVITY_INCIDENT
+    √ OTHER → ACTIVITY_OTHER
+    √ is case-tolerant on the form value
+    √ unknown type → null (no FE gate — the BE decides)
+    √ is the exact owner-facing Thai copy
+    √ permission for the SELECTED type present → allowed
+    √ permission for the SELECTED type absent → blocked (the inversion this test exists to catch)
+    √ unknown/blank type (no catalog code) → no FE gate, the BE decides
+    √ caches a loaded snapshot AND still refetches on the next mount, updating to the new effective set (1 ms)
+    √ caches 'not-member' as revalidate-on-next-mount, NOT terminally (F1(c) — heals the infra-404 lockout) (1 ms)
+    √ never caches 'error' (fail-open stays transient) (1 ms)
+    √ keeps serving the existing snapshot when a REVALIDATION errors (stale beats flicker-open) (87 ms)
+    √ a live 403 ENTITY_PERMISSION_DENIED evicts the (user, entity) snapshot → next mount refetches (1 ms)
+    √ non-denial failures do NOT evict (no over-eviction on session-guard 403s / 500s) (1 ms)
+    √ no entityId → no-op false (personal context has nothing cached)
+    √ a MANAGER on their owner's own INDIVIDUAL entity is classified as a workspace context, not personal (1 ms)
+    √ the /my-permissions envelope for that MANAGER resolves to loaded+effective (not the personal fast-path)
+    √ reaches every planting/harvest recording surface (7 activity types + harvest + cycle/plot setup) (1 ms)
+    √ does NOT reach application submission or financial surfaces (1 ms)
+PASS src/lib/services/__tests__/admin-service-revise-errors.test.ts
+    √ preview: error is the code, message names the plant register and editing the application (4 ms)
+    √ press: error is the code, message names the plant register and editing the application (4 ms)
+    √ preview and press share ONE copy for the code (no drift between the two doors) (1 ms)
+PASS src/lib/services/__tests__/client-upload-check.test.ts
+    √ works through FileReader when Blob.arrayBuffer is missing (jsdom, Safari < 14) (4 ms)
+    √ a PDF-only slot says it is the wrong kind of file (1 ms)
+    √ the step-2 permit slot refuses it by slot id alone
+    √ a photo slot refuses it for having no content in it (1 ms)
+    √ photo.png saved as deed.pdf with a PDF content type is still a photo (1 ms)
+    √ a real permit PDF fills a PDF slot (1 ms)
+    √ a phone photo fills a photo slot (1 ms)
+    √ nothing is refused — the server answers instead
+PASS src/lib/services/__tests__/audit-photo-upload.test.ts
+    √ sends the image itself, not a description of it (2 ms)
+    √ posts to the onsite photo endpoint for that audit
+    √ carries the GPS the watermark claims, so the stored record can be checked against the image (1 ms)
+    √ omits coordinates rather than sending a fabricated zero when GPS is unavailable (1 ms)
+    √ returns the photoId the server assigned
+    √ reports failure when the server answers without a photoId (1 ms)
+    √ reports failure when the request throws, and does not rethrow (1 ms)
+    √ refuses an empty blob without contacting the server (1 ms)
+PASS src/lib/i18n/__tests__/i18n-policy-doc.test.ts
+    √ exists at the expected repo path (1 ms)
+    √ declares Policy 1-5 (the 5 codified rules) (8 ms)
+    √ cites the Loop X audits that informed each policy (1 ms)
+    √ names the slip-review error-map as the Policy 5 reference implementation
+    √ lists the 4 admin modals affected by Y1-FIX-D Policy 5 extension (1 ms)
+    √ names the error-code-map shared helper from Y1-FIX-D
+    √ describes the override procedure for future policy reversal
+    √ includes example error-code mappings (Policy 5 reference vocab) (1 ms)
+PASS src/lib/services/__tests__/draft-document-upload.test.ts
+    √ returns the url the server produced (1 ms)
+    √ reports an error when the server replies without a fileUrl (1 ms)
+    √ reports an error when the request is rejected (1 ms)
+    √ reports an error when the request throws, rather than propagating
+    √ rejects an oversized file without sending it
+    √ states its errors in Thai — these reach the applicant directly (1 ms)
+    √ sends the slot and step so the server can file the document (1 ms)
+    √ omits draftId when there is none, rather than sending the string "undefined"
+PASS src/lib/i18n/__tests__/language-context-hydration.test.tsx
+    √ renders Thai first even when English is stored, so hydration matches the server (3 ms)
+    √ still adopts the stored English preference after mount (2 ms)
+    √ stays Thai throughout when nothing is stored (2 ms)
+    √ ignores a corrupt stored value instead of rendering it (2 ms)
+PASS src/lib/services/__tests__/active-entity-auth-refetch.test.ts
+    √ subscribes to auth state via useAuth() (1 ms)
+    √ the fetch effect depends on auth hydration + the user id (not once-on-mount)
+    √ waits for auth hydration before deciding (no empty-state flash on reload) (1 ms)
+    √ does not regress to a dependency-less mount fetch
+PASS src/lib/services/__tests__/active-entity-storage-sync.test.ts
+    √ ignores events for unrelated localStorage keys (1 ms)
+    √ ignores events when newValue equals currentActiveId (already in sync) (1 ms)
+    √ returns shouldRefresh=true when another tab picks a different workspace
+    √ returns newId=null without refresh when another tab clears the value (logout)
+    √ ignores a clear event when local state is already null (idempotent)
+    √ handles transitioning from null → an entity id
+    √ treats a different StorageEvent.key (no newValue field at all) as ignore (1 ms)
+PASS src/lib/services/__tests__/admin-service-certificates.test.ts
+    √ calls /api/certificates/ with no query string when take is not provided (1 ms)
+    √ appends ?take= when take is provided
+    √ returns the unwrapped data array on success (1 ms)
+    √ returns [] when the API responds with success=false (1 ms)
+    √ returns [] when success=true but data is missing
+    √ returns [] when data is not an array (defensive)
+    √ returns null when called with an empty id (defensive — no API call)
+    √ encodes the id and hits /api/certificates/:id (1 ms)
+    √ unwraps `{ data: { data: cert } }` envelope on success
+    √ accepts a flat `{ data: cert }` envelope (gateway projection)
+    √ returns null when the API responds with success=false (1 ms)
+    √ returns null when success=true but data is missing
+    √ surfaces revokedAt / revokedReason for REVOKED certificates
+PASS src/__tests__/thai-copy-defects-a3.test.ts
+    √ has a space between ของ and GACP in every affected file (1 ms)
+    √ login-chooser: coming-soon notice body has no em dash before the reason clause (1 ms)
+    √ GeneralLedgerViewer: account-code line has no em dash before the account name
+    √ invoice-detail-modal: refund-confirm line has no em dash before the amount
+    √ member-permission-matrix: confirm dialog has no em dash before the member name (1 ms)
+    √ report-modal: header line has no em dash before the farm name
+    √ has no ท่าน left in the payments client-view (คุณ everywhere)
+    √ still greets the user politely with คุณ in the fee-flow footnote and phase-1-paid banner (1 ms)
+    √ erasure page still uses ท่าน (out of scope for this batch)
+Test Suites: 25 passed, 25 total
+Tests:       203 passed, 203 total

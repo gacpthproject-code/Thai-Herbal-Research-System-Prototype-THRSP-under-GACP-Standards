@@ -1,0 +1,56 @@
+# RED round 0 — backend checkout-hands-the-browser-a-publishable-key before implementation
+# Summary of a jest run (raw log not committed: raw jest logs trip gitleaks). Test lines + counts + failure lines.
+FAIL __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js
+    ✕ STRIPE_PUBLISHABLE_KEY is read first (6 ms)
+    ✕ the dev name NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is the fallback (apps/backend/.env is not renamed) (3 ms)
+    ✕ no key at all fails closed with STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED (503) (20 ms)
+    ✕ a value that is not a publishable key (a secret pasted into the wrong slot) is refused, not passed to the browser (5 ms)
+    ✕ stripe adapter: a test publishable key beside a test secret is handed out (2 ms)
+    ✕ stripe adapter: a LIVE publishable key beside a TEST secret is refused (L3) (3 ms)
+    ✕ stripe adapter: a TEST publishable key beside a LIVE secret is refused (3 ms)
+    ✕ mock adapter: there is no Stripe account behind a mock intent, so it hands out no key (2 ms)
+    ✕ returns the publishable key, the invoice to watch, and the entity contact email (56 ms)
+    ✕ no key: refused with STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED and nothing is minted or asked of Stripe (9 ms)
+    ✕ mode mismatch: refused with STRIPE_KEY_MODE_MISMATCH and nothing is minted or asked of Stripe (7 ms)
+    ✕ payerEmail falls back to the user email when the entity has no contact email (6 ms)
+    ✕ payerEmail is null when neither exists — never a placeholder (5 ms)
+    ✕ a malformed stored email is not handed to Stripe (5 ms)
+    ✕ a failed contact lookup degrades to null (the screen asks) instead of failing a checkout that already exists (5 ms)
+Test Suites: 1 failed, 1 total
+Tests:       15 failed, 15 total
+
+## failure excerpts
+  ● config/stripe — getStripePublishableKey reads the backend env at runtime › STRIPE_PUBLISHABLE_KEY is read first
+  ● config/stripe — getStripePublishableKey reads the backend env at runtime › the dev name NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY is the fallback (apps/backend/.env is not renamed)
+  ● config/stripe — getStripePublishableKey reads the backend env at runtime › no key at all fails closed with STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED (503)
+    Expected asymmetric matcher: ObjectContaining {"code": "STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED", "status": 503}
+    Received name:    "TypeError"
+    Received message: "getStripePublishableKey is not a function"
+  ● config/stripe — getStripePublishableKey reads the backend env at runtime › a value that is not a publishable key (a secret pasted into the wrong slot) is refused, not passed to the browser
+    Expected asymmetric matcher: ObjectContaining {"code": "STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED"}
+    Received name:    "TypeError"
+    Received message: "getStripePublishableKey is not a function"
+  ● adapters — getClientConfig › stripe adapter: a test publishable key beside a test secret is handed out
+  ● adapters — getClientConfig › stripe adapter: a LIVE publishable key beside a TEST secret is refused (L3)
+    Expected asymmetric matcher: ObjectContaining {"code": "STRIPE_KEY_MODE_MISMATCH", "status": 503}
+    Received name:    "TypeError"
+    Received message: "stripeAdapter.getClientConfig is not a function"
+  ● adapters — getClientConfig › stripe adapter: a TEST publishable key beside a LIVE secret is refused
+    Expected asymmetric matcher: ObjectContaining {"code": "STRIPE_KEY_MODE_MISMATCH", "status": 503}
+    Received name:    "TypeError"
+    Received message: "stripeAdapter.getClientConfig is not a function"
+  ● adapters — getClientConfig › mock adapter: there is no Stripe account behind a mock intent, so it hands out no key
+  ● createCheckoutForApplication — what the browser receives › returns the publishable key, the invoice to watch, and the entity contact email
+  ● createCheckoutForApplication — what the browser receives › no key: refused with STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED and nothing is minted or asked of Stripe
+    Received promise resolved instead of rejected
+  ● createCheckoutForApplication — what the browser receives › mode mismatch: refused with STRIPE_KEY_MODE_MISMATCH and nothing is minted or asked of Stripe
+    Received promise resolved instead of rejected
+  ● createCheckoutForApplication — what the browser receives › payerEmail falls back to the user email when the entity has no contact email
+    Expected: "farmer@farm-co.example"
+    Received: undefined
+  ● createCheckoutForApplication — what the browser receives › payerEmail is null when neither exists — never a placeholder
+    Received: undefined
+  ● createCheckoutForApplication — what the browser receives › a malformed stored email is not handed to Stripe
+    Received: undefined
+  ● createCheckoutForApplication — what the browser receives › a failed contact lookup degrades to null (the screen asks) instead of failing a checkout that already exists
+    Received: undefined

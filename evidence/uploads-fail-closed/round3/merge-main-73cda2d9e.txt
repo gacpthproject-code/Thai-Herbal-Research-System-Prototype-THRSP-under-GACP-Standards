@@ -1,0 +1,51 @@
+# merge main 73cda2d9e เข้า fix/uploads-fail-closed (2026-10-14 ครั้งที่สอง)
+
+merge commit d1545b0be (พ่อแม่ 7dc4e5024 และ 73cda2d9e) ไม่ rebase
+main เดินหน้า 66 คอมมิตจาก 5f8dde8dd ที่ merge ไว้ใน 81b962511: governance (สิทธิ์ลงมือ deploy,
+ถอด Jev, ยกเว้นผลสแกนค่าลับ 30 รายการ) · fix/quotation-total-and-drift-alert · fix/decision-path-truth
+
+## ไฟล์ที่สองฝั่งแตะ 3 ไฟล์ git รวมเองโดยไม่มีข้อขัดแย้ง
+
+| ไฟล์ | ตรวจอย่างไร | ผล |
+|---|---|---|
+| HARNESS_LOG.md | นับบรรทัดเป็น multiset: ไฟล์ที่รวม เทียบกับ main + ส่วนที่กิ่งเพิ่ม | เท่ากันพอดี 1,343 บรรทัด · entry ของกิ่ง (2026-10-10) อยู่ที่ตำแหน่งตามวันที่จาก 81b962511 · entry ใหม่ 5 รายการของ main ต่อท้ายตามลำดับของ main |
+| apps/backend/shared/error-codes.js | ตรวจตัวชี้ทุกตัวกับไฟล์ต้นทางของ tree ที่รวม เทียบกับฝั่งพ่อแม่ทั้งสอง | 463 ตัว: ตรงบรรทัด 356 · ห่างไม่เกิน 2 บรรทัด 98 · ผิด 9 (= KNOWN_PREEXISTING_DRIFT ทั้งสองฝั่ง) · ไม่มีไฟล์ต้นทางที่สองฝั่งแก้ · QUOTATION_PHASE_NOT_PRICED หายตาม main ae5011220 |
+| docs/api/error-codes.md | extract-error-codes.js --markdown แล้วเทียบกับที่ git รวม | ไฟล์เดียวกันทุกไบต์ · --validate: VALIDATION OK 463/463 |
+
+ส่วนที่ main เพิ่มในช่วงนี้ไม่มีบรรทัดไหนอ้าง /uploads, storage-service, BUCKETS, signed URL หรือ ACL ของไฟล์
+ไม่มี migration หรือ schema ใหม่ทั้งสองฝั่ง (migrate deploy บนฐานทดลอง: 0 รายการ)
+
+## สองคอมมิตที่ยังไม่เคยผ่านชุด integration
+
+8cbedbcb3 ลบชนิด slip ออกจากตัวจัดประเภทและ ACL · 7dc4e5024 เปลี่ยนชื่อ gateSlipObjectAccess เป็น gateUploadsObjectAccess
+
+- git grep ทั้ง tree: gateSlipObjectAccess เหลือเฉพาะในบันทึกที่มีวันที่ (evidence/AUTH-01/P2/red-output.txt ·
+  reports/design-cleanup-2026-08-21/02-STATELESS-SERVER-DESIGN.md · reports/role-workflow-auditor/2026-10-07-modules-audit.md)
+  ซึ่งไม่แก้เพราะเป็นภาพของสภาพในวันนั้น · SLIP_RETIRED และชนิด 'slip' ไม่เหลือในโค้ดและเทสต์
+- คอมเมนต์ที่ยังพูดถึง slips/ เหมือนเป็นชนิดหนึ่ง แก้ใน 0c7d42b6d (คอมเมนต์ล้วน ลำดับ token ของ acorn เท่าเดิมทั้ง 3 ไฟล์)
+- uploads-access.test.js ยังขอ /uploads/slips/... แบบไม่มีโทเคนแล้วได้ 401: ไฟล์สลิปเก่าที่อาจค้างบนดิสก์ยังปิดอยู่ ตอนนี้ในฐานะ unknown
+  mutant: เพิ่ม ['slips/', 'public'] ในตารางโฟลเดอร์ แล้วรัน uploads-access.test.js กับ uploads-closed-by-default.test.js:
+  1 ล้ม 35 ผ่าน · ข้อที่ล้มคือ "anonymous CANNOT fetch a payment slip → 401" (Expected: 401 · Received: 200) ตามที่คาด
+  คืนไฟล์แล้ว sha256 ขึ้นต้น 59025d653dc8a8ab ก่อนและหลังเท่ากัน tree สะอาด (trap ของสคริปต์คืนไม่สำเร็จเพราะใช้ path
+  แบบสัมพัทธ์หลัง cd จึงคืนด้วยมือทันทีและตรวจ hash) · รันตรงไม่ผ่าน heavy.sh เพราะ full gate ถือ lock อยู่ และเป็นเทสต์หน่วย 2 ไฟล์ที่ไม่ใช้ฐานข้อมูล
+
+## ชุดเทสต์ที่ 0c7d42b6d
+
+ผ่าน ~/work/state/heavy.sh · ฐานข้อมูลทดลองของตัวเอง 127.0.0.1:55491 (ยืนยัน host/port/db ก่อนแตะฐานข้อมูล) · Node 24 · PAYMENT_ADAPTER=mock
+tree สะอาดก่อนและหลังทุกการรัน (ยกเว้นที่บอกไว้)
+
+- หน่วย 65 ชุด (เทสต์ที่กิ่งแตะ + ลงทะเบียน + uploads/storage/signed URL + รหัสข้อผิดพลาด + รายการ 54 ชุดเดิม): 65/65 ชุด · 1,068/1,068 ข้อ
+- integration ทั้งโฟลเดอร์: 7 ชุดล้ม 1 ข้าม 193 ผ่าน (200 จาก 201) · 23 ข้อล้ม 13 ข้าม 2,145 ผ่าน (2,181)
+  - จำนวนลงตัว: integration-pg ของ main d591d0951 มี 2,171 ข้อใน 200 ชุด บวกเทสต์ของกิ่ง uploads-acl-follows-read-model-real-postgres 10/10
+  - เทียบชื่อกับ int-fails-675a9c4d0 (23 ชื่อ): ตรงกันทุกชื่อ · ใหม่ 0 · หายไป 0
+  - เทียบชื่อกับ integration-pg ของ main d591d0951 (24 ชื่อ): ใหม่ 0 · ข้อที่ main ล้มแต่ที่นี่ผ่าน 1 คือ field-audit-clock
+    "a visit booked through the scheduling queue weeks ahead ..." ซึ่งสุ่มวันนัดแล้วได้ 409 เป็นบางรอบ (task #65)
+  - เทียบไฟล์กับ fails-675a9c4d (8 ไฟล์) และ fails-d591d095 (8 ไฟล์): ใหม่ 0 · ผ่านที่นี่ 1 ไฟล์ในแต่ละรายการ (field-audit-clock · payer-block-matrix)
+  - ชุดของกิ่งและชุดที่เกี่ยวข้องผ่านทั้งหมด: uploads-acl-follows-read-model 10/10 · registration-sets-no-protected-column 7/7 ·
+    uploads-gate-absolute-form-target 9/9 · storage-service-extension-guard 8/8 · storage-service-reject-status 4/4 · car-refusal-keeps-no-upload 2/2
+  - การรัน integration จบด้วยไฟล์เปลี่ยน 12 ไฟล์: evidence/payer-block/after/ 10 ไฟล์ที่การรันเขียนทับ (คืนแล้วก่อน commit)
+    และ 2 ไฟล์ที่รอบ no-comments แก้คอมเมนต์ระหว่างรัน (commit เป็น b6bfcf6ea)
+- b6bfcf6ea (รอบ no-comments) แก้คอมเมนต์อย่างเดียว ลำดับ token ของ acorn เท่ากับ 0c7d42b6d ทั้ง 3 ไฟล์ ผลข้างบนจึงใช้กับ b6bfcf6ea ได้
+- b6bfcf6ea ตัดคอมเมนต์หนึ่งบรรทัดใน storage-service.js ตัวชี้ SIGNED_URL_BAD_KEY จึงเลื่อนจากบรรทัดที่โยนจริง 1 บรรทัด
+  คอมมิตถัดจากบันทึกนี้แก้เป็น :448 · --validate 463/463 · --markdown สร้าง docs ใหม่ · ตัวชี้ตรงบรรทัด 356 เท่ากับตอน merge
+  error-codes-catalog + error-codes-source-pointers + holder-copy-has-no-switch-wording 23/23 (รันตรง เพราะ full gate ถือ lock ของ heavy.sh อยู่ และไม่ใช้ฐานข้อมูล)

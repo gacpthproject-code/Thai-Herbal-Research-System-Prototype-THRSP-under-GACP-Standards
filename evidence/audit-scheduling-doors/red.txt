@@ -1,0 +1,99 @@
+RED: new tests run against main f8daa816 (no fixes), 2026-10-05, clean worktree
+
+## backend unit (cd apps/backend && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs <8 new suites>)
+FAIL __tests__/unit/reviewer-inspector-separation.test.js
+FAIL __tests__/unit/calendar-reschedule-confirmed-audit.test.js
+FAIL __tests__/unit/audit-schedule-notices.test.js
+FAIL __tests__/unit/document-request-more-creates-revision-deadline.test.js
+FAIL __tests__/unit/audits-reassign-rebinds-evidence-row.test.js
+FAIL __tests__/unit/audit-notes-disclosure-authz.test.js
+FAIL __tests__/unit/application-detail-carries-audit-schedule.test.js
+FAIL __tests__/unit/scheduler-queue-unscheduled-item.test.js
+Test Suites: 8 failed, 8 total
+Tests:       56 failed, 7 passed, 63 total
+    ✕ same person on both sides is refused, each way, with its own code
+    ✕ different people, or an empty side, pass
+    ✕ errors carry a Thai message, and the three codes are in the catalogue with Thai text
+    ✕ assign-reviewer: the person already assigned as this application's inspector is refused, nothing written
+    ✓ assign-reviewer: a field inspector who is NOT this application's inspector is still a valid reviewer
+    ✕ reviewer reassign: same refusal
+    ✕ 409 INSPECTOR_IS_APPLICATION_REVIEWER, no transaction opened
+    ✕ document-decision: the reviewer who is also the application's inspector may not decide (403, nothing moves)
+    ✕ audit-decision (PASS/MINOR/MAJOR/REJECT): the inspector who is also the application's document reviewer may not decide
+    ✕ onsite decision (submitDecision): same refusal on the field-app door
+    ✕ AUDIT_CONFIRMED is accepted (was 400 "must be in AUDIT_FEE_PAID") and reported as a reschedule
+    ✕ writes the new date + auditor + schedule record, with NO status transition
+    ✕ the inspector evidence row follows the new auditor, inside the same transaction
+    ✕ farmer and inspector are notified through the shared builder, flagged as a reschedule
+    ✕ guard: a weekend is refused
+    ✕ guard: a past date is refused
+    ✕ guard: the third booking of one inspector on one day is refused (cap 2)
+    ✕ guard: an overlapping booking of the same inspector is refused
+    ✕ guard: an inspector of another organisation (not found under the org filter) is refused
+    ✕ guard: a user without the inspector role is refused
+    ✕ a state that is neither AUDIT_FEE_PAID nor AUDIT_CONFIRMED is still refused
+    ✕ first booking (AUDIT_FEE_PAID) still goes through the status writer
+    ✕ assigning the application's own document reviewer as inspector is refused with a Thai catalogue error
+    ✕ both messages are Thai, carry the application number, and print no ISO instant or English sentence
+    ✕ date is the Bangkok day in the Buddhist year, time is Bangkok wall clock
+    ✕ an instant late on the UTC day that is already tomorrow in Bangkok prints the Bangkok day
+    ✕ the farmer is told the inspector name; the inspector is told where to go
+    ✕ a reschedule says it moved, and says from when
+    ✕ online mode names the meeting link instead of a place
+    ✕ notification data carries ids for the deep link but no raw ISO in the text
+    ✕ creates one in-app notification for the farmer and one for the inspector
+    ✕ a failing send is swallowed (the schedule has already committed)
+    ✕ assignAuditor notifies the assigned inspector AND the farmer, Thai, Bangkok BE date
+    ✕ the evidenceNote names no enum value (item 2: shown to the dispatcher as the backend wrote it)
+    ✕ stamps revisionDueAt = 5 working days from now into the same status write, keeping the rest of formData
+    ✕ creates the RevisionDeadline row the cron reads: same due date, PENDING, count 1
+    ✕ a second round bumps revisionCount (same rule as the generic door)
+    ✕ the deadline is written AFTER the status write (never for a refused decision)
+    ✓ a refused decision (wrong state) creates no deadline
+    ✕ if the deadline row cannot be written the officer is told, not shown a silent success
+    ✓ no deadline is created
+    ✕ the generic transition door builds its deadline fields with the shared builder, not its own copy
+    ✕ the per-slot door uses the shared builder and the shared row writer
+    ✕ the live evidence row now names the new inspector; decided / deleted / other-application rows are untouched
+    ✕ both writes run on the SAME transaction client
+    ✕ a failure of the second write fails the request (nothing reports success)
+    ✕ item 7: the application's own document reviewer cannot be given the inspection (409, Thai catalogue error, no write)
+    ✓ the inspector assigned to that application may
+    ✓ system_admin_dtam may
+    ✕ a dispatcher on staff may NOT (403, Thai reason, nothing written)
+    ✕ a document_reviewer on staff may NOT (403, Thai reason, nothing written)
+    ✕ a field_inspector assigned to a DIFFERENT application may NOT
+    ✕ an item that is not part of the audit named in the path is 404, even for the right inspector
+    ✕ disclosing (withheld:false) is the same decision and is gated the same way
+    ✕ AUDIT_CONFIRMED carries date, mode and the inspector name (joined name wins over the stored copy)
+    ✓ nothing else about the inspector is sent
+    ✕ with no joined user the stored name is used
+    ✕ an online visit carries its meeting link
+    ✕ before the visit is booked there is no block
+    ✕ a booked state with no date has no block rather than a 1970 one
+    ✕ resolveAuditSchedule returns null date and null ISO
+    ✕ the queue item has no scheduledDate and is not overdue
+    ✓ a real schedule is still read, from the column or from formData
+
+## web (node node_modules/jest/bin/jest.js <3 new suites>)
+    ✕ SCHEDULER_NAV has a tile for /provider/calendar, in Thai, for the dispatcher
+    ✕ the tile reaches the dispatcher through getNavForRole
+    ✓ the two tiles that were there stay
+    ✕ the tile uses plain Thai (no English jargon in its label)
+    ✕ shows the Bangkok date, the time, and the inspector by name
+    ✕ an online visit offers the meeting link
+    ✓ no booked visit, no card (and never a 1970 date)
+    ✕ the waiting-for-a-date hint no longer says "Coordinator"
+    ✓ a new booking opens on the on-site fields (map link / place), not the meeting-link field
+    ✕ the source default is ONSITE (initial state and the fallback when an item carries no mode)
+    ✕ online: a visible warning that no certificate can follow
+    ✓ on-site: no warning
+    ✕ the mode choices are plain Thai, with no enum names
+    ✕ canLeadToCertificate:false puts evidenceNote on the page in a banner that stays
+    ✓ canLeadToCertificate:true shows no warning
+    ✕ no "CAR" jargon in the status labels
+Test Suites: 3 failed, 3 total
+Tests:       11 failed, 5 passed, 16 total
+
+NOTE pin-not-fix: tests marked ✓ above were green on main (guards that already held: weekend/past/org/role refusals reach only after the state gate; 'a new booking opens on on-site fields' because backend returns ONSITE; 'no booked visit no card'; 'canLeadToCertificate:true shows no warning'). They pin behaviour kept.
+NOTE: red-be counts include tests failing only because the new module did not exist yet (Cannot find module) - the first RED capture also showed 48/53 failing before implementation.

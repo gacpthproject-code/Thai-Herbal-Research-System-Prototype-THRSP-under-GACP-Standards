@@ -1,0 +1,100 @@
+# Staging Walkthrough — visual capture kit (screenshots + video + trace, per
+# role) for docs/manual/USER-MANUAL-SKELETON.md and
+# docs/manual/VIDEO-STORYBOARD.md.
+#
+# STATUS 2026-08-06: BLOCKED — operator postponed GitHub Actions billing, so
+# self-hosted-runner workflows (this one included) cannot dispatch for the
+# foreseeable future. Kept here as the intended future path once Actions is
+# unlocked again; the operator-run equivalent that works TODAY, with no
+# dependency on Actions, is `scripts/ops/run-walkthrough.sh` (run directly on
+# the staging machine). Re-check this status before relying on this workflow —
+# do not assume it is live just because the file exists.
+#
+# workflow_dispatch ONLY — same "no auto-trigger" principle as
+# deploy-staging.yml (mandate §0 NO AUTO-DEPLOY): nothing runs this on push/
+# schedule/PR. An operator clicks "Run workflow".
+#
+# Optional repository secrets (WALK_<ROLE>_ID / WALK_<ROLE>_PW for ROLE in
+# FARMER, REVIEWER, AUDITOR, SCHEDULER, ACCOUNT, ADMIN) — if a pair is absent,
+# apps/web-app/e2e-walkthrough/walkthrough.spec.ts skips that role's
+# authenticated pages and records why in walkthrough-manifest.json; it never
+# falls back to a hardcoded credential.
+
+name: Staging Walkthrough (capture kit)
+
+on:
+  workflow_dispatch:
+    inputs:
+      base_url:
+        description: 'Staging host to capture'
+        required: false
+        default: 'https://staging.gacpth.com'
+      roles:
+        description: 'Comma-separated role subset to capture (blank = all): public,farmer,reviewer,auditor,scheduler,account,admin'
+        required: false
+        default: ''
+
+concurrency:
+  group: staging-walkthrough
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: '24.x'
+
+jobs:
+  capture:
+    name: Capture screenshots + video per role
+    runs-on: [self-hosted, linux]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install web-app dependencies
+        run: pnpm install --filter web-app... --frozen-lockfile
+
+      - name: Install Playwright Chromium
+        working-directory: apps/web-app
+        # The staging runner has real internet access (unlike the sandbox this
+        # kit was authored in, which is pinned to /opt/pw-browsers and
+        # forbidden from installing) — see playwright.walkthrough.config.ts
+        # for the executablePath fallback this feeds.
+        run: npx playwright install chromium
+
+      - name: Run walkthrough spec
+        working-directory: apps/web-app
+        env:
+          E2E_BASE_URL: ${{ github.event.inputs.base_url }}
+          WALK_ROLES: ${{ github.event.inputs.roles }}
+          WALK_FARMER_ID: ${{ secrets.WALK_FARMER_ID }}
+          WALK_FARMER_PW: ${{ secrets.WALK_FARMER_PW }}
+          WALK_REVIEWER_ID: ${{ secrets.WALK_REVIEWER_ID }}
+          WALK_REVIEWER_PW: ${{ secrets.WALK_REVIEWER_PW }}
+          WALK_AUDITOR_ID: ${{ secrets.WALK_AUDITOR_ID }}
+          WALK_AUDITOR_PW: ${{ secrets.WALK_AUDITOR_PW }}
+          WALK_SCHEDULER_ID: ${{ secrets.WALK_SCHEDULER_ID }}
+          WALK_SCHEDULER_PW: ${{ secrets.WALK_SCHEDULER_PW }}
+          WALK_ACCOUNT_ID: ${{ secrets.WALK_ACCOUNT_ID }}
+          WALK_ACCOUNT_PW: ${{ secrets.WALK_ACCOUNT_PW }}
+          WALK_ADMIN_ID: ${{ secrets.WALK_ADMIN_ID }}
+          WALK_ADMIN_PW: ${{ secrets.WALK_ADMIN_PW }}
+        run: npx playwright test --config=playwright.walkthrough.config.ts
+
+      - name: Upload walkthrough pack
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: staging-walkthrough-pack
+          path: evidence/staging-walkthrough
+          if-no-files-found: warn
+          retention-days: 14

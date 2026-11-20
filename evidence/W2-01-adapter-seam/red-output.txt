@@ -1,0 +1,373 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/payment-adapter.test.js
+  probe pin: stripe SDK isolation (§3.1)
+    ✕ the stripe SDK is imported ONLY by services/payment/stripe-adapter.js (49 ms)
+  getPaymentAdapter factory
+    ✕ PAYMENT_ADAPTER=mock returns the mock adapter (58 ms)
+    ✕ the default (unset) adapter is stripe (3 ms)
+    ✕ an unknown adapter value fails closed (2 ms)
+  MockPaymentAdapter — deterministic, orderable, key-free
+    ✕ createCheckoutSession is deterministic on the idempotency key (2 ms)
+    ✕ __setNextCreateFailure makes exactly the next create fail (2 ms)
+    ✕ a non-integer satang amount is refused (2 ms)
+    ✕ verifyWebhookSignature accepts only its deterministic HMAC over the raw bytes (2 ms)
+    ✕ getPaymentIntent returns what createCheckoutSession minted (1 ms)
+  raw-body mandate (§3.2 pin) — a JSON.parse-d body is rejected by BOTH adapters
+    ✕ mock adapter rejects an already-parsed object body (2 ms)
+    ✕ stripe adapter rejects an already-parsed object body without touching constructEvent (2 ms)
+  parseEvent — one domain vocabulary over both Stripe event families
+    ✕ payment_intent.succeeded → SETTLED (2 ms)
+    ✕ checkout.session.completed → SETTLED (3 ms)
+    ✕ payment_intent.payment_failed → FAILED (3 ms)
+    ✕ checkout.session.async_payment_failed → FAILED (1 ms)
+    ✕ payment_intent.canceled → CANCELLED (1 ms)
+    ✕ checkout.session.expired → CANCELLED (1 ms)
+    ✕ charge.refunded → UNKNOWN (1 ms)
+  StripeAdapter — thin delegation, fail-closed
+    ✕ createCheckoutSession delegates to paymentIntents.create with the idempotency key (1 ms)
+    ✕ getPaymentIntent delegates to paymentIntents.retrieve (1 ms)
+    ✕ the client factory fails closed without STRIPE_SECRET_KEY (1 ms)
+
+  ● probe pin: stripe SDK isolation (§3.1) › the stripe SDK is imported ONLY by services/payment/stripe-adapter.js
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Array [
+    -   "services/payment/stripe-adapter.js",
+    +   "config/stripe.js",
+      ]
+
+      69 |             if (fs.existsSync(full)) { visit(full); }
+      70 |         }
+    > 71 |         expect(importers.sort()).toEqual([path.join('services', 'payment', 'stripe-adapter.js')]);
+         |                                  ^
+      72 |     });
+      73 | });
+      74 |
+
+      at Object.toEqual (__tests__/unit/payment-adapter.test.js:71:34)
+
+  ● getPaymentAdapter factory › PAYMENT_ADAPTER=mock returns the mock adapter
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      76 |     test('PAYMENT_ADAPTER=mock returns the mock adapter', () => {
+      77 |         process.env.PAYMENT_ADAPTER = 'mock';
+    > 78 |         const { getPaymentAdapter } = require('../../services/payment/payment-adapter');
+         |                                       ^
+      79 |         expect(getPaymentAdapter().name).toBe('mock');
+      80 |     });
+      81 |
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:78:39)
+
+  ● getPaymentAdapter factory › the default (unset) adapter is stripe
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      81 |
+      82 |     test('the default (unset) adapter is stripe', () => {
+    > 83 |         const { getPaymentAdapter } = require('../../services/payment/payment-adapter');
+         |                                       ^
+      84 |         expect(getPaymentAdapter().name).toBe('stripe');
+      85 |     });
+      86 |
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:83:39)
+
+  ● getPaymentAdapter factory › an unknown adapter value fails closed
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      87 |     test('an unknown adapter value fails closed', () => {
+      88 |         process.env.PAYMENT_ADAPTER = 'paypal';
+    > 89 |         const { getPaymentAdapter } = require('../../services/payment/payment-adapter');
+         |                                       ^
+      90 |         expect(() => getPaymentAdapter()).toThrow(/PAYMENT_ADAPTER/);
+      91 |     });
+      92 | });
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:89:39)
+
+  ● MockPaymentAdapter — deterministic, orderable, key-free › createCheckoutSession is deterministic on the idempotency key
+
+    Cannot find module '../../services/payment/mock-payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      104 |
+      105 |     test('createCheckoutSession is deterministic on the idempotency key', async () => {
+    > 106 |         const mock = require('../../services/payment/mock-payment-adapter');
+          |                      ^
+      107 |         mock.__reset();
+      108 |         const a = await mock.createCheckoutSession(params());
+      109 |         const b = await mock.createCheckoutSession(params());
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:106:22)
+
+  ● MockPaymentAdapter — deterministic, orderable, key-free › __setNextCreateFailure makes exactly the next create fail
+
+    Cannot find module '../../services/payment/mock-payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      115 |
+      116 |     test('__setNextCreateFailure makes exactly the next create fail', async () => {
+    > 117 |         const mock = require('../../services/payment/mock-payment-adapter');
+          |                      ^
+      118 |         mock.__reset();
+      119 |         mock.__setNextCreateFailure(Object.assign(new Error('ordered failure'), { code: 'MOCK_FAILURE' }));
+      120 |         await expect(mock.createCheckoutSession(params())).rejects.toMatchObject({ code: 'MOCK_FAILURE' });
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:117:22)
+
+  ● MockPaymentAdapter — deterministic, orderable, key-free › a non-integer satang amount is refused
+
+    Cannot find module '../../services/payment/mock-payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      123 |
+      124 |     test('a non-integer satang amount is refused', async () => {
+    > 125 |         const mock = require('../../services/payment/mock-payment-adapter');
+          |                      ^
+      126 |         await expect(mock.createCheckoutSession({ ...params(), amountSatang: 55.35 }))
+      127 |             .rejects.toMatchObject({ code: 'INVALID_AMOUNT' });
+      128 |     });
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:125:22)
+
+  ● MockPaymentAdapter — deterministic, orderable, key-free › verifyWebhookSignature accepts only its deterministic HMAC over the raw bytes
+
+    Cannot find module '../../services/payment/mock-payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      129 |
+      130 |     test('verifyWebhookSignature accepts only its deterministic HMAC over the raw bytes', () => {
+    > 131 |         const mock = require('../../services/payment/mock-payment-adapter');
+          |                      ^
+      132 |         const raw = Buffer.from(JSON.stringify({ id: 'evt_m1', type: 'payment_intent.succeeded', data: { object: { id: 'pi_mock' } } }));
+      133 |         const event = mock.verifyWebhookSignature({ rawBody: raw, signature: mock.signPayload(raw) });
+      134 |         expect(event.id).toBe('evt_m1');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:131:22)
+
+  ● MockPaymentAdapter — deterministic, orderable, key-free › getPaymentIntent returns what createCheckoutSession minted
+
+    Cannot find module '../../services/payment/mock-payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      138 |
+      139 |     test('getPaymentIntent returns what createCheckoutSession minted', async () => {
+    > 140 |         const mock = require('../../services/payment/mock-payment-adapter');
+          |                      ^
+      141 |         mock.__reset();
+      142 |         const s = await mock.createCheckoutSession(params());
+      143 |         const intent = await mock.getPaymentIntent(s.id);
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:140:22)
+
+  ● raw-body mandate (§3.2 pin) — a JSON.parse-d body is rejected by BOTH adapters › mock adapter rejects an already-parsed object body
+
+    Cannot find module '../../services/payment/mock-payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      148 | describe('raw-body mandate (§3.2 pin) — a JSON.parse-d body is rejected by BOTH adapters', () => {
+      149 |     test('mock adapter rejects an already-parsed object body', () => {
+    > 150 |         const mock = require('../../services/payment/mock-payment-adapter');
+          |                      ^
+      151 |         expect(() => mock.verifyWebhookSignature({ rawBody: { id: 'evt_1' }, signature: 'mock-sig=x' }))
+      152 |             .toThrow(/raw/i);
+      153 |     });
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:150:22)
+
+  ● raw-body mandate (§3.2 pin) — a JSON.parse-d body is rejected by BOTH adapters › stripe adapter rejects an already-parsed object body without touching constructEvent
+
+    Cannot find module '../../services/payment/stripe-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      154 |
+      155 |     test('stripe adapter rejects an already-parsed object body without touching constructEvent', () => {
+    > 156 |         const stripeAdapter = require('../../services/payment/stripe-adapter');
+          |                               ^
+      157 |         expect(() => stripeAdapter.verifyWebhookSignature({ rawBody: { id: 'evt_1' }, signature: 't=1,v1=x' }))
+      158 |             .toThrow(/raw/i);
+      159 |         expect(mockConstructEvent).not.toHaveBeenCalled();
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:156:31)
+
+  ● parseEvent — one domain vocabulary over both Stripe event families › payment_intent.succeeded → SETTLED
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      171 |         ['charge.refunded', 'UNKNOWN'],
+      172 |     ])('%s → %s', (type, kind) => {
+    > 173 |         const { parseEvent } = require('../../services/payment/payment-adapter');
+          |                                ^
+      174 |         const parsed = parseEvent({ id: 'evt_p', type, data: { object: { id: 'obj-1' } } });
+      175 |         expect(parsed.kind).toBe(kind);
+      176 |         expect(parsed.eventId).toBe('evt_p');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at require (__tests__/unit/payment-adapter.test.js:173:32)
+
+  ● parseEvent — one domain vocabulary over both Stripe event families › checkout.session.completed → SETTLED
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      171 |         ['charge.refunded', 'UNKNOWN'],
+      172 |     ])('%s → %s', (type, kind) => {
+    > 173 |         const { parseEvent } = require('../../services/payment/payment-adapter');
+          |                                ^
+      174 |         const parsed = parseEvent({ id: 'evt_p', type, data: { object: { id: 'obj-1' } } });
+      175 |         expect(parsed.kind).toBe(kind);
+      176 |         expect(parsed.eventId).toBe('evt_p');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at require (__tests__/unit/payment-adapter.test.js:173:32)
+
+  ● parseEvent — one domain vocabulary over both Stripe event families › payment_intent.payment_failed → FAILED
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      171 |         ['charge.refunded', 'UNKNOWN'],
+      172 |     ])('%s → %s', (type, kind) => {
+    > 173 |         const { parseEvent } = require('../../services/payment/payment-adapter');
+          |                                ^
+      174 |         const parsed = parseEvent({ id: 'evt_p', type, data: { object: { id: 'obj-1' } } });
+      175 |         expect(parsed.kind).toBe(kind);
+      176 |         expect(parsed.eventId).toBe('evt_p');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at require (__tests__/unit/payment-adapter.test.js:173:32)
+
+  ● parseEvent — one domain vocabulary over both Stripe event families › checkout.session.async_payment_failed → FAILED
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      171 |         ['charge.refunded', 'UNKNOWN'],
+      172 |     ])('%s → %s', (type, kind) => {
+    > 173 |         const { parseEvent } = require('../../services/payment/payment-adapter');
+          |                                ^
+      174 |         const parsed = parseEvent({ id: 'evt_p', type, data: { object: { id: 'obj-1' } } });
+      175 |         expect(parsed.kind).toBe(kind);
+      176 |         expect(parsed.eventId).toBe('evt_p');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at require (__tests__/unit/payment-adapter.test.js:173:32)
+
+  ● parseEvent — one domain vocabulary over both Stripe event families › payment_intent.canceled → CANCELLED
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      171 |         ['charge.refunded', 'UNKNOWN'],
+      172 |     ])('%s → %s', (type, kind) => {
+    > 173 |         const { parseEvent } = require('../../services/payment/payment-adapter');
+          |                                ^
+      174 |         const parsed = parseEvent({ id: 'evt_p', type, data: { object: { id: 'obj-1' } } });
+      175 |         expect(parsed.kind).toBe(kind);
+      176 |         expect(parsed.eventId).toBe('evt_p');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at require (__tests__/unit/payment-adapter.test.js:173:32)
+
+  ● parseEvent — one domain vocabulary over both Stripe event families › checkout.session.expired → CANCELLED
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      171 |         ['charge.refunded', 'UNKNOWN'],
+      172 |     ])('%s → %s', (type, kind) => {
+    > 173 |         const { parseEvent } = require('../../services/payment/payment-adapter');
+          |                                ^
+      174 |         const parsed = parseEvent({ id: 'evt_p', type, data: { object: { id: 'obj-1' } } });
+      175 |         expect(parsed.kind).toBe(kind);
+      176 |         expect(parsed.eventId).toBe('evt_p');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at require (__tests__/unit/payment-adapter.test.js:173:32)
+
+  ● parseEvent — one domain vocabulary over both Stripe event families › charge.refunded → UNKNOWN
+
+    Cannot find module '../../services/payment/payment-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      171 |         ['charge.refunded', 'UNKNOWN'],
+      172 |     ])('%s → %s', (type, kind) => {
+    > 173 |         const { parseEvent } = require('../../services/payment/payment-adapter');
+          |                                ^
+      174 |         const parsed = parseEvent({ id: 'evt_p', type, data: { object: { id: 'obj-1' } } });
+      175 |         expect(parsed.kind).toBe(kind);
+      176 |         expect(parsed.eventId).toBe('evt_p');
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at require (__tests__/unit/payment-adapter.test.js:173:32)
+
+  ● StripeAdapter — thin delegation, fail-closed › createCheckoutSession delegates to paymentIntents.create with the idempotency key
+
+    Cannot find module '../../services/payment/stripe-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      182 |     test('createCheckoutSession delegates to paymentIntents.create with the idempotency key', async () => {
+      183 |         mockIntentCreate.mockResolvedValue({ id: 'pi_9', client_secret: 'pi_9_cs', status: 'requires_payment_method' });
+    > 184 |         const adapter = require('../../services/payment/stripe-adapter');
+          |                         ^
+      185 |         const s = await adapter.createCheckoutSession({
+      186 |             amountSatang: 553500,
+      187 |             currency: 'thb',
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:184:25)
+
+  ● StripeAdapter — thin delegation, fail-closed › getPaymentIntent delegates to paymentIntents.retrieve
+
+    Cannot find module '../../services/payment/stripe-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      207 |     test('getPaymentIntent delegates to paymentIntents.retrieve', async () => {
+      208 |         mockIntentRetrieve.mockResolvedValue({ id: 'pi_9', status: 'succeeded' });
+    > 209 |         const adapter = require('../../services/payment/stripe-adapter');
+          |                         ^
+      210 |         await expect(adapter.getPaymentIntent('pi_9')).resolves.toMatchObject({ status: 'succeeded' });
+      211 |         expect(mockIntentRetrieve).toHaveBeenCalledWith('pi_9');
+      212 |     });
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:209:25)
+
+  ● StripeAdapter — thin delegation, fail-closed › the client factory fails closed without STRIPE_SECRET_KEY
+
+    Cannot find module '../../services/payment/stripe-adapter' from '__tests__/unit/payment-adapter.test.js'
+
+      216 |         delete process.env.STRIPE_SECRET_KEY;
+      217 |         try {
+    > 218 |             const adapter = require('../../services/payment/stripe-adapter');
+          |                             ^
+      219 |             expect(() => adapter.getStripeClient()).toThrow(/STRIPE_SECRET_KEY/);
+      220 |         } finally {
+      221 |             process.env.STRIPE_SECRET_KEY = saved;
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/payment-adapter.test.js:218:29)
+
+Test Suites: 1 failed, 1 total
+Tests:       21 failed, 21 total
+Snapshots:   0 total
+Time:        4.01 s
+Ran all test suites matching /__tests__\/unit\/payment-adapter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

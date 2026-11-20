@@ -1,0 +1,340 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/x2-fix-d-rbac-defense-in-depth.test.js
+  X2-FIX-D H-12 (DR-DIR-1) — staff directory PDPA projection
+    √ DOCUMENT_REVIEWER receives public projection (no PII) (58 ms)
+    √ ADMIN receives full projection (PII + lifecycle metadata) (12 ms)
+    √ AUDITOR (non-privileged for directory) gets public projection (11 ms)
+    √ SCHEDULER (privileged for assignment) gets full projection (21 ms)
+    √ GET /:id mirrors the projection policy (29 ms)
+  X2-FIX-D M-18 (DR-FA-1) — final-approval-queue GET requires AUDITOR
+    √ DOCUMENT_REVIEWER receives 403 (was 200 pre-fix) (14 ms)
+    √ SCHEDULER receives 403 — also blocked by AUDITORS group (11 ms)
+    √ AUDITOR receives 200 (11 ms)
+    √ ADMIN receives 403 (AUDIT-001: admin removed from ROLE_GROUPS.AUDITORS — not in the audit path) (22 ms)
+  X2-FIX-D M-20 (DR-EXT-1) — revision-deadline extend per-app owner gate
+    √ non-assigned DOCUMENT_REVIEWER receives 403 (43 ms)
+    √ assigned DOCUMENT_REVIEWER receives 200 (36 ms)
+    √ ADMIN bypasses owner gate (200) (12 ms)
+    √ legacy formData.PROVIDERAssignment.reviewerId path admits caller (12 ms)
+  X2-FIX-D M-20 (DR-SOW-1) — SOW / checklist POST per-app owner gate
+    √ SOW POST: non-assigned provider receives 403 (16 ms)
+    √ SOW POST: assigned reviewer receives 2xx (13 ms)
+    √ SOW POST: ADMIN bypasses owner gate (10 ms)
+    √ Checklist POST: non-assigned auditor receives 403 (10 ms)
+    √ Checklist POST: assigned auditor receives 2xx (13 ms)
+  provider directory role-write privesc guard (PATCH/PUT)
+    √ PATCH /:id — tenant ADMIN cannot assign PLATFORM_ADMIN (canonical, 403, no write) (11 ms)
+    √ PATCH /:id — legacy/uppercase PLATFORM_ADMIN also rejected (403, no write) (10 ms)
+    √ PATCH /:id — admin cannot change their OWN role (403, no write) (20 ms)
+    √ PATCH /:id — assigning a normal provider role still works (2xx, writes) (11 ms)
+    √ PUT /:id — tenant ADMIN cannot assign PLATFORM_ADMIN (canonical, 403, no write) (10 ms)
+    √ PUT /:id — legacy/uppercase PLATFORM_ADMIN also rejected (403, no write) (10 ms)
+    √ PUT /:id — admin cannot change their OWN role (403, no write) (10 ms)
+    √ PUT /:id — assigning a normal provider role still works (2xx, writes) (10 ms)
+
+PASS __tests__/unit/applications-prepare-active-entity.test.js
+  Wave C PR-5 — /prepare uses req.activeEntity
+    √ uses req.activeEntity.entityId as Application.entityId (49 ms)
+    √ falls back to legacy applicantData when no activeEntity is set (21 ms)
+    √ does not re-materialise when activeEntity is set even with applicantData=JURISTIC (48 ms)
+    √ keeps existing application.entityId when neither activeEntity nor applicantData present (12 ms)
+
+PASS __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js
+  PR-A0-2 #8/#9 — initial submit: BOTH hops share ONE caller transaction
+    √ hop #8 (DRAFT→SUBMITTED) runs in the caller tx with default emission (32 ms)
+    √ hop #9 (SUBMITTED→PENDING_DOC_FEE) runs in the SAME caller tx with default emission (11 ms)
+    √ exactly ONE transaction is opened for the pair (not one per hop) (12 ms)
+    √ WF-F5 regression pin: the illegal DRAFT→PENDING_DOC_FEE edge is still never written (10 ms)
+    √ hop 2 rejecting aborts the whole request — no success response (14 ms)
+    √ hop 2 rejecting propagates OUT of the caller transaction (so Prisma rolls it back) (10 ms)
+    √ hop 1 rejecting never attempts hop 2 (10 ms)
+  PR-A0-2 #10 — correction resubmit already ran in a tx (PIN, not a fix)
+    √ the resubmit hop and its append-only snapshot share one tx, default emission (17 ms)
+  PR-A0-2 #12 — bundle submit: bundle flip + every linked case in ONE transaction
+    √ every linked case is written through the caller tx with default emission (15 ms)
+    √ the bundle status flip is in the SAME transaction as the case writes (11 ms)
+    √ a rejected case aborts the whole bundle submit — no success response (F5) (12 ms)
+    √ R1a regression pin: a linked TERMINAL case still blocks the whole submit, no tx opened (10 ms)
+
+PASS __tests__/unit/applications-route-rbac.test.js
+  V1-D D2 — HEALTH role gate on applicant-only routes
+    POST /draft
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (24 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+    POST /submit
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (17 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+    POST /prepare
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+    POST /draft-documents
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (11 ms)
+    DELETE /draft/:id
+      √ admin role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ scheduler role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ document_reviewer role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+      √ auditor role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account_dtam role gets 403 HEALTH_ROLE_REQUIRED (12 ms)
+      √ account_platform role gets 403 HEALTH_ROLE_REQUIRED (10 ms)
+      √ account role gets 403 HEALTH_ROLE_REQUIRED (9 ms)
+    positive cases — HEALTH role is allowed through
+      √ POST /draft permits role=health (10 ms)
+      √ POST /submit permits role=health (13 ms)
+      √ POST /prepare permits role=health (9 ms)
+      √ POST /draft-documents permits role=health (10 ms)
+      √ DELETE /draft/:id permits role=health (9 ms)
+    anonymous (no token) — auth middleware rejects before the role gate
+      √ POST /draft returns 401 without a token (9 ms)
+      √ POST /submit returns 401 without a token (9 ms)
+      √ POST /prepare returns 401 without a token (9 ms)
+      √ POST /draft-documents returns 401 without a token (10 ms)
+      √ DELETE /draft/:id returns 401 without a token (9 ms)
+
+PASS __tests__/unit/applications-prepare-server-owned-fields.test.js
+  SEC — /prepare rejects server-owned formData keys
+    √ does not persist a forged audit-pass record (35 ms)
+    √ does not let the applicant set their own CAR / revision SLA deadlines (10 ms)
+    √ does not let the applicant assign their own auditor or override admin settings (11 ms)
+    √ preserves what the server already recorded, rather than the applicant payload (9 ms)
+    √ still persists the applicant own wizard answers (10 ms)
+
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER is blocked with 403 CAPABILITY_DENIED (18 ms)
+    √ MANAGER is blocked with 403 (10 ms)
+    √ ADMIN can submit (10 ms)
+    √ OWNER can submit (9 ms)
+    √ no activeEntity → no gate (legacy / picker-less clients) (10 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (10 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (16 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (11 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (10 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (10 ms)
+
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (19 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (11 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (10 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (13 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (15 ms)
+
+PASS __tests__/unit/applications-draft-contract.test.js
+  Applications draft API contract
+    √ POST /draft returns canonical draftId and backward-compatible _id (87 ms)
+    √ POST /draft does NOT wipe saved certificationPurposes when the request sends an empty array (Bug 8.2) (15 ms)
+    √ POST /draft DOES apply a non-empty certificationPurposes from the request (12 ms)
+    √ GET /draft returns canonical draftId and backward-compatible _id for latest draft (12 ms)
+    √ GET /draft returns success with null data when no draft exists (11 ms)
+    √ DELETE /draft/:id delegates to health-scoped soft delete and reports deletion (8 ms)
+    √ DELETE /draft/:id reports deleted false when draft is missing or not owned (15 ms)
+
+PASS __tests__/integration/bundle-terminal-integrity.test.js
+  R1a — application-bundles terminal-integrity (no resurrection)
+    POST /:id/submit — must not resurrect a linked terminal case
+      √ linked REJECTED case is rejected, not pushed to SUBMITTED (18 ms)
+      √ linked EXPIRED case is rejected, not pushed to SUBMITTED (10 ms)
+      √ linked CANCEL_EXPIRED case is rejected, not pushed to SUBMITTED (9 ms)
+      √ linked CERTIFIED case is rejected, not pushed to SUBMITTED (15 ms)
+      √ non-terminal (DRAFT) linked case still submits (regression pin) (10 ms)
+    POST / — must not link a terminal case into a new bundle
+      √ creating a bundle around a REJECTED case is rejected, no DB write (10 ms)
+      √ creating a bundle around a EXPIRED case is rejected, no DB write (10 ms)
+      √ creating a bundle around a CANCEL_EXPIRED case is rejected, no DB write (10 ms)
+      √ creating a bundle around a CERTIFIED case is rejected, no DB write (9 ms)
+    POST /:id/applications — must not add a terminal case
+      √ adding a REJECTED case to a bundle is rejected, no link write (11 ms)
+      √ adding a EXPIRED case to a bundle is rejected, no link write (10 ms)
+      √ adding a CANCEL_EXPIRED case to a bundle is rejected, no link write (15 ms)
+      √ adding a CERTIFIED case to a bundle is rejected, no link write (10 ms)
+
+[31merror[39m: [ApplicationBundle] Get by ID error: Invalid `prisma.applicationBundle.findFirst()` invocation: Argument id: Got invalid value {"name":"PrismaClientValidationError","service":"gacp-backend","stack":"PrismaClientValidationError: Invalid `prisma.applicationBundle.findFirst()` invocation: Argument id: Got invalid value\n    at makePrismaValidationError (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:47:13)\n    at Object.makePrismaValidationError (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:126:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T06:32:13.154Z"}
+[31merror[39m: [ApplicationBundle] Get by ID error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:130:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T06:32:13.167Z"}
+[31merror[39m: [ApplicationBundle] Delete error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:134:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T06:32:13.178Z"}
+[31merror[39m: [ApplicationBundle] Add application error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:138:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T06:32:13.191Z"}
+[31merror[39m: [ApplicationBundle] Submit error: Inconsistent column data: Error creating UUID, malformed id {"code":"P2023","name":"PrismaClientKnownRequestError","service":"gacp-backend","stack":"PrismaClientKnownRequestError: Inconsistent column data: Error creating UUID, malformed id\n    at makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:54:13)\n    at Object.makeP2023 (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\apps\\backend\\__tests__\\integration\\bundle-bad-input-mapping.test.js:145:64)\n    at Promise.then.completed (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:298:28)\n    at new Promise (<anonymous>)\n    at callAsyncCircusFn (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\utils.js:231:10)\n    at _callCircusTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:316:40)\n    at processTicksAndRejections (node:internal/process/task_queues:104:5)\n    at _runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:252:3)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:126:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at _runTestsForDescribeBlock (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:121:9)\n    at run (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\run.js:71:3)\n    at runAndTransformResultsToJestFormat (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapterInit.js:122:21)\n    at jestAdapter (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-circus@29.7.0\\node_modules\\jest-circus\\build\\legacy-code-todo-rewrite\\jestAdapter.js:79:19)\n    at runTestInternal (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:367:16)\n    at runTest (C:\\Users\\charo\\Documents\\GitHub\\GACP-Certification-Application\\node_modules\\.pnpm\\jest-runner@29.7.0\\node_modules\\jest-runner\\build\\runTest.js:444:34)","timestamp":"2026-08-15T06:32:13.261Z"}
+PASS __tests__/integration/bundle-bad-input-mapping.test.js
+  BE-EDGE-01 — application-bundles bad input maps to 4xx (not 500)
+    findFirst returns null (well-formed-but-absent id) → 404
+      √ GET /:id bogus id (14 ms)
+      √ DELETE /:id bogus id (10 ms)
+      √ POST /:id/submit bogus id (13 ms)
+      √ POST /:id/applications bogus bundle id (after body validation) (10 ms)
+      √ DELETE /:id/applications/:appId bogus ids (15 ms)
+    missing fields / bad types caught BEFORE prisma → 400
+      √ POST /:id/applications missing applicationId (no prisma call) (10 ms)
+      √ POST /:id/applications bad-typed applicationId (no prisma call) (10 ms)
+      √ POST / bad bundleType (no prisma create) (10 ms)
+    prisma THROWS on the lookup → 4xx via respondError (was a 500 leak)
+      √ GET /:id PrismaClientValidationError → 400 (23 ms)
+      √ GET /:id P2023 malformed UUID → 400 (11 ms)
+      √ DELETE /:id P2023 → 400 (10 ms)
+      √ POST /:id/applications P2023 on bundle lookup → 400 (46 ms)
+      √ POST /:id/submit P2023 → 400 (27 ms)
+
+PASS __tests__/integration/bundle-natid-token-fk.test.js
+  application-bundles — healthId FK uses the canonicalId TOKEN, not the plaintext national ID
+    √ GET /my read filter uses the TOKEN (where.healthId === canonicalId) (15 ms)
+    √ POST / write stamps the TOKEN into applicationBundle.create data.healthId (16 ms)
+    √ GET /:id read filter uses the TOKEN (12 ms)
+
+PASS __tests__/unit/a0-pr2-work-activity-fence.test.js
+  PR-A0-2 F1 — a failing work-activity emission must not cost the CALLER its transaction
+    √ [harness] the fake reproduces the abort: a failed statement kills the tx and COMMIT discards silently (4 ms)
+    √ the caller tx survives a failing work-activity emission and the status write COMMITS (41 ms)
+    √ the failing work-activity emission is unwound to a SAVEPOINT (not merely swallowed) (27 ms)
+    √ a caller tx whose work-activity emission SUCCEEDS keeps the activity and leaves no orphan savepoint (28 ms)
+    √ BOTH submit hops survive: hop 2 still commits after hop 1 tripped the work-activity failure (29 ms)
+    √ [pin] bare client + failing work-activity: no savepoint is attempted, the write still lands (28 ms)
+    √ [pin] R1 — a swallow NESTED inside the region poisons the tx anyway; RELEASE fails and says so (3 ms)
+    √ [pin] bare client, happy path: the activity is created, still no savepoint (2 ms)
+
+PASS __tests__/unit/a0-pr2-admin-override-canonical-row.test.js
+  PR-A0-2 #7 — admin status override: canonical transition row is caller-owned
+    √ the writer is told the caller owns the emission (onAudit === false) (21 ms)
+    √ the canonical APPLICATION_STATUS_TRANSITION row is emitted through the SSOT hook, bound to the SAME tx (10 ms)
+    √ the pre-existing ADMIN override row is NOT removed (the two rows are different records) (10 ms)
+    √ a failing canonical emission is NOT swallowed — it propagates and the route 500s (16 ms)
+
+PASS __tests__/unit/car-late-submission-expiry-attribution.test.js
+  AUDIT-TRAIL — late CAR submission expires as the SYSTEM, not the applicant
+    √ the expiry is still enforced and the late evidence is rejected (77 ms)
+    √ does NOT record the applicant as the actor who cancelled (10 ms)
+    √ attributes the expiry to the system, matching the cron (10 ms)
+    √ the workflow event carries the same system attribution (10 ms)
+    √ also fails the open RevisionDeadline row, as the cron does (10 ms)
+    √ performs both writes in one transaction (10 ms)
+    √ a submission INSIDE the deadline is unaffected (10 ms)
+
+PASS __tests__/unit/application-revision-deadline-auth.test.js
+  [AppAudit AH9] GET /api/revision-deadline/:applicationId
+    √ rejects unauthenticated requests with 401 (17 ms)
+    √ health user who DOES own the application can read the deadline (11 ms)
+    √ health user who does NOT own the application gets 404 (no info leak) (9 ms)
+    √ provider/admin role bypasses ownership check (audit/review needs) (10 ms)
+    √ health user with no healthId resolution gets 403 (9 ms)
+
+PASS __tests__/unit/a0-pr2-hop-emission-contract.test.js
+  PR-A0-2 — per-hop emission contract (client + tri-state) [PIN]
+    √ #8/#9 routes/api/applications/applications.js[0] — initial submit hop 1 (DRAFT→SUBMITTED) — shares one tx with hop 2 (3 ms)
+    √ #9 routes/api/applications/applications.js[1] — initial submit hop 2 (SUBMITTED→PENDING_DOC_FEE) — same tx as hop 1 (1 ms)
+    √ #12 routes/api/applications/application-bundles.js[0] — bundle submit — one tx for the bundle flip + every linked case (2 ms)
+    √ #7 routes/api/admin/applications.js[0] — admin override — caller emits the canonical + ADMIN rows fail-closed (1 ms)
+    √ #10 routes/api/applications/applications.js[2] — correction resubmit — tx shared with the append-only snapshot (R2 M7) (1 ms)
+    √ #11 routes/api/applications/application-workflow-handlers.js[0] — review decision — tx shared with the correction letter mint (D-8) (2 ms)
+    √ #13 routes/api/applications/applications-car.js[0] — CAR deadline expiry — tx shared with the RevisionDeadline fail (1 ms)
+    √ #14 routes/api/applications/applications-car.js[1] — CAR evidence resubmit — tx shared with the append-only snapshot (1 ms)
+    √ #15 routes/api/system/cron.js[0] — auto-expire cron — tx shared with the RevisionDeadline fail (1 ms)
+    √ #22 routes/api/provider/work.js[0] — work-inbox done+advance — tx shared with workActivity.markDone (2 ms)
+    √ #24 services/audit-scheduling-service.js[0] — scheduler assign — Serializable tx shared with the slot re-assert (1 ms)
+    √ #18 routes/api/provider/handlers/workflow-transitions-handler.js[0] — forced expire — its sibling write cannot join a caller tx (see below) (1 ms)
+    √ #19 routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js[0] — schedule →AUDIT_CONFIRMED — no DB sibling write to be atomic with (1 ms)
+    √ #20 routes/api/provider/handlers/workflow-side-effects.js[0] — DOC_APPROVED auto-chain — sibling writes cannot join a caller tx (1 ms)
+    √ #21 routes/api/provider/handlers/workflow-revision-expirations-handler.js[0] — forced expire route — sibling writes cannot join a caller tx (10 ms)
+    √ #4 routes/api/provider/handlers/workflow-transitions-handler.js[1] — cert-voiding reversal — caller-owned emitter in its own tx (1 ms)
+    √ #5 routes/api/provider/handlers/workflow-transitions-handler.js[2] — revision/CAR decision — caller-owned emitter in its own tx (1 ms)
+    √ the inventory covers every writeApplicationStatus call in the PR-A0-2 files (2 ms)
+  PR-A0-2 — hops left on the bare client keep their sibling-write shape [PIN]
+    √ #18 / #21 fail the RevisionDeadline rows through the service singleton (2 ms)
+    √ #20 closes its deadline rows through the same singleton service (1 ms)
+    √ #19 has no DB sibling write — only best-effort notifications and its own audit row (1 ms)
+
+PASS __tests__/unit/closing-review-fixes.test.js
+  [ClosingReview] NEW-1: twoFactor schema field names
+    √ pdpa-retention-job.js writes twoFactorSecret (not mfaSecret) (2 ms)
+    √ auth-session-security-handlers.js deleteMe writes twoFactorSecret (not mfaSecret) (2 ms)
+    √ prisma-auth-service.js login() reads twoFactorEnabled (with mfaEnabled legacy fallback) (1 ms)
+  [ClosingReview] NEW-2: actorIdentity healthId leak sweep
+    √ routes/api/cultivation/harvest-batches.js masks healthId in actorIdentity field (1 ms)
+    √ routes/api/provider/handlers/auditor-audit-decision-handler.js masks healthId in actorIdentity field (1 ms)
+    √ routes/api/provider/handlers/auditor-inspection-start-handler.js masks healthId in actorIdentity field (1 ms)
+    √ routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js masks healthId in actorIdentity field (1 ms)
+    √ routes/api/provider/handlers/workflow-revision-expirations-handler.js masks healthId in actorIdentity field (1 ms)
+    √ routes/api/provider/handlers/workflow-side-effects.js masks healthId in actorIdentity field (1 ms)
+    √ repo-wide sweep: no raw healthId write to actorIdentity field remains (2 ms)
+  [ClosingReview] NEW-3: revision-deadline PUT /submit middleware fix
+    √ uses authenticateAny (not authenticateProvider) (1 ms)
+    √ has ownership check (resolveHealthIdentity + isProviderRole) (1 ms)
+  [ClosingReview] NEW-5: mfa.js routes use canonical twoFactor* columns
+    √ POST /setup writes twoFactorSecret + twoFactorEnabled (not mfa*) (1 ms)
+    √ POST /verify-setup reads twoFactorSecret and writes twoFactorEnabled/twoFactorBackupCodes as a native array (1 ms)
+    √ POST /verify selects canonical twoFactor* trio in the user lookup (1 ms)
+    √ DELETE /disable writes twoFactorEnabled: false + nulls canonical columns (1 ms)
+    √ No live code references the broken mfaSecret/mfaBackupCodes column names
+  [ClosingReview] NEW-6: admin status override is transactional with audit
+    √ wraps application.update + audit write in prisma.$transaction (1 ms)
+    √ no longer uses the best-effort try/catch audit pattern (1 ms)
+    √ retries the whole transaction on audit P2002 sequence conflicts (1 ms)
+  [ClosingReview] NEW-4: applications.js duplicate logger cleanup
+    √ no duplicate logger.error calls in catch blocks (2 ms)
+
+PASS __tests__/unit/find-draft-for-submit-status-filter.test.js
+  Bug 8.3 — findDraftForSubmit status filter
+    √ id-less lookup filters to submittable source states (not any status) (2 ms)
+    √ exact-id lookup does NOT add a status filter (handler validates that app) (1 ms)
+    √ returns null immediately when healthId is absent (unchanged) (1 ms)
+
+PASS __tests__/integration/working-days-revision-deadline.test.js
+  utils/working-days.addWorkingDays in Asia/Bangkok
+    √ 5 working days from a plain Monday lands on the following Monday (skip Sat+Sun) (6 ms)
+    √ skips Thai public holidays (Labor Day + Coronation Day) when counting working days (7 ms)
+    √ Friday late-night ICT: 5wd from Fri 23:30 ICT lands on the following Friday (6 ms)
+    √ ICT Saturday early-morning (Friday in UTC fringe) treated as WEEKEND in ICT, not working day (5 ms)
+  PAYMENT.REVISION_DEADLINE_BUSINESS_DAYS is 5 (canonical)
+    √ canonical SLA value is 5 working days (1 ms)
+
+PASS __tests__/unit/revision-deadline-cron-preserves-data.test.js
+  Bug 2.1 — revision-deadline cron preserves formData + workflowHistory
+    √ does NOT wipe applicant/plot formData on the EXPIRED write (4 ms)
+    √ APPENDS to workflowHistory (length 4), does NOT reset it to 1 (1 ms)
+    √ findMany select now includes formData + workflowHistory (2 ms)
+
+PASS __tests__/unit/application-submit-guard.test.js
+  M1 assertSubmitAllowed
+    √ exports the SUBMIT_APPLICATION permission string it gates on (1 ms)
+    √ 400 VALIDATION_ERROR when application has no entityId (2 ms)
+    √ 403 ENTITY_PERMISSION_DENIED + audit FAILURE when neither ACTIVE member nor grant-holder (2 ms)
+    √ passes when the engine allows (role default / GRANT row — REVOKE-wins lives in the engine) (1 ms)
+    √ keys off the APPLICATION row entityId — an x-active-entity header for another entity changes nothing (1 ms)
+    √ fails CLOSED when the engine throws something that is not the canonical denial (1 ms)
+    √ a missing userId is a denial, not a pass (1 ms)
+    √ the audit write is best-effort — a failing auditLogger never converts a 403 into a 500 (1 ms)
+    √ carries the denial through as an http-shaped error (statusCode/httpStatus) for sendServiceError (1 ms)
+    √ the FAILURE row is insertable when the caller passes no auditContext (no null NOT-NULL column) (2 ms)
+    √ the FAILURE row is insertable for an actor-less attempt (actorId still a string) (2 ms)
+    √ works without an auditContext at all (guard must not depend on the caller remembering it) (11 ms)
+
+PASS __tests__/unit/revision-deadline-guard.test.js
+  Bug 6.5 — assertRevisionNotExpired
+    √ overdue (formData.revisionDueAt in the past) → expired:true + EXPIRE transition + deadline failed (2 ms)
+    √ overdue (RevisionDeadline row in the past, no formData date) → expired:true (1 ms)
+    √ within deadline (future dueAt) → expired:false + NO side-effects (2 ms)
+    √ no deadline anywhere → expired:false (nothing to enforce) (1 ms)
+
+Test Suites: 1 skipped, 22 passed, 22 of 23 total
+Tests:       18 skipped, 236 passed, 254 total
+Snapshots:   0 total
+Time:        15.248 s, estimated 23 s

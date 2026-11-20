@@ -1,0 +1,124 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap">
+  <style>
+    body { margin: 0; font-family: 'Sukhumvit Set','Sarabun','Noto Sans Thai',Tahoma,system-ui,sans-serif; }
+    a { color: #18803f; } a:hover { color: #146333; }
+    input { font-family: inherit; }
+  </style>
+</helmet>
+<div style="width: 760px; background: #f4f6f5; padding: 28px; box-sizing: border-box;">
+
+  <div style="display: inline-flex; height: 26px; padding: 0 10px; border-radius: 999px; background: #14261c; color: #ffffff; font-size: 11px; font-weight: 700; align-items: center; letter-spacing: 0.4px;">ทางเลือก A</div>
+  <div style="font-size: 22px; font-weight: 700; color: #14261c; margin-top: 10px;">เลือกรูปแบบก่อน แล้วค่อยเลือกแปลง</div>
+  <div style="font-size: 14px; color: #6b7a71; margin-top: 6px; line-height: 1.6;">หนึ่งรอบปลูก = หนึ่งรูปแบบเสมอ · ทำซ้ำอีกรอบสำหรับรูปแบบถัดไป</div>
+
+  <div style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; padding: 24px; margin-top: 18px;">
+    <div style="font-size: 14px; font-weight: 600; color: #14261c;">รูปแบบการปลูกของรอบนี้</div>
+    <div style="font-size: 12px; color: #6b7a71; margin-top: 4px;">ฟาร์มนี้ได้รับรอง 3 รูปแบบ เลือกทีละรูปแบบ</div>
+    <div style="display: flex; gap: 10px; margin-top: 12px;">
+      <sc-for list="{{methods}}" as="m" hint-placeholder-count="3">
+        <div onClick="{{m.pick}}" style="flex-grow: 1; height: 68px; border-radius: 12px; border: 1.5px solid {{m.bd}}; background: {{m.bg}}; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;">
+          <div style="font-size: 15px; font-weight: 600; color: {{m.fg}};">{{m.name}}</div>
+          <div style="font-size: 11px; color: {{m.sub}};">{{m.plots}} แปลง</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; padding: 24px; margin-top: 14px;">
+    <div style="display: flex; justify-content: space-between; align-items: baseline;">
+      <div style="font-size: 14px; font-weight: 600; color: #14261c;">แปลงแบบ{{activeName}}</div>
+      <div style="font-size: 12px; color: #6b7a71;">ค่าแนะนำ {{density}} ต้น/ตร.ม.</div>
+    </div>
+    <sc-for list="{{plots}}" as="p" hint-placeholder-count="2">
+      <div style="border: 1.5px solid {{p.bd}}; background: {{p.bg}}; border-radius: 12px; padding: 14px 16px; margin-top: 10px;">
+        <div onClick="{{p.toggle}}" style="display: flex; align-items: center; gap: 12px; cursor: pointer;">
+          <div style="width: 24px; height: 24px; border-radius: 7px; border: 1.5px solid {{p.box}}; background: {{p.boxBg}}; display: flex; align-items: center; justify-content: center;">
+            <sc-if value="{{p.on}}" hint-placeholder-val="{{true}}">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round"><path d="M5 13l4 4L19 7"/></svg>
+            </sc-if>
+          </div>
+          <div style="flex-grow: 1;">
+            <div style="font-size: 15px; font-weight: 600; color: #14261c;">{{p.name}}</div>
+            <div style="font-size: 12px; color: #6b7a71; margin-top: 2px;">{{p.area}} ตร.ม.</div>
+          </div>
+        </div>
+        <sc-if value="{{p.on}}" hint-placeholder-val="{{true}}">
+          <div style="display: flex; align-items: center; gap: 12px; margin-top: 14px; padding-left: 36px;">
+            <div style="font-size: 13px; color: #4a5a51; white-space: nowrap;">จำนวนต้นเป้าหมาย</div>
+            <input type="number" inputMode="numeric" value="{{p.count}}" onInput="{{p.set}}"
+              style="width: 130px; height: 48px; padding: 0 14px; border: 1.5px solid #cdd6d0; border-radius: 12px; font-size: 17px; font-weight: 600; color: #14261c; outline: none; box-sizing: border-box;">
+            <div style="font-size: 12px; color: #9fb0a6;">ระบบแนะนำ {{p.suggest}}</div>
+          </div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="background: #ffffff; border: 1px solid #e9ecef; border-radius: 12px; padding: 20px 24px; margin-top: 14px; display: flex; justify-content: space-between; align-items: center;">
+    <div>
+      <div style="font-size: 13px; color: #6b7a71;">รอบนี้จะปลูก</div>
+      <div style="font-size: 22px; font-weight: 700; color: #14261c; margin-top: 2px;">{{total}} ต้น · {{n}} แปลง</div>
+    </div>
+    <div style="height: 56px; padding: 0 28px; border-radius: 12px; background: #18803f; color: #ffffff; font-size: 16px; font-weight: 700; display: flex; align-items: center; cursor: pointer;">เปิดรอบปลูก</div>
+  </div>
+
+  <div style="border: 1px solid #d8e8de; background: #f2faf5; border-radius: 12px; padding: 16px 18px; margin-top: 14px;">
+    <div style="font-size: 13px; color: #14261c; line-height: 1.7;"><span style="font-weight: 600;">หลังกดเปิดรอบ:</span> ระบบถามต่อว่า "ฟาร์มนี้ยังมีโรงเรือน 2 แปลง และอาคารระบบปิด 1 แปลง ที่ยังไม่มีรอบปลูก — เปิดรอบถัดไปเลยไหม" โดยจำชื่อรอบ พันธุ์ และวันเริ่มไว้ให้</div>
+  </div>
+
+  <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin-top: 18px;">
+    <div style="border: 1px solid #d8e8de; background: #f2faf5; border-radius: 12px; padding: 14px 16px;">
+      <div style="font-size: 12px; font-weight: 700; color: #18803f; letter-spacing: 0.3px;">ได้อะไร</div>
+      <div style="font-size: 13px; color: #4a5a51; margin-top: 6px; line-height: 1.65;">ข้อมูลไม่กำกวมเลย · หนึ่งรอบตอบได้ว่าปลูกแบบไหน · รายงานและ QR ตรงกับความจริงเสมอ · ผู้ตรวจอ่านแล้วเข้าใจทันที</div>
+    </div>
+    <div style="border: 1px solid #f0d9a8; background: #fdf7e8; border-radius: 12px; padding: 14px 16px;">
+      <div style="font-size: 12px; font-weight: 700; color: #7a5c17; letter-spacing: 0.3px;">แลกกับอะไร</div>
+      <div style="font-size: 13px; color: #7a5c17; margin-top: 6px; line-height: 1.65;">ฟาร์ม 3 รูปแบบต้องกดเปิดรอบ 3 ครั้ง · ถ้าไม่มีตัวช่วยจำข้อมูล จะรู้สึกว่าทำงานซ้ำ</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{}'>
+class Component extends DCLogic {
+  constructor(p) { super(p); this.state = { method: 'OUTDOOR', off: {}, counts: {} }; }
+  renderVals() {
+    const { method, off, counts } = this.state;
+    const DEN = { OUTDOOR: 2.5, GREENHOUSE: 5, INDOOR: 8 };
+    const NAME = { OUTDOOR: 'กลางแจ้ง', GREENHOUSE: 'โรงเรือน', INDOOR: 'อาคารระบบปิด' };
+    const ALL = {
+      OUTDOOR: [{ id: 'o1', name: 'แปลงเหนือ', area: 1600 }, { id: 'o2', name: 'แปลงใต้', area: 1600 }],
+      GREENHOUSE: [{ id: 'g1', name: 'โรงเรือน A', area: 400 }, { id: 'g2', name: 'โรงเรือน B', area: 400 }],
+      INDOOR: [{ id: 'i1', name: 'ห้องปลูก 1', area: 240 }],
+    };
+    const methods = Object.keys(DEN).map((k) => ({
+      name: NAME[k], plots: ALL[k].length, pick: () => this.setState({ method: k }),
+      bd: method === k ? '#18803f' : '#cdd6d0', bg: method === k ? '#eaf9f0' : '#ffffff',
+      fg: method === k ? '#18803f' : '#4a5a51', sub: method === k ? '#18803f' : '#9fb0a6',
+    }));
+    const plots = ALL[method].map((p) => {
+      const on = !off[p.id];
+      const suggest = Math.floor(p.area * DEN[method]);
+      return { ...p, on, suggest,
+        count: counts[p.id] ?? suggest,
+        toggle: () => this.setState({ off: { ...off, [p.id]: on } }),
+        set: (e) => this.setState({ counts: { ...counts, [p.id]: e.target.value } }),
+        bd: on ? '#18803f' : '#e9ecef', bg: on ? '#f7fdf9' : '#ffffff',
+        box: on ? '#18803f' : '#cdd6d0', boxBg: on ? '#18803f' : '#ffffff' };
+    });
+    const live = plots.filter((p) => p.on);
+    return { methods, plots, activeName: NAME[method], density: DEN[method],
+      n: live.length, total: live.reduce((s, p) => s + Number(p.count || 0), 0).toLocaleString('th-TH') };
+  }
+}
+</script>
+</body>
+</html>

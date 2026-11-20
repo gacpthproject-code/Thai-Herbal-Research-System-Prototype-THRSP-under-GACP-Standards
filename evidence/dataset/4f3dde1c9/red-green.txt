@@ -1,0 +1,53 @@
+# ผลก่อนแก้และหลังแก้ · รอบสุดท้ายของ feat/research-dataset (คำสั่ง 56(4.2) และ 56(4.3))
+# ตัดเหลือข้อความ assertion และจำนวน ไม่มีข้อมูลจริงและไม่มีค่ากุญแจ
+
+## คำสั่ง 56(4.2) คลังข้อมูลวิจัยลบรายการถอนภายใน 90 วัน
+RED  5001cf115 (เทสต์อย่างเดียว บน merge f6a257401)
+  unit __tests__/unit/dataset-export-service.test.js -t "90 days"
+  ✕ every bundle states the duty in its manifest and its dictionary in the same words ...
+    expected { fact: "คลังข้อมูลวิจัยของโครงการต้องลบ", stated: true } received { stated: false } (manifest.deletionDuty undefined)
+  Tests: 1 failed
+GREEN 70a546877
+  unit dataset-export-service.test.js: 79 passed
+  README และคู่มือที่ commit มีประโยคเดียวกับ WITHDRAWN_DELETION_DUTY ทุกตัวอักษร: true / true
+  ตัวตรวจ K13 ที่ 5c8ff5829 และ 4f3dde1c9: PASS (README คู่มือที่ commit คู่มือในชุดเต็ม และ manifest ทุกชุดตรงกัน)
+
+## คำสั่ง 56(4.3) ข้อมูลฟาร์มไม่ออกจนกว่ามีหนังสืออนุมัติจากคณะกรรมการจริยธรรมการวิจัย
+RED  5c8ff5829 (เทสต์และตัวตรวจ บน 70a546877)
+  unit __tests__/unit/dataset-research-basis.test.js: 11 failed, 2 passed, 13 total
+    ✕ x6 ไม่มีหนังสือ / ไม่มีชื่อคณะกรรมการ / ไม่มีเลขที่ / ไม่มีวันที่ / วันที่ 2025-02-30 / วันที่หลังวันมีผล:
+         researchBasisAt(FARM_OPERATION).inForce Expected false Received true
+    ✕ ชุดเต็ม: manifest.notExported ต้องมีสามโดเมนข้อมูลฟาร์ม ได้ []
+    ✕ รายการลบของข้อมูลฟาร์มใต้มติที่ไม่มีหนังสือ: อ่านแถว (findMany ถูกเรียก) ต้องไม่อ่าน
+    ✕ manifest และคู่มือต้องระบุหนังสือ: researchBasis.FARM_OPERATION ไม่มี ethicsApproval
+    ✕ มติไม่มีหนังสือก่อนมติที่มีหนังสือ: รายการลบได้ 2 รหัส ต้องได้ 1
+    ✕ มติไม่มีหนังสือที่มาทีหลัง: ส่งออก cultivation-logs ได้ ต้องได้ 403
+    ✓ x2 มีหนังสือครบ (อนุมัติก่อนวันมีผล / วันเดียวกับวันมีผล): ส่งออกได้ ทั้งก่อนและหลังแก้ (กันการปฏิเสธเกิน)
+  real Postgres __tests__/integration/research-dataset-export-real-postgres.test.js (Postgres ชั่วคราว migrate จาก tree นี้)
+    ✕ มติที่ถึงวันมีผลแต่ไม่มีหนังสืออนุมัติ... (คำสั่ง 56(4.3))
+      cultivation-logs: expected { status: 403, code: DATASET_RESEARCH_BASIS_NOT_IN_FORCE } received { status: 200, code: undefined }
+    Tests: 1 failed, 37 passed (research-data-privacy และ research-data-veto ผ่านเมื่อมติในเทสต์มีหนังสืออนุมัติ)
+  web src/app/provider/datasets/__tests__/export-buttons-only-for-exporters.test.tsx
+    ✕ เหตุผลที่โดเมนข้อมูลฟาร์มปิด: Expected substring "คณะกรรมการจริยธรรมการวิจัย" (ไม่มีในข้อความเดิม)
+    Tests: 1 failed, 3 passed
+  ตัวตรวจ check-dataset.js บน backend จริงที่โหลดมติและ DATASET_SAMPLE_RULING=without-ethics-approval (ผ่าน heavy.sh)
+    FAIL K9
+     - มติไม่มีหนังสืออนุมัติจริยธรรม cultivation-logs: ได้ 200  ต้องได้ 403 DATASET_RESEARCH_BASIS_NOT_IN_FORCE
+     - มติไม่มีหนังสืออนุมัติจริยธรรม harvest-batches: ได้ 200  ต้องได้ 403 DATASET_RESEARCH_BASIS_NOT_IN_FORCE
+     - มติไม่มีหนังสืออนุมัติจริยธรรม trace-scans: ได้ 200  ต้องได้ 403 DATASET_RESEARCH_BASIS_NOT_IN_FORCE
+     - มติไม่มีหนังสืออนุมัติจริยธรรม แคตตาล็อก: โดเมนข้อมูลฟาร์มปิด: ได้ 0  ต้องได้ 3
+     - มติไม่มีหนังสืออนุมัติจริยธรรม ชุดเต็ม: โดเมนข้อมูลฟาร์มใน notExported: ได้ 0  ต้องได้ 3
+     - มติไม่มีหนังสืออนุมัติจริยธรรม ชุดเต็ม: ไฟล์ข้อมูลฟาร์มใน ZIP: ได้ 6  ต้องได้ 0
+    FAIL K11 (ชุดตัวอย่างที่ commit ไว้ยังไม่มี deletionDuty สร้างใหม่ในรอบหลักฐาน)
+    PASS K1-K8 K10 K12 K13
+GREEN 4f3dde1c9
+  unit dataset-research-basis.test.js: 13/13
+  เทสต์ชุดข้อมูลวิจัย แบบสำรวจ และรหัสข้อผิดพลาด 12 ชุด 241 เทสต์ผ่าน
+    unit: dataset-export-service, dataset-research-basis, dataset-routes, survey-service, survey-routes,
+          error-codes-source-pointers, error-codes-catalog, performed-by-never-reaches-a-public-scan
+    real Postgres: research-dataset-export, research-data-privacy, research-data-veto, survey-one-response
+  web หน้า datasets: 7/7
+  extract-error-codes.js --validate: 443 codes reconciled
+  selftest.txt ในโฟลเดอร์นี้: K1-K13 ผ่าน negative controls 62/62 ถูกจับ
+    (ใหม่ 7 ข้อ: มติไม่มีหนังสือแล้วข้อมูลฟาร์มออก แคตตาล็อกเปิด ชุดเต็มไม่บอก notExported ชุดเต็มมีไฟล์ข้อมูลฟาร์ม
+     backend ไม่ได้โหลดมติ · manifest ไม่บอกหน้าที่ลบ 90 วัน README ไม่มีประโยคเดียวกับ manifest)

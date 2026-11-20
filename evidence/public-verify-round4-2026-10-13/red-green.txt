@@ -1,0 +1,81 @@
+RED then GREEN per item (round 4). Scratch Postgres (own container, URL from a 0600 file, asserted before
+every run), private SIGNING_KEY_DIR, PAYMENT_ADAPTER=mock for integration runs.
+
+== F-N1  fac3f8173 (test) -> c81a47183 (fix)   __tests__/integration/public-verify-scope-real-postgres.test.js
+  The test now asks seven doors: the lot door, the batch door, and the generic door /api/trace/<code> with a
+  lot QR, a batch id, a planting-cycle id, a plot code whose plot has an open cycle, and a plot code with
+  none. It first pins status and type per door, so each request is proved to reach the branch it names.
+  RED      ✕ the lot door, the batch door and every branch of the generic door name the department only in the future-tense issuer sentence
+  RED      - Expected  - 1
+  RED      + Received  + 3
+  RED      - Array []
+  RED      + Array [
+  RED      +   "generic door, planting-cycle id: certified\":true,\"verifiedBy\":\"DTAM\",\"scannedAt\":\"2026-10-13T10:2",
+  RED      + ]
+  RED  Tests:       1 failed, 18 passed, 19 total   (the status/type matrix passed: all seven branches reached)
+  GREEN  19 passed, 19 total
+
+== F-N1 follow-up  1aed34f63 (test)   same suite
+  \bDTAM\b instead of DTAM: a random plot code group (alphabet includes D T A M) could hold the letters DTAM.
+  Pattern probe:
+    null <- {"plotCode":"PLOT-DTAMX-23456"}
+    null <- {"qrCode":"PLOT-XDTAM-23456"}
+    "certified\":true,\"verifiedBy\":\"DTAM\",\"scannedAt\":1}" <- {"certified":true,"verifiedBy":"DTAM","scannedAt":1}
+  RED by putting verifiedBy: 'DTAM' back in resolve-generic.js temporarily (file restored from git afterwards):
+  RED      +   "generic door, planting-cycle id: certified\":true,\"verifiedBy\":\"DTAM\",\"scannedAt\":\"2026-10-13T10:3",
+  RED  Tests:       1 failed, 18 skipped, 19 total   (run filtered to this test with -t)
+  GREEN  19 passed, 19 total
+
+== Info-B  52a8c0058 (test only, no production change)   apps/web-app/src/__tests__/camera-only-on-verify-paths.test.ts
+  Two temporary pages, deleted before the commit:
+    src/app/kiosk-scan/page.tsx   calls navigator.mediaDevices.getUserMedia itself
+    src/app/scan-here/page.tsx    constructs BarcodeDetector itself
+  GAP      the test before this commit, with both pages present: Tests: 8 passed, 8 total
+  RED      ✕ only lib/verify/qr-camera.ts uses getUserMedia
+  RED      + Received  + 1
+  RED      +   "app/kiosk-scan/page.tsx",
+  RED      ✕ only lib/verify/qr-camera.ts uses BarcodeDetector
+  RED      + Received  + 1
+  RED      +   "app/scan-here/page.tsx",
+  RED  Tests:       2 failed, 8 passed, 10 total
+  RED      kiosk-scan rewritten to call webkitGetUserMedia (run filtered with -t): ✕ only lib/verify/qr-camera.ts uses getUserMedia, Tests: 1 failed, 9 skipped, 10 total
+  RED      +   "app/kiosk-scan/page.tsx",
+  GREEN  pages deleted: 10 passed, 10 total
+
+== Info-A  229918a06 (test) -> 25e133353 (fix)   __tests__/integration/backfill-certificate-scopes-real-postgres.test.js
+  The command-line test no longer sets LOG_LEVEL=warn; it deletes LOG_LEVEL from the child's environment.
+  RED      ✕ the command line prints counts only at the default log level and lists the skipped certificates in a 0600 file
+  RED      + Received  + 5
+  RED      +   "info: PRISMA INIT - Docker Production Mode {\"service\":\"prisma-database\",...}",
+  RED      +   "info:    URL: {\"service\":\"prisma-database\",...}",
+  RED      +   "info:    Pool: 20 connections, 15s timeout {\"service\":\"prisma-database\",...}",
+  RED  Tests:       1 failed, 3 passed, 4 total
+  GREEN  4 passed, 4 total
+  The command as the operator runs it, no LOG_LEVEL, scratch database:
+    stdout:
+      mode: dry run (nothing written; pass --apply to write)
+      certificates without a scope row: 0
+      scope rows to write: 0 {}
+      scope rows written: 0
+      type from the column only, skipped: 0
+      no cultivation type at all, skipped: 0
+    stderr: only the runner's own database assertion line
+  Required from another module (not run as a command): the start-up info line still prints and
+  "LOG_LEVEL not raised by the script", so the backend logger is unchanged for tests that require it.
+  The staging backend container sets no LOG_LEVEL (key count 0, value never read), so the default applies there.
+  Ordering check at 26d7bcb25: the LOG_LEVEL line moved below the require of the module that loads the
+  shared database client (temporary edit, file restored from git):
+  RED      ✕ the command line prints counts only at the default log level and lists the skipped certificates in a 0600 file
+  RED      +   "info: PRISMA INIT - Docker Production Mode {...}", "info:    URL: {...}", "info:    Pool: 20 connections, 15s timeout {...}"
+  RED  Tests:       1 failed, 3 skipped, 4 total   (run filtered with -t)
+  So the command-line test pins the order the comment used to explain (removed in 26d7bcb25).
+  Note: the RED without the line needs no .env to set LOG_LEVEL to warn or higher. @prisma/client loads
+  the backend .env at require time without overriding it. Measured red on this box (above). In a fresh
+  clone with no .env, LOG_LEVEL stays unset and shared/logger.js:6 defaults to info (read, not run).
+
+== Comment review  26d7bcb25   (comment-sicko over a690fa8d7..1aed34f63)
+  Five added comments removed (8 lines, comment lines only; checked with git diff -U0). Two reshape flags:
+  - backfill script: move deriveDimensions into a module that does not load the shared database client,
+    then drop the LOG_LEVEL line. Not done here: it moves the derivation that issuance, the planting gate
+    and the requirement engine share, outside this round's scope. Left open.
+  - \bDTAM\b: kept as written; a whole-word match is what the test means.

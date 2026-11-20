@@ -1,0 +1,66 @@
+=== M2a Task 4 — GREEN: engine + five doors + the HAS_DB suite (skipped: no DATABASE_URL here)
+$ npx jest --config jest.config.cjs --testPathPattern 'm2a-doc-requirements|m2a-doc-requirements-doors|m2a-submit-enforcement'
+date: 2026-08-15T13:03:43Z
+DATABASE_URL set: no
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/m2a-doc-requirements-doors.test.js
+  M2a — POST /submit, DRAFT branch = first submit
+    √ JURISTIC with no company registration on file → 422, and NOTHING is written (67 ms)
+    √ a client flag cannot buy the way in — documents[].uploaded stays worthless at the door (AC2) (13 ms)
+    √ with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers (13 ms)
+    √ the idempotent early return stays idempotent — an already-submitted application is never re-judged (10 ms)
+  M2a — POST /submit, REVISION_REQUESTED / CAR_PENDING branch = resubmit
+    √ judges by the stamp, not by todays law — a rule filed later cannot 422 it (AC3) (18 ms)
+    √ the stamped set is still enforced on resubmit → 422 before any write (11 ms)
+    √ an application filed before M2a carries no stamp — it is let through, not refused (11 ms)
+  M2a — POST /bundles/:id/submit
+    √ one linked case short of a document refuses the WHOLE bundle → 422, no transaction opened (15 ms)
+    √ every linked case is stamped inside the existing transaction, applicant data intact (13 ms)
+    √ the linked-case projection loads formData — without it the door would stamp over an empty blob (11 ms)
+  M2a — POST /applications/:id/car (resubmit)
+    √ a stamped slot the server cannot see → 422, no status write (24 ms)
+    √ stamped and satisfied → the CAR resubmit proceeds, judged by the stamp alone (10 ms)
+  M2a — PUT /revision-deadline/:id/submit
+    √ an applicant missing a stamped document → 422, the deadline row is untouched (15 ms)
+    √ the projection now carries formData and status — the check has nothing to read without them (11 ms)
+    √ the provider bypass skips the document check entirely, exactly as it skips the entity check (10 ms)
+    √ applicant with the stamped document on file → 200 (10 ms)
+  M2a — PUT /applications/:id/revision
+    √ a stamped slot the server cannot see → 422, submitRevision never runs (15 ms)
+    √ satisfied → the revision goes through, judged by the stamp (11 ms)
+  M2a — the applicant cannot write the stamp through /prepare
+    √ both M2 snapshot keys are declared server-owned (1 ms)
+    √ a full-replacement merge keeps the stored stamp, whatever the client sends (2 ms)
+    √ POST /prepare strips a forged stamp at the edge — the stored one survives (23 ms)
+
+PASS __tests__/unit/m2a-doc-requirements.test.js
+  first-submit — the law as of today, per holder type (AC1)
+    √ JURISTIC with no server-side COMPANY_REG → 422 APPLICATION_INCOMPLETE naming the slot (3 ms)
+    √ COMMUNITY_ENTERPRISE is asked for its own document, not the company one (2 ms)
+    √ INDIVIDUAL is asked for nothing extra — no rule of theirs is in force (1 ms)
+    √ a rule with every dimension NULL binds even the INDIVIDUAL filing (1 ms)
+    √ a rule that is not yet in force does not fire, a closed one stops firing (1 ms)
+    √ isRequired:false is a rule on the books that demands nothing (1 ms)
+    √ a renewal is judged by the RENEWAL law, never by a word this codebase does not speak (3 ms)
+  evidence is what the SERVER holds (AC2)
+    √ a draftDocuments entry recorded under an old alias satisfies the rule (1 ms)
+    √ an ApplicationDocument row satisfies it through documentType — the row id is NOT a slot (3 ms)
+    √ a client flag alone is worth nothing — documents[].uploaded = true still 422s (2 ms)
+    √ reads the rows of THIS application only (1 ms)
+  resubmit is judged by the stamp, not by todays law (AC3)
+    √ a rule filed after the first submit cannot 422 the resubmit (2 ms)
+    √ the stamped set is still enforced — a stamped slot gone missing is a 422 (1 ms)
+    √ a stamped slot written in an old spelling is compared canonically (2 ms)
+    √ an application filed before M2a has no stamp — it is grandfathered, and the warn says so (1 ms)
+    √ the mode is the DOORs word — the service never guesses it from a status (255 ms)
+  buildRequirementSnapshot — what gets written on the application
+    √ records the rules consulted and the slots they demanded, canonically (4 ms)
+    √ an empty law still produces a stamp — "nothing was demanded" is an answer worth keeping (4 ms)
+    √ is pure — the same rules stamp the same slots twice (4 ms)
+
+Test Suites: 1 skipped, 2 passed, 2 of 3 total
+Tests:       5 skipped, 40 passed, 45 total
+Snapshots:   0 total
+Time:        4.339 s, estimated 6 s
+Ran all test suites matching /m2a-doc-requirements|m2a-submit-enforcement/i.

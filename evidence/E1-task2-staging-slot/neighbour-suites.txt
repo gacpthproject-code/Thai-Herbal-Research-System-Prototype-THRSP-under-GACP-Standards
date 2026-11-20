@@ -1,0 +1,92 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+    [0m [90m 61 |[39m       [36mawait[39m client[33m.[39m$disconnect()[33m;[39m
+     [90m 62 |[39m     } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 63 |[39m       console[33m.[39mwarn([32m`[jest-setup] Prisma cleanup: ${e.message}`[39m)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 64 |[39m     }
+     [90m 65 |[39m   })[33m;[39m
+     [90m 66 |[39m }[0m
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/auth-idp-routes.test.js
+  POST /api/auth/idp/:provider/authorize-url
+    √ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (49 ms)
+    √ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (24 ms)
+    √ mock บน NODE_ENV=production → 503 (mandate §D5 — mock ไม่มีทาง enabled บน prod) (13 ms)
+    √ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (12 ms)
+    √ mock enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (14 ms)
+    √ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (22 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    √ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (41 ms)
+    √ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (35 ms)
+    √ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (33 ms)
+    √ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (22 ms)
+    √ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (23 ms)
+    √ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (32 ms)
+  POST /api/auth/idp/mock/callback — ปลายทาง mock (non-prod)
+    √ mock บน NODE_ENV=production → 503 ปิดทั้ง endpoint (11 ms)
+    √ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR (20 ms)
+    √ happy → 200: lookup ทะเบียนด้วย hash_cid, mint ผ่าน issueTokensForAuthenticatedUser, provider_token httpOnly cookie (21 ms)
+    √ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (20 ms)
+    √ staff-not-in-registry → 403 ข้อความไทยตาม mandate §D4 + ไม่มี user.create/lookup/mint (20 ms)
+    √ fixture in-registry แต่ทะเบียนจริงไม่มี row → 403 เดียวกัน (match-only, no auto-provision) (25 ms)
+    √ เจ้าหน้าที่ status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (21 ms)
+    √ ผู้ใช้กด deny (fixture deny) → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (19 ms)
+    √ code หมดอายุ (fixture expired — เลียน 422 ของ IdP) → 401 AUTH_IDP_CODE_EXPIRED (19 ms)
+    √ profile ขาด field (fixture ไม่มี hash_cid) → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (20 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    √ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (53 ms)
+    √ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (22 ms)
+  POST /api/auth/idp/thaid/callback — state anti-CSRF ยังบังคับกับ provider ThaID
+    √ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session (44 ms)
+    √ ไม่มี state ใน body → 400 AUTH_STATE_INVALID (single-use/anti-CSRF ครอบ thaid ด้วย) (19 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    √ mock happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(account_id) ไม่มีค่าดิบใน metadata (22 ms)
+    √ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (20 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    √ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (18 ms)
+    √ routes/api/index.js mount /auth/idp (2 ms)
+    √ server.js ครอบ /auth/idp ด้วย authLimiter ตัวเดียวกับ login (ทั้งสอง prefix) (2 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+    [0m [90m 61 |[39m       [36mawait[39m client[33m.[39m$disconnect()[33m;[39m
+     [90m 62 |[39m     } [36mcatch[39m (e) {
+    [31m[1m>[22m[39m[90m 63 |[39m       console[33m.[39mwarn([32m`[jest-setup] Prisma cleanup: ${e.message}`[39m)[33m;[39m
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 64 |[39m     }
+     [90m 65 |[39m   })[33m;[39m
+     [90m 66 |[39m }[0m
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/oauth-clientid-hardcode-guard.test.js
+  OAuth client_id must come from env, never hardcoded (Law 3.3 + 3.5)
+    √ no backend source assigns a UUID/long-hex/base64 client_id literal (85 ms)
+    √ the ThaID sandbox shared client_id prefix (019c324c) never appears in source (85 ms)
+  sanity floor — the scanner and classifier are not silently broken
+    √ the assignment scanner still matches real code (guard is not vacuous) (78 ms)
+    √ classifier flags credential-shaped ids and passes the readable mock value (1 ms)
+    √ end-to-end: a synthetic hardcoded client_id is detected (1 ms)
+  QA #806 — the closed evasions stay closed
+    √ a BACKTICK-quoted client_id is extracted and flagged, not just single quotes (1 ms)
+    √ a double-quoted client_id is extracted too (all three quote styles)
+    √ a long contiguous hex id is credential-shaped, a readable value is not
+    √ the scan walks the WHOLE backend tree, not a directory allow-list (26 ms)
+    √ the scan still excludes node_modules and test files (31 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       41 passed, 41 total
+Snapshots:   0 total
+Time:        4.061 s
+Ran all test suites matching /__tests__\\unit\\oauth-clientid-hardcode-guard.test.js|__tests__\\unit\\auth-idp-routes.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

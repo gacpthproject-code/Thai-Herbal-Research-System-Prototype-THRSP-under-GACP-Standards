@@ -1,0 +1,235 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+PASS __tests__/unit/quotation-api-renders-the-row.test.js
+  buildQuotationLineItemsFromRow — the stored row, never a recompute
+    √ line items come from the stored installments, at the row scopeCount (7 ms)
+    √ a row written under the retired VAT base renders THAT row, not the current formula (2 ms)
+    √ a 3-scope row splits the stored totals across the three methods, summing back exactly (2 ms)
+    √ an accepted row renders its FROZEN snapshot, even if the installments were later touched (2 ms)
+    √ each pre-W14 card shows ITS OWN money, and its lines sum to its own total (2 ms)
+    √ the VAT column follows the issuer: the state fee is VAT-exempt, the platform fee is not (2 ms)
+    √ a pre-GAP-5 row falls back to its `amount`, never to a row of zeros (1 ms)
+    √ a frozen snapshot of a pre-W14 side renders the frozen `amount`, not the full-phase split (1 ms)
+  GET /api/applications/:id/quotations — the API renders the row
+    √ returns per-side line items taken from the stored installments (pre-W14 pair) (131 ms)
+    √ renders the FROZEN snapshot of an accepted row, not the row installments that followed it (13 ms)
+  POST /api/applications/:id/quotations/:issuerType/accept — freezes the row
+    √ stores the snapshot built from THAT row, with its hash (27 ms)
+    √ REFUSES a pre-GAP-5 row with the catalogued SNAPSHOT_REQUIRED copy, and writes nothing (14 ms)
+    √ answers the snapshot refusal as a 409, not a 500 (12 ms)
+    √ REFUSES a lapsed offer with the catalogued QUOTATION_EXPIRED copy, and writes nothing (22 ms)
+  GET /:issuerType/pdf — the document is the row
+    √ prints the W14 row figures for phase 1 (5,885 per scope, not the platform-only 885) (214 ms)
+    √ REFUSES phase 1 of a renewal quotation instead of printing a 0.00 numbered document (12 ms)
+  buildQuotationLineItemsFromRow — a revision cannot move the row (N1)
+    √ accepted at 3 methods, revised to 1: three lines summing to the row total (2 ms)
+    √ accepted at 1 method, revised to 3: one line summing to the row total (1 ms)
+  GET /api/applications/:id/quotations — the scope mismatch is declared (N1)
+    √ flags the row priced for three methods under an application now naming one (14 ms)
+    √ flags the row priced for one method under an application now naming three (12 ms)
+    √ no mismatch when the counts agree: per-method labels, flag false (21 ms)
+  GET /:issuerType/pdf — the document keeps the row line count (N1)
+    √ prints the ROW`s three scopes and its phase-1 figure when the application names one method (196 ms)
+    √ prints the ROW`s ONE scope and its phase-1 figure when the application names three (207 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-get-self-heals.test.js
+  √ a DRAFT application is never quoted by the self-heal (23 ms)
+  √ an application past DRAFT with no quotation is issued one, marked ISSUED_LATE (2 ms)
+  √ an application that already has a quotation is left completely alone (1 ms)
+  √ a self-heal failure returns the empty result rather than failing the read (1 ms)
+  √ a re-read that fails AFTER the row was minted still does not fail the read (12 ms)
+  √ an application whose status is unknown is not quoted (1 ms)
+  √ the ISSUED_LATE record carries the CALLER's role, not a default (1 ms)
+  only the applicant-owner can make a read mint a document
+    √ a admin read is a read, not an issuance (1 ms)
+    √ a account read is a read, not an issuance (1 ms)
+    √ a account_platform read is a read, not an issuance (2 ms)
+    √ a document_reviewer read is a read, not an issuance (1 ms)
+    √ a auditor read is a read, not an issuance (1 ms)
+    √ a caller with no role at all does not mint either (1 ms)
+  only an application inside the payable window is quoted late
+    √ SUBMITTED is inside the window, so a missing quotation is healed (2 ms)
+    √ PENDING_DOC_FEE is inside the window, so a missing quotation is healed (1 ms)
+    √ REJECTED is outside the window, so the read stays a read (1 ms)
+    √ EXPIRED is outside the window, so the read stays a read (1 ms)
+    √ CANCEL_EXPIRED is outside the window, so the read stays a read (1 ms)
+    √ CERTIFIED is outside the window, so the read stays a read (1 ms)
+    √ REVOKED is outside the window, so the read stays a read (1 ms)
+    √ DOC_FEE_PAID is outside the window, so the read stays a read (1 ms)
+    √ AUDIT_FEE_PAID is outside the window, so the read stays a read (1 ms)
+    √ AUDIT_PASSED is outside the window, so the read stays a read (1 ms)
+    √ REVISION_REQUESTED is outside the window, so the read stays a read (1 ms)
+    √ DOC_APPROVED is outside the window, so the read stays a read (1 ms)
+    √ PENDING_AUDIT_FEE is outside the window, so the read stays a read (1 ms)
+    √ the window is the card rail's own M1 list, not a second list (1 ms)
+    √ no state in which งวดที่ 1 has been collected can mint a document (1 ms)
+  a lapsed, still-unaccepted quotation is replaced by the read
+    √ the lapsed row is retired, a replacement is issued, and the trail names both (1 ms)
+    √ exactly once: the next read sees the replacement and leaves it alone (1 ms)
+    √ an ACCEPTED row past its validity is an agreement, not a lapsed offer (1 ms)
+    √ a PROVIDER read never replaces a document either (1 ms)
+    √ a lapsed row on an application outside the window is left as it is (1 ms)
+    √ a lapsed pre-W14 PAIR is not silently repriced into one document (1 ms)
+    √ a failed replacement never fails the read (1 ms)
+    an M2-payable application: only a งวดที่ 2 only offer may be replaced
+      × DOC_APPROVED: a lapsed offer pricing งวดที่ 2 only is replaced by an identical one (2 ms)
+      × PENDING_AUDIT_FEE: a lapsed offer pricing งวดที่ 2 only is replaced by an identical one (2 ms)
+      √ DOC_APPROVED: a lapsed offer pricing BOTH งวด is left alone, its replacement would re-bill งวดที่ 1 (1 ms)
+      √ PENDING_AUDIT_FEE: a lapsed offer pricing BOTH งวด is left alone, its replacement would re-bill งวดที่ 1 (2 ms)
+      √ a งวดที่ 2 only offer whose instalment is already invoiced is not replaced (1 ms)
+      √ a row that records no instalments at all is not replaced here (1 ms)
+      √ the widening is M2 only: a CERTIFIED application is still left alone (1 ms)
+      √ a provider read still never replaces an M2 renewal offer (1 ms)
+
+  ● a lapsed, still-unaccepted quotation is replaced by the read › an M2-payable application: only a งวดที่ 2 only offer may be replaced › DOC_APPROVED: a lapsed offer pricing งวดที่ 2 only is replaced by an identical one
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+    [0m [90m 439 |[39m                 })[33m;[39m
+     [90m 440 |[39m
+    [31m[1m>[22m[39m[90m 441 |[39m                 expect(mockReissue)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 442 |[39m                 expect(out[33m.[39mplatform[33m.[39mid)[33m.[39mtoBe([32m'qt-new'[39m)[33m;[39m
+     [90m 443 |[39m                 [90m// A replacement, never a mint: the mint is what would re-bill.[39m
+     [90m 444 |[39m                 expect(mockIssue)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at toHaveBeenCalledTimes (__tests__/unit/quotation-get-self-heals.test.js:441:37)
+
+  ● a lapsed, still-unaccepted quotation is replaced by the read › an M2-payable application: only a งวดที่ 2 only offer may be replaced › PENDING_AUDIT_FEE: a lapsed offer pricing งวดที่ 2 only is replaced by an identical one
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 1
+    Received number of calls: 0
+
+    [0m [90m 439 |[39m                 })[33m;[39m
+     [90m 440 |[39m
+    [31m[1m>[22m[39m[90m 441 |[39m                 expect(mockReissue)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 442 |[39m                 expect(out[33m.[39mplatform[33m.[39mid)[33m.[39mtoBe([32m'qt-new'[39m)[33m;[39m
+     [90m 443 |[39m                 [90m// A replacement, never a mint: the mint is what would re-bill.[39m
+     [90m 444 |[39m                 expect(mockIssue)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at toHaveBeenCalledTimes (__tests__/unit/quotation-get-self-heals.test.js:441:37)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+    [0m [90m 94 |[39m     [90m// lose. Both earlier versions of this block failed exactly here, and each failure[39m
+     [90m 95 |[39m     [90m// cost another real journal entry.[39m
+    [31m[1m>[22m[39m[90m 96 |[39m     console[33m.[39mwarn(
+     [90m    |[39m             [31m[1m^[22m[39m
+     [90m 97 |[39m       current
+     [90m 98 |[39m         [33m?[39m [32m`[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n`[39m [33m+[39m
+     [90m 99 |[39m             [32m'[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n'[39m [33m+[39m[0m
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/quotation-gate-error-codes.test.js
+  quotation gate error codes
+    √ QUOTATION_NOT_ISSUED is catalogued with status 409 (1 ms)
+    √ QUOTATION_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    √ QUOTATION_EXPIRED is catalogued with status 409 (1 ms)
+    √ QUOTATION_GATE_UNAVAILABLE is catalogued with status 503 (1 ms)
+    √ CHECKOUT_PRICE_DRIFT is catalogued with status 409 (1 ms)
+    √ PAYMENT_TERMS_NOT_ACCEPTED is catalogued with status 409 (1 ms)
+    √ QUOTATION_ISSUE_FAILED is catalogued with status 500 (1 ms)
+    √ QUOTATION_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    √ CHECKOUT_PHASE_NOT_PRICED is catalogued with status 409 (1 ms)
+    √ SNAPSHOT_REQUIRED is catalogued with status 409 (1 ms)
+    √ the four gate codes point at the shared gate module, not at one rail (1 ms)
+    √ every gate code`s source line is the line that actually raises it (1 ms)
+    √ the two shared refusals name the line that actually raises them (2 ms)
+    √ the two not-priced refusals are separate rows pointing at their own door (2 ms)
+    √ neither not-priced copy sends the applicant to a staff door that does not exist (1 ms)
+    √ no applicant-facing row on this path promises a staff re-issue (1 ms)
+    × the not-issued copy stops promising a refresh the window cannot honour (4 ms)
+    × only the row whose replacement the system performs promises a new document (1 ms)
+    √ the snapshot refusal names the cause and an action staff can actually take (1 ms)
+    √ the expiry copy names the replacement the system issues by itself (1 ms)
+    √ the price-drift remediation names the step that unblocks the applicant (1 ms)
+    √ the payment-terms remediation no longer names the request body ruling 2 deleted (1 ms)
+    √ the two rail-specific messages no longer name only the slip (1 ms)
+    √ no Thai message uses an em dash (thai-ui-copy rule) (1 ms)
+    √ only the rows that actually alert staff say staff were alerted (1 ms)
+    √ the close-failure copy still tells the applicant their money and receipt stand
+
+  ● quotation gate error codes › the not-issued copy stops promising a refresh the window cannot honour
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "ระบบยังไม่ออกใบเสนอราคาของคำขอนี้ จึงยังชำระเงินไม่ได้ กรุณาติดต่อเจ้าหน้าที่พร้อมแจ้งเลขที่คำขอ"
+    Received: "ระบบยังไม่ออกใบเสนอราคาของคำขอนี้ กดรีเฟรชอีกครั้ง หากยังไม่ปรากฏให้ติดต่อเจ้าหน้าที่"
+
+    [0m [90m 162 |[39m     it([32m'the not-issued copy stops promising a refresh the window cannot honour'[39m[33m,[39m () [33m=>[39m {
+     [90m 163 |[39m         [36mconst[39m row [33m=[39m [33mERROR_CODES[39m[33m.[39m[33mQUOTATION_NOT_ISSUED[39m[33m;[39m
+    [31m[1m>[22m[39m[90m 164 |[39m         expect(row[33m.[39mmessageTh)[33m.[39mtoBe(
+     [90m     |[39m                               [31m[1m^[22m[39m
+     [90m 165 |[39m             [32m'ระบบยังไม่ออกใบเสนอราคาของคำขอนี้ จึงยังชำระเงินไม่ได้ '[39m
+     [90m 166 |[39m             [33m+[39m [32m'กรุณาติดต่อเจ้าหน้าที่พร้อมแจ้งเลขที่คำขอ'[39m[33m,[39m
+     [90m 167 |[39m         )[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-gate-error-codes.test.js:164:31)
+
+  ● quotation gate error codes › only the row whose replacement the system performs promises a new document
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "QUOTATION_NOT_ISSUED: false"
+    Received: "QUOTATION_NOT_ISSUED: true"
+
+    [0m [90m 186 |[39m         [36mfor[39m ([36mconst[39m code [36mof[39m [33mObject[39m[33m.[39mkeys([33mEXPECTED_STATUS[39m)) {
+     [90m 187 |[39m             expect([32m`${code}: ${PROMISES_A_NEW_DOCUMENT.test(ERROR_CODES[code].messageTh)}`[39m)
+    [31m[1m>[22m[39m[90m 188 |[39m                 [33m.[39mtoBe([32m`${code}: ${ROWS_THE_SYSTEM_REALLY_REPLACES_FOR.includes(code)}`[39m)[33m;[39m
+     [90m     |[39m                  [31m[1m^[22m[39m
+     [90m 189 |[39m         }
+     [90m 190 |[39m     })[33m;[39m
+     [90m 191 |[39m[0m
+
+      at Object.toBe (__tests__/unit/quotation-gate-error-codes.test.js:188:18)
+
+Test Suites: 2 failed, 1 passed, 3 total
+Tests:       4 failed, 88 passed, 92 total
+Snapshots:   0 total
+Time:        4.51 s
+Ran all test suites matching /__tests__\\unit\\quotation-get-self-heals.test.js|__tests__\\unit\\quotation-gate-error-codes.test.js|__tests__\\unit\\quotation-api-renders-the-row.test.js/i.

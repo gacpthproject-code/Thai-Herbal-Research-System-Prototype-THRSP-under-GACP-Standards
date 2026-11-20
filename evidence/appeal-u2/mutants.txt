@@ -1,0 +1,81 @@
+## mutants: each applied alone in a detached worktree of the branch, the tests that should catch it run against the scratch database, then reverted
+## a mutant is caught when its run exits 1 with failed tests; the task-row pair deletes the migration's row with its rollback statement, then re-applies it
+## the first M6 line is not a catch: that run failed on the L-1 fixture (foreign key), before the test reached its assertion; the rerun lines below it are the measurement
+row deleted :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+row restored :: exit 0 :: Tests:       32 skipped, 1 passed, 33 total
+mutant refused-notice-returns :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+mutant internal-note-in-letter :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+mutant letter-to-applicant-only :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+mutant no-deadline-row :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+mutant appeal-days-printed :: exit 1 :: Tests:       1 failed, 20 skipped, 21 total
+mutant M6-no-state-compare :: exit 1 :: Tests:       1 failed, 1 total
+mutant M14-narrow-gate :: exit 1 :: Tests:       9 failed, 6 passed, 15 total
+mutant letter-after-commit :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+mutant approver-other-org :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+mutant viewer-is-party :: exit 1 :: Tests:       1 failed, 32 skipped, 33 total
+L-1 test at 68e26cd13 :: exit 0 :: Tests:       1 passed, 1 total
+mutant M6-no-state-compare (rerun on 68e26cd13) :: exit 1 :: Tests:       1 failed, 1 total
+
+## the failing assertion of each run (first lines, cut at 110 characters)
+### mutant-appeal-days-printed
+    ✕ no status label, no appeal instructions, no official named, no platform email (orders 78(4) and 83(3)) (
+    - Expected  - 1
+    + Received  + 1
+    -   false,
+    +   true,
+### mutant-approver-other-org
+      ✕ ผู้อนุมัติขององค์กรอื่นไม่ได้แจ้งว่ามีแฟ้มรอ และสมาชิกที่ดูได้อย่างเดียวไม่ได้แจ้งผลไม่ผ่าน (12 ms)
+    - Expected  -  1
+    + Received  + 22
+    +   Object {
+    +     "category": null,
+    +     "isRead": false,
+### mutant-internal-note-in-letter
+        ✕ หนังสือไม่มีบันทึกภายใน ป้ายสถานะ วิธีอุทธรณ์ ชื่อหรือตำแหน่งของผู้ทำคำสั่ง และอีเมลของแพลตฟอร์ม (คำ
+    Expected substring: not "บันทึกภายในห้ามหลุด"
+    Received string:        "{\"id\":\"797244c5-718c-44f1-a1c7-0f050fe8edb8\",\"uuid\":\"9375ff0c-b8ff-4df0-bd
+### mutant-letter-after-commit
+    ✕ หนังสือแจ้งคำสั่งเขียนไม่ได้ = ไม่มีการตัดสิน: 500 สถานะ รุ่น และบันทึกการตัดสินไม่เปลี่ยน ไม่มีหนังสือฉ
+    Expected: 500
+    Received: 200
+### mutant-letter-to-applicant-only
+        ✕ หนังสือแจ้งคำสั่งถึงผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นคนละฉบับ ไม่ถึงสมาชิกที่ดูได้อย่างเดียว ทุก
+    - Expected  - 1
+    + Received  + 0
+    -   "38c6962e-aa6e-427b-bc93-dc8ad5ee6dff",
+### mutant-M14-narrow-gate
+  ✕ AUDIT_PASSED -> CAR_REVIEWING by an approver who inspected the file = EVALUATOR_CANNOT_DECIDE (7 ms)
+  ✕ AUDIT_NOT_PASSED -> REJECTED by an approver who inspected the file = EVALUATOR_CANNOT_DECIDE (2 ms)
+  ✕ AUDIT_NOT_PASSED -> CAR_PENDING by an approver who inspected the file = EVALUATOR_CANNOT_DECIDE (2 ms)
+  ✕ AUDIT_PASSED -> CAR_REVIEWING by an approver who reviewed its documents = DOCUMENT_REVIEWER_CANNOT_DECIDE 
+  ✕ AUDIT_NOT_PASSED -> REJECTED by an approver who reviewed its documents = DOCUMENT_REVIEWER_CANNOT_DECIDE (
+  ✕ AUDIT_NOT_PASSED -> CAR_PENDING by an approver who reviewed its documents = DOCUMENT_REVIEWER_CANNOT_DECID
+### mutant-M6-no-state-compare-rerun
+    ✕ the booking commits first: the PASS decided on CAR_REVIEWING answers 409 and writes nothing (627 ms)
+    Expected: ["APPLICATION_STATE_CHANGED", 409]
+    Received: null
+### mutant-M6-no-state-compare
+    ✕ the booking commits first: the PASS decided on CAR_REVIEWING answers 409 and writes nothing (1 ms)
+    Foreign key constraint violated: `applications_healthId_fkey (index)`
+### mutant-no-deadline-row
+        ✕ รอบแก้ไขขั้นตรวจพื้นที่เพิ่ม 1 แถว และนาฬิกากำหนดส่งเริ่มพร้อมการตัดสิน (13 ms)
+    Expected: ObjectContaining {"status": "PENDING"}
+    Received: null
+### mutant-refused-notice-returns
+        ✕ ไม่มีแจ้งเตือน CERTIFICATION_REFUSED อีก: ทุกคู่กรณีถือหนังสือแล้ว (8 ms)
+    Expected: 0
+    Received: 2
+### mutant-task-row-deleted
+    ✕ ทุกสถานะในคิวตัดสินมีงานตัดสินของผู้อนุมัติที่เปิดใช้อยู่ (stage_activity_configs) (38 ms)
+    - Expected  - 6
+    + Received  + 1
+    -   ArrayContaining [
+    -     Object {
+    -       "candidateGroup": "certificate_approver",
+### mutant-viewer-is-party
+      ✕ ผู้อนุมัติขององค์กรอื่นไม่ได้แจ้งว่ามีแฟ้มรอ และสมาชิกที่ดูได้อย่างเดียวไม่ได้แจ้งผลไม่ผ่าน (21 ms)
+    - Expected  -  1
+    + Received  + 27
+    +   Object {
+    +     "category": null,
+    +     "isRead": false,

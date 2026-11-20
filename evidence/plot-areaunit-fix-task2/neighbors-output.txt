@@ -1,0 +1,121 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/atomic-decision-letter.test.js
+  canonical workflow-transitions — letter atomic with decision (D-8)
+    √ REVISION_REQUESTED mints the OFFICIAL_LETTER through the SAME tx as the status write, with all four elements (237 ms)
+    √ CAR_PENDING mints the letter too (CAR branch had NO letter before) (33 ms)
+    √ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs (64 ms)
+    √ non-correction transition (DOC_APPROVED) mints NO letter (negative control) (13 ms)
+  auditor audit-decision — CAR letter atomic with decision (D-8)
+    √ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items) (31 ms)
+    √ ATOMIC: letter write failure fails the decision — deadline never seeded, 500 (12 ms)
+    √ PASS mints NO correction letter (negative control) (11 ms)
+  PATCH /:id/reject — letter atomic with decision (D-8; surface sent NOTHING before)
+    √ DOC_REVISION mints the OFFICIAL_LETTER in the same tx as status write + deadline upsert (20 ms)
+    √ FIELD_CAR mints the letter too (16 ms)
+    √ ATOMIC: letter write failure fails the reject — RevisionDeadline never touched, 500 (18 ms)
+  letter template SSOT
+    √ the Thai letter copy is defined ONLY in shared/correction-letter-template.js (162 ms)
+    √ buildCorrectionLetter emits all five elements + structured metadata (M3: round number) (2 ms)
+    √ buildCorrectionLetter falls back to the decision message when no structured items exist (1 ms)
+    √ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition) (11 ms)
+    √ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service (2 ms)
+
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (30 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (15 ms)
+    √ (b3) plot missing areaUnit → 422 with step-5 error (F-PLOT-AREAUNIT-DEADEND fix) (11 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (10 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (24 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (11 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (12 ms)
+
+  console.error
+    REFUSED: application "app-1" was not found
+
+    [0m [90m 408 |[39m         process[33m.[39mexitCode [33m=[39m [35m0[39m[33m;[39m
+     [90m 409 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 410 |[39m         console[33m.[39merror([32m`REFUSED: ${err.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 411 |[39m         process[33m.[39mexitCode [33m=[39m [35m1[39m[33m;[39m
+     [90m 412 |[39m     } [36mfinally[39m {
+     [90m 413 |[39m         [36mawait[39m prisma[33m.[39m$disconnect()[33m;[39m[0m
+
+      at Object.error [as __runCli] (../../scripts/maintenance/heal-plot-area-unit.js:410:17)
+      at Object.<anonymous> (__tests__/unit/heal-plot-area-unit.test.js:320:9)
+
+  console.error
+    REFUSED: plots[0] already has areaUnit "rai" — this script only fills an ABSENT unit; there is no overwrite path
+
+    [0m [90m 408 |[39m         process[33m.[39mexitCode [33m=[39m [35m0[39m[33m;[39m
+     [90m 409 |[39m     } [36mcatch[39m (err) {
+    [31m[1m>[22m[39m[90m 410 |[39m         console[33m.[39merror([32m`REFUSED: ${err.message}`[39m)[33m;[39m
+     [90m     |[39m                 [31m[1m^[22m[39m
+     [90m 411 |[39m         process[33m.[39mexitCode [33m=[39m [35m1[39m[33m;[39m
+     [90m 412 |[39m     } [36mfinally[39m {
+     [90m 413 |[39m         [36mawait[39m prisma[33m.[39m$disconnect()[33m;[39m[0m
+
+      at Object.error [as __runCli] (../../scripts/maintenance/heal-plot-area-unit.js:410:17)
+      at Object.<anonymous> (__tests__/unit/heal-plot-area-unit.test.js:332:9)
+
+PASS __tests__/unit/heal-plot-area-unit.test.js
+  heal-plot-area-unit — CLI arg guards
+    √ missing --reason refuses (18 ms)
+    √ missing --source refuses (1 ms)
+    √ missing --app refuses (2 ms)
+    √ unit outside the closed enum refuses (1 ms)
+    √ unit is validated case-insensitively — UI casing "Sqm" passes (2 ms)
+    √ unit "RAI" (uppercase) passes case-insensitive enum check (1 ms)
+    √ --app with a wildcard/comma batch refuses (no batch mode) (2 ms)
+    √ dry-run by default; --apply required to write (1 ms)
+    √ actor falls back to OS user when --actor is absent
+    √ --actor overrides the OS-user fallback (1 ms)
+  heal-plot-area-unit — plot resolution
+    √ resolves by numeric index (1 ms)
+    √ resolves by exact plot name (1 ms)
+    √ out-of-range index refuses (1 ms)
+    √ unknown plot name refuses (1 ms)
+    √ ambiguous plot name refuses (2 ms)
+  heal-plot-area-unit — overwrite guard
+    √ plot already has a unit refuses — no overwrite path (1 ms)
+    √ plot with empty-string unit is treated as absent (healable) (1 ms)
+    √ plot with no areaUnit key is healable (1 ms)
+  heal-plot-area-unit — integrity assertion
+    √ clean single-key write passes (1 ms)
+    √ dry-run leaves the source object byte-identical (pin) (1 ms)
+    √ aborts when a server-owned key besides areaUnit would change (1 ms)
+    √ aborts when areaSize would change (14 ms)
+    √ aborts when GPS would change (1 ms)
+  heal-plot-area-unit — fixed audit text + event builders
+    √ exact required Thai note is present in both builders (1 ms)
+    √ workflow event carries applicationId, plot index/name, before->after, actor, reason, source (1 ms)
+    √ audit event carries the same fields plus resourceId/organizationId (1 ms)
+  heal-plot-area-unit — CLI main(): dry-run vs apply, transaction shape
+    √ dry-run: reads the app, never calls update/transaction/logWithin (2 ms)
+    √ apply: writes formData + workflowHistory + audit_logs inside one transaction (2 ms)
+    √ application not found refuses with non-zero exit (25 ms)
+    √ plot already has a unit refuses with non-zero exit and no write (5 ms)
+
+PASS __tests__/unit/audit-logger.test.js
+  auditLogger
+    √ retries on sequenceNumber unique conflict and succeeds (5 ms)
+    √ acquires a per-org advisory xact lock (keyed on orgId) before inserting the chain row (3 ms)
+    √ returns null after retry exhaustion on repeated sequence conflicts (4 ms)
+    √ a row written by log() recomputes its hash from the persisted createdAt (verifyChain passes) (4 ms)
+    √ verifyChain detects tampered currentHash even when previousHash link matches (3 ms)
+    √ verifyChain reports hash recompute error when createdAt is invalid (3 ms)
+    logWithin(event, tx) — transactional audit writes
+      √ writes through the tx client, not the global prisma (3 ms)
+      √ throws when tx argument is missing or not a prisma tx client (57 ms)
+      √ propagates errors instead of swallowing them (so the outer tx aborts) (4 ms)
+      √ chain hash is recomputable from the row written via tx (3 ms)
+    per-tenant hash chain
+      √ getLastHash scopes the previous-link lookup to the organization (3 ms)
+      √ log() chains per-tenant — two orgs keep independent sequences off their own last row (3 ms)
+      √ verifyChain({ organizationId }) scopes the scan to that tenant (3 ms)
+
+Test Suites: 4 passed, 4 total
+Tests:       65 passed, 65 total
+Snapshots:   0 total
+Time:        4.84 s, estimated 17 s
+Ran all test suites matching /__tests__\\unit\\applications-submit-canonical-validation.test.js|__tests__\\unit\\heal-plot-area-unit.test.js|__tests__\\unit\\audit-logger.test.js|__tests__\\unit\\atomic-decision-letter.test.js/i.

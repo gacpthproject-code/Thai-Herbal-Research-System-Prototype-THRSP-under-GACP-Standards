@@ -1,0 +1,64 @@
+check-nginx-drift: repo e854d007d87df2b8eb24f9ae5640c87df6f86b63 · host VM-0-3-ubuntu · public 43.134.175.51
+## 1. bind mounts of gacp-nginx
+== nginx/gacp.production.conf  <->  /opt/gacp-platform/nginx/gacp.production.conf
+  ignored (2026-10-21 demo moved to 119.59.105.140; removed from the backend map on staging (backup gacp.production.conf.bak-demo-20261021-053216)): demo.gacpth.com      backend-demo:8000;
+  ignored (2026-10-21 demo moved to 119.59.105.140; removed from the frontend map on staging (same backup)): demo.gacpth.com      frontend-demo:3000;
+  UNEXPLAINED directive drift (repo -> live, comments and blank lines removed):
+    @@ -1,8 +1,7 @@
+     limit_req_zone $binary_remote_addr zone=api_general:10m rate=50r/s;
+     limit_req_zone $binary_remote_addr zone=api_auth:10m rate=10r/s;
+    -limit_req_zone $binary_remote_addr zone=api_upload:10m rate=30r/m;
+    +limit_req_zone $binary_remote_addr zone=api_upload:10m rate=5r/m;
+     limit_conn_zone $binary_remote_addr zone=conn_limit:10m;
+    -limit_req_status 429;
+     map $host $backend_up {
+     default              backend:8000;
+     staging.gacpth.com   backend-staging:8000;
+    @@ -116,7 +115,7 @@
+     proxy_cache_bypass $http_upgrade;
+     }
+     location /api/applications/draft-documents {
+    -limit_req zone=api_upload burst=50 nodelay;
+    +limit_req zone=api_upload burst=10 nodelay;
+     client_max_body_size 50M;
+     proxy_pass http://$backend_up;
+     proxy_http_version 1.1;
+== nginx/50x.html  <->  /opt/gacp-platform/nginx/50x.html
+  identical
+== /opt/gacp-platform/nginx/ssl -> /etc/nginx/ssl  skipped: TLS certificate and private key; host-only, never in git
+== /opt/gacp-platform/logs/nginx -> /var/log/nginx  skipped: nginx runtime log output
+## 2. host nginx vhosts enabled in /etc/nginx/sites-enabled
+== deploy/nginx/demo.gacpth.com.conf  <->  /etc/nginx/sites-available/demo.gacpth.com.conf
+  identical
+== deploy/nginx/gacp-platform.conf  <->  /etc/nginx/sites-enabled/gacp-platform.conf
+  UNEXPLAINED directive drift (repo -> live, comments and blank lines removed):
+    @@ -130,7 +130,7 @@
+     add_header X-Content-Type-Options "nosniff" always;
+     add_header Strict-Transport-Security "max-age=63072000; includeSubDomains; preload" always;
+     add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+    -add_header Permissions-Policy "geolocation=(self), microphone=()" always;
+    +add_header Permissions-Policy "geolocation=(self), microphone=(), camera=(self)" always;
+     server_tokens off;
+     client_max_body_size 50M;
+     proxy_connect_timeout 60s;
+    @@ -144,7 +144,6 @@
+     proxy_pass http://docker_nginx_http;
+     proxy_http_version 1.1;
+     proxy_set_header Host              $host;
+    -proxy_set_header X-Forwarded-Host  $host;
+     proxy_set_header X-Real-IP         $remote_addr;
+     proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+     proxy_set_header X-Forwarded-Proto $scheme;
+== deploy/nginx/preview.gacpth.com.conf  not enabled on this host (not drift)
+== deploy/nginx/staging.gacpth.com.conf  <->  /etc/nginx/sites-available/staging.gacpth.com.conf
+  UNEXPLAINED directive drift (repo -> live, comments and blank lines removed):
+    @@ -73,7 +73,6 @@
+     proxy_set_header Upgrade $http_upgrade;
+     proxy_set_header Connection 'upgrade';
+     proxy_set_header Host $host;
+    -proxy_set_header X-Forwarded-Host $host;
+     proxy_set_header X-Real-IP $remote_addr;
+     proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+     proxy_set_header X-Forwarded-Proto $scheme;
+## result: 5 file(s) checked · 3 with unexplained drift · 0 with comment or ignored-line drift only
+FAIL: live nginx is not the config at e854d007d87df2b8eb24f9ae5640c87df6f86b63

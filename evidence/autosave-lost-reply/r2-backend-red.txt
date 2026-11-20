@@ -1,0 +1,12 @@
+# round-1 server sources (HEAD 174d9110/66e9ca2f), round-2 tests, postgres:17 on 5452
+    ✓ the same payload with the same applicationId twice: one application, identical data, no new rows anywhere (258 ms)
+    ✓ a FIRST save (no id yet) whose reply was lost, retried with no id: still one new application, not two (138 ms)
+    ✓ C1: seq 2 applied, then seq 1 from the same session arrives: 409 DRAFT_OUT_OF_ORDER, nothing written, data stays seq 2 (110 ms)
+    ✓ C1: seq 1 and seq 2 racing for the same row: whatever the arrival order, the stored answers are seq 2 (183 ms)
+    ✓ C1: another session (another tab, a reload) is not compared, and a save with no clock (an older client) is not checked (96 ms)
+    ✓ C1: the clock cannot be forged through formData (the allowlist drops it) (26 ms)
+    ✕ fix round 2: with RLS_SHADOW_GUC=true an ordered save completes (no self-deadlock) (30003 ms)
+    ✕ fix round 2: a document upload that commits between the save's read and its write is kept (64 ms)
+    ✕ fix round 2: submit naming a clock that is no longer the stored one is refused 409 DRAFT_NOT_LATEST (161 ms)
+Tests:       3 failed, 6 passed, 9 total
+GUC test: the save failed with P2028 'Transaction already closed ... 30016 ms' (self-deadlock), 500

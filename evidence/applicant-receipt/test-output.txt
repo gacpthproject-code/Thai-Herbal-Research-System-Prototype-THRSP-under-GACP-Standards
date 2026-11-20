@@ -1,0 +1,115 @@
+# GREEN runs — command, suites, counts (ANSI stripped). Latest run first. Raw dumps removed per review I-2.
+
+## 2026-09-30 · review round 2 · targeted incl. real Postgres
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/unit/{finance-paper-signer-line,receipt-tax-invoice-paper,adjustment-note-context,invoice-template-thai-numerals,credit-note-pdf-template,error-codes-source-pointers,quotation-gate-error-codes}.test.js __tests__/integration/{applicant-billing-membership-real-postgres,applicant-billing-workspace-real-postgres,payer-block-matrix,invoice-tax-id-select}.test.js -i
+  (+ DATABASE_URL/TEST_DATABASE_URL = scratch PG 17 on 127.0.0.1:5442, migrate deploy, container removed after; url never printed)
+Test Suites: 11 passed, 11 total
+Tests:       159 passed, 159 total
+
+## 2026-09-30 · review round 2 · related backend unit suites
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs "__tests__/unit/(invoice|receipt|payer|applicant-billing|finance|settlement|quotation|credit-note|debit-note|adjustment-note|company-logo|bangkok-business-dates|certificate|route|orphan|openapi|active-entity|entity|pdf|error-codes)"
+Test Suites: 140 passed, 140 total
+Tests:       1830 passed, 1830 total
+
+## 2026-09-30 · review round 2 · probes, tier-check selftest, web tsc
+$ PROBE_OUT_DIR=<tmp> bash scripts/check-done.sh retired-words ratchet no-skip no-secret settle-webhook-only
+retired-words          PASS     PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 พื้นผิว)
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/tmp/claude-1000/-home-ubuntu-work-GACP-Certification-Application/f90a55be-547c-4b12-8251-b8809c3ab2e1/scratchpad/rcpt/probes/ratchet-current.txt)
+no-skip                PASS     PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+no-secret              PASS     PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+settle-webhook-only    PASS     PASS: only services/checkout/checkout-settlement-service.js writes SETTLED; settle test green
+$ bash scripts/probes/tier-check.sh --selftest
+PASS: tier-check selftest
+$ cd apps/web-app && npx tsc --noEmit -p tsconfig.json
+tsc exit 0
+
+## 2026-09-30 · review round 1 · targeted (real Postgres) · membership + workspace + tax-id-select + payer-block-matrix integration, doors, paper, error-codes pointers, quotation-gate codes
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs __tests__/integration/applicant-billing-{membership,workspace}-real-postgres.test.js __tests__/integration/{invoice-tax-id-select,payer-block-matrix}.test.js __tests__/unit/{applicant-billing-doors,receipt-tax-invoice-paper,error-codes-source-pointers,quotation-gate-error-codes}.test.js -i
+  (+ DATABASE_URL/TEST_DATABASE_URL = scratch PG 17 on 127.0.0.1:5442, migrate deploy, container removed after; url never printed)
+Test Suites: 8 passed, 8 total
+Tests:       133 passed, 133 total
+
+## 2026-09-30 · review round 1 · related backend unit suites
+$ cd apps/backend && export PATH=$HOME/.nvm/versions/node/v24.21.0/bin:$PATH && unset NODE_OPTIONS && SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs "__tests__/unit/(invoice|receipt|payer|applicant-billing|finance-read|settlement|quotation|credit-note|debit-note|adjustment-note|company-logo|bangkok-business-dates|route|orphan|openapi|active-entity|entity|pdf|error-codes)"
+Test Suites: 97 passed, 97 total
+Tests:       1271 passed, 1271 total
+
+## 2026-09-30 · review round 1 · web
+$ cd apps/web-app && node node_modules/jest/bin/jest.js src/app/health/payments src/lib
+Test Suites: 111 passed, 111 total
+Tests:       1183 passed, 1183 total
+$ npx tsc --noEmit -p tsconfig.json
+exit 0 (output lines: 0)
+
+## 2026-09-30 · review round 1 · probes + tier-check selftest
+$ PROBE_OUT_DIR=<tmp> bash scripts/check-done.sh retired-words ratchet no-skip no-secret settle-webhook-only
+retired-words          PASS     PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 พื้นผิว)
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/tmp/claude-1000/-home-ubuntu-work-GACP-Certification-Application/f90a55be-547c-4b12-8251-b8809c3ab2e1/scratchpad/rcpt/probes/ratchet-current.txt)
+no-skip                PASS     PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+no-secret              PASS     PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+settle-webhook-only    PASS     PASS: only services/checkout/checkout-settlement-service.js writes SETTLED; settle test green
+$ bash scripts/probes/tier-check.sh --selftest
+selftest: 298 pass, 0 fail (of 298: 288 path cases + 10 end-to-end cases)
+PASS: tier-check selftest
+
+## 2026-09-30 · §3.3 one paper (b24135b2) · green-paper.txt
+Test Suites: 1 passed, 1 total
+Tests:       14 passed, 14 total
+
+## 2026-09-30 · §3.3 one paper (b24135b2) · be-related-2.txt
+Test Suites: 74 passed, 74 total
+Tests:       1015 passed, 1015 total
+
+## 2026-09-30 · §3.3 one paper (b24135b2) · int-2.txt
+Test Suites: 3 passed, 3 total
+Tests:       34 passed, 34 total
+
+## 2026-09-30 · §3.3 one paper (b24135b2) · probes-2.txt
+retired-words          PASS     PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 พื้นผิว)
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/tmp/claude-1000/-home-ubuntu-work-GACP-Certification-Application/f90a55be-547c-4b12-8251-b8809c3ab2e1/scratchpad/rcpt/probes/ratchet-current.txt)
+no-skip                PASS     PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+no-secret              PASS     PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+settle-webhook-only    PASS     PASS: only services/checkout/checkout-settlement-service.js writes SETTLED; settle test green
+
+## 2026-09-30 · §3.3 one paper (b24135b2) · web-2.txt
+Test Suites: 55 passed, 55 total
+Tests:       479 passed, 479 total
+
+## 2026-09-30 · §3.3 one paper (b24135b2) · tsc-2.txt
+selftest: 298 pass, 0 fail (of 298: 288 path cases + 10 end-to-end cases)
+PASS: tier-check selftest
+
+## 2026-09-29 · first round (38f230aa/ef5ec0fb) · green-int.txt
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+
+## 2026-09-29 · first round (38f230aa/ef5ec0fb) · green-onepage.txt
+Test Suites: 1 passed, 1 total
+Tests:       10 passed, 10 total
+
+## 2026-09-29 · first round (38f230aa/ef5ec0fb) · green-web.txt
+Test Suites: 2 passed, 2 total
+Tests:       15 passed, 15 total
+
+## 2026-09-29 · first round (38f230aa/ef5ec0fb) · be-related.txt
+Test Suites: 65 passed, 65 total
+Tests:       856 passed, 856 total
+
+## 2026-09-29 · first round (38f230aa/ef5ec0fb) · probes.txt
+retired-words          PASS     PASS: พื้นผิวคำสั่งไม่มีคำที่ถูกยกเลิก (10 คำ · 5 พื้นผิว)
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=26 todo=53 env-direct=101 dup-source=0 (/tmp/claude-1000/-home-ubuntu-work-GACP-Certification-Application/f90a55be-547c-4b12-8251-b8809c3ab2e1/scratchpad/rcpt/probes/ratchet-current.txt)
+no-skip                PASS     PASS: 0 skip/only ในตำแหน่งที่รันได้ นอกรายการที่เซ็นไว้
+no-secret              PASS     PASS: layer1 grep: 0 hits · layer2 gitleaks: clean
+settle-webhook-only    PASS     PASS: only services/checkout/checkout-settlement-service.js writes SETTLED; settle test green
+
+## 2026-09-29 · first round (38f230aa/ef5ec0fb) · web-full-suite-summary.txt
+Test Suites: 421 passed, 421 total
+Tests:       3440 passed, 3440 total
+EXIT 0
+
+## 2026-09-29 · first round (38f230aa/ef5ec0fb) · web-tsc.txt
+EXIT 0
+
+## 2026-09-29 · web production build
+$ cd apps/web-app && NEXT_PUBLIC_PWA_ENABLED=false npx next build
+EXIT 0

@@ -1,0 +1,56 @@
+mutation: removed 1 line(s) containing "['40001', '40P01'].includes" from services/audit-scheduling-service.js
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T13:36:59.012Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-09T13:36:59.015Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T13:36:59.017Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T13:37:01.053Z"}
+FAIL __tests__/unit/slot-booking-retries-a-deadlock.test.js
+  runSlotBooking
+    ✕ a deadlock on the first attempt is retried and the second attempt writes (7 ms)
+    ✕ deadlocks on every attempt end as the retriable 409, never the raw error (9 ms)
+
+  ● runSlotBooking › a deadlock on the first attempt is retried and the second attempt writes
+
+    deadlock detected
+
+      10 | const { runSlotBooking } = require('../../services/audit-scheduling-service');
+      11 |
+    > 12 | const deadlock = () => Object.assign(new Error('deadlock detected'), { code: 'P2010', meta: { code: '40P01' } });
+         |                                      ^
+      13 |
+      14 | describe('runSlotBooking', () => {
+      15 |     test('a deadlock on the first attempt is retried and the second attempt writes', async () => {
+
+      at deadlock (__tests__/unit/slot-booking-retries-a-deadlock.test.js:12:38)
+      at Object.deadlock (__tests__/unit/slot-booking-retries-a-deadlock.test.js:21:45)
+      at $transaction (services/audit-scheduling-service.js:307:33)
+      at Object.runSlotBooking (__tests__/unit/slot-booking-retries-a-deadlock.test.js:25:31)
+
+  ● runSlotBooking › deadlocks on every attempt end as the retriable 409, never the raw error
+
+    expect(received).rejects.toMatchObject(expected)
+
+    - Expected  - 2
+    + Received  + 1
+
+      Object {
+    -   "code": "AUDITOR_SLOT_CONFLICT",
+    -   "statusCode": 409,
+    +   "code": "P2010",
+      }
+
+      31 |         const prisma = { $transaction: jest.fn(async () => { throw deadlock(); }) };
+      32 |         await expect(runSlotBooking(prisma, { auditorId: 'inspector-1', scheduledAt: null }, async () => 'written'))
+    > 33 |             .rejects.toMatchObject({ code: 'AUDITOR_SLOT_CONFLICT', statusCode: 409 });
+         |                      ^
+      34 |     });
+      35 | });
+      36 |
+
+      at Object.toMatchObject (../../../../../home/ubuntu/work/wt-dispatcher/node_modules/.pnpm/expect@30.2.0/node_modules/expect/build/index.js:2155:20)
+      at Object.toMatchObject (__tests__/unit/slot-booking-retries-a-deadlock.test.js:33:22)
+
+Test Suites: 1 failed, 1 total
+Tests:       2 failed, 2 total
+Snapshots:   0 total
+Time:        3.768 s
+Ran all test suites matching __tests__/unit/slot-booking-retries-a-deadlock.test.js.

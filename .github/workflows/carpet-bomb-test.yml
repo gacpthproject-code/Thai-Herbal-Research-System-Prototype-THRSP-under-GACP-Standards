@@ -1,0 +1,110 @@
+name: Carpet-Bomb Test Suite
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: 'Target URL to test'
+        required: true
+        default: 'https://gacpth.com'
+  schedule:
+    - cron: '0 6 * * 1'  # Every Monday 06:00 UTC (13:00 Bangkok)
+
+jobs:
+  # ═══════════════════════════════════════════════════
+  # Phase 1: Legacy 7-Agent Quick Checks
+  # ═══════════════════════════════════════════════════
+  legacy-agents:
+    name: 🧪 Legacy 7-Agent Health Check
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    continue-on-error: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run Agent E (Config Audit)
+        run: node scripts/test/agent-environment.js
+        continue-on-error: true
+
+      - name: Run Legacy Suite
+        run: node scripts/test/run-all-agents.js ${{ github.event.inputs.target_url || 'https://gacpth.com' }}
+        env:
+          NODE_TLS_REJECT_UNAUTHORIZED: '0'
+        continue-on-error: true
+
+      - name: Upload Legacy Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: legacy-agent-results
+          path: |
+            scripts/test/*-results.txt
+            scripts/test/carpet-bomb-report.txt
+          retention-days: 30
+
+  # ═══════════════════════════════════════════════════
+  # Phase 2: 20-Agent Full Stack Journey Suite
+  # ═══════════════════════════════════════════════════
+  journey-agents:
+    name: 🛤️ 20-Agent Full Stack Suite
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+
+      - name: Run 16-Agent Journey Suite
+        run: node scripts/test/journey/run-all-journeys.js ${{ github.event.inputs.target_url || 'https://gacpth.com' }}
+        env:
+          NODE_TLS_REJECT_UNAUTHORIZED: '0'
+
+      - name: Upload Journey Results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: journey-agent-results
+          path: |
+            scripts/test/journey/*-results.txt
+            scripts/test/journey/journey-report.txt
+          retention-days: 30
+
+      - name: Journey Summary
+        if: always()
+        run: cat scripts/test/journey/journey-report.txt
+
+  # ═══════════════════════════════════════════════════
+  # Summary
+  # ═══════════════════════════════════════════════════
+  summary:
+    name: 📊 Test Summary
+    runs-on: ubuntu-latest
+    needs: [legacy-agents, journey-agents]
+    if: always()
+
+    steps:
+      - name: Download All Results
+        uses: actions/download-artifact@v4
+        with:
+          merge-multiple: true
+
+      - name: Print Summary
+        run: |
+          echo "╔══════════════════════════════════════════════════╗"
+          echo "║  📊 CARPET-BOMB TEST SUITE — COMPLETE           ║"
+          echo "╠══════════════════════════════════════════════════╣"
+          echo "║  Phase 1: Legacy 7-Agent    ${{ needs.legacy-agents.result }}  ║"
+          echo "║  Phase 2: 16-Agent Journey  ${{ needs.journey-agents.result }}  ║"
+          echo "╚══════════════════════════════════════════════════╝"

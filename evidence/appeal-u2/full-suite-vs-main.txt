@@ -1,0 +1,62 @@
+## backend jest on fresh scratch databases gacp_u2_full (heavy.sh, PAYMENT_ADAPTER=mock, 3 GB heap): the first run reached 935 of 1134 suites at 68e26cd13 and died of heap exhaustion; the rest ran in a second process
+## backend code at 68e26cd13 equals the head's backend (later commits touch the web and the error-code catalog only)
+full-final.txt: suites PASS 924 FAIL 11 · tests passed 12116 failed 27 · aborted: FATAL ERROR: Ineffective mark-compacts near heap limit Allocation failed - JavaS
+full-rest.txt: suites PASS 196 FAIL 2 · tests passed 2827 failed 5 · ran to the end
+Test Suites: 1 failed, 2 skipped, 196 passed, 197 of 199 total
+Tests:       5 failed, 52 skipped, 2827 passed, 2884 total
+
+failing suites on the branch: 12
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js   (baseline)
+  __tests__/integration/approver-decision-tools-real-postgres.test.js   NEW
+  __tests__/integration/m1-submit-enforcement.test.js   (baseline)
+  __tests__/integration/m2a-submit-enforcement.test.js   (baseline)
+  __tests__/integration/onsite-decision-mint-e2e.test.js   (baseline)
+  __tests__/integration/r1-billing-doors-neutral-real-postgres.test.js   NEW
+  __tests__/integration/r1-cert-doc-finance-reads-neutral-real-postgres.test.js   NEW
+  __tests__/integration/status-writer-audit-default-invariant.test.js   (baseline)
+  __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js   NEW
+  __tests__/unit/checkout-renewal-price.test.js   NEW
+  __tests__/unit/checkout-requires-accepted-quotation.test.js   NEW
+  __tests__/unit/stripe-checkout-engine.test.js   NEW
+
+main baseline suites (fails-77eb1503): 7
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js   still failing
+  __tests__/integration/dispatcher-lock-order-real-postgres.test.js   passes here
+  __tests__/integration/m1-submit-enforcement.test.js   still failing
+  __tests__/integration/m2a-submit-enforcement.test.js   still failing
+  __tests__/integration/onsite-decision-mint-e2e.test.js   still failing
+  __tests__/integration/quotation-states-both-instalments-real-postgres.test.js   passes here
+  __tests__/integration/status-writer-audit-default-invariant.test.js   still failing
+
+main integration-pg names (77eb1503a gate): 13 distinct
+  __tests__/integration/a0-pr2-per-hop-invariant.test.js :: (1) the hop commits ⇒ exactly one canonical row per edge it walks  ->  fails here too
+  __tests__/integration/m1-submit-enforcement.test.js :: AC2 — a REVOKE row wins over the grant (fail closed), still audited  ->  fails here too
+  __tests__/integration/m1-submit-enforcement.test.js :: AC2 — a non-member is refused 403 ENTITY_PERMISSION_DENIED and the refusal is on the record  ->  fails here too
+  __tests__/integration/m1-submit-enforcement.test.js :: AC2 — an application naming no entity is 400 VALIDATION_ERROR, audited with a null holder  ->  fails here too
+  __tests__/integration/m1-submit-enforcement.test.js :: AC3 — an ACTIVE membership carrying a SUBMIT_APPLICATION GRANT is allowed, and names the entity  ->  fails here too
+  __tests__/integration/m2a-submit-enforcement.test.js :: AC1 — a JURISTIC filing with no document on file is refused, naming the slot  ->  fails here too
+  __tests__/integration/m2a-submit-enforcement.test.js :: AC1 — the same law asks nothing of an INDIVIDUAL filing  ->  fails here too
+  __tests__/integration/m2a-submit-enforcement.test.js :: AC2 — a client flag is not evidence, an ApplicationDocument row is  ->  fails here too
+  __tests__/integration/m2a-submit-enforcement.test.js :: AC3 — a rule filed after the stamp cannot refuse the resubmit  ->  fails here too
+  __tests__/integration/m2a-submit-enforcement.test.js :: AC3 — closing a rule stops it firing for filings made afterwards  ->  fails here too
+  __tests__/integration/onsite-decision-mint-e2e.test.js :: HEADLINE: a fully-evidenced PASS through submitDecision mints a Certificate (auto-mint in-tx)  ->  fails here too
+  __tests__/integration/onsite-decision-mint-e2e.test.js :: PIN-PROPAGATION: audit-A fully evidenced + audit-B a newer EMPTY IN_PROGRESS orphan on the SAME application —   ->  fails here too
+  __tests__/integration/status-writer-audit-default-invariant.test.js :: (F3) cert-hook failure in DEFAULT mode ⇒ a compensating reversal row exists  ->  fails here too
+
+failing tests in suites outside the baseline: 16
+  __tests__/integration/r1-billing-doors-neutral-real-postgres.test.js :: GET /invoices/my, the receipt door and the invoice PDF door
+  __tests__/integration/r1-cert-doc-finance-reads-neutral-real-postgres.test.js :: read doors: certificates, report schedule, quotations (+pdf), requirements
+  __tests__/integration/r1-cert-doc-finance-reads-neutral-real-postgres.test.js :: write doors: report submission, pre-check acknowledge, quotation accept, checkout, submit, planting attachments
+  __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: returns the publishable key, the invoice to watch, and the entity contact email
+  __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: no key: refused with STRIPE_PUBLISHABLE_KEY_NOT_CONFIGURED and nothing is minted or asked of Stripe
+  __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: mode mismatch: refused with STRIPE_KEY_MODE_MISMATCH and nothing is minted or asked of Stripe
+  __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js :: a failed contact lookup degrades to null (the screen asks) instead of failing a checkout that already exists
+  __tests__/unit/checkout-renewal-price.test.js :: one scope: the renewal checkout charges 35,310, not the phase-2 29,425
+  __tests__/unit/checkout-renewal-price.test.js :: two and three scopes: 70,620 and 105,930
+  __tests__/unit/checkout-requires-accepted-quotation.test.js :: an order that already names the same quotation and the same accepted terms is not re-stamped
+  __tests__/unit/checkout-requires-accepted-quotation.test.js :: an order minted under older terms is re-stamped with the accepted version, provenance only
+  __tests__/unit/stripe-checkout-engine.test.js :: M1 checkout mints the order with the fee-service decomposition and a satang intent
+  __tests__/unit/stripe-checkout-engine.test.js :: re-entry returns the open order instead of minting a sibling
+  __tests__/unit/stripe-checkout-engine.test.js :: a redelivered event id is a 200 no-op (insert-first dedup)
+  __tests__/unit/stripe-checkout-engine.test.js :: payment_intent.succeeded settles and stamps the event processed
+  __tests__/unit/stripe-checkout-engine.test.js :: an unrelated event type is acknowledged without settling anything

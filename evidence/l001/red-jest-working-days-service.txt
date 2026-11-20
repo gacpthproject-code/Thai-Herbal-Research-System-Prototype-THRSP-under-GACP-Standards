@@ -1,0 +1,877 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/working-days-service.test.js
+  working-days-service — countWorkingDays (regression: shadowed toDate)
+    ✓ does NOT throw (the parameter no longer shadows the toDate helper) (3 ms)
+    ✓ counts Mon–Fri inclusive as 5 working days (2 ms)
+    ✓ counts Mon–next-Mon inclusive as 6 working days (skips the weekend) (1 ms)
+    ✓ counts a pure weekend (Sat–Sun) as 0 (1 ms)
+    ✓ returns 0 for a reversed range (from > to) (1 ms)
+    ✓ excludes a holiday inside the range (1 ms)
+    ✓ accepts ISO-string inputs (parsed via the toDate helper) (1 ms)
+    ✓ returns 0 when either endpoint is unparseable (1 ms)
+  working-days-service — sibling helpers (baseline coverage)
+    ✓ isWorkingDay: weekday true, weekend false, holiday false (1 ms)
+    ✓ addWorkingDays: +5 from Monday lands on the next Monday (skips weekend) (1 ms)
+    ✓ addWorkingDays: 0/negative returns the start date unchanged (1 ms)
+    ✓ toDateKey: formats YYYY-MM-DD and rejects garbage (1 ms)
+  L-001 — the Thai holiday calendar has exactly ONE defining file
+    ✕ working-days-service names no holiday table of its own (4 ms)
+    ✕ working-days-service reads no holiday source from env or systemConfig (1 ms)
+    ✕ working-days-service no longer exports a holiday loader (1 ms)
+    ✕ routes/api/system/system.js does not build its own holiday set (1 ms)
+    ✕ routes/api/system/cron.js does not build its own holiday set (1 ms)
+    ✕ exactly one file under services/ utils/ shared/ config/ defines holidays (19 ms)
+
+  ● L-001 — the Thai holiday calendar has exactly ONE defining file › working-days-service names no holiday table of its own
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /RECURRING_HOLIDAYS|PUBLIC_HOLIDAYS|EXTRA_HOLIDAYS/
+    Received string:      "function asArray(value) {
+        return Array.isArray(value) ? value : [];
+    }
+
+    function asObject(value) {
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    }
+
+    function toDate(value) {
+        const parsed = value instanceof Date ? new Date(value) : new Date(String(value || ''));
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    }
+
+    function toDateKey(value) {
+        const date = toDate(value);
+        if (!date) { return null; }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function isWeekend(dateValue) {
+        const date = toDate(dateValue);
+        if (!date) { return false; }
+        const day = date.getDay();
+        return day === 0 || day === 6;
+    }
+
+    function normalizeHolidayEntries(entries) {
+        const normalized = new Set();
+        for (const entry of asArray(entries)) {
+            const key = toDateKey(entry);
+            if (key) {
+                normalized.add(key);
+            }
+        }
+        return normalized;
+    }
+
+    async function loadHolidaySet(prisma) {
+        const holidays = new Set();
+
+        const envHolidays = String(process.env.TH_PUBLIC_HOLIDAYS || '')
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        for (const key of normalizeHolidayEntries(envHolidays)) {
+            holidays.add(key);
+        }
+
+        if (!prisma?.systemConfig?.findUnique) {
+            return holidays;
+        }
+
+        try {
+            const row = await prisma.systemConfig.findUnique({
+                where: { key: 'public_holidays_th' },
+                select: { value: true },
+            });
+            const payload = row?.value;
+            if (Array.isArray(payload)) {
+                for (const key of normalizeHolidayEntries(payload)) {
+                    holidays.add(key);
+                }
+            } else if (typeof payload === 'string' && payload.trim()) {
+                for (const key of normalizeHolidayEntries(payload.split(','))) {
+                    holidays.add(key);
+                }
+            } else if (payload && typeof payload === 'object') {
+                const objectPayload = asObject(payload);
+                const list = asArray(objectPayload.dates || objectPayload.holidays);
+                for (const key of normalizeHolidayEntries(list)) {
+                    holidays.add(key);
+                }
+            }
+        } catch (_error) {
+            // Non-blocking fallback when systemConfig table/config is unavailable.
+        }
+
+        return holidays;
+    }
+
+    function isWorkingDay(dateValue, holidaySet = new Set()) {
+        const key = toDateKey(dateValue);
+        if (!key) { return false; }
+        if (isWeekend(dateValue)) { return false; }
+        return !holidaySet.has(key);
+    }
+
+    function addWorkingDays(startDate, workingDays, holidaySet = new Set()) {
+        const result = toDate(startDate) || new Date();
+        const daysToAdd = Number.parseInt(String(workingDays || 0), 10);
+        if (!Number.isFinite(daysToAdd) || daysToAdd <= 0) {
+            return result;
+        }
+
+        let added = 0;
+        while (added < daysToAdd) {
+            result.setDate(result.getDate() + 1);
+            if (isWorkingDay(result, holidaySet)) {
+                added += 1;
+            }
+        }
+        return result;
+    }
+
+    function countWorkingDays(fromDate, toDateValue, holidaySet = new Set()) {
+        const start = toDate(fromDate);
+        const end = toDate(toDateValue);
+        if (!start || !end || start > end) {
+            return 0;
+        }
+
+        const cursor = new Date(start);
+        let count = 0;
+        while (cursor <= end) {
+            if (isWorkingDay(cursor, holidaySet)) {
+                count += 1;
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        return count;
+    }
+
+    module.exports = {
+        loadHolidaySet,
+        isWorkingDay,
+        addWorkingDays,
+        countWorkingDays,
+        toDateKey,
+    };
+    "
+
+      148 |
+      149 |     it('working-days-service names no holiday table of its own', () => {
+    > 150 |         expect(serviceSrc).not.toMatch(HOLIDAY_SOURCE_TOKENS);
+          |                                ^
+      151 |     });
+      152 |
+      153 |     it('working-days-service reads no holiday source from env or systemConfig', () => {
+
+      at Object.toMatch (__tests__/unit/working-days-service.test.js:150:32)
+
+  ● L-001 — the Thai holiday calendar has exactly ONE defining file › working-days-service reads no holiday source from env or systemConfig
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /process\.env/
+    Received string:      "function asArray(value) {
+        return Array.isArray(value) ? value : [];
+    }
+
+    function asObject(value) {
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    }
+
+    function toDate(value) {
+        const parsed = value instanceof Date ? new Date(value) : new Date(String(value || ''));
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    }
+
+    function toDateKey(value) {
+        const date = toDate(value);
+        if (!date) { return null; }
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
+
+    function isWeekend(dateValue) {
+        const date = toDate(dateValue);
+        if (!date) { return false; }
+        const day = date.getDay();
+        return day === 0 || day === 6;
+    }
+
+    function normalizeHolidayEntries(entries) {
+        const normalized = new Set();
+        for (const entry of asArray(entries)) {
+            const key = toDateKey(entry);
+            if (key) {
+                normalized.add(key);
+            }
+        }
+        return normalized;
+    }
+
+    async function loadHolidaySet(prisma) {
+        const holidays = new Set();
+
+        const envHolidays = String(process.env.TH_PUBLIC_HOLIDAYS || '')
+            .split(',')
+            .map((item) => item.trim())
+            .filter(Boolean);
+        for (const key of normalizeHolidayEntries(envHolidays)) {
+            holidays.add(key);
+        }
+
+        if (!prisma?.systemConfig?.findUnique) {
+            return holidays;
+        }
+
+        try {
+            const row = await prisma.systemConfig.findUnique({
+                where: { key: 'public_holidays_th' },
+                select: { value: true },
+            });
+            const payload = row?.value;
+            if (Array.isArray(payload)) {
+                for (const key of normalizeHolidayEntries(payload)) {
+                    holidays.add(key);
+                }
+            } else if (typeof payload === 'string' && payload.trim()) {
+                for (const key of normalizeHolidayEntries(payload.split(','))) {
+                    holidays.add(key);
+                }
+            } else if (payload && typeof payload === 'object') {
+                const objectPayload = asObject(payload);
+                const list = asArray(objectPayload.dates || objectPayload.holidays);
+                for (const key of normalizeHolidayEntries(list)) {
+                    holidays.add(key);
+                }
+            }
+        } catch (_error) {
+            // Non-blocking fallback when systemConfig table/config is unavailable.
+        }
+
+        return holidays;
+    }
+
+    function isWorkingDay(dateValue, holidaySet = new Set()) {
+        const key = toDateKey(dateValue);
+        if (!key) { return false; }
+        if (isWeekend(dateValue)) { return false; }
+        return !holidaySet.has(key);
+    }
+
+    function addWorkingDays(startDate, workingDays, holidaySet = new Set()) {
+        const result = toDate(startDate) || new Date();
+        const daysToAdd = Number.parseInt(String(workingDays || 0), 10);
+        if (!Number.isFinite(daysToAdd) || daysToAdd <= 0) {
+            return result;
+        }
+
+        let added = 0;
+        while (added < daysToAdd) {
+            result.setDate(result.getDate() + 1);
+            if (isWorkingDay(result, holidaySet)) {
+                added += 1;
+            }
+        }
+        return result;
+    }
+
+    function countWorkingDays(fromDate, toDateValue, holidaySet = new Set()) {
+        const start = toDate(fromDate);
+        const end = toDate(toDateValue);
+        if (!start || !end || start > end) {
+            return 0;
+        }
+
+        const cursor = new Date(start);
+        let count = 0;
+        while (cursor <= end) {
+            if (isWorkingDay(cursor, holidaySet)) {
+                count += 1;
+            }
+            cursor.setDate(cursor.getDate() + 1);
+        }
+        return count;
+    }
+
+    module.exports = {
+        loadHolidaySet,
+        isWorkingDay,
+        addWorkingDays,
+        countWorkingDays,
+        toDateKey,
+    };
+    "
+
+      152 |
+      153 |     it('working-days-service reads no holiday source from env or systemConfig', () => {
+    > 154 |         expect(serviceSrc).not.toMatch(/process\.env/);
+          |                                ^
+      155 |         expect(serviceSrc).not.toMatch(/systemConfig/);
+      156 |         expect(serviceSrc).not.toMatch(/prisma/i);
+      157 |     });
+
+      at Object.toMatch (__tests__/unit/working-days-service.test.js:154:32)
+
+  ● L-001 — the Thai holiday calendar has exactly ONE defining file › working-days-service no longer exports a holiday loader
+
+    expect(received).toBeUndefined()
+
+    Received: [Function loadHolidaySet]
+
+      158 |
+      159 |     it('working-days-service no longer exports a holiday loader', () => {
+    > 160 |         expect(workingDaysService.loadHolidaySet).toBeUndefined();
+          |                                                   ^
+      161 |     });
+      162 |
+      163 |     it.each([
+
+      at Object.toBeUndefined (__tests__/unit/working-days-service.test.js:160:51)
+
+  ● L-001 — the Thai holiday calendar has exactly ONE defining file › routes/api/system/system.js does not build its own holiday set
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /loadHolidaySet/
+    Received string:      "const express = require('express');
+    const router = express.Router();
+    const { prisma } = require('../../../services/prisma-database');
+    const {
+        addWorkingDays,
+        countWorkingDays,
+        loadHolidaySet,
+    } = require('../../../services/working-days-service');
+    const logger = require('../../../shared/logger');
+    const { buildStatusMachine } = require('../../../shared/status-machine-contract');
+
+    function toValidDate(value, fallback = null) {
+        if (!value) {
+            return fallback;
+        }
+        const parsed = new Date(String(value));
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    }
+
+    /**
+     * GET /api/system/status-machine
+     * Application workflow status machine definitions
+     */
+    router.get('/status-machine', async (req, res) => {
+        try {
+            return res.json({ success: true, data: buildStatusMachine() });
+        } catch (error) {
+            logger.error('[system] load status machine failed:', error?.message); // C4-05
+            return res.status(500).json({ success: false, error: 'Failed to load status machine' });
+        }
+    });
+
+    router.get('/working-days', async (req, res) => {
+        try {
+            const now = new Date();
+            const fromDate = toValidDate(req.query.from, now);
+            if (!fromDate) {
+                return res.status(400).json({
+                    success: false,
+                    error: 'INVALID_FROM_DATE',
+                });
+            }
+
+            const holidays = await loadHolidaySet(prisma);
+            const days = Number.parseInt(String(req.query.days || ''), 10);
+            const toDate = toValidDate(req.query.to, null);
+            const includeHolidayList = String(req.query.includeHolidays || 'false').trim().toLowerCase() === 'true';
+
+            if (Number.isFinite(days) && days >= 0) {
+                const dueDate = addWorkingDays(fromDate, days, holidays);
+                return res.json({
+                    success: true,
+                    data: {
+                        from: fromDate.toISOString(),
+                        workingDays: days,
+                        dueDate: dueDate.toISOString(),
+                        holidayCount: holidays.size,
+                        ...(includeHolidayList ? { holidays: [...holidays].sort() } : {}),
+                    },
+                });
+            }
+
+            if (toDate) {
+                const total = countWorkingDays(fromDate, toDate, holidays);
+                return res.json({
+                    success: true,
+                    data: {
+                        from: fromDate.toISOString(),
+                        to: toDate.toISOString(),
+                        workingDays: total,
+                        holidayCount: holidays.size,
+                        ...(includeHolidayList ? { holidays: [...holidays].sort() } : {}),
+                    },
+                });
+            }
+
+            return res.status(400).json({
+                success: false,
+                error: 'INVALID_QUERY',
+                message: 'Provide ?days=<number> or ?to=<date>',
+            });
+        } catch (error) {
+            logger.error('[System Working Days] Error:', error);
+            // Do not echo raw error.message — the real cause is logged above.
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to calculate working days',
+            });
+        }
+    });
+
+    module.exports = router;
+    "
+
+      166 |     ])('%s does not build its own holiday set', (relPath) => {
+      167 |         const src = fs.readFileSync(path.join(BACKEND_ROOT, relPath), 'utf8');
+    > 168 |         expect(src).not.toMatch(/loadHolidaySet/);
+          |                         ^
+      169 |         expect(src).not.toMatch(HOLIDAY_SOURCE_TOKENS);
+      170 |     });
+      171 |
+
+      at toMatch (__tests__/unit/working-days-service.test.js:168:25)
+
+  ● L-001 — the Thai holiday calendar has exactly ONE defining file › routes/api/system/cron.js does not build its own holiday set
+
+    expect(received).not.toMatch(expected)
+
+    Expected pattern: not /loadHolidaySet/
+    Received string:      "const express = require('express');
+    const router = express.Router();
+    const { prisma } = require('../../../services/prisma-database');
+    const {
+        countWorkingDays,
+        loadHolidaySet,
+    } = require('../../../services/working-days-service');
+    const {
+        notifyRevisionDeadlineApproaching,
+        // Blocker I (full-system audit 2026-07-07): the EXPIRED branch below flipped
+        // the application and notified NOBODY — the farmer lost the งวด-1 fee with
+        // no explanation. sendNotification + NotifyType power the applicant notice.
+        sendNotification,
+        NotifyType,
+    } = require('../../../services/notification-service');
+    const { withoutTenantScope } = require('../../../services/tenant-context');
+    const logger = require('../../../shared/logger');
+    const crypto = require('crypto'); // C5-05: constant-time cron-secret compare
+    const { writeApplicationStatus } = require('../../../services/application-status-writer');
+
+    function asObject(value) {
+        return value && typeof value === 'object' && !Array.isArray(value) ? value : {};
+    }
+
+    function asArray(value) {
+        return Array.isArray(value) ? value : [];
+    }
+
+    function toValidDate(value) {
+        if (!value) {
+            return null;
+        }
+        const parsed = value instanceof Date ? new Date(value) : new Date(String(value));
+        return Number.isFinite(parsed.getTime()) ? parsed : null;
+    }
+
+    function parseAutoCancelDueDate(application) {
+        const formData = asObject(application?.formData);
+        const status = String(application?.status || '').toUpperCase();
+
+        if (status === 'REVISION_REQUESTED') {
+            return toValidDate(
+                formData.revisionDueAt
+                || formData.revision_due_at
+                || application?.revisionDeadline?.revisionDue
+                || null,
+            );
+        }
+
+        if (status === 'CAR_PENDING') {
+            return toValidDate(formData.carDueAt || formData.car_due_at || null);
+        }
+
+        return null;
+    }
+
+    function resolveReminderBucket(hoursRemaining) {
+        if (!Number.isFinite(hoursRemaining) || hoursRemaining <= 0) {
+            return null;
+        }
+        if (hoursRemaining <= 24) {
+            return 24;
+        }
+        if (hoursRemaining <= 48) {
+            return 48;
+        }
+        return null;
+    }
+
+    function resolveReminderField(status, bucket) {
+        const normalizedStatus = String(status || '').toUpperCase();
+        if (normalizedStatus === 'REVISION_REQUESTED') {
+            return bucket === 24 ? 'revisionReminder24hSentAt' : 'revisionReminder48hSentAt';
+        }
+        if (normalizedStatus === 'CAR_PENDING') {
+            return bucket === 24 ? 'carReminder24hSentAt' : 'carReminder48hSentAt';
+        }
+        return null;
+    }
+
+    function resolveDeadlineType(status) {
+        return String(status || '').toUpperCase() === 'CAR_PENDING' ? 'CAR' : 'REVISION';
+    }
+
+    function computeRemainingWorkingDays(now, dueDate, holidays) {
+        if (!(dueDate instanceof Date) || !Number.isFinite(dueDate.getTime())) {
+            return 0;
+        }
+        if (dueDate <= now) {
+            return 0;
+        }
+        return Math.max(0, countWorkingDays(now, dueDate, holidays) - 1);
+    }
+
+    function verifyCronSecret(req) {
+        const configuredSecret = String(process.env.CRON_SECRET || '').trim();
+        if (!configuredSecret) {
+            // SECURITY: reject when CRON_SECRET is not configured
+            logger.error('[Cron] CRON_SECRET environment variable is not set. Rejecting request.');
+            return false;
+        }
+        // PENTEST R3-01 — header-only. A ?secret= query fallback lands the CRON_SECRET
+        // verbatim in nginx/Cloudflare access logs, proxy logs, and Referer headers,
+        // where anyone with log read access recovers it and can drive the SYSTEM
+        // auto-cancel/expire transitions. Headers are not written to access logs by
+        // default. The in-process node-cron jobs do not use this route.
+        const provided = String(req.headers['x-cron-secret'] || '').trim();
+        // C5-05 (audit 2026-06-10): constant-time compare — `===` short-circuits on the
+        // first differing byte, leaking the secret length/prefix via timing. timingSafeEqual
+        // needs equal-length buffers, so gate on length first (length is not itself secret).
+        if (!provided) { return false; }
+        const a = Buffer.from(provided);
+        const b = Buffer.from(configuredSecret);
+        return a.length === b.length && crypto.timingSafeEqual(a, b);
+    }
+
+    router.get('/auto-cancel', async (req, res) => {
+        try {
+            if (!verifyCronSecret(req)) {
+                return res.status(401).json({
+                    success: false,
+                    error: 'CRON_SECRET_INVALID',
+                });
+            }
+
+            const dryRun = String(req.query.dryRun || 'false').trim().toLowerCase() === 'true';
+            const now = new Date();
+            const holidays = await loadHolidaySet(prisma);
+            const applications = await prisma.application.findMany({
+                where: {
+                    isDeleted: false,
+                    status: { in: ['REVISION_REQUESTED', 'CAR_PENDING'] },
+                },
+                include: {
+                    revisionDeadline: true,
+                },
+                orderBy: { updatedAt: 'asc' },
+            });
+
+            const expired = applications.filter((application) => {
+                const dueDate = parseAutoCancelDueDate(application);
+                return dueDate && dueDate < now;
+            });
+            const reminders = applications
+                .map((application) => {
+                    const dueDate = parseAutoCancelDueDate(application);
+                    if (!dueDate || dueDate <= now) {
+                        return null;
+                    }
+                    const remainingMs = dueDate.getTime() - now.getTime();
+                    const hoursRemaining = Math.max(0, Math.ceil(remainingMs / (60 * 60 * 1000)));
+                    const bucket = resolveReminderBucket(hoursRemaining);
+                    if (!bucket) {
+                        return null;
+                    }
+                    const formData = asObject(application.formData);
+                    const reminderField = resolveReminderField(application.status, bucket);
+                    if (!reminderField || formData[reminderField]) {
+                        return null;
+                    }
+                    return {
+                        applicationId: application.id,
+                        applicationNumber: application.applicationNumber,
+                        status: application.status,
+                        deadlineType: resolveDeadlineType(application.status),
+                        dueAt: dueDate.toISOString(),
+                        reminderBucketHours: bucket,
+                        hoursRemaining,
+                        workingDaysRemaining: computeRemainingWorkingDays(now, dueDate, holidays),
+                        reminderField,
+                        formData,
+                    };
+                })
+                .filter(Boolean);
+
+            if (dryRun || (expired.length === 0 && reminders.length === 0)) {
+                return res.json({
+                    success: true,
+                    data: {
+                        dryRun,
+                        checked: applications.length,
+                        expired: expired.map((application) => ({
+                            id: application.id,
+                            applicationNumber: application.applicationNumber,
+                            status: application.status,
+                        })),
+                        reminders: reminders.map((item) => ({
+                            applicationId: item.applicationId,
+                            applicationNumber: item.applicationNumber,
+                            status: item.status,
+                            deadlineType: item.deadlineType,
+                            dueAt: item.dueAt,
+                            reminderBucketHours: item.reminderBucketHours,
+                            hoursRemaining: item.hoursRemaining,
+                            workingDaysRemaining: item.workingDaysRemaining,
+                        })),
+                        remindersSentCount: 0,
+                        cancelledCount: 0,
+                    },
+                });
+            }
+
+            const remindersSent = [];
+            for (const reminder of reminders) {
+                const nowIso = new Date().toISOString();
+                const delivered = await notifyRevisionDeadlineApproaching(
+                    reminder.applicationId,
+                    reminder.reminderBucketHours,
+                    {
+                        unit: 'hours',
+                        deadlineType: reminder.deadlineType,
+                    },
+                );
+
+                // Blocker I / top-5 #4: stamp the reminder as sent ONLY when the
+                // helper confirms delivery (returns the created notification).
+                // Stamping on failure lost the reminder forever — the next run saw
+                // the stamp and never retried, so the farmer approached auto-cancel
+                // with no warning. Unstamped ⇒ retried on the next cron run.
+                if (!delivered) {
+                    logger.warn(
+                        `[Cron] deadline reminder NOT delivered for ${reminder.applicationNumber} ` +
+                        `(bucket ${reminder.reminderBucketHours}h) — leaving unstamped for retry`,
+                    );
+                    continue;
+                }
+
+                await prisma.application.update({
+                    where: { id: reminder.applicationId },
+                    data: {
+                        formData: {
+                            ...asObject(reminder.formData),
+                            [reminder.reminderField]: nowIso,
+                        },
+                    },
+                });
+
+                remindersSent.push({
+                    applicationId: reminder.applicationId,
+                    applicationNumber: reminder.applicationNumber,
+                    status: reminder.status,
+                    deadlineType: reminder.deadlineType,
+                    reminderBucketHours: reminder.reminderBucketHours,
+                    dueAt: reminder.dueAt,
+                    sentAt: nowIso,
+                });
+            }
+
+            let cancelledCount = 0;
+            const cancelled = [];
+            for (const application of expired) {
+                const nowIso = new Date().toISOString();
+                const workflowHistory = asArray(application.workflowHistory);
+                const formData = asObject(application.formData);
+                const reason = String(application.status || '').toUpperCase() === 'CAR_PENDING'
+                    ? 'CAR_OVERDUE'
+                    : 'REVISION_OVERDUE';
+
+                await prisma.$transaction(async (tx) => {
+                    await writeApplicationStatus({
+                        prisma: tx,
+                        applicationId: application.id,
+                        fromStatus: application.status,
+                        toStatus: 'EXPIRED',
+                        actorId: 'cron',
+                        actorRole: 'system',
+                        reason: `AUTO_EXPIRED:${reason}`,
+                        additionalData: {
+                            formData: {
+                                ...formData,
+                                workflowState: 'EXPIRED',
+                                workflowStateUpdatedAt: nowIso,
+                                cancelReason: reason,
+                                canceledExpiredAt: nowIso,
+                            },
+                            workflowHistory: [
+                                ...workflowHistory,
+                                {
+                                    timestamp: nowIso,
+                                    action: 'AUTO_EXPIRED',
+                                    fromStatus: application.status,
+                                    toStatus: 'EXPIRED',
+                                    reason,
+                                    actorRole: 'system',
+                                },
+                            ],
+                        },
+                    });
+
+                    await tx.revisionDeadline.updateMany({
+                        where: {
+                            applicationId: application.id,
+                            status: { in: ['PENDING', 'EXTENDED'] },
+                        },
+                        data: {
+                            status: 'FAILED',
+                            updatedBy: 'system',
+                        },
+                    });
+                });
+
+                cancelledCount += 1;
+                cancelled.push({
+                    id: application.id,
+                    applicationNumber: application.applicationNumber,
+                    fromStatus: application.status,
+                    toStatus: 'EXPIRED',
+                });
+
+                // Blocker I (full-system audit 2026-07-07): this branch previously
+                // expired the application and notified NOBODY — the farmer, who has
+                // paid งวดที่ 1 (5,535 บาท), discovered the cancellation only by
+                // polling the dashboard. Tell them what happened + the consequence
+                // (must re-apply and pay again). Best-effort: a notification hiccup
+                // must not undo the expiry (mirrors revision-deadline-checker.js).
+                try {
+                    if (application.healthId) {
+                        // Application.healthId is the FK token pointing at
+                        // User.canonicalId (detokenize STAGE A) — resolve to User.id
+                        // because notification.userId FK requires it. User IS in
+                        // TENANT_SCOPED_MODELS (tenant-prisma-extension.js), so make
+                        // the cross-tenant read explicit with withoutTenantScope —
+                        // this route is unauthenticated-cron (no tenant context) but
+                        // the explicit escape keeps the lookup correct if this block
+                        // is ever copied into an authenticated route where ENT-01
+                        // read-scope would silently filter it (mirrors
+                        // jobs/revision-deadline-checker.js).
+                        const applicantUser = await withoutTenantScope(() => prisma.user.findFirst({
+                            where: { canonicalId: application.healthId, isDeleted: false },
+                            select: { id: true },
+                        }));
+                        if (applicantUser?.id) {
+                            await sendNotification(applicantUser.id, NotifyType.APPLICATION_EXPIRED, {
+                                applicationNumber: application.applicationNumber,
+                                reason: reason === 'CAR_OVERDUE'
+                                    ? 'ไม่ส่งงานแก้ไข (CAR) ภายใน 5 วันทำการ'
+                                    : 'ไม่ส่งเอกสารแก้ไขภายใน 5 วันทำการ',
+                                expiredAt: nowIso,
+                            });
+                        } else {
+                            logger.warn(`[Cron] applicant User not found for ${application.applicationNumber}; skipping expiry notification`);
+                        }
+                    }
+                } catch (notifyErr) {
+                    logger.error(`[Cron] expiry notification failed for ${application.applicationNumber} (non-fatal): ${notifyErr?.message}`);
+                }
+            }
+
+            return res.json({
+                success: true,
+                data: {
+                    dryRun: false,
+                    checked: applications.length,
+                    remindersSentCount: remindersSent.length,
+                    remindersSent,
+                    cancelledCount,
+                    cancelled,
+                },
+            });
+        } catch (error) {
+            logger.error('[Cron Auto Cancel] Error:', error);
+            // Do not echo raw error.message — the real cause is logged above.
+            return res.status(500).json({
+                success: false,
+                error: 'Failed to process auto-cancel',
+            });
+        }
+    });
+
+    module.exports = router;
+    "
+
+      166 |     ])('%s does not build its own holiday set', (relPath) => {
+      167 |         const src = fs.readFileSync(path.join(BACKEND_ROOT, relPath), 'utf8');
+    > 168 |         expect(src).not.toMatch(/loadHolidaySet/);
+          |                         ^
+      169 |         expect(src).not.toMatch(HOLIDAY_SOURCE_TOKENS);
+      170 |     });
+      171 |
+
+      at toMatch (__tests__/unit/working-days-service.test.js:168:25)
+
+  ● L-001 — the Thai holiday calendar has exactly ONE defining file › exactly one file under services/ utils/ shared/ config/ defines holidays
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Array [
+    +   "services/working-days-service.js",
+        "utils/working-days.js",
+      ]
+
+      177 |             .sort();
+      178 |
+    > 179 |         expect(defining).toEqual(['utils/working-days.js']);
+          |                          ^
+      180 |     });
+      181 | });
+      182 |
+
+      at Object.toEqual (__tests__/unit/working-days-service.test.js:179:26)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 12 passed, 18 total
+Snapshots:   0 total
+Time:        0.836 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/working-days-service.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

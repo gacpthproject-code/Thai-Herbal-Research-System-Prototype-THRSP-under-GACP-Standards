@@ -1,0 +1,49 @@
+
+===== [local-gate] banned-terms =====
+[banned-terms] Repository scan passed
+[local-gate] banned-terms: PASS
+
+===== [local-gate] mojibake =====
+[encoding-check] PASS: no mojibake markers or UTF-8 BOM files found
+[local-gate] mojibake: PASS
+
+===== [local-gate] green-mask =====
+[green-mask] PASS — 1150 file(s) scanned; no net-new masks (baseline 15, burn-down tracked for UAT-01).
+[local-gate] green-mask: PASS
+
+===== [local-gate] probe-gate =====
+probe-gate: running 11 CI probe(s): deploy-drift dockerignore-secrets gate-attestation holiday-single-source main-attestation-audit no-secret no-skip ratchet schema-arg-resolves status-vocab stripe-sdk-isolated
+probe-gate: NOT run here (signed 'manual'): crawler-clean drain-complete evidence-complete money-equation quotation-closure report-integrity (until 2026-09-15) settle-webhook-only (until 2026-09-15) stripe-keys-ready suite-green tier-check (until 2026-09-15) webhook-idempotent (until 2026-09-15)
+probe-gate: a green result says nothing about the manual set — see probe-registry.txt for each reason.
+
+deploy-drift           FAIL       prod-frontend: could not reach https://gacpth.com/api/webapp-version (network or HTTP error). Not a verdict about the deployment — but not a pass either
+dockerignore-secrets   PASS     PASS: 424 sensitive file(s) in the tree, all excluded from the build context by .dockerignore
+gate-attestation       FAIL     FAIL: no attestation for HEAD cc89a70340831d62ef0b27ce5e63aff87a89f19b — evidence/gate/cc89a70340831d62ef0b27ce5e63aff87a89f19b.json does not exist (searched 50 commit(s) back). Run scripts/ci/full-gate.sh on the gate machine; see docs/operations/runbooks/full-gate-on-staging.md
+holiday-single-source  PASS     PASS: single calendar source: apps/backend/utils/working-days.js
+main-attestation-audit FAIL     17 of 17 gated commit(s) on origin/main in the last 30 first-parent commit(s) (cutoff 2026-08-08: 0 skipped as before cutoff, 13 touched no gated path) have NO full-gate attestation. This probe cannot and does not block a merge — it makes an unattested merge impossible to hide.
+no-secret              BLOCKED  BLOCKED: operator:secret-scanner — layer1 grep passed (0 hits) but NO deep scanner ran locally (gitleaks absent, not in CI). Install gitleaks or run in CI where TruffleHog provides layer 2. Refusing to report PASS for a scan that did not happen.
+no-skip                FAIL     apps/web-app/e2e/farmer-services-carpet.spec.ts:100:    test.skip(!HAS_CREDS, 'E2E_TEST_IDENTIFIER / E2E_TEST_PASSWORD not set');
+ratchet                PASS     PASS: no counter above baseline — current: hardcode=33 todo=56 env-direct=122 dup-source=2 (evidence/ratchet-current.txt)
+schema-arg-resolves    FAIL       - scripts/deploy/remote-install.sh:155  'is' (not path-shaped — reads as prose, not a value)
+status-vocab           PASS     PASS: 11 DONE(probe:...) claim(s) in QUEUE.md + reports/**/*.md all name registered probes (3 allowlisted quotation(s), 0 metasyntactic mention(s) read as prose)
+stripe-sdk-isolated    PASS     PASS: stripe SDK only in services/payment/stripe-adapter.js
+→ evidence/probe-results.json
+
+probe-gate notes:
+  · settle-webhook-only: parked out of CI until 2026-09-15 (17 day(s) left) — รัน `npx jest stripe-checkout-engine.test.js` (`scripts/probes/settle-webhook-only.sh:10`) — ต้องมี prisma client · ยืนพื้นจริง (แก้ 2026-08-22): รันแบบ blocking อยู่แล้วในชื่อ full-gate required check `probe-prisma-deps` (full-gate-checks.txt:46) บนเครื่อง staging · local re-run 2026-08-22: PASS · เดิมอ้าง "job มี deps ครบ" ซึ่งชี้ job ที่ตายแล้ว (ไม่มี hosted Actions) — คงวันหมดอายุไว้ (แก้ run/waived = operator เท่านั้น, L6); ข้อเสนอ reclassify เป็น manual ถาวรอยู่ที่ reports/rules-audit/operator-decisions.md D-14
+  · webhook-idempotent: parked out of CI until 2026-09-15 (17 day(s) left) — รัน jest ชุดเดียวกัน (`scripts/probes/webhook-idempotent.sh:5`) — เงื่อนไขเดียวกับข้างบน (full-gate required check `probe-prisma-deps`) · local re-run 2026-08-22: PASS · แก้ข้อความ 2026-08-22 เหตุผลเดียวกับ settle-webhook-only แถวบน (D-15)
+  · tier-check: parked out of CI until 2026-09-15 (17 day(s) left) — ต้องการ `origin/main` ref เทียบ merge-base · บริบทที่ไม่มี origin/main คืน BLOCKED = ไม่มี signal (ไม่ใช่ FAIL) · local re-run 2026-08-22 ในเครื่องที่มี full clone: TIER=A, exit 0 (ไม่ BLOCKED) — กลไกยืนยันใช้ได้เมื่อมี origin/main จริง · เดิมอ้าง "ปลดเมื่อตั้ง fetch-depth: 0" ใน .github/workflows/ci.yml ซึ่งเป็น job ที่ไม่รันจริงอีกแล้ว (ไม่มี hosted Actions ตั้งแต่ 2026-08-14) — คงวันหมดอายุไว้ (แก้ run/waived = operator, L6) · ⚠️ ยังไม่อยู่ใน DEFAULT ของ check-done.sh:12 ด้วย · ข้อเสนอ reclassify เป็น manual ถาวร + ให้ full-gate เรียกตอนตัดสิน tier อยู่ที่ operator-decisions.md D-05/D-16
+  · report-integrity: parked out of CI until 2026-09-15 (17 day(s) left) — L-031: probe เคยเลือกไฟล์ .md ใหม่สุดอัตโนมัติ → PASS ด้วยไฟล์ plan (ของจริงที่โดน: reports/orchestrator/W2-01-plan.md) · **โค้ดฝั่ง probe แก้เสร็จแล้ว (verified 2026-08-22 ที่ report-integrity.sh:33-47)**: รับ path ชัดเจนทาง argv[1] หรือ REPORT_INTEGRITY_TARGET, target ที่ระบุแล้วไม่มีไฟล์ = FAIL ไม่ใช่ PENDING, พิมพ์ mode+target ทุกครั้ง — ทั้งสามข้อ confirm ตรงกับที่โค้ดเขียนไว้จริง · **สิ่งที่ยังไม่ตัดสิน (ไม่ใช่ wiring line — เป็นดุลพินิจ operator)**: จะให้ full-gate/local-gate ชี้ REPORT_INTEGRITY_TARGET ไปที่ไฟล์ไหนต่อรัน — ไม่มี convention เดียวที่ใช้ได้ทุก PR (report path เป็น "ต่อ work item" ตาม CLAUDE.md §6 ไม่ใช่ path คงที่) · คงวันหมดอายุไว้ตามเดิม รอ operator เลือก convention แล้ว flip เป็น ci หรือ re-sign วันใหม่ก่อน 2026-09-15
+  · no-secret: BLOCKED — an honest state, not a pass. Not gating.
+  · no-skip: FAIL but WAIVED by operator until 2026-09-15 (17 day(s) left) — L-006 — re-measured 2026-08-22: 13 conditional `test.skip(` (not 10 — full re-count, no allowlist filtering since the allowlist file is empty), all in apps/web-app/{e2e,playwright}/: e2e-golden-scenario.spec.ts:90,117,123,162,168,180,190 (ApplicantToken/farmId/applicationId dependency chain — see L-020), farmer-services-carpet.spec.ts:58,77,100,141 (`HAS_CREDS` = E2E_TEST_IDENTIFIER/E2E_TEST_PASSWORD), account-split-journey.spec.ts:138, farmer-full-journey.spec.ts:425 · root cause confirmed: those two env vars are wired ONLY in `.github/workflows/e2e-staging-nightly.yml:85-86` (nightly, real staging creds) — no PR-triggered job sets them, so `HAS_CREDS` is permanently false outside the nightly run · burn-down needs one of: (a) a self-hosted job that seeds a throwaway local user (Postgres+backend booted, no staging secrets) and sets E2E_TEST_IDENTIFIER/PASSWORD to it, removing the staging-secret dependency — then the 4 farmer-services-carpet skips can go; (b) resolve L-020's cascading `test.skip(true, ...)` masks in e2e-golden-scenario.spec.ts before its 7 skips can be un-conditioned — that spec's design (collapse-to-skip-on-non-2xx) needs an operator/design call, not a mechanical fix; (c) declare both files nightly-only per L-021's proposed manifest and narrow no-skip's scope to exclude declared-nightly specs. None of (a)-(c) is a small wiring line — leaving the waiver
+
+probe-gate: FAIL
+  ✗ deploy-drift: FAIL and no operator waiver — this is the gate doing its job
+  ✗ gate-attestation: FAIL and no operator waiver — this is the gate doing its job
+  ✗ main-attestation-audit: FAIL and no operator waiver — this is the gate doing its job
+  ✗ schema-arg-resolves: FAIL and no operator waiver — this is the gate doing its job
+[local-gate] probe-gate: FAIL
+
+[local-gate] unit-suite: SKIPPED (ตั้ง LOCAL_GATE_FULL=1 เพื่อรันเต็ม — ต้อง pnpm install ก่อน)
+
+[local-gate] RESULT: FAIL

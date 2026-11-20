@@ -1,0 +1,73 @@
+# LOCAL_GATE_FULL=1 ผ่าน scripts/ops/heavy.sh บน WSL ของ PC · ทีละงาน
+head: b64460a1eeca18120095a1ce6a15f927c49c6c41 (chore/commit-hygiene หลัง merge main) · 2026-11-08 11:23-11:37 +07
+base: 08730b4bfcde0b22d0c30057b39006f90739e9bb (origin/main) · 2026-11-08 11:08-11:22 +07
+attestation ล่าสุดของ main: evidence/gate/af94cff9aad7bd31baab50f39cc7c965655ef991.json (full-gate · verdict fail)
+free -m ก่อนเริ่ม: available 7340 MB จาก 7914 · swap ไม่ถูกใช้ · ไม่มีงานถูกหยุดเพราะหน่วยความจำ
+log ดิบ (ไม่ commit): ~/work/state/hygiene3-localgate-full.log และ ~/work/state/base-08730b4bf-localgate-full.log
+
+หมายเหตุ: รอบ head แรก (10:54-11:08) ถูกผู้ตรวจอิสระ checkout worktree เดียวกันไปที่ origin/main ราว 1 วินาทีที่ 10:55:06 จึงไม่ใช้เป็นหลักฐาน · รอบนี้รันใหม่หลังจากนั้น ผลตรงกับรอบแรกทุกข้อ
+
+## ผลต่อขั้น
+### base
+[local-gate] banned-terms: PASS
+[local-gate] mojibake: PASS
+[local-gate] green-mask: FAIL
+[local-gate] probe-gate: FAIL
+[local-gate] probe-gate-selftest: PASS
+[local-gate] ratchet-selftest: PASS
+[local-gate] architecture-doc: PASS
+[local-gate] architecture-selftest: PASS
+[local-gate] unit-suite: FAIL
+[local-gate] research-dataset: FAIL
+### head
+[local-gate] banned-terms: PASS
+[local-gate] mojibake: PASS
+[local-gate] green-mask: FAIL
+[local-gate] probe-gate: FAIL
+[local-gate] probe-gate-selftest: PASS
+[local-gate] ratchet-selftest: PASS
+[local-gate] commit-hygiene: PASS
+[local-gate] commit-hygiene-selftest: PASS
+[local-gate] architecture-doc: PASS
+[local-gate] architecture-selftest: PASS
+[local-gate] unit-suite: FAIL
+[local-gate] research-dataset: FAIL
+
+## jest
+base: Tests:       16 failed, 2407 skipped, 13891 passed, 16314 total
+head: Tests:       16 failed, 2407 skipped, 13891 passed, 16314 total
+
+## ชุดที่ล้ม (เหมือนกันทั้งสองหัว)
+FAIL __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js
+FAIL __tests__/integration/payer-block-matrix.test.js
+FAIL __tests__/unit/visit-reminder-scheduled.test.js
+
+## ชื่อเทสต์ที่ล้ม (เหมือนกันทั้งสองหัว)
+● Test suite failed to run
+● credit/debit note payer block — COMMUNITY_ENTERPRISE › credit-note — COMMUNITY_ENTERPRISE
+● credit/debit note payer block — COMMUNITY_ENTERPRISE › debit-note — COMMUNITY_ENTERPRISE
+● credit/debit note payer block — INDIVIDUAL › credit-note — INDIVIDUAL
+● credit/debit note payer block — INDIVIDUAL › debit-note — INDIVIDUAL
+● credit/debit note payer block — JURISTIC › credit-note — JURISTIC
+● credit/debit note payer block — JURISTIC › debit-note — JURISTIC
+● invoice.html payer block — COMMUNITY_ENTERPRISE › invoice — COMMUNITY_ENTERPRISE
+● invoice.html payer block — COMMUNITY_ENTERPRISE › receipt-tax-invoice — COMMUNITY_ENTERPRISE
+● invoice.html payer block — INDIVIDUAL › invoice — INDIVIDUAL
+● invoice.html payer block — INDIVIDUAL › receipt-tax-invoice — INDIVIDUAL
+● invoice.html payer block — JURISTIC › invoice — JURISTIC
+● invoice.html payer block — JURISTIC › receipt-tax-invoice — JURISTIC
+● no block runs the visit reminder while the applicant cannot ask for another date (order 65(3))
+● quotation.html payer block — COMMUNITY_ENTERPRISE › quotation — COMMUNITY_ENTERPRISE
+● quotation.html payer block — INDIVIDUAL › quotation — INDIVIDUAL
+● quotation.html payer block — JURISTIC › quotation — JURISTIC
+
+## probe ที่ล้ม (เหมือนกันทั้งสองหัว · สถานะ probe ทั้ง 27 แถวตรงกัน)
+  ✗ deploy-drift: FAIL and no operator waiver — this is the gate doing its job
+  ✗ status-vocab: FAIL and no operator waiver — this is the gate doing its job
+
+## เทียบ attestation af94cff9a (full-gate บนฐานข้อมูล scratch)
+probe ที่ attestation ล้ม: a5-accuracy deploy-drift main-attestation-audit status-vocab · local-gate ของ head ล้มชุดเดียวกัน (a5-accuracy เป็น report-only, main-attestation-audit มี waiver ถึง 2026-12-31) ไม่มี probe ใหม่ที่ล้ม
+jest: attestation ล้ม a0-pr2-per-hop-invariant และ dtam-schema-drop-migration-real-postgres บน Postgres จริง · local-gate ไม่มี DB จึงไม่ได้รัน a0-pr2 และล้ม payer-block-matrix กับ visit-reminder-scheduled ซึ่งล้มเหมือนกันที่ base 08730b4bf · branch ไม่แตะ apps/ (gate-attestation: 13 ไฟล์ ไม่มี ^apps/)
+
+## สรุป: ไม่มีความล้มเหลวใหม่เทียบ base 08730b4bf · commit-hygiene และ commit-hygiene-selftest ผ่าน · architecture-doc ผ่านทั้งสองหัวหลัง main รวม #869
+research-dataset ล้มทั้งสองหัวที่ docker run tbd-dataset-check · ไม่เกี่ยวกับ branch

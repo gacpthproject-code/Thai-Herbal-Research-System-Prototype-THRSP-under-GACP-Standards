@@ -1,0 +1,480 @@
+# fix round 1 GREEN — node v24.21.0 · NODE_OPTIONS unset · SIGNING_KEY_DIR=mktemp -d · tesseract info lines removed
+$ npx jest --config jest.config.cjs __tests__/integration/document-precheck-accuracy.test.js __tests__/unit/document-precheck
+    document-precheck accuracy — OCR_CONFIDENCE_MIN=60 NAME_SIMILARITY_MIN=0.85
+    files: 61   extraction wall time: 37790 ms
+    
+    check        n  problems warnings  TP  FP  FN  precision  recall  exact
+    READABILITY  61       14       14  14   0   0     100.0%  100.0% 100.0%
+    DOC_TYPE     41        6        7   5   2   1      71.4%   83.3%  92.7%
+    CROSS_MATCH  41        9       11   7   4   2      63.6%   77.8%  73.2%
+    VALIDITY      9        3        4   3   1   0      75.0%  100.0%  77.8%
+    overall     152       32       36  29   7   3      80.6%   90.6%  89.5%
+    UNREADABLE rate:  22.9% of files
+    
+    disagreements with the labels (file: check expected -> actual):
+      land_deed--scan-blur.png: DOC_TYPE MATCH -> NOT_FOUND   [OCR conf 90]
+      land_deed--scan-blur.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 90]
+      land_deed--wrong-type.pdf: DOC_TYPE NOT_FOUND -> MATCH   [TEXT_LAYER conf 100]
+      land_deed--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      land_lease--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+      land_consent--scan-blur.png: DOC_TYPE MATCH -> NOT_FOUND   [OCR conf 91]
+      land_consent--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      company_reg--scan-blur.png: VALIDITY PASS -> DATE_NOT_FOUND   [OCR conf 91]
+      company_reg--scan-rotate3.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 93]
+      company_reg--wrong-type.pdf: CROSS_MATCH NOT_FOUND -> MISMATCH   [TEXT_LAYER conf 100]
+      company_reg--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      company_reg--no-date.pdf: VALIDITY DATE_NOT_FOUND -> EXPIRED   [TEXT_LAYER conf 100]
+      id_card--scan-blur.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 90]
+      id_card--scan-rotate3.png: CROSS_MATCH MATCH -> NOT_FOUND   [OCR conf 93]
+      id_card--name-mismatch.pdf: CROSS_MATCH MISMATCH -> NOT_FOUND   [TEXT_LAYER conf 100]
+      house_reg--name-mismatch.pdf: CROSS_MATCH MISMATCH -> MATCH   [TEXT_LAYER conf 100]
+    
+    floor breaches: []
+
+      at Object.log (__tests__/integration/document-precheck-accuracy.test.js:84:17)
+
+PASS __tests__/integration/document-precheck-accuracy.test.js (40.373 s)
+  ✓ reads the committed corpus directory (1 ms)
+  corpus
+    ✓ every labelled file exists and every corpus file is labelled (4 ms)
+    ✓ each of the 7 types has at least 6 variants (2 ms)
+    ✓ the rule layer produced exactly the flags the labels expect (no missing, no extra) (1 ms)
+  floors (thresholds.json)
+    ✓ thresholds.json has a floor for every check and the overall pool (2 ms)
+    ✓ no metric is below its floor (or above its ceiling) (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/document-precheck/service.test.js (5.004 s)
+  enqueueForUpload
+    ✓ a slot outside CATALOG (sop_cultivation) creates no row and adds no job (4 ms)
+    ✓ a land_deed upload creates a PENDING row at RULES_VERSION and adds one job carrying the file (19 ms)
+    ✓ a re-upload into the same slot (any spelling) supersedes the earlier row; other slots are untouched (3 ms)
+    ✓ enqueue-failure: queue.add throws → the row is FAILED with exactly the failure flag, and the call resolves (2 ms)
+    ✓ the queue not initialised (no Redis) is the same failure: FAILED + the failure flag (2 ms)
+    ✓ a queue add that never settles is given up after ENQUEUE_TIMEOUT_MS (2 s): FAILED + the failure flag (2003 ms)
+    ✓ supersede + insert take pg_advisory_xact_lock on (applicationId, canonical slot) first, inside the transaction (2 ms)
+  catalogKeyFor
+    ✓ maps every spelling of an in-scope slot (old key, canonical v2 id, alias) to its CATALOG key; others to null (1 ms)
+  runPrecheck
+    ✓ land_deed: DONE with exactly the checks CATALOG defines for it (no VALIDITY rule → 4 flags) (4 ms)
+    ✓ a NUL character in the extracted text is stripped before the write: DONE, text and flags carry no NUL (2 ms)
+    ✓ OCR confidence is the mean of the page confidences; NONE stores null text and null confidence (2 ms)
+    ✓ a row that is no longer PENDING exits without extracting (the supersede guard) (1 ms)
+    ✓ precheck-supersede-race: B arrives while A is extracting → A's flags are discarded and A stays SUPERSEDED (3 ms)
+    ✓ extraction PRECHECK_TIMEOUT on a non-final attempt rethrows and leaves the row PENDING for the retry (1 ms)
+    ✓ an OCR failure on the final attempt → FAILED + the failure flag, and does not throw (1 ms)
+    ✓ a non-extraction exception (reference load) → FAILED + the flag at once, even on a non-final attempt (2 ms)
+    ✓ the processor: attempt 1 of 2 fails → rethrows, PENDING; attempt 2 of 2 fails → FAILED + flag. Nothing is left PENDING (2 ms)
+    ✓ failPrecheck (the queue's last-resort failed handler) marks a still-PENDING row FAILED and leaves a DONE row alone (2 ms)
+  loadReference
+    ✓ INDIVIDUAL: applicant name, entity type, and only the last 4 digits of the citizen ID — never the full ID (1 ms)
+    ✓ JURISTIC: entity name, juristic ID and the director's name from payload.director — the director's ID card is not carried (2 ms)
+    ✓ a whole run never writes the full citizen ID to a log line, a flag, or the reference (2 ms)
+  acknowledge
+    ✓ the owner sets applicantAcknowledgedAt once; a second call keeps the first time (7 ms)
+    ✓ anyone else is refused (FORBIDDEN) and nothing is written; an unknown id is NOT_FOUND (2 ms)
+  queue-service: the document-precheck queue
+    ✓ initQueues creates document-precheck with the brief's job options and a sandboxed processor file — even though pdf-processor.js is absent (5 ms)
+    ✓ a job that failed its LAST attempt is marked FAILED; a failure with a retry left is not (2 ms)
+  POST /draft-documents — the pre-check hook
+    ✓ an in-scope upload creates a PENDING pre-check for exactly this document and adds the job (70 ms)
+    ✓ enqueue-failure-still-uploads: the queue add throws → 200 with the unchanged body, and the row is FAILED with the failure flag (21 ms)
+    ✓ I2: a queue add that never settles (unreachable Redis) → the route answers 200 unchanged within ~2 s, and the row is FAILED (2029 ms)
+    ✓ even enqueueForUpload itself throwing (database down) leaves the upload response unchanged (16 ms)
+    ✓ an out-of-scope slot uploads exactly as before and creates no pre-check (17 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.log
+    
+    --- extract.test.js wall-time per case ---
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:53:13)
+
+  console.log
+      text-layer PDF: 225ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      image-only PDF (scanned Thai): 614ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      PNG image: 307ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      extract-limits (60-page PDF): 204ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      0-byte file: 2ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      encrypted PDF: 131ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      unsupported mime type: 1ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      timeout: 1ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      timeout mid-flight (Minor 5): 92ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      concurrent timeout does not corrupt sibling OCR (I1): 559ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      OCR failure -> rejects (I2): 52ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+  console.log
+      huge MediaBox (I3): 1230ms
+
+      at Object.log (__tests__/unit/document-precheck/extract.test.js:55:17)
+
+PASS __tests__/unit/document-precheck/extract.test.js
+  extractDocument (services/document-precheck/extract.js)
+    ✓ a text-layer PDF returns TEXT_LAYER and the page text contains the Thai phrase (226 ms)
+    ✓ an image-only PDF (scanned Thai page) returns OCR and reads the Thai phrase (615 ms)
+    ✓ a PNG image returns OCR (308 ms)
+    ✓ extract-limits: a 60-page PDF reports pageCount 60, returns 10 pages, truncated true (206 ms)
+    ✓ a 0-byte file returns NONE with no pages (3 ms)
+    ✓ an encrypted PDF returns NONE with no pages (131 ms)
+    ✓ an unsupported mime type returns NONE with no pages (3 ms)
+    ✓ extraction that exceeds timeoutMs rejects with code PRECHECK_TIMEOUT (2 ms)
+    ✓ a timeout that lands while the pdf-extract-worker child is running leaves no child process behind (92 ms)
+    ✓ I1: a timed-out call does not corrupt a concurrent call's own OCR worker (560 ms)
+    ✓ I2: a missing tessdata directory makes OCR reject, not silently return an unreadable page (53 ms)
+    I3: raster size cap
+      ✓ scaleForPage keeps a 14400x14400pt page's long side within MAX_RASTER_LONG_SIDE_PX
+      ✓ a 1-page PDF declaring a 14400x14400pt MediaBox extracts successfully (1231 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/document-precheck/routes.test.js
+  GET /applications/:id/requirements — the applicant
+    ✓ the owner sees the observations on their in-scope slots: check, result and reason only (81 ms)
+    ✓ never the confidence, the snippet or the extracted text — anywhere in the body (11 ms)
+    ✓ a slot being checked shows PENDING with no observations yet; an in-scope slot never checked and an out-of-scope slot are null (8 ms)
+    ✓ a different health user gets 404 and none of the observations (8 ms)
+    ✓ the pre-check rows are read with explicit selects that never name the extracted text (8 ms)
+  POST /applications/:id/prechecks/:precheckId/acknowledge — the applicant
+    ✓ the owner acknowledges: the time is recorded and the application status is exactly what it was (14 ms)
+    ✓ a non-owner is refused with 404 and nothing is written (7 ms)
+    ✓ a pre-check of another application, named under your own application, is 404 and untouched (8 ms)
+    ✓ an unknown pre-check is 404 (19 ms)
+  GET /provider/applications/:id/document-check — role × body
+    ✓ document_reviewer: the same observations plus confidence and the snippet — masked (12 ms)
+    ✓ field_inspector: the same observations plus confidence and the snippet — masked (8 ms)
+    ✓ system_admin_dtam: the same observations plus confidence and the snippet — masked (8 ms)
+    ✓ system_admin_platform: the same observations plus confidence and the snippet — masked (7 ms)
+    ✓ finance_officer_dtam: 403 and the body carries nothing of the pre-check (7 ms)
+    ✓ finance_officer_platform: 403 and the body carries nothing of the pre-check (6 ms)
+    ✓ dispatcher: 403 and the body carries nothing of the pre-check (7 ms)
+    ✓ certificate_approver: 403 and the body carries nothing of the pre-check (7 ms)
+    ✓ health: 403 and the body carries nothing of the pre-check (7 ms)
+    ✓ a document reviewer who is not the assigned one: 403 and nothing of the pre-check (7 ms)
+    ✓ no caller: 401, nothing read (6 ms)
+  POST /provider/applications/:id/document-reviews — the verdict row stores the pre-check it was taken over
+    ✓ the slot's current DONE pre-check id is written on create and on update (16 ms)
+    ✓ a slot whose current pre-check is still PENDING stores null — the superseded DONE is not "current" (8 ms)
+    ✓ a FAILED current pre-check stores null (7 ms)
+    ✓ a slot outside the catalog stores null even if a row exists for it (7 ms)
+  warn-only: a pre-check read that fails never fails the door
+    ✓ the applicant's requirements still answer, every slot's precheck null (7 ms)
+    ✓ the officer's document-check still answers, every slot's precheck null (7 ms)
+    ✓ the verdict is still recorded, with precheckId null (7 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/document-precheck/rules.test.js
+  constants
+    ✓ OCR_CONFIDENCE_MIN is 60 (set from the Task 9 corpus) (2 ms)
+    ✓ NAME_SIMILARITY_MIN is re-exported from normalize.js, not a second constant (1 ms)
+    ✓ CATALOG has an entry, with a source, for exactly the 7 canonical slots (2 ms)
+    ✓ only company_reg carries a validity rule, exactly maxAgeMonths 6 / facts.md:50 (1 ms)
+    ✓ evaluate() throws for a slotId outside the 7-slot CATALOG scope (13 ms)
+    ✓ I1: land_deed/land_lease/land_consent declare referenceCombine ANY; every other slot is the ALL default (1 ms)
+  READABILITY
+    ✓ PASS: readable text, no page-count rule configured for this slot (1 ms)
+    ✓ UNREADABLE: empty extracted text (1 ms)
+    ✓ UNREADABLE: OCR confidence below OCR_CONFIDENCE_MIN (1 ms)
+    ✓ PAGE_COUNT: pinned directly against a synthetic catalog entry (no production slot has this rule) (1 ms)
+  DOC_TYPE
+    ✓ MATCH: the sourced phrase appears in the text (1 ms)
+    ✓ NOT_FOUND: readable, but none of the sourced phrases appear (12 ms)
+    ✓ UNREADABLE: an unreadable document is UNREADABLE, never NOT_FOUND (1 ms)
+    ✓ I5: land_lease has no sourced phrase, so evaluate() emits NO DOC_TYPE flag at all (1 ms)
+    I4: fuzzy tolerance for OCR noise
+      ✓ an OCR-inserted space inside the phrase still MATCHes (1 ms)
+      ✓ one OCR-wrong character still MATCHes (1 ms)
+      ✓ a Thai-digit "๓" with an OCR-inserted space still MATCHes the printed "น.ส.3" (1 ms)
+      ✓ a clearly different document is still NOT_FOUND — the tolerance is small, not unlimited (15 ms)
+    N1: short phrases get no edit tolerance
+      ✓ an ID card naming a "น.ส." (Miss) is NOT_FOUND in LAND_DEED, not a false MATCH on "น.ส.3" (15 ms)
+      ✓ a receipt naming a "น.ส." is NOT_FOUND in LAND_DEED (15 ms)
+      ✓ "น.ส. ๓" (Thai digit + OCR space) still MATCHes — exact containment after normalization needs no tolerance (2 ms)
+  CROSS_MATCH
+    ✓ MATCH: name and citizen-id-last-4 both found in the document (2 ms)
+    ✓ MISMATCH: name matches but the citizen id in the document does not end in the expected last 4 (1 ms)
+    ✓ cross-match-missing-reference: an individual with no Entity yields NOT_FOUND, never MISMATCH (2 ms)
+    ✓ unreadable-short-circuits: DOC_TYPE is UNREADABLE and CROSS_MATCH is NOT_FOUND, even with full reference data on file (1 ms)
+    ✓ I5: previous_cert has no sourced reference field, so evaluate() emits NO CROSS_MATCH flag at all
+    ✓ I1: a deed held by the company, with the (unrelated) applicant person also on file, is MATCH via any-of (2 ms)
+    C1: name matching respects word boundaries and normalize.nameMatchLevel's own TONE_ONLY/CLOSE/DIFFERENT classification
+      ✓ a trailing tone mark is TONE_ONLY -> MISMATCH, never MATCH (1 ms)
+      ✓ a mid-word tone mark is TONE_ONLY -> MISMATCH, never MATCH (1 ms)
+      ✓ a high-similarity OCR variant that is CLOSE (not tone-only) -> MATCH (2 ms)
+      ✓ a name that is a prefix of a different, longer name found in the document is not MATCH (1 ms)
+      ✓ a short company name is not MATCH merely for being a substring of an unrelated word ("ทุน" inside "ทุนจดทะเบียน") (2 ms)
+    N3: OCR-glued name text is MATCH or NOT_FOUND, never a false MISMATCH
+      ✓ a label glued to the title with no space ("ชื่อนายสมชาย ใจดี") (1 ms)
+      ✓ a whole line glued with no spaces at all ("ชื่อนายสมชายใจดีเกิดวันที่") (9 ms)
+      ✓ OCR over-splits the name into more tokens than expected+1 ("นาย สม ชาย ใจ ดี") (1 ms)
+    I2: absent-from-document vs. found-but-different, for ids
+      ✓ no 13-digit id anywhere in the text, with a juristicId on file -> NOT_FOUND, not MISMATCH (1 ms)
+      ✓ a different, valid-checksum id IS found -> MISMATCH (1 ms)
+  VALIDITY (company_reg only)
+    ✓ PASS: exactly 6 months after issuance (2 ms)
+    ✓ EXPIRED: one day past the 6-month boundary (1 ms)
+    ✓ DATE_NOT_FOUND: no date at all in the text (1 ms)
+    ✓ I3: registered 2560, issued 1 ก.ย. 2569 — the LABELED issue date is used, not the earlier registration date (1 ms)
+    ✓ I3: several dates found and NONE is labeled -> DATE_NOT_FOUND, not a guess (63 ms)
+    ✓ no VALIDITY flag at all for a slot with no validity rule (land_deed)
+    ✓ sanity: issuedBangkok really is 1 มกราคม 2569 at Bangkok midnight
+    N2: a found label commits — no fallback to an unlabeled or a far-away date
+      ✓ the date right after the label is OCR-garbled ("l กันยายน 2S69") -> DATE_NOT_FOUND, not the registration date (1 ms)
+      ✓ a later, unrelated dated line must not bind through the label -> DATE_NOT_FOUND (1 ms)
+  SIGNATURE
+    ✓ is always MANUAL, on every slot (2 ms)
+  no flag ever leaks a raw 13-digit id
+    ✓ reasonTH and evidenceSnippet never match /\d{13}/, across every check, including a mismatched id (8 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/document-precheck/accuracy-metrics.test.js
+  computeMetrics — dependent checks exclude truth-UNREADABLE files
+    ✓ READABILITY is scored on every file (2 ms)
+    ✓ DOC_TYPE / CROSS_MATCH / VALIDITY are scored only on the 2 truth-readable files (1 ms)
+    ✓ the overall pool holds READABILITY x3 + the dependent checks on readable files only (1 ms)
+    ✓ a false UNREADABLE on a truth-readable file still counts against the dependent checks (1 ms)
+    ✓ a missing cascade flag on a truth-UNREADABLE file is still a presence error (2 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/document-precheck/normalize.test.js
+  thaiDigitsToArabic
+    ✓ ๐๑๒๓ -> 0123 (2 ms)
+    ✓ ๔๕๖๗๘๙ -> 456789 (1 ms)
+    ✓ เลข ๙๙ -> เลข 99 (1 ms)
+    ✓ already 123 -> already 123
+  composeSaraAm
+    ✓ NIKHAHIT + SARA AA composes to sara am
+    ✓ leaves an already-composed sara am untouched (1 ms)
+  stripToneMarks
+    ✓ removes mai tho and other tone marks (1 ms)
+    ✓ is a no-op on text with no tone marks (1 ms)
+  normalizeKeyword
+    ✓ composes sara am, strips tone marks, converts digits, collapses whitespace (1 ms)
+    ✓ drops mai tho so a doc-type phrase still matches after OCR loses it (1 ms)
+  normalizeName
+    ✓ COMPANY: strips บริษัท/จำกัด affixes and whitespace
+    ✓ COMPANY: strips (มหาชน) and ห้างหุ้นส่วนจำกัด
+    ✓ PERSON: strips นาย/นาง/นางสาว leading titles (1 ms)
+    ✓ composes sara am but does NOT strip tone marks (name matching stays tone-sensitive) (1 ms)
+    ✓ throws when kind is missing or invalid (never silently mixes PERSON/COMPANY rules) (13 ms)
+    fix round 1 — affix stripping is positional, not substring-anywhere
+      ✓ COMPANY keeps a name that contains "นาย" as running text, not a title (1 ms)
+      ✓ PERSON strips only the LEADING title, even when the given name itself starts with a title word
+      ✓ PERSON strips นางสาว glued directly to the name (no space) (1 ms)
+      ✓ COMPANY never touches person titles — a company name starting with a title-shaped word is untouched (1 ms)
+  nameSimilarity
+    ✓ near-identical OCR variants score >= 0.85 (1 ms)
+    ✓ identical names score 1 (1 ms)
+    ✓ unrelated names score well under the threshold (1 ms)
+  NAME_SIMILARITY_MIN
+    ✓ is 0.85 (set from the Task 9 corpus) (1 ms)
+  nameMatchLevel
+    ✓ EXACT when normalized names are equal (1 ms)
+    ✓ TONE_ONLY when names are equal only after stripping tone marks
+    ✓ CLOSE for a high-similarity OCR variant that is not tone-only
+    ✓ DIFFERENT for unrelated names (1 ms)
+    ✓ fix round 1: a company name embedding "นายทุน" is NOT EXACT against the unrelated name "ทุน จำกัด" (1 ms)
+  findThirteenDigitIds
+    ✓ reads Thai digits with dashes/spaces between groups (1 ms)
+    ✓ reads arabic digits with dashes (1 ms)
+    ✓ ignores runs that are not exactly 13 digits (1 ms)
+    ✓ returns [] on text with no digits (1 ms)
+    fix round 1 — only the real 1-4-5-2-1 grouping is accepted, not any join
+      ✓ a 4-digit number and an unrelated 9-digit number separated by a space is NOT one id
+      ✓ space-separated grouping (1-4-5-2-1) is still accepted (1 ms)
+      ✓ a 15-digit contiguous run is not mistaken for a 13-digit id (1 ms)
+  isValidThirteenDigitId
+    ✓ the platform company's own public tax id passes Mod-11 (1 ms)
+    ✓ a tampered last digit fails (1 ms)
+    ✓ wrong length fails (1 ms)
+  parseThaiDates
+    ✓ full Thai month name + พ.ศ. year (1 ms)
+    ✓ abbreviated Thai month + 2-digit BE year, same result (1 ms)
+    ✓ d/m/yyyy with a BE year (>2400) converts to CE (1 ms)
+    ✓ d/m/yyyy with a year already <=2400 is taken as CE, no conversion (1 ms)
+    ✓ Thai digits in a date are read (1 ms)
+    ✓ no date in text returns []
+    fix round 1 — one year rule on every path (2-digit BE / >2400 BE / 1900-2400 CE)
+      ✓ Thai month name + a 4-digit CE year (no พ.ศ.) is read as CE, not BE (1 ms)
+      ✓ Thai month name + พ.ศ. and a 4-digit BE year (>2400) converts to CE (1 ms)
+      ✓ a 2-digit year is read as BE 25xx on the month-name path (1 ms)
+      ✓ a year outside every defined bucket (e.g. a bare 3-digit year) is dropped, not guessed at (1 ms)
+    fix round 1 — invalid calendar days are dropped, not rolled forward
+      ✓ 31 กุมภาพันธ์ (February never has 31 days) is dropped (1 ms)
+      ✓ 29 กุมภาพันธ์ 2567 (BE 2567 -> CE 2024, a real leap year) is valid (1 ms)
+      ✓ 29 กุมภาพันธ์ 2569 (BE 2569 -> CE 2026, NOT a leap year) is dropped (1 ms)
+      ✓ 31 เมษายน (April has only 30 days) is dropped (1 ms)
+  maskId
+    ✓ keeps only the last 4 digits, everything else becomes an ellipsis (1 ms)
+    ✓ strips dashes before masking (1 ms)
+    ✓ an id shorter than 4 digits shows in full under the mask (documented, unresolved) (1 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/document-precheck/tesseract-terminate-race.test.js
+    ✓ the worker createWorker resolves with is terminated and no scheduler is left (9 ms)
+    ✓ extractDocument timing out during createWorker() rejects PRECHECK_TIMEOUT and still terminates the late worker (106 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+PASS __tests__/unit/document-precheck/thresholds-parameter.test.js
+  nameMatchLevel(a, b, kind, minSimilarity)
+    ✓ the pair sits between the two thresholds used below (3 ms)
+    ✓ a lower minSimilarity reads the near name as CLOSE, a higher one as DIFFERENT (1 ms)
+    ✓ omitting minSimilarity is the same as passing NAME_SIMILARITY_MIN
+  evaluate({ ..., thresholds })
+    ✓ thresholds.ocrConfidenceMin decides READABILITY (2 ms)
+    ✓ thresholds.nameSimilarityMin decides whether a near name is a CROSS_MATCH (6 ms)
+    ✓ omitting thresholds is the same as passing the two constants (7 ms)
+
+Test Suites: 9 passed, 9 total
+Tests:       192 passed, 192 total
+Snapshots:   0 total
+Time:        52.319 s, estimated 70 s
+Ran all test suites matching __tests__/integration/document-precheck-accuracy.test.js|__tests__/unit/document-precheck.
+exit=0
+
+$ ps aux | grep -c '[p]df-extract-worker'
+0

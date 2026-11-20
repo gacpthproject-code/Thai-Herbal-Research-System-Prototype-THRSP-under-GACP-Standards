@@ -1,0 +1,19 @@
+GREEN m3/m7 — real Postgres 17 scratch (127.0.0.1:5443, random password not printed) · node v24.21.0 · NODE_OPTIONS unset
+cmd: npx jest --config jest.config.cjs <PR3 real-PG suite> <canceled-webhook suite> -i
+PASS __tests__/integration/dtam-schema-drop-migration-real-postgres.test.js (13.45 s)
+      ✓ ตัวตรวจก่อน deploy: exit 1 พร้อมตัวเลขต่อสถานะ และไม่พิมพ์รหัสผ่านฐาน (209 ms)
+      ✓ migrate deploy ล้มเสียงดังพร้อมจำนวน และไม่ดรอปอะไรเลย (911 ms)
+      ✓ หลังถูกปฏิเสธ: migrate resolve --rolled-back แล้วแก้แถวที่ขวาง → deploy ซ้ำผ่าน (3551 ms)
+      ✓ ตัวตรวจก่อน deploy: exit 1 พร้อมเหตุผลที่มีชื่อ ไม่ใช่ SAFE_TO_DROP (244 ms)
+      ✓ migrate deploy ถูกปฏิเสธด้วยข้อความที่มีชื่อพร้อมจำนวน (ไม่ใช่ constraint error ดิบ) และไม่มีอะไรถูกดรอป (950 ms)
+      ✓ ตัวตรวจก่อน deploy: exit 0 (172 ms)
+      ✓ migrate deploy ผ่าน: ตารางและคอลัมน์หาย, CHECK ใหม่อยู่, แถวเก่ายังอยู่และยอดไม่ถูกแตะ (925 ms)
+      ✓ CHECK ใหม่: order ที่ยอดรวม ≠ ค่าบริการรวมเขียนไม่ได้ และแถวเก่าถูก settle ไม่ได้ (36 ms)
+      ✓ mint + settle ใหม่ทั้งเส้นบนคำขอเดียวกับ order เก่า: ลง 1110-001 / 4110-001 / 2131-001 เท่านั้น (431 ms)
+      ✓ หลังดรอป: ตัวตรวจตอบ exit 0 (ดรอปแล้ว) และ schema == migrations สำหรับสองตารางนี้ (1062 ms)
+PASS __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js
+    ✓ A. ordinary order: canceled webhook → order CANCELLED + invoice retired (deletedBy/deleteReason) + charge CANCELLED → next press mints afresh (224 ms)
+Tests:       11 passed, 11 total
+
+drifted DB, migration's answer (captured from the run before the test regex was corrected; same migration SQL):
+ERROR: DTAM_SCHEMA_DROP_REFUSED: 0 checkout_orders row(s) carry dtam_fee_amount > 0 and are not CANCELLED (none); 0 dtam_remittance_batches row(s) are not OPEN (none); 1 checkout_orders row(s) would break the new total CHECK (total_payable_amount <> platform_fee_gross and not CANCELLED, or a negative fee) (SETTLED=1). Nothing was dropped.

@@ -1,0 +1,163 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/interop-trace-revoked-reason-mask.test.js
+  B2-followup — revokedReason is masked on the interop trace-event
+    √ a reason containing a 13-digit national ID is masked (no 13-digit run) (7 ms)
+    √ a reason with no ID passes through unchanged (1 ms)
+    √ a null reason stays null (2 ms)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+    [0m [90m 110 |[39m
+     [90m 111 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mHEALTH_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mJWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 112 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 113 |[39m   }
+     [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/interoperability/interoperability-core.js:5:20)
+      at Object.require (routes/api/integration/interoperability.js:31:5)
+      at require (__tests__/unit/interop-resolve.test.js:80:34)
+      at Object.buildApp (__tests__/unit/interop-resolve.test.js:114:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+    [0m [90m 114 |[39m
+     [90m 115 |[39m   [36mif[39m (isDevelopment [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mPROVIDER_JWT_SECRET[39m [33m&&[39m [33m![39mprocess[33m.[39menv[33m.[39m[33mDTAM_JWT_SECRET[39m) {
+    [31m[1m>[22m[39m[90m 116 |[39m     console[33m.[39mwarn([32m'DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.'[39m)[33m;[39m
+     [90m     |[39m             [31m[1m^[22m[39m
+     [90m 117 |[39m   }
+     [90m 118 |[39m
+     [90m 119 |[39m   [36mconst[39m providerConfig [33m=[39m {[0m
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:50:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:76:1)
+      at Object.require (routes/api/interoperability/interoperability-core.js:5:20)
+      at Object.require (routes/api/integration/interoperability.js:31:5)
+      at require (__tests__/unit/interop-resolve.test.js:80:34)
+      at Object.buildApp (__tests__/unit/interop-resolve.test.js:114:35)
+
+PASS __tests__/unit/interop-resolve.test.js
+  GET /interoperability/v1/resolve — partner gate
+    √ 401 without a partner key (fail-closed like every partner endpoint) (2282 ms)
+    √ 400 when code param is missing/blank (47 ms)
+  GET /interoperability/v1/resolve — deterministic prefixes
+    √ GACP-* resolves a certificate with trust status + PII-safe provenance (no applicantName) (13 ms)
+    √ PU-* resolves a plant unit with FULL provenance: plot/แปลง, batch/ล็อต, cycle plant counts, farm (owner ask 2026-07-08) (12 ms)
+    √ a plant not yet harvested has batch=null and empty lots (11 ms)
+    √ BATCH-* resolves a harvest batch by batchNumber (11 ms)
+    √ LOT-* probes Lot.lotNumber FIRST, then falls back to legacy batchNumber (21 ms)
+  GET /interoperability/v1/resolve — URL normalization
+    √ full https trace URL (plant) resolves; legacy doubled /trace/trace/ too (22 ms)
+    √ cert verify URL (gacpth.com/verify/<n>) resolves the certificate (11 ms)
+  GET /interoperability/v1/resolve — TraceQrSecurity index + cascade
+    √ bare UUID found in the TraceQrSecurity index resolves a plot-cycle QR (12 ms)
+    √ unknown code → 404 resolved:false with the probe trail (19 ms)
+  partner access log — best-effort, never breaks the request
+    √ a resolved call records partnerId + endpoint (12 ms)
+    √ an access-log failure does NOT fail the request (11 ms)
+
+PASS __tests__/unit/certificate-template-service.test.js
+  [B23] certificate-template-service — helpers
+    maskNationalId
+      √ masks the middle five digits of a raw 13-digit national ID (2 ms)
+      √ masks already-grouped 13-digit input by stripping then re-grouping (1 ms)
+      √ returns the input unchanged when the digit count is not 13 (1 ms)
+      √ returns "-" for null / undefined
+    buildDtamCertNumberDisplay
+      √ projects GACP-TH-{year}-{suffix} into GACP-DTAM-{year}-{suffix} (1 ms)
+      √ passes through unrecognised shapes untouched (1 ms)
+      √ returns "-" for missing input (1 ms)
+    formatCultivationMethods
+      √ joins arrays with " / " (1 ms)
+      √ returns trimmed string for string input (1 ms)
+      √ returns "-" for falsy / empty (1 ms)
+    buildFarmLocation
+      √ composes a Thai address from the structured fields (2 ms)
+      √ skips placeholder values like "Unknown" and "-" (1 ms)
+      √ returns "-" when nothing is supplied (1 ms)
+    buildVerifyUrl
+      √ prefers an existing qrData field on the cert (1 ms)
+      √ falls back to the DTAM verify base + cert number (1 ms)
+  [B23] certificate-template-service — buildCertificateContext (pure)
+    √ emits the full B23 placeholder set (16 ms)
+    √ renders the cert number with the DTAM prefix and the Thai-numeral mirror (1 ms)
+    √ formats issue + expiry dates in Thai BE form with พุทธศักราช (2 ms)
+    √ masks the applicant national ID (1 ms)
+    √ composes the farm location from structured fields (1 ms)
+    √ uses the default DTAM Director-General signer when none supplied (1 ms)
+    √ honours an explicit signer override (1 ms)
+    √ prefers cert.qrData for the verify URL when present (1 ms)
+    √ throws if cert is missing — guards the render path against null Prisma rows (30 ms)
+    √ retains the legacy placeholders so older renders do not regress (1 ms)
+  [B23] certificate-template-service — template HTML anchors
+    √ contains every B23 canonical placeholder (2 ms)
+    √ declares A4 portrait orientation (1 ms)
+    √ uses the indigo + gold palette pulled from finance-tokens (1 ms)
+    √ contains the DTAM ministry footer line (1 ms)
+    √ does NOT contain FlowAccount-style corner triangles (post-B22 directive) (1 ms)
+  [B23] certificate-template-service — generateCertificatePdf
+    √ returns a Buffer and feeds the rendered HTML through Puppeteer (4 ms)
+    √ asks QRCode.toDataURL for an indigo-on-white code targeting the verify URL (2 ms)
+    √ uploads to the certificates bucket by default (2 ms)
+    √ skips upload when opts.upload === false (offline / preview paths) (3 ms)
+
+PASS __tests__/unit/interoperability-error-sanitization.test.js
+  Interoperability 500 error response sanitization
+    √ GET verify route does not leak raw Prisma error message (72 ms)
+    √ GET trust registry route does not leak raw Prisma error message (12 ms)
+    √ GET revocation feed route does not leak raw Prisma error message (12 ms)
+    √ GET external verification route does not leak raw Prisma error message (11 ms)
+    √ GET query verification route does not leak raw Prisma error message (11 ms)
+    √ safeErrorMessage allowlist preserves known-safe messages (e.g. "not found") (2 ms)
+
+PASS __tests__/unit/public-verify-certificate-fields.test.js
+  GET /verify/:certificateNumber — field mapping
+    √ maps province / cropType / issuedDate / standardName from the raw model (40 ms)
+    √ surfaces the BE-#4 integrity status (25 ms)
+    √ returns verified:false for an expired cert (no certificate block) (11 ms)
+    √ returns valid:false when the cert is not found (12 ms)
+  GET /verify/:certificateNumber/page (HTML) — BE-CERT-02 applicant-name mask
+    √ renders HTML with the MASKED name (สมชาย ใ.) — never the raw full name (33 ms)
+    √ still returns HTML 200 for an unknown cert without leaking a name (10 ms)
+  GET /verify/:certificateNumber/page (HTML) — C5-02 XSS escaping
+    √ escapes an HTML payload reflected from the certificateNumber URL segment (22 ms)
+    √ escapes HTML in applicant-controlled cert fields (farmName) — stored XSS (10 ms)
+
+PASS __tests__/unit/interoperability-partner-auth.test.js
+  requirePartnerApiKey middleware (SEC-AUDIT-012)
+    √ missing key → 401 PARTNER_KEY_MISSING, next not called (2 ms)
+    √ invalid key → 401 PARTNER_KEY_INVALID, next not called (1 ms)
+    √ valid key → next() called and req.partner set (2 ms)
+  interoperability bulk endpoints require a partner key (SEC-AUDIT-012)
+    √ GET /v1/trust/registry without key → 401 (39 ms)
+    √ GET /v1/trust/registry with wrong key → 401 (11 ms)
+    √ GET /v1/trust/registry with valid key → 200 (10 ms)
+    √ single-cert verification stays PUBLIC (no key needed) (10 ms)
+  e-certificate export does not persist on read (SEC-AUDIT-010)
+    √ GET e-certificate with a valid key never calls certificate.update (10 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       72 passed, 72 total
+Snapshots:   0 total
+Time:        9.009 s
+Ran all test suites matching /__tests__\\unit\\public-verify-certificate-fields.test.js|__tests__\\unit\\certificate-template-service.test.js|__tests__\\unit\\interop-resolve.test.js|__tests__\\unit\\interop-trace-revoked-reason-mask.test.js|__tests__\\unit\\interoperability-error-sanitization.test.js|__tests__\\unit\\interoperability-partner-auth.test.js/i.
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/integration/public-verify-signature.test.js
+  public verify — signature + hash verdicts (H1)
+    √ 1) signed + valid cert → signatureValid=true, sealed=true, hashValid=true, fingerprint 64-hex (259 ms)
+    √ 2) tampered farmName (hash mismatch) → hashValid=false, integrity TAMPERED, signatureValid=false (36 ms)
+    √ 3) recomputed-hash-matches but signature NOT re-signed → integrity VALID yet signatureValid=false (15 ms)
+    √ 4) legacy unsigned cert → signatureValid=NULL (not false), sealed=false, integrity UNSIGNED (13 ms)
+
+Test Suites: 1 passed, 1 total
+Tests:       4 passed, 4 total
+Snapshots:   0 total
+Time:        2.715 s
+Ran all test suites matching /__tests__\\integration\\public-verify-signature.test.js/i.

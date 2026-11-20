@@ -1,0 +1,203 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/m2a-doc-requirements-doors.test.js (6.595 s)
+  M2a — POST /submit, DRAFT branch = first submit
+    √ JURISTIC with no company registration on file → 422, and NOTHING is written (117 ms)
+    √ a client flag cannot buy the way in — documents[].uploaded stays worthless at the door (AC2) (12 ms)
+    √ with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers (13 ms)
+    √ SUBMITTED echoes the REAL status — no transition, no writer call, an honest nextRequiredAction (F-SUBMIT-ECHO-LIES fix, Ruling 6) (10 ms)
+    √ PENDING_DOC_FEE stays a true no-op echo — nothing written, nothing audited, never re-judged (10 ms)
+  M2a — POST /submit, REVISION_REQUESTED / CAR_PENDING branch = resubmit
+    √ judges by the stamp, not by todays law — a rule filed later cannot 422 it (AC3) (11 ms)
+    √ the stamped set is still enforced on resubmit → 422 before any write (11 ms)
+    √ an application filed before M2a carries no stamp — it is let through, not refused (10 ms)
+  M2a — POST /bundles/:id/submit
+    √ one linked case short of a document refuses the WHOLE bundle → 422, no transaction opened (36 ms)
+    √ every linked case is stamped inside the existing transaction, applicant data intact (12 ms)
+    √ the linked-case projection loads formData — without it the door would stamp over an empty blob (19 ms)
+  M2a — POST /applications/:id/car (resubmit)
+    √ a stamped slot the server cannot see → 422, no status write (24 ms)
+    √ stamped and satisfied → the CAR resubmit proceeds, judged by the stamp alone (11 ms)
+  M2a — PUT /revision-deadline/:id/submit
+    √ an applicant missing a stamped document → 422, the deadline row is untouched (23 ms)
+    √ the projection now carries formData and status — the check has nothing to read without them (10 ms)
+    √ the provider bypass skips the document check entirely, exactly as it skips the entity check (11 ms)
+    √ applicant with the stamped document on file → 200 (22 ms)
+  M2a — PUT /applications/:id/revision
+    √ a stamped slot the server cannot see → 422, submitRevision never runs (24 ms)
+    √ satisfied → the revision goes through, judged by the stamp (13 ms)
+    √ a DRAFT here is a FIRST submit — todays law is read and the missing document is refused (11 ms)
+    √ a satisfied DRAFT is stamped BY THE DOOR — the snapshot travels as server data, not as client formData (11 ms)
+    √ a REVISION_REQUESTED row is still judged by its stamp, and carries no fresh stamp (25 ms)
+  M2a — the applicant cannot write the stamp through /prepare
+    √ both M2 snapshot keys are declared server-owned (1 ms)
+    √ a full-replacement merge keeps the stored stamp, whatever the client sends (2 ms)
+    √ POST /prepare strips a forged stamp at the edge — the stored one survives (11 ms)
+
+PASS __tests__/unit/applications-submit-canonical-validation.test.js
+  C2 — canonical /submit with REAL validators (no mock)
+    √ (a) COMPLETE canonical formData → submit passes validation (not 422) (69 ms)
+    √ (b) INCOMPLETE canonical formData (no plots) → 422 with step-5 error (12 ms)
+    √ (b3) plot missing areaUnit → 422 with step-5 error (F-PLOT-AREAUNIT-DEADEND fix) (11 ms)
+    √ (b2) INCOMPLETE canonical formData (no documents) → 422 with step-8 error (11 ms)
+    √ (c) legacy step-keyed payload → still validated by validateAllSteps (complete passes) (15 ms)
+    √ (d) COMPLETE canonical formData but no entityId (nothing to heal) → 400 VALIDATION_ERROR, never 422 (11 ms)
+    √ (c2) legacy step-keyed payload that is INCOMPLETE → 422 via validateAllSteps (11 ms)
+
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+  M1 — POST /bundles/:id/submit asks the guard about EVERY linked case
+    √ a linked case with no entityId (nothing to heal) → 400 VALIDATION_ERROR, no transaction opened (44 ms)
+    √ a linked case the caller may not act for → 403 ENTITY_PERMISSION_DENIED + audit FAILURE, nothing written (11 ms)
+    √ every allowed case is asked about by its OWN entityId, then submitted (11 ms)
+    √ heals a pre-Phase-66 linked case from the personal entity instead of refusing it (9 ms)
+  M1 — PUT /revision-deadline/:id/submit
+    √ health user who may not act for the application entity → 403, deadline row untouched (10 ms)
+    √ health user who may act → submits, and the row records in whose name (10 ms)
+    √ provider bypass survives, but ALWAYS writes an actorType PROVIDER row naming the entity (19 ms)
+  M1 — POST /applications/:id/car
+    √ refuses with 403 when the caller may not act for the application entity — nothing written (10 ms)
+    √ refuses with 400 when the row names no entity and nothing can be healed (10 ms)
+    √ allows the owner through, asking about the application row entity (11 ms)
+  M1 — PUT /applications/:id/revision (workflow-handlers) asks the guard too
+    √ no entityId and nothing to heal → 400 VALIDATION_ERROR, submitRevision never runs (11 ms)
+    √ caller who may not act for the entity → 403 + audit FAILURE, submitRevision never runs (9 ms)
+    √ allowed → asks about the row entity, submits, and records the accepted act (AC3) (9 ms)
+    √ heals a pre-Phase-66 row from the personal entity before deciding (10 ms)
+  M1 — POST /applications/renewals seeds entityId or refuses
+    √ carried an entityId from the source application → 201 (23 ms)
+    √ source had none → heals from the personal entity → 201 (10 ms)
+    √ nothing to seed and nothing to heal → 400 VALIDATION_ERROR (never a draft that can never be submitted) (11 ms)
+
+PASS __tests__/unit/applications-submit-capability-gate.test.js
+  Wave C PR-6 — POST /submit capability gate
+    √ VIEWER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (19 ms)
+    √ MANAGER without a grant → 403 ENTITY_PERMISSION_DENIED (the engine refuses) (10 ms)
+    √ MANAGER holding a GRANT, with the active-entity header sent → 200 (17 ms)
+    √ ADMIN can submit (9 ms)
+    √ OWNER can submit (10 ms)
+    √ no entityId on the application row (and nothing to heal from) → 400 VALIDATION_ERROR (10 ms)
+    √ heals a null entityId from the personal entity, then submits in its name (11 ms)
+    √ asks the engine about the APPLICATION row entity, not the x-active-entity header (11 ms)
+    √ engine denial → 403 ENTITY_PERMISSION_DENIED + audit FAILURE naming the entity (10 ms)
+    √ successful submit writes a SUCCESS audit row carrying onBehalfOfEntityId (10 ms)
+  M1 — POST /draft refuses to create a draft that names no entity
+    √ no active entity and no personal entity → 400 VALIDATION_ERROR, no row created (17 ms)
+    √ a personal entity exists → the draft is created in its name (unchanged path) (10 ms)
+  WF-F5 — initial submit walks DRAFT → SUBMITTED → PENDING_DOC_FEE (no illegal edge skip)
+    √ writes the two legal hops in order (never the illegal DRAFT->PENDING_DOC_FEE) (11 ms)
+    √ the legacy REGISTERED source state is no longer a submit path (PR 2c) (10 ms)
+    √ resubmit from REVISION_REQUESTED stays a single direct transition (not affected by WF-F5) (10 ms)
+  Bug 6.5 — /submit RESUBMIT enforces the revision deadline
+    √ OVERDUE REVISION_REQUESTED resubmit → 400 REVISION_DEADLINE_EXCEEDED (no resubmit write) (10 ms)
+    √ WITHIN-deadline REVISION_REQUESTED resubmit → allowed (advances to ASSIGNED_FOR_REVIEW) (10 ms)
+
+PASS __tests__/unit/a0-pr2-hop-emission-contract.test.js
+  PR-A0-2 — per-hop emission contract (client + tri-state) [PIN]
+    √ #8/#9 routes/api/applications/applications.js[0] — initial submit hop 1 (DRAFT→SUBMITTED) — shares one tx with hop 2 (3 ms)
+    √ #9 routes/api/applications/applications.js[1] — initial submit hop 2 (SUBMITTED→PENDING_DOC_FEE) — same tx as hop 1 (1 ms)
+    √ #12 routes/api/applications/application-bundles.js[0] — bundle submit — one tx for the bundle flip + every linked case (2 ms)
+    √ #7 routes/api/admin/applications.js[0] — admin override — caller emits the canonical + ADMIN rows fail-closed (1 ms)
+    √ #10 routes/api/applications/applications.js[2] — correction resubmit — tx shared with the append-only snapshot (R2 M7) (1 ms)
+    √ #11 routes/api/applications/application-workflow-handlers.js[0] — review decision — tx shared with the correction letter mint (D-8) (2 ms)
+    √ #13 routes/api/applications/applications-car.js[0] — CAR deadline expiry — tx shared with the RevisionDeadline fail (1 ms)
+    √ #14 routes/api/applications/applications-car.js[1] — CAR evidence resubmit — tx shared with the append-only snapshot (2 ms)
+    √ #15 routes/api/system/cron.js[0] — auto-expire cron — tx shared with the RevisionDeadline fail (3 ms)
+    √ #22 routes/api/provider/work.js[0] — work-inbox done+advance — tx shared with workActivity.markDone (3 ms)
+    √ #24 services/audit-scheduling-service.js[0] — scheduler assign — Serializable tx shared with the slot re-assert (3 ms)
+    √ #18 routes/api/provider/handlers/workflow-transitions-handler.js[0] — forced expire — its sibling write cannot join a caller tx (see below) (3 ms)
+    √ #19 routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js[0] — schedule →AUDIT_CONFIRMED — no DB sibling write to be atomic with (3 ms)
+    √ #20 routes/api/provider/handlers/workflow-side-effects.js[0] — DOC_APPROVED auto-chain — sibling writes cannot join a caller tx (3 ms)
+    √ #21 routes/api/provider/handlers/workflow-revision-expirations-handler.js[0] — forced expire route — sibling writes cannot join a caller tx (2 ms)
+    √ #4 routes/api/provider/handlers/workflow-transitions-handler.js[1] — cert-voiding reversal — caller-owned emitter in its own tx (2 ms)
+    √ #5 routes/api/provider/handlers/workflow-transitions-handler.js[2] — revision/CAR decision — caller-owned emitter in its own tx (7 ms)
+    √ #RD1 services/application-service/application-review-revision-methods.js[0] — revision-door DRAFT resubmit hop 1 (DRAFT→SUBMITTED) — shares one tx with hop 2 (1 ms)
+    √ #RD2 services/application-service/application-review-revision-methods.js[1] — revision-door DRAFT resubmit hop 2 (SUBMITTED→PENDING_DOC_FEE, actorRole system) — same tx as hop 1 (1 ms)
+    √ #RD3 services/application-service/application-review-revision-methods.js[2] — revision-door REVISION_REQUESTED resubmit (REVISION_REQUESTED→ASSIGNED_FOR_REVIEW) — its own tx
+    √ the inventory covers every writeApplicationStatus call in the PR-A0-2 files (1 ms)
+  PR-A0-2 — hops left on the bare client keep their sibling-write shape [PIN]
+    √ #18 / #21 fail the RevisionDeadline rows through the service singleton (2 ms)
+    √ #20 closes its deadline rows through the same singleton service (1 ms)
+    √ #19 has no DB sibling write — only best-effort notifications and its own audit row (1 ms)
+
+PASS __tests__/unit/m2a-revision-formdata-ownership.test.js
+  submitRevision — the applicant may not write server-owned keys (F2)
+    √ a forged serverRequirementSnapshot in the request body does not reach the column — the stored stamp survives (10 ms)
+    √ an application with NO stamp does not acquire one from the request body (4 ms)
+    √ the other server-owned keys are refused by the same one rule, not by a list of special cases (2 ms)
+    √ applicant answers already stored survive a partial resubmit (2 ms)
+  submitRevision — a door may record server truth through serverFormDataPatch
+    √ the patch is persisted (this is how the fifth door stamps a DRAFT first submit) (2 ms)
+    √ the patch outranks a forged key sent in the same request (2 ms)
+    √ the patch cannot rewrite the lifecycle keys the method owns itself (2 ms)
+    √ omitting the fourth argument changes nothing (2 ms)
+
+PASS __tests__/unit/canonical-application-validator.test.js
+  C2 — normalizeCanonicalToSteps (canonical → step shape)
+    √ maps farm/plot canonical fields into STEP 5 (plot=step5, not step2) (2 ms)
+    √ maps applicantData into STEP 4 (1 ms)
+    √ maps harvest/quality canonical fields into STEP 7 (1 ms)
+    √ maps production canonical fields into STEP 6 (1 ms)
+  C2 — validateCanonicalSubmission (real Zod, complete payload)
+    √ ACCEPTS a complete canonical INDIVIDUAL application (3 ms)
+    √ ACCEPTS a complete canonical JURISTIC application (1 ms)
+  C2 — validateCanonicalSubmission (real Zod, INCOMPLETE payloads reject)
+    √ REJECTS when plots are missing (no plot = step 5 error) (2 ms)
+    √ REJECTS when farmData.farmName is missing (step 5 error) (1 ms)
+    √ REJECTS when applicant data is missing (step 4 error) (1 ms)
+    √ REJECTS when production data (propagation/plantParts) is missing (step 6 error) (1 ms)
+    √ REJECTS when harvestMethod is missing (step 7 error) (2 ms)
+    √ REJECTS when no documents are uploaded (step 8 error) (1 ms)
+    √ REJECTS when plant selection is missing (step 2 error) (1 ms)
+    √ REJECTS a totally empty canonical payload with multiple step errors (2 ms)
+  C2 — plot areaUnit enforcement (F-PLOT-AREAUNIT-DEADEND fix, Task 1)
+    √ REJECTS when the only plot has no areaUnit at all (step 5 error, names the plot) (1 ms)
+    √ REJECTS plots[1] missing a unit even when plots[0] is valid — the plots[0]-blindness bug (1 ms)
+    √ ACCEPTS areaUnit "sqm" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "rai" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ngan" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "sqwa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "square_wa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "squarewa" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "sqw" from the closed enum
+    √ ACCEPTS areaUnit "wa2" from the closed enum
+    √ ACCEPTS areaUnit "ตารางวา" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ตารางเมตร" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "ไร่" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "งาน" from the closed enum (1 ms)
+    √ ACCEPTS areaUnit "Sqm" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "SQM" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "Rai" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "RAI" case-insensitively (UI casing) (1 ms)
+    √ ACCEPTS areaUnit "Ngan" case-insensitively (UI casing) (1 ms)
+    √ REJECTS areaUnit "ไร่ครึ่ง" (not in the closed enum) (1 ms)
+    √ REJECTS areaUnit "acres" (not in the closed enum) (1 ms)
+    √ REJECTS areaUnit "hectare" (not in the closed enum) (1 ms)
+    √ REJECTS areaUnit "  " (not in the closed enum) (1 ms)
+
+PASS __tests__/unit/application-review-revision-plot-areaunit.test.js
+  submitRevision — plot areaUnit validated on the REVISION_REQUESTED resubmit door (F-PLOT-AREAUNIT-DEADEND fix, Task 1)
+    √ resubmit whose plot has NO areaUnit → 422 errorsByStep[5], no transition written, no quotation (3 ms)
+    √ resubmit whose plot HAS a valid (UI-cased) areaUnit still succeeds — byte-identical success path (2 ms)
+
+PASS __tests__/unit/revision-deadline-guard.test.js
+  Bug 6.5 — assertRevisionNotExpired
+    √ overdue (formData.revisionDueAt in the past) → expired:true + EXPIRE transition + deadline failed (2 ms)
+    √ overdue (RevisionDeadline row in the past, no formData date) → expired:true (2 ms)
+    √ within deadline (future dueAt) → expired:false + NO side-effects (1 ms)
+    √ no deadline anywhere → expired:false (nothing to enforce) (1 ms)
+
+PASS __tests__/unit/application-review-revision-methods.test.js
+  submitRevision — re-entry target (audit 2.9)
+    √ routes a REVISION_REQUESTED resubmit back to ASSIGNED_FOR_REVIEW (not SUBMITTED) (3 ms)
+    √ lands a DRAFT resubmit at PENDING_DOC_FEE via the two SSOT-legal hops, not bare SUBMITTED (F-REVISION-DOOR-NO-QUOTATION fix) (1 ms)
+    √ issues both quotations once a DRAFT resubmit reaches PENDING_DOC_FEE (F-REVISION-DOOR-NO-QUOTATION fix) (1 ms)
+    √ 422s an incomplete DRAFT through this door instead of letting it reach PENDING_DOC_FEE (Ruling 7 / MAJOR-2 fix) (1 ms)
+    √ the DRAFT leg carries nextRequiredAction PAY_PHASE_1 + the front door's DRAFT copy (1 ms)
+    √ the REVISION_REQUESTED leg carries no nextRequiredAction and keeps its own message unchanged (1 ms)
+    √ stamps the User UUID (not the plaintext national ID) into revision_deadlines.submittedBy/updatedBy (2 ms)
+    √ stamps the User UUID into revision_deadlines.updatedBy on the EXPIRED path (2 ms)
+
+Test Suites: 10 passed, 10 total
+Tests:       149 passed, 149 total
+Snapshots:   0 total
+Time:        12.305 s
+Ran all test suites matching /__tests__\\unit\\canonical-application-validator.test.js|__tests__\\unit\\applications-submit-canonical-validation.test.js|__tests__\\unit\\applications-submit-capability-gate.test.js|__tests__\\unit\\application-review-revision-methods.test.js|__tests__\\unit\\application-review-revision-plot-areaunit.test.js|__tests__\\unit\\m2a-doc-requirements-doors.test.js|__tests__\\unit\\m2a-revision-formdata-ownership.test.js|__tests__\\unit\\m1-submit-guard-doors.test.js|__tests__\\unit\\revision-deadline-guard.test.js|__tests__\\unit\\a0-pr2-hop-emission-contract.test.js/i.

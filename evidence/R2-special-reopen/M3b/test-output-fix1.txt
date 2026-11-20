@@ -1,0 +1,251 @@
+# R2 M3b — fix cycle 1/3 — GREEN evidence (re-captured on the FINAL tree state)
+# captured: 2026-08-03T15:19:25+00:00
+# HEAD: 9826be38  (work tree = fix applied, not yet committed)
+
+## Gate 1a — targeted suites
+$ cd apps/backend && npx jest --config jest.config.cjs __tests__/integration/provider-work-routes.test.js __tests__/unit/official-letter.test.js __tests__/unit/error-codes-catalog.test.js __tests__/unit/terminal-decision-letter.test.js __tests__/unit/workflow-transitions-cert-integrity.test.js
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/integration/provider-work-routes.test.js
+  GET /:id/next-states
+    ✓ document_reviewer is NOT offered the doc-decision on the work-inbox (WF-1: use canonical) (62 ms)
+    ✓ admin is also not offered the doc-decision on the work-inbox (blocked for everyone) (15 ms)
+    ✓ account user sees no AFR transitions (none of theirs match) (20 ms)
+    ✓ returns 404 when activity does not exist (15 ms)
+  POST /:id/done — original simple path
+    ✓ without advanceStatus, just markDone is performed (30 ms)
+  POST /:id/done — combined with advanceStatus
+    ✓ illegal transition is rejected as 422 INVALID_TRANSITION (no markDone, no write) (17 ms)
+    ✓ rejects empty toState (14 ms)
+  POST /:id/done — WF-1 document decision is blocked on the work-inbox
+    ✓ DOC_APPROVED → 422 USE_CANONICAL_REVIEW (no markDone, no write) (17 ms)
+    ✓ REVISION_REQUESTED → 422 USE_CANONICAL_REVIEW even WITH a comment (decision-block fires first) (16 ms)
+    ✓ the block is independent of assignment — even the assigned reviewer is funnelled to canonical (13 ms)
+  POST /:id/done — R2 M3b: the TERMINAL rejection is blocked on the work-inbox
+    ✓ REJECTED → 422 USE_CANONICAL_REVIEW; writeApplicationStatus is NEVER called (15 ms)
+    ✓ an ADMIN gets the same 422 — the isAdmin role bypass does not reopen the hole (13 ms)
+    ✓ the NON-terminal auditor edge still works here (negative control — the writer IS reachable) (14 ms)
+    ✓ NO current state can drive a REJECTED status write through this surface (exhaustive) (210 ms)
+    ✓ GET /:id/next-states from AUDIT_CONFIRMED does not offer REJECTED (still offers the correctable edges) (13 ms)
+  R2 M3b — work.js source pin: one guarded status-write path
+    ✓ REJECTED is in the blocked-decision set (2 ms)
+    ✓ there is exactly ONE writeApplicationStatus call site and the gate precedes it (2 ms)
+    ✓ the letter/audit side-effects are still absent here — which is WHY the states are blocked (1 ms)
+  GET /:id — applicant email PII gating (assignee-only)
+    ✓ returns applicantEmail to the ASSIGNEE (14 ms)
+    ✓ hides applicantEmail from a non-assignee candidate-group member (still 200, email null) (11 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/error-codes-catalog.test.js
+  shared/error-codes catalog
+    ✓ exports a frozen object with at least 80 entries (RFC W4-B floor) (2 ms)
+    ✓ every entry has all 6 required fields with the right types (388 ms)
+    ✓ every httpStatus is a 4xx or 5xx HTTP status code (46 ms)
+    ✓ catalog codes are unique (no duplicate keys across the object) (2 ms)
+    ✓ contains every code listed in shared/api-response.js DEFAULT_ERROR_MESSAGES (2 ms)
+    ✓ contains every code thrown by shared/errors.js AppError + JWT branches (2 ms)
+    ✓ exposes getMessage() that returns localised strings with fallback (2 ms)
+    ✓ exposes lookup() that returns the full row or undefined (1 ms)
+    ✓ extract-error-codes script runs and discovers ≥ catalog floor codes (83 ms)
+    ✓ extractor loadCatalog returns same module as direct require (1 ms)
+    ✓ every discovered code is catalogued (no drift between code and catalog) (84 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/terminal-decision-letter.test.js
+  buildTerminalDecisionLetter — four mandatory elements
+    ✓ emits ผลการพิจารณา + stage + เหตุผล + สิทธิ์ยื่นใหม่ + สิทธิ์โต้แย้ง (7 ms)
+    ✓ reason is a MANDATORY field — missing / empty / whitespace all THROW (26 ms)
+    ✓ an unknown or missing stage THROWS (element 1 impossible) (3 ms)
+    ✓ NO deadline: no dueAt in metadata, no กำหนดส่ง wording, and a dueAt argument is ignored (1 ms)
+    ✓ appeal placeholder is verbatim and invents NO appeal window or channel (1 ms)
+    ✓ the <ช่องทางติดต่อกรม> value comes from the existing contact SSOT, not a fresh literal (7 ms)
+  mintTerminalDecisionLetter — D-8 atomic, no round
+    ✓ writes ONE letter through the caller tx and NEVER a CorrectionRound row (8 ms)
+    ✓ an empty reason REJECTS before any row is written (D-8: no letter, no transition) (3 ms)
+    ✓ an unresolvable recipient REJECTS (no letter, no transition) (2 ms)
+  auditor audit-decision REJECT — terminal letter atomic with the decision
+    ✓ REJECT mints the TERMINAL_DECISION letter through the SAME tx as the status write (32 ms)
+    ✓ ไม่มี round — a terminal REJECT writes NO CorrectionRound row (13 ms)
+    ✓ ATOMIC: a failing letter write fails the whole decision (500, tx rejected) (13 ms)
+    ✓ PASS mints NO terminal letter (negative control) (15 ms)
+  canonical workflow-transitions → REJECTED — terminal letter atomic (D-8)
+    ✓ AUDIT_CONFIRMED → REJECTED mints the letter in the same tx as the status write (18 ms)
+    ✓ a force reject off a cert-live state (AUDIT_PASSED → REJECTED) still mints its letter (16 ms)
+    ✓ เหตุผลว่าง → REJECT ล้มทั้ง tx: no letter, status write rolled back, no post-commit effect (17 ms)
+    ✓ ATOMIC: letter write failure fails the transition — no post-commit effect runs (12 ms)
+    ✓ a non-terminal transition (DOC_APPROVED) mints NO terminal letter (negative control) (16 ms)
+  admin status-override → REJECTED — terminal letter atomic (D-8)
+    ✓ an admin override to REJECTED mints the terminal letter in the same tx (17 ms)
+    ✓ ATOMIC: a failing letter write fails the override (500) (15 ms)
+    ✓ a non-terminal override (AUDIT_PASSED) mints NO letter (negative control) (12 ms)
+  terminal letter template SSOT
+    ✓ the terminal Thai copy is defined ONLY in shared/terminal-letter-template.js (94 ms)
+    ✓ every REJECTED-writing surface mints through decision-letter-service and spells no letter copy (3 ms)
+    ✓ the terminal template never reaches for the correction template deadline copy (2 ms)
+    ✓ the terminal mint never writes a correction round (grep pin, both directions) (2 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/workflow-transitions-cert-integrity.test.js
+  A1 canonical endpoint — ADMIN force must NOT auto-mint a cert on AUDIT_PASSED
+    ✓ force -> AUDIT_PASSED passes autoIssueCertificate:false to the writer (22 ms)
+    ✓ legitimate (non-force) auditor AUDIT_PASSED still auto-issues (autoIssueCertificate !== false) (21 ms)
+    ✓ normal (non-force) APPROVED still issues via handleCertificateIssuance (12 ms)
+    ✓ force -> APPROVED does NOT invoke handleCertificateIssuance (no cert resurrection) (12 ms)
+  A2 canonical endpoint — AUDIT_PASSED -> CAR_REVIEWING must void the live cert
+    ✓ voids the cert in the same transaction as the status write (19 ms)
+    ✓ a non-reversal transition does NOT open a tx or void a cert (14 ms)
+    ✓ force AUDIT_PASSED -> REJECTED voids the live cert (leaving cert-live, off-track) (12 ms)
+    ✓ force CERTIFIED -> REJECTED voids the live cert (14 ms)
+    ✓ forward AUDIT_PASSED -> APPROVED does NOT void (stays on the cert track) (12 ms)
+    ✓ forward APPROVED -> CERTIFIED does NOT void (stays on the cert track) (14 ms)
+    ✓ A1+A2 combined — reverted passed app: cert voided AND cannot be force-resurrected (24 ms)
+  H — reviewer/force transition writes the audit row IN the tx (onAudit hook)
+    ✓ DOCUMENT_REVIEWER DOC_APPROVED runs in the tx and wires statusTransitionAuditHook({tx}) (12 ms)
+    ✓ ADMIN force -> AUDIT_PASSED also writes the audit row in the tx (force path) (14 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/unit/official-letter.test.js
+  SSOT vocab — shared/notification-kind.js
+    ✓ exists and exports the frozen GENERAL/OFFICIAL_LETTER vocabulary (3 ms)
+    ✓ no backend .js file outside the SSOT file re-spells the official-letter literal (39 ms)
+  schema EXPAND — Notification.kind
+    ✓ PSL declares kind String @default("GENERAL") on the Notification model (2 ms)
+    ✓ exactly one add_notification_kind migration exists and is EXPAND-only (3 ms)
+  weekly cleanup (job-scheduler) — D-9 exception
+    ✓ does NOT delete an official letter even when isRead and older than 30 days (6 ms)
+    ✓ still deletes old read GENERAL notifications (existing behaviour preserved) (1 ms)
+  PDPA erasure — D-9 exception
+    ✓ keeps the erased user's official letters (2 ms)
+    ✓ still deletes the erased user's other notifications, scoped to that user (1 ms)
+  createOfficialLetter — mandatory in-app letter (D-9) + tx contract (D-8 dep)
+    ✓ negative control (pin, green-at-birth): all-off prefs suppress the normal in-app row (1 ms)
+    ✓ writes the letter row even when every preference is off (1 ms)
+    ✓ writes THROUGH the caller's tx — never the global prisma client (1 ms)
+    ✓ stamps kind=OFFICIAL_LETTER on the created row (2 ms)
+    ✓ does not swallow write errors — a failing letter rejects so the caller's tx fails (16 ms)
+    ✓ rejects when called without a tx (atomicity is not optional) (9 ms)
+
+Test Suites: 5 passed, 5 total
+Tests:       83 passed, 83 total
+Snapshots:   0 total
+Time:        4.859 s, estimated 5 s
+Ran all test suites matching /__tests__\/integration\/provider-work-routes.test.js|__tests__\/unit\/official-letter.test.js|__tests__\/unit\/error-codes-catalog.test.js|__tests__\/unit\/terminal-decision-letter.test.js|__tests__\/unit\/workflow-transitions-cert-integrity.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+## Gate 1b — FULL backend suite
+$ cd apps/backend && npx jest --config jest.config.cjs
+    ✓ seeds the RevisionDeadline row after the status write (2 ms)
+    ✓ requires a justification for a MINOR/MAJOR corrective-action request (2 ms)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+PASS __tests__/simple.test.js
+  Simple Test
+    ✓ should pass (2 ms)
+
+Summary of all failing tests
+FAIL __tests__/unit/dataset-export-service.test.js
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 5 skipped, 528 passed, 529 of 534 total
+Tests:       1 failed, 63 skipped, 7122 passed, 7186 total
+Snapshots:   0 total
+Time:        259.892 s, estimated 260 s
+Ran all test suites.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

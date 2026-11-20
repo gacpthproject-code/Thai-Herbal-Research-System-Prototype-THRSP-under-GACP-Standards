@@ -1,0 +1,31 @@
+# Task 2 real-Postgres finding (2026-09-30, postgres:17 on 127.0.0.1:5447, migrate deploy, Prisma 5.22.0, Node 24.21.0)
+(Status: resolved by coordinator option D, value registration. This file records why the symbol-based witness could not work at the query hook.)
+
+cmd: cd apps/backend && DATABASE_URL=TEST_DATABASE_URL=<local 5447> SIGNING_KEY_DIR=$(mktemp -d) npx jest --config jest.config.cjs -i __tests__/integration/holder-marker-prisma-real-postgres.test.js
+Tests: 3 failed, 14 passed, 17 total
+[annotation, written by hand, not jest output: 0 skipped (no skipped count, no ○ lines).]
+
+Passed (relevant):
+- (Task 2) Prisma 5.22 accepts deep-frozen fragments passed unspread (Application findMany, Invoice count, Farm count, chain count)
+- throw mode: an unmarked findMany / findFirst / findUnique / findFirstOrThrow / findUniqueOrThrow / count rejects HEALTH_READ_UNSCOPED
+- all 7 Task 1 tests
+
+Failed:
+- throw mode: a marked read runs with the entity ALS rewriting entityId
+    HEALTH_READ_UNSCOPED: health read Application.findMany has no holder scope
+    at checkHolderScoped (services/holder-read-witness.js:82) <- tenant-prisma-extension.js:660 <- @prisma/client runtime library.js:31
+- throw mode: the entity ALS rewrite really runs, after the witness (entity W)
+    Received promise rejected instead of resolved (same HEALTH_READ_UNSCOPED)
+- shadow mode: ... the log names this test file in the caller stack
+    Expected pattern: /holder-marker-prisma-real-postgres\.test\.js/
+    Received: only witness frames + @prisma/client runtime frames (PrismaPromise.then); no caller frame
+
+Probe (scratch script, extension chain plotCode -> spy -> softDelete, real client):
+  hook args.where symbol keys: 0      __internalParams.args.where symbol keys: 1
+  findFirstOrThrow reaches its own hook: yes
+  a model-component override of findMany is called at call time: yes
+  plain one-extension client: hook args.where.entityId.in === caller array: false
+
+Cause (runtime/library.js, 5.22.0): each query-extension hook is called with
+  args: _a(t.args ?? {})   -> br(): for...in deep clone (drops symbol keys, new objects/arrays)
+so neither the symbol marker nor a WeakSet on the `in` arrays is visible to a query hook.

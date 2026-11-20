@@ -1,0 +1,1206 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/cultivation-twin-routers-permission-gates.test.js (5.391 s)
+  M3 — POST /api/cultivation-logs gates per activity type
+    √ resolves ACTIVITY_IRRIGATION from logType and asserts it before the write (193 ms)
+    √ legacy alias PESTICIDE normalizes to ACTIVITY_PEST_CONTROL (14 ms)
+    √ legacy alias WEEDING normalizes to ACTIVITY_WEED_CONTROL (16 ms)
+    √ this router's own catalog types PRUNING/OBSERVATION map to ACTIVITY_OTHER (not 400) (33 ms)
+    √ missing logType follows the service default (OBSERVATION) → ACTIVITY_OTHER (13 ms)
+    √ unknown logType → 400 BEFORE any engine call or write (15 ms)
+    √ denied worker → 403 ENTITY_PERMISSION_DENIED, write blocked (11 ms)
+  M3 — PUT/DELETE /api/cultivation-logs/:id gate on the ROW's own type
+    √ PUT asserts the stored row type (FERTILIZER → ACTIVITY_FERTILIZER) (17 ms)
+    √ PUT that RE-TYPES the row also asserts the target type (17 ms)
+    √ PUT denied → 403, no write (11 ms)
+    √ DELETE asserts the stored row type; denied → 403, no delete (14 ms)
+    √ DELETE allowed → 200 and deletes (20 ms)
+  M4 — harvest-batches mutations gate on HARVEST_RECORD
+    √ POST / asserts HARVEST_RECORD with the body farmId; allowed → 201 (45 ms)
+    √ POST / denied → 403 ENTITY_PERMISSION_DENIED, no create (11 ms)
+    √ PUT /:id asserts HARVEST_RECORD with the BATCH farm; denied → 403, no update (24 ms)
+    √ POST /:id/harvest asserts HARVEST_RECORD; denied → 403, no record (12 ms)
+    √ reads stay ungated (GET /:id makes no engine call) (14 ms)
+
+PASS __tests__/unit/entity-member-permissions-routes.test.js
+  GET /entities/:id/members/:userId/permissions
+    √ OWNER sees role/legacy/grants/effective + the farm-operation catalog (70 ms)
+    √ requester with role ADMIN → 403 (OWNER only, stricter than Wave-2) (20 ms)
+    √ requester not a member of the entity → 404 (no probing) (12 ms)
+    √ target not an ACTIVE member → 404 (11 ms)
+  PUT /entities/:id/members/:userId/permissions
+    √ valid GRANT → upsert keyed by (membershipId, permission), grantedBy = requester UUID, org mirrored; returns fresh payload (20 ms)
+    √ REVOKE audits ENTITY_PERMISSION_REVOKED (13 ms)
+    √ workspace-management code (INVITE_MEMBER) → 400 INVALID_PERMISSION (not grantable v1) (17 ms)
+    √ garbage permission → 400; bad effect → 400 (30 ms)
+    √ self-guard: owner editing their OWN grants → 403 SELF_PERMISSION_CHANGE_FORBIDDEN (10 ms)
+    √ ADMIN requester → 403 (OWNER only) (10 ms)
+    √ target not ACTIVE → 404, nothing written (12 ms)
+  DELETE /entities/:id/members/:userId/permissions/:permission (inherit)
+    √ deletes the grant row, audits ENTITY_PERMISSION_RESET, returns fresh payload (14 ms)
+    √ idempotent: P2025 (row already absent) still 200 — inherit IS the target state (11 ms)
+    √ self-guard applies to DELETE too (11 ms)
+    √ invalid permission in the path → 400 (21 ms)
+
+PASS __tests__/unit/entity-fk-ondelete-restrict.test.js
+  FIX #12 — Entity FK onDelete: Restrict (no silent re-nulling)
+    √ Application.entity relation pins onDelete: Restrict (12 ms)
+    √ Farm.entity relation pins onDelete: Restrict (11 ms)
+    √ a paired migration re-adds both entityId FKs with ON DELETE RESTRICT (281 ms)
+
+PASS __tests__/unit/entity-farm-operation-capabilities.test.js
+  Wave B chunk 2 — farm-operation CAPABILITIES
+    √ defines every farm-operation code as its own stable string (7 ms)
+    √ reuses EDIT_FARM for farm edit — no FARM_EDIT duplicate synonym (3 ms)
+    √ BINDING: no FARM_DELETE or draft-delete code in the taxonomy (3 ms)
+    √ FARM_OPERATION_CAPABILITIES = the 14 new codes + EDIT_FARM + SUBMIT_APPLICATION, frozen (2 ms)
+    √ keeps the 10 pre-existing workspace-management codes intact (2 ms)
+  Wave B chunk 2 — role defaults for farm-operation codes
+    √ OWNER holds every farm-operation code (3 ms)
+    √ ADMIN holds every farm-operation code (4 ms)
+    √ MANAGER holds every farm-operation code EXCEPT FARM_CREATE + EDIT_FARM + SUBMIT_APPLICATION (13 ms)
+    √ VIEWER default stays empty (read-only) (1 ms)
+    √ workspace-management bundles unchanged: ADMIN still lacks TRANSFER_OWNERSHIP/DELETE_ENTITY, MANAGER still lacks INVITE_MEMBER (1 ms)
+  M1 D6 — SUBMIT_APPLICATION is grantable, never a MANAGER default
+    √ (a) MANAGER default bundle does NOT contain SUBMIT_APPLICATION (no silent escalation) (1 ms)
+    √ (b) the grantable set contains SUBMIT_APPLICATION, so an OWNER can GRANT it per member (1 ms)
+    √ OWNER and ADMIN still hold SUBMIT_APPLICATION exactly once (no duplicate from the spread) (1 ms)
+
+PASS __tests__/unit/farm-service-edit-permission.test.js
+  updateFarm — EDIT_FARM permission gate
+    √ asserts EDIT_FARM with the loaded farm row before writing (3 ms)
+    √ denial propagates (route maps to 403) and blocks the write (2 ms)
+    √ no farm found (Wave-A floor / no access) → null, no gate call (1 ms)
+
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0121","service":"auth-service","timestamp":"2026-08-15T06:56:19.942Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0121","service":"auth-service","timestamp":"2026-08-15T06:56:20.345Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0121","service":"auth-service","timestamp":"2026-08-15T06:56:20.669Z"}
+PASS __tests__/unit/register-mass-assignment.test.js
+  registerHealthUser() — public endpoint cannot mass-assign privilege
+    √ ignores a smuggled role=ADMIN — the account is HEALTH, not a provider (404 ms)
+    √ ignores smuggled ministryVerified / accountTier / status / verificationStatus (324 ms)
+    √ still creates a normal HEALTH applicant from a clean body (326 ms)
+
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0121","service":"auth-service","timestamp":"2026-08-15T06:56:21.439Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0121","service":"auth-service","timestamp":"2026-08-15T06:56:21.783Z"}
+[32minfo[39m: [AuthService] Register: {"authType":"HEALTH_ID","id":"1-XXXX-XXXX-X-0121","service":"auth-service","timestamp":"2026-08-15T06:56:22.107Z"}
+PASS __tests__/unit/register-consent-not-user-column.test.js
+  register() — PDPA consent fields are not persisted as User columns
+    √ does not pass acceptedTermsOfService / acceptedPrivacyPolicy / acceptedConsent to user.create (344 ms)
+    √ still persists the real User fields (324 ms)
+    √ resolves successfully (no Prisma "Unknown argument" throw) (323 ms)
+
+PASS __tests__/unit/certificates-route-rbac.test.js
+  V1-D D8 — certificates route RBAC regression
+    GET /api/certificates — branch by role
+      √ HEALTH role → service called with scope=self + userId (33 ms)
+      √ admin role → scope=all but tenant-bounded (C3: organizationId, crossTenant:false) (19 ms)
+      √ scheduler role → scope=all but tenant-bounded (C3: organizationId, crossTenant:false) (9 ms)
+      √ document_reviewer role → scope=all but tenant-bounded (C3: organizationId, crossTenant:false) (9 ms)
+      √ auditor role → scope=all but tenant-bounded (C3: organizationId, crossTenant:false) (9 ms)
+      √ account_dtam role → scope=all but tenant-bounded (C3: organizationId, crossTenant:false) (9 ms)
+      √ account_platform role → scope=all but tenant-bounded (C3: organizationId, crossTenant:false) (9 ms)
+      √ account role → scope=all but tenant-bounded (C3: organizationId, crossTenant:false) (10 ms)
+      √ PLATFORM_ADMIN → scope=all + crossTenant:true (sees every tenant) (9 ms)
+    GET /api/certificates/:id — branch by role
+      √ HEALTH role → ownership-scoped getCertificateForUser (10 ms)
+      √ admin role → tenant-bounded findById (C3: organizationId, crossTenant:false) (26 ms)
+      √ scheduler role → tenant-bounded findById (C3: organizationId, crossTenant:false) (9 ms)
+      √ document_reviewer role → tenant-bounded findById (C3: organizationId, crossTenant:false) (9 ms)
+      √ auditor role → tenant-bounded findById (C3: organizationId, crossTenant:false) (9 ms)
+      √ account_dtam role → tenant-bounded findById (C3: organizationId, crossTenant:false) (9 ms)
+      √ account_platform role → tenant-bounded findById (C3: organizationId, crossTenant:false) (9 ms)
+      √ account role → tenant-bounded findById (C3: organizationId, crossTenant:false) (9 ms)
+      √ PLATFORM_ADMIN → cross-tenant findById (crossTenant:true) (9 ms)
+      √ C3 tenant isolation: tenant-A ADMIN requesting a tenant-B cert id → 404 (service returns null) (9 ms)
+    GET /api/certificates/my — HEALTH-only by design (real authenticateHealth)
+      √ HEALTH role → service called with own userId (9 ms)
+      √ admin role → still scoped to caller userId only (9 ms)
+      √ scheduler role → still scoped to caller userId only (9 ms)
+      √ document_reviewer role → still scoped to caller userId only (12 ms)
+      √ auditor role → still scoped to caller userId only (10 ms)
+      √ account_dtam role → still scoped to caller userId only (8 ms)
+      √ account_platform role → still scoped to caller userId only (9 ms)
+      √ account role → still scoped to caller userId only (9 ms)
+    anonymous → 401, no service touched
+      √ GET /api/certificates without token (10 ms)
+      √ GET /api/certificates/my without token (9 ms)
+      √ GET /api/certificates/:id without token (10 ms)
+
+PASS __tests__/unit/canonicalid-rekey-stage0.test.js
+  STAGE 0 (a) — resolveCanonicalIdForWrite (flag-gated)
+    √ flag OFF (default) → returns the national ID, byte-for-byte today (5 ms)
+    √ flag ON → returns the keyed-HMAC token (computeLookupHmac), not the national ID (19 ms)
+    √ flag ON → reuses a precomputed *Hmac when the caller already has it (no recompute drift) (3 ms)
+    √ flag ON + no national ID → falls back to userId (matches COALESCE(...,id) in the re-key) (3 ms)
+  STAGE 0 (a) — prisma-auth-service.register() canonicalId write
+    √ flag OFF → canonicalId = the national ID (byte-for-byte today) (8 ms)
+    √ flag ON → canonicalId = the keyed-HMAC token, never the national ID (3 ms)
+    √ strips client-supplied canonicalId / canonicalIdLegacy (mass-assignment defense) (1 ms)
+  STAGE 0 (a) — provider-user-service.createProviderUser canonicalId write
+    √ flag OFF → canonicalId = the providerId national ID (2 ms)
+    √ flag ON → canonicalId = the keyed-HMAC token (2 ms)
+  STAGE 0 (b) — auth-middleware fetchIdentityFromDb sets req.user.canonicalId
+    √ selects the *Hmac columns (14 ms)
+    √ flag OFF → req.user.canonicalId = national ID (sourced from DB column, == FK key today) (5 ms)
+    √ flag ON → req.user.canonicalId = the token (the *Hmac column), never the JWT or plaintext (4 ms)
+  STAGE 0 (b) — application-identity resolveHealthIdentity FK value
+    √ flag OFF → returns the healthId column value (national ID == FK key today) (3 ms)
+    √ flag ON → returns the canonicalId column value (the token, the post-re-key FK key) (1 ms)
+    √ buildHealthWhereClause prefers the stable applicant:{id} relation branch when a UUID is available (2 ms)
+    √ buildHealthWhereClause still returns {healthId} for legacy callers with no UUID (pre-re-key only) (1 ms)
+
+PASS __tests__/unit/auth-idp-routes.test.js
+  POST /api/auth/idp/:provider/authorize-url
+    √ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (76 ms)
+    √ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (12 ms)
+    √ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (11 ms)
+    √ thaid enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (55 ms)
+    √ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (22 ms)
+    √ tombstone: 'mock' ไม่อยู่ใน registry แล้ว → 503 และแยกไม่ออกจาก key ที่ไม่เคยมี (operator 2026-08-14) (63 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    √ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (35 ms)
+    √ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (25 ms)
+    √ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (47 ms)
+    √ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (22 ms)
+    √ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (21 ms)
+    √ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (26 ms)
+  POST /api/auth/idp/thaid/callback — เส้น session จริง (แปลงพาหนะจาก mock — coverage เดิมครบ)
+    √ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR + audit reason CODE_MISSING จากการ์ดของ route (21 ms)
+    √ code ไม่ใช่สตริง (number) → 400 VALIDATION_ERROR ก่อนถึง adapter (ไม่ยิง IdP) (24 ms)
+    √ happy → 200: mint ผ่าน issueTokensForAuthenticatedUser + provider_token httpOnly cookie (23 ms)
+    √ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (21 ms)
+    √ ทะเบียนปฏิเสธ fail-closed (auto-provision ปิด) → catalog status + ไม่มี create/upsert/mint + audit FAILURE (21 ms)
+    √ บัญชีที่ผูกเลข 13 หลักเป็นเจ้าหน้าที่ → 403 ไม่ auto-link ไม่ create/upsert/mint + audit FAILURE (23 ms)
+    √ บัญชี status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (20 ms)
+    √ ผู้ใช้กดปฏิเสธที่ IdP → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (20 ms)
+    √ code ถูก IdP ปฏิเสธ → 401 AUTH_IDP_CODE_INVALID (ใช้ไม่ได้ = ปฏิเสธก่อน mint) (20 ms)
+    √ id_token ไม่มี subject → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (20 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    √ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (91 ms)
+    √ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (22 ms)
+  POST /api/auth/idp/thaid/callback — state anti-CSRF ยังบังคับกับ provider ThaID
+    √ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session (19 ms)
+    √ ไม่มี state ใน body → 400 AUTH_STATE_INVALID (single-use/anti-CSRF ครอบ thaid ด้วย) (19 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    √ thaid happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(subject) ไม่มีค่าดิบใน metadata (22 ms)
+    √ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (147 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    √ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (15 ms)
+    √ routes/api/index.js mount /auth/idp (16 ms)
+    √ server.js ครอบ /auth/idp ด้วย idp-rate-limit factory ที่รับ authLimiter จริง (23 ms)
+
+PASS __tests__/unit/auth-idp-providers-endpoint.test.js
+  GET /api/auth/idp/providers
+    √ answers 200 with every provider key and its effective state (103 ms)
+    √ pins a POSITIVE state — local resolves enabled, so a handler that answers coming_soon for everything cannot pass (92 ms)
+    √ DISCRIMINATES: staging_only on real production reports enabled:false while the state string alone would read as usable (94 ms)
+    √ resolves enabled for the frontend — staging_only is not a state a browser can interpret (99 ms)
+    √ reflects the fail-closed resolver, not the raw defaults — thaid without env is coming_soon (90 ms)
+    √ never leaks anything beyond key, state and the resolved enabled flag (95 ms)
+    √ is never cached — a delivered credential must flip the badge without a deploy (108 ms)
+    √ requires no authentication — the login page has no session yet (88 ms)
+
+PASS __tests__/unit/audit-onsite-rbac.test.js
+  V3-D /api/audit/onsite/* — AUDIT_STAFF file gate + AUDITORS per-route gate
+    POST /api/audit/onsite/:auditId/start
+      √ admin role gets 403 (role gate) (77 ms)
+      √ document_reviewer role gets 403 (role gate) (12 ms)
+      √ scheduler role gets 403 (role gate) (11 ms)
+      √ account_dtam role gets 403 (role gate) (11 ms)
+      √ account_platform role gets 403 (role gate) (12 ms)
+      √ account role gets 403 (role gate) (10 ms)
+      √ health role gets 403 (role gate) (17 ms)
+      √ auditor role bypasses both role gates (159 ms)
+    POST /api/audit/onsite/:auditId/checklist
+      √ admin role gets 403 (role gate) (12 ms)
+      √ document_reviewer role gets 403 (role gate) (11 ms)
+      √ scheduler role gets 403 (role gate) (11 ms)
+      √ account_dtam role gets 403 (role gate) (12 ms)
+      √ account_platform role gets 403 (role gate) (10 ms)
+      √ account role gets 403 (role gate) (10 ms)
+      √ health role gets 403 (role gate) (10 ms)
+      √ auditor role bypasses both role gates (9 ms)
+    GET /api/audit/onsite/:auditId/gps-verify
+      √ admin role gets 403 (role gate) (17 ms)
+      √ document_reviewer role gets 403 (role gate) (12 ms)
+      √ scheduler role gets 403 (role gate) (13 ms)
+      √ account_dtam role gets 403 (role gate) (47 ms)
+      √ account_platform role gets 403 (role gate) (20 ms)
+      √ account role gets 403 (role gate) (20 ms)
+      √ health role gets 403 (role gate) (11 ms)
+      √ auditor role bypasses both role gates (9 ms)
+    POST /api/audit/onsite/:auditId/decision
+      √ admin role gets 403 (role gate) (10 ms)
+      √ document_reviewer role gets 403 (role gate) (13 ms)
+      √ scheduler role gets 403 (role gate) (14 ms)
+      √ account_dtam role gets 403 (role gate) (11 ms)
+      √ account_platform role gets 403 (role gate) (10 ms)
+      √ account role gets 403 (role gate) (10 ms)
+      √ health role gets 403 (role gate) (10 ms)
+      √ auditor role bypasses both role gates (11 ms)
+    anonymous (no token) — authenticateProvider rejects
+      √ POST /api/audit/onsite/:auditId/start returns 401 without a token (10 ms)
+      √ POST /api/audit/onsite/:auditId/checklist returns 401 without a token (9 ms)
+      √ GET /api/audit/onsite/:auditId/gps-verify returns 401 without a token (11 ms)
+      √ POST /api/audit/onsite/:auditId/decision returns 401 without a token (9 ms)
+  V3-D POST /api/audit/onsite/:auditId/photo — AUDITORS gate
+    √ admin role gets 403 even with empty body (13 ms)
+    √ document_reviewer role gets 403 even with empty body (11 ms)
+    √ scheduler role gets 403 even with empty body (10 ms)
+    √ account_dtam role gets 403 even with empty body (11 ms)
+    √ account_platform role gets 403 even with empty body (10 ms)
+    √ account role gets 403 even with empty body (10 ms)
+    √ health role gets 403 even with empty body (11 ms)
+    √ auditor role bypasses the gate (may 400 on missing file) (11 ms)
+    √ anonymous returns 401 (10 ms)
+
+PASS __tests__/unit/cultivation-farm-access-routes.test.js
+  Wave A chunk 3 — DELETE /plots/:id (mutation) honours entity co-membership
+    √ ACTIVE co-member of the farm entity can delete (previously 404) (67 ms)
+    √ M2: un-granted ACTIVE VIEWER cannot delete — the CYCLE_CREATE gate denies with an explicit 403 (14 ms)
+    √ PENDING member still 404s (no mutation) (13 ms)
+    √ entityId=null plot farm stays owner-only → 404 for the worker (11 ms)
+    √ owner still deletes (regression) (10 ms)
+    √ M2: plot CREATE probes read-shaped — the CYCLE_CREATE gate is the mutation authority (14 ms)
+    √ S2: plot LIST keeps the read-shaped probe (no forMutation) (10 ms)
+  Wave A chunk 3 — GET /harvest-batches/:id (read) uses the accessible-farm set
+    √ co-member sees a workspace batch (previously 403 via owner-only farm ids) (17 ms)
+    √ non-member is still denied (10 ms)
+
+PASS __tests__/unit/farm-ownership-records-permission.test.js
+  owner fast-path — Wave B fix M1: confined to entityId=null farms
+    √ SOLO farm owner passes with and without a permission option, no predicate calls (byte-identical) (3 ms)
+    √ WORKSPACE farm owner (creator) is NOT fast-pathed: the read predicate re-checks the membership (2 ms)
+    √ WORKSPACE farm creator with a dead membership → 403 (fired-worker hole closed) (1 ms)
+    √ missing farm → 404; missing farmId → 400; unauthenticated → 401 (unchanged) (3 ms)
+  reads (no permission option) — Wave-A style co-member widening
+    √ ACTIVE co-member passes via resolveFarmAccess (read-shaped, no forMutation) (4 ms)
+    √ non-member keeps the legacy 403 (4 ms)
+  writes ({ permission: RECORDS_MANAGE }) — effective permission decides
+    √ co-member WITH the permission passes (4 ms)
+    √ co-member WITHOUT the permission → 403 ENTITY_PERMISSION_DENIED naming it (4 ms)
+    √ unexpected assert failure → 500 (existing catch), never a silent pass (4 ms)
+
+PASS __tests__/unit/entity-slug.test.js
+  Wave C PR C-3 — slugify
+    √ lowercases ASCII and joins with hyphens (2 ms)
+    √ returns null for empty / whitespace-only input (1 ms)
+    √ drops Thai characters (URL-only purpose) (12 ms)
+    √ keeps ASCII letters mixed with Thai (1 ms)
+    √ strips leading and trailing hyphens (1 ms)
+    √ collapses repeated punctuation (1 ms)
+  Wave C PR C-3 — nextAvailableSlug
+    √ returns the slugified base when no collision (2 ms)
+    √ appends -2 / -3 on collisions (1 ms)
+    √ uses fallback prefix when displayName has no ASCII (9 ms)
+    √ excludes the same entity from collision check (rename safety) (1 ms)
+
+PASS __tests__/unit/auth-idp-thaid-session.test.js
+  resolveThaidSession — status gate (auth-idp.js)
+    √ SUSPENDED existing user → 403 ACCOUNT_INACTIVE, NO session minted, audit FAILURE (50 ms)
+    √ ACTIVE user → 200, session minted via issueTokensForAuthenticatedUser (21 ms)
+    √ PENDING_VERIFICATION (freshly provisioned citizen) → 200, session minted (19 ms)
+
+PASS __tests__/unit/entity-member-permission-grant-reason-pii.test.js
+  M5 — a national ID inside `reason` never reaches either sink in plaintext
+    √ route PUT: grant row AND event metadata receive the MASKED reason (36 ms)
+    √ service-level (source): setMemberPermissionGrant masks a whole-string ID reason for ANY caller (1 ms)
+    √ a 13-digit run inside a longer digit run is NOT mangled (not an ID) (1 ms)
+  S10 — reason bounds (when provided): trimmed >= 5 and <= 500
+    √ PUT with a too short reason → 400 VALIDATION_ERROR, nothing persisted (10 ms)
+    √ PUT with a too long reason → 400 VALIDATION_ERROR, nothing persisted (10 ms)
+    √ PUT without a reason stays valid (reason is optional) (10 ms)
+    √ PUT with a 5-char and a 500-char reason both pass (18 ms)
+
+PASS __tests__/unit/entities-mine-route.test.js
+  Wave C PR C-1 — /api/entities
+    GET /mine
+      √ returns the user's active memberships, flagging the personal INDIVIDUAL (73 ms)
+      √ filters out PENDING by default; ?include=pending shows them (18 ms)
+      √ drops soft-deleted entities even if a stale membership row points at them (10 ms)
+    POST /me/switch
+      √ records a switch and returns 200 (14 ms)
+      √ rejects with 400 when toEntityId is missing (11 ms)
+      √ rejects with 403 when user is not a member of toEntityId (21 ms)
+      √ returns recorded:false when the audit insert silently fails (11 ms)
+      √ coerces unknown source to HEADER (11 ms)
+
+PASS __tests__/unit/cultivation-records-manage-gate.test.js
+  S9 — /api/seed-sources writes gate on RECORDS_MANAGE
+    √ un-granted VIEWER co-member: POST → 403 ENTITY_PERMISSION_DENIED, no create (68 ms)
+    √ VIEWER with GRANT RECORDS_MANAGE: POST passes (create runs) (42 ms)
+    √ MANAGER with REVOKE RECORDS_MANAGE: PUT /:id → 403, no update (16 ms)
+    √ MANAGER (role default holds RECORDS_MANAGE): DELETE /:id passes (10 ms)
+    √ reads stay plain co-member (VIEWER lists without any grant) (10 ms)
+  S9 — /api/water-sources writes gate on RECORDS_MANAGE
+    √ un-granted VIEWER co-member: POST → 403 ENTITY_PERMISSION_DENIED, no create (27 ms)
+    √ VIEWER with GRANT RECORDS_MANAGE: POST passes (create runs) (10 ms)
+    √ MANAGER with REVOKE RECORDS_MANAGE: PUT /:id → 403, no update (10 ms)
+    √ MANAGER (role default holds RECORDS_MANAGE): DELETE /:id passes (10 ms)
+    √ reads stay plain co-member (VIEWER lists without any grant) (9 ms)
+  S9 — /api/fertilizer-records writes gate on RECORDS_MANAGE
+    √ un-granted VIEWER co-member: POST → 403 ENTITY_PERMISSION_DENIED, no create (77 ms)
+    √ VIEWER with GRANT RECORDS_MANAGE: POST passes (create runs) (10 ms)
+    √ MANAGER with REVOKE RECORDS_MANAGE: PUT /:id → 403, no update (10 ms)
+    √ MANAGER (role default holds RECORDS_MANAGE): DELETE /:id passes (9 ms)
+    √ reads stay plain co-member (VIEWER lists without any grant) (10 ms)
+  S9 — /api/controlled-environments writes gate on RECORDS_MANAGE
+    √ un-granted VIEWER co-member: POST → 403 ENTITY_PERMISSION_DENIED, no create (13 ms)
+    √ VIEWER with GRANT RECORDS_MANAGE: POST passes (create runs) (10 ms)
+    √ MANAGER with REVOKE RECORDS_MANAGE: PUT /:id → 403, no update (10 ms)
+    √ MANAGER (role default holds RECORDS_MANAGE): DELETE /:id passes (11 ms)
+    √ reads stay plain co-member (VIEWER lists without any grant) (9 ms)
+
+PASS __tests__/unit/identity-field-gate-teeth.test.js (6.855 s)
+  CI gate — raw req.user.role must not reach a decision
+    √ the repository currently passes its own gate (6401 ms)
+    catches (these are the shapes that shipped real bugs)
+      √ const role = String(req.user?.role || '').toUpperCase(); — the interoperability-core revoke-gate alias (12 ms)
+      √ const currentUserRole = String(req.user?.role || '').toLowerCase(); — the provider create-account alias (2 ms)
+      √ if (req.user.role === 'ADMIN') { — a direct comparison (1 ms)
+      √ if (req.user?.role === 'ADMIN') { — a direct comparison written with optional chaining (1 ms)
+      √ if ('ADMIN' === req.user?.role) { — a reversed comparison (2 ms)
+      √ const r = req.user.role; — a bare alias (1 ms)
+    allows (so the gate stays signal, not noise)
+      √ const r = normalizeRole(req.user?.canonicalRole || req.user?.role); — wrapped in the normaliser (1 ms)
+      √ if (!isProviderRole(req.user?.role)) { — passed to a predicate that normalises internally (1 ms)
+      √ const actorRole = req.user?.canonicalRole || req.user?.role || null; — the canonical-first fallback idiom (11 ms)
+      √ actorRole: req.user.role, — recorded verbatim in an audit field (2 ms)
+      √ role: req.user?.role || 'PUBLIC', — an audit payload property (1 ms)
+      √ where: { role: req.user.role }, — a legitimate raw-column Prisma filter (1 ms)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-15T06:56:42.602Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-15T06:56:42.604Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-15T06:56:42.627Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-15T06:56:42.699Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-15T06:56:42.790Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-15T06:56:42.792Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-15T06:56:42.792Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-15T06:56:42.793Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-15T06:56:42.794Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-15T06:56:42.795Z"}
+PASS __tests__/unit/traceability-public-projection-cycle-farmid.test.js
+  A3-layer-2b — cycle.farmId on the public batch/lot projection
+    √ findPublicBatchByAnyIdentifier selects cycle.farmId (645 ms)
+    √ findPublicLotByAnyIdentifier selects batch.cycle.farmId (67 ms)
+    √ a cross-farm batch cert is droppable in-memory (batch.cycle.farmId !== batch.farmId) (43 ms)
+    √ a same-farm batch cert is retained by the comparison (44 ms)
+
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-15T06:56:43.469Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-15T06:56:43.470Z"}
+PASS __tests__/unit/plant-unit-mutation-permission.test.js
+  S8 — requirePlantUnitMutation middleware (helper unit tests)
+    √ asserts UNIT_MANAGE on the unit's farm and passes (sets req.plantUnitId) (7 ms)
+    √ denied → 403 ENTITY_PERMISSION_DENIED naming UNIT_MANAGE (2 ms)
+    √ missing unit → 404; unreachable farm → 403 (read-middleware shapes preserved) (4 ms)
+    √ unauthenticated → 401 (2 ms)
+  S8 — route wiring: every per-unit MUTATION carries the UNIT_MANAGE gate
+    √ put /api/plant-units/unit-1: denied worker → 403, service untouched (119 ms)
+    √ post /api/plant-units/unit-1/record-print: denied worker → 403, service untouched (26 ms)
+    √ post /api/plant-units/unit-1/confirm-planting: denied worker → 403, service untouched (14 ms)
+    √ post /api/plant-units/unit-1/start-growing: denied worker → 403, service untouched (12 ms)
+    √ post /api/plant-units/unit-1/mark-sold: denied worker → 403, service untouched (11 ms)
+    √ post /api/plant-units/unit-1/care-logs: denied worker → 403, service untouched (11 ms)
+    √ put /api/plant-units/unit-1: allowed → the handler runs (21 ms)
+    √ post /api/plant-units/unit-1/record-print: allowed → the handler runs (12 ms)
+    √ post /api/plant-units/unit-1/confirm-planting: allowed → the handler runs (11 ms)
+    √ post /api/plant-units/unit-1/start-growing: allowed → the handler runs (12 ms)
+    √ post /api/plant-units/unit-1/mark-sold: allowed → the handler runs (14 ms)
+    √ post /api/plant-units/unit-1/care-logs: allowed → the handler runs (11 ms)
+    √ reads stay on the plain ownership middleware (GET /plant-units/:id makes no engine call) (13 ms)
+    √ GET care-logs (read) stays ungated too (10 ms)
+
+PASS __tests__/unit/role-filters-canonical-only.test.js
+  the widening helpers are gone from production code
+    √ no production file calls dbRoleValuesFor / dbRoleValuesForAny (764 ms)
+    √ no DB read path converts a canonical role to its legacy spelling (132 ms)
+    √ the scan reads real files (guards against a vacuous pass) (11 ms)
+  no prisma.user query filters on a legacy role spelling
+    √ every role literal in a prisma.user filter is already canonical (222 ms)
+    √ the scanner actually resolves aliased literals (guards the guard) (2 ms)
+  in-memory User.role comparisons use the canonical spelling
+    √ routes/api/admin/users.js — every branch returned a legacy spelling, so filtering the admin user list by ANY role returned an empty page (1 ms)
+    √ services/entity-service.js — user.role !== 'HEALTH' is now always true, so the personal-entity self-heal never runs (3 ms)
+    √ controllers/auth-controller/health-auth-profile-handlers.js — REQUIRE_MFA_FOR_PRIVILEGED stopped recognising any privileged user (1 ms)
+  role arrays handed to the user service are canonical-only
+    √ routes/api/provider/handlers/scheduler-assign-reviewer-handler.js (2 ms)
+    √ routes/api/provider/scheduler.js (1 ms)
+    √ services/provider-user-service.js (1 ms)
+  every User.role writer produces the canonical spelling
+    √ routes/api/platform-admin/organizations.js writes a canonical role (2 ms)
+    √ controllers/e2e-controller.js writes a canonical role (1 ms)
+    √ services/prisma-auth-service.js writes a canonical role (1 ms)
+    √ services/provider-user-service.js writes a canonical role (1 ms)
+    √ services/admin-user-service.js writes a canonical role (1 ms)
+    √ routes/api/admin/users.js writes a canonical role (1 ms)
+    √ the platform-admin route normalises before it writes (1 ms)
+  each narrowed filter holds canonical values only
+    √ services/metrics-service.js :: APPLICANT_ROLES (2 ms)
+    √ services/dtam-accountants.js :: DTAM_ACCOUNTANT_DB_ROLES (1 ms)
+    √ services/notification/domain-helpers.js :: SCHEDULER_NOTIFY_ROLES (1 ms)
+    √ services/notification/domain-helpers.js :: SLA_ESCALATION_ROLES (2 ms)
+    √ services/admin-dashboard-service.js :: AUDIT_STAFF_ROLES (1 ms)
+    √ services/scheduler/job-scheduler.js :: APPLICANT_ROLES (2 ms)
+    √ services/application-service/application-review-revision-methods.js :: PROVIDER_NOTIFY_ROLES (1 ms)
+    √ services/provider-user-service.js :: ADMIN_ROLES (1 ms)
+    √ services/subscription/subscription-order-service.js :: APPLICANT_ROLES (1 ms)
+    √ no filter carries a quarantined value (2 ms)
+  the boundary still rejects legacy input
+    √ normalizeRole maps a legacy spelling to canonical, it does not pass it through (1 ms)
+    √ an unknown role is still refused (1 ms)
+
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    √ sanity: scanner เห็นครบทุกไดเรกทอรีที่อ้างว่าสแกน และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (12 ms)
+    √ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (41 ms)
+    √ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+
+PASS __tests__/unit/entities-management-routes.test.js
+  Wave C PR-4 — POST /api/entities (create workspace)
+    √ creates a JURISTIC workspace (31 ms)
+    √ rejects INDIVIDUAL with 400 (11 ms)
+    √ rejects with 400 on validation failure (12 ms)
+  Wave C PR-4 — GET /api/entities/:id
+    √ returns the entity when caller is a member (by uuid) (11 ms)
+    √ returns the entity when caller is a member (by slug) (10 ms)
+    √ returns 404 when not a member (no membership probing) (11 ms)
+  Wave C PR-4 — PATCH /api/entities/:id (rename)
+    √ OWNER can rename (15 ms)
+    √ VIEWER gets 403 (11 ms)
+    √ 400 when no fields supplied (10 ms)
+  Wave C PR-4 — POST /api/entities/:id/members (invite)
+    √ OWNER invites a MANAGER by healthId (12 ms)
+    √ rejects role=OWNER (transfer-ownership only) (10 ms)
+    √ ADMIN cannot invite another ADMIN (9 ms)
+    √ returns 404 when invitee not found (10 ms)
+    √ returns 409 AMBIGUOUS_INVITEE on email collision (9 ms)
+    √ sends invitation email when invitee has email on file (12 ms)
+    √ skips invitation email when invitee has no email on file (17 ms)
+    √ does not fail the invite request when email send rejects (10 ms)
+    √ VIEWER cannot invite (403) (9 ms)
+    √ writes an INVITED audit row when inviting a fresh member (9 ms)
+    √ writes a ROLE_CHANGED audit row when promoting an existing member (11 ms)
+    √ writes NO audit row on idempotent re-invite (same role, no change) (10 ms)
+  Wave C PR-4 — DELETE /api/entities/:id/members/:memberUserId
+    √ OWNER revokes a MANAGER (11 ms)
+    √ writes a REVOKED audit row alongside the membership update (10 ms)
+    √ writes NO audit row on idempotent re-revoke (already REVOKED) (10 ms)
+    √ blocks revoking OWNER (transfer-ownership only) (10 ms)
+    √ VIEWER cannot revoke (9 ms)
+
+PASS __tests__/unit/farm-permission-gates.test.js
+  POST /farms — FARM_CREATE gated ONLY in a real workspace context
+    √ no active-entity context → no gate, 201 (legacy solo farmer path) (35 ms)
+    √ personal:true context → no gate, 201 (owner under own personal entity ALWAYS passes) (9 ms)
+    √ workspace context (personal:false) → FARM_CREATE asserted against that entity (10 ms)
+    √ workspace context, denied → 403 ENTITY_PERMISSION_DENIED (10 ms)
+  PATCH /farms/:id — service denial maps to 403 (not 500)
+    √ farm-service throws ENTITY_PERMISSION_DENIED → 403 with the permission named (10 ms)
+    √ normal update still 200 (13 ms)
+  plots — CYCLE_CREATE on create + delete (plots are cycle-prep)
+    √ POST /farms/:farmId/plots asserts CYCLE_CREATE after the reachability probe (9 ms)
+    √ POST plot denied → 403 ENTITY_PERMISSION_DENIED, plot NOT created (14 ms)
+    √ DELETE /plots/:id asserts CYCLE_CREATE with the loaded farm row (240 ms)
+    √ DELETE plot denied → 403, plot NOT deleted (14 ms)
+
+PASS __tests__/unit/backfill-entities.test.js
+  backfill-entities / parseArgs
+    √ defaults to a live run (2 ms)
+    √ --dry-run sets dryRun (1 ms)
+    √ --verbose sets verbose (1 ms)
+  backfill-entities / resolveUserPersonalEntity
+    √ resolves to the existing OWNER INDIVIDUAL membership entity — does NOT create a duplicate (1 ms)
+    √ dry-run never writes even when the user has NO entity yet (1 ms)
+  backfill-entities / step1BackfillEntities
+    √ re-run with everyone already owning an entity is a no-op (idempotent) (1 ms)
+    √ dry-run performs zero writes across all users (1 ms)
+  backfill-entities / step2BackfillApplications
+    √ maps app.entityId via the owner user (canonicalId=token) → membership entity, NOT a hash (2 ms)
+    √ dry-run performs zero application writes (1 ms)
+  backfill-entities / step3BackfillFarms
+    √ maps farm.entityId via ownerId (User.id) → membership entity, NOT a hash (2 ms)
+    √ dry-run performs zero farm writes (1 ms)
+
+PASS __tests__/unit/audit-onsite-routes.test.js
+  V3-A DI-1 — /api/audit/onsite router mount
+    √ routes/api/index.js mounts /audit/onsite (source-level regression guard) (3 ms)
+    √ the onsite router responds to GET /:auditId/context (proves the router is wired and the handler exists) (25 ms)
+    √ anonymous request returns 401 (auth middleware fires before any handler) (12 ms)
+    √ a role outside AUDIT_STAFF (e.g. account_dtam) is rejected by the file-level gate (12 ms)
+  V3-A — GET /:auditId/context shape
+    √ returns the inspect-page initial state for an assigned auditor (17 ms)
+    √ returns 404 with code AUDIT_NOT_FOUND when the audit row is absent (10 ms)
+    √ GET /:auditId/gps-verify → 404 AUDIT_NOT_FOUND for an unknown audit (not 500) (10 ms)
+    √ AUDITOR B is denied when the audit is assigned to AUDITOR A (scope correctness) (19 ms)
+    √ ADMIN sees any audit regardless of auditor assignment (12 ms)
+    √ PDPA: assigned AUDITOR sees applicantName (23 ms)
+    √ PDPA: ADMIN sees applicantName (12 ms)
+    √ PDPA: SCHEDULER (no need-to-know) gets applicantName redacted to null (16 ms)
+    √ PDPA: DOCUMENT_REVIEWER gets applicantName redacted to null (14 ms)
+    √ handles formData.location fallback shape when locationData is absent (29 ms)
+
+PASS __tests__/unit/active-entity-middleware.test.js
+  Wave C PR C-2 — activeEntityMiddleware
+    √ passes through when req.user is missing (anonymous / public) (2 ms)
+    √ binds the requested entity when header matches an ACTIVE membership (2 ms)
+    √ S1: header naming the user's OWN personal INDIVIDUAL entity → personal:true (1 ms)
+    √ S1: non-OWNER membership on an INDIVIDUAL entity stays a workspace (personal:false) (2 ms)
+    √ returns 403 when header is set but no active membership matches (1 ms)
+    √ returns 403 when membership exists but status is REVOKED / PENDING (1 ms)
+    √ resolves the personal entity via the stable OWNER membership link (no hash lookup) when header is absent (2 ms)
+    √ falls back to the legacy national-ID hash lookup when no OWNER membership link exists (flag OFF) (1 ms)
+    √ passes through with no scope when header absent and neither link nor personal entity exists (1 ms)
+    √ does not 500 on a Prisma failure (best-effort) (1 ms)
+
+PASS __tests__/unit/entity-prisma-extension.test.js
+  Wave C PR C-2 — entity-scoped read auto-filter
+    ENTITY_SCOPED_MODELS classification
+      √ flags Application and Farm as entity-scoped (2 ms)
+      √ does NOT flag EntityMembership (cross-entity by design) (1 ms)
+      √ does NOT flag TraceQrSecurity (polymorphic entityType, different sense) (2 ms)
+      √ does NOT flag Certificate (transitively scoped via Application) (2 ms)
+    findMany
+      √ injects entityId when context is bound (3 ms)
+      √ preserves any explicit entityId in args.where (2 ms)
+      √ does NOT inject when no context is bound (script / migration path) (2 ms)
+      √ does NOT inject inside withoutEntityScope (2 ms)
+      √ does NOT touch non-entity-scoped models (2 ms)
+      √ handles missing args.where (1 ms)
+    findFirst
+      √ injects entityId on Application reads (2 ms)
+      √ injects entityId on Farm reads (2 ms)
+    count
+      √ injects entityId so count reflects the active scope (2 ms)
+
+PASS __tests__/unit/cultivation-grant-to-viewer-gated-surfaces.test.js
+  M2 — VIEWER + GRANT reaches and passes the per-permission gate
+    √ VIEWER with GRANT HARVEST_RECORD: reachability passes AND the gate allows (200-path) (6 ms)
+    √ VIEWER with GRANT UNIT_MANAGE passes the plant-units gate (3 ms)
+    √ un-granted VIEWER: reaches, but the engine denies with an explicit 403 (same net posture as the floor) (4 ms)
+    √ regression pin: MANAGER with REVOKE HARVEST_RECORD is denied by the engine (4 ms)
+    √ regression pin: MANAGER (role default holds HARVEST_RECORD) still passes (3 ms)
+  M2 — verifyOwnedFarm at the CYCLE_CREATE site is read-shaped (gate is the sole authority)
+    √ VIEWER co-member reaches the farm row (the CYCLE_CREATE engine gate then decides) (3 ms)
+
+PASS __tests__/unit/harvest-batch-cross-farm-create.test.js
+  A3 — create rejects a cross-farm cycle binding
+    √ cycleId whose cycle.farmId !== farmId → rejected, batch NOT created (40 ms)
+    √ cycleId that does not resolve to a cycle → rejected, batch NOT created (10 ms)
+  A3 — legit paths still create
+    √ cycleId whose cycle.farmId === farmId → 201, batch created with cycleId (10 ms)
+    √ no cycleId → 201, batch created (no cycle check) (11 ms)
+
+PASS __tests__/unit/entity-accept-invitation.test.js
+  Wave D — acceptInvitation helper
+    √ flips PENDING → ACTIVE and writes ACCEPTED audit row atomically (6 ms)
+    √ throws NOT_INVITED when there is no membership row (2 ms)
+    √ throws NOT_PENDING when the row is already ACTIVE (10 ms)
+    √ throws NOT_PENDING when the row is REVOKED (2 ms)
+  Wave D — declineInvitation helper
+    √ flips PENDING → REVOKED with reason=DECLINED in audit (1 ms)
+    √ throws NOT_PENDING when row is already ACTIVE (cannot decline an accepted invite) (1 ms)
+  Wave D — listPendingInvitations helper
+    √ returns flattened invitations with inviter info (2 ms)
+    √ filters out invitations whose entity is soft-deleted (2 ms)
+    √ returns empty list when no pending invitations (1 ms)
+  Wave D — POST /api/entities/:id/accept-invitation
+    √ 200 + flips status when caller has a PENDING row (31 ms)
+    √ 404 NOT_INVITED when caller has no membership row (11 ms)
+    √ 409 NOT_PENDING when row is already ACTIVE (10 ms)
+  Wave D — POST /api/entities/:id/decline-invitation
+    √ 200 + REVOKED when caller declines a PENDING invite (10 ms)
+    √ 404 NOT_INVITED (10 ms)
+  Wave D — GET /api/entities/invitations
+    √ returns the caller's pending invitations (11 ms)
+    √ "invitations" path string is NOT mistaken for an entity id (11 ms)
+
+PASS __tests__/services/audit-onsite-service.test.js
+  audit-onsite-service
+    haversineDistanceMeters
+      √ returns ~0 for identical coords (7 ms)
+      √ returns ~111km for 1 degree latitude separation (5 ms)
+    computePhotoHash (SHA-256 invariant)
+      √ same bytes → same hash (5 ms)
+      √ modified bytes → different hash (5 ms)
+      √ rejects non-Buffer input (132 ms)
+    startInspection
+      √ happy path: writes GPS log + returns checklist template (10 ms)
+      √ rejects when audit not found (9 ms)
+      √ rejects when auditor does not match assigned auditorId (8 ms)
+      √ rejects when audit status is not IN_PROGRESS (6 ms)
+    submitChecklistItem
+      √ persists known item code + accepts PASS/FAIL/NA (6 ms)
+      √ refuses unknown item code (5 ms)
+      √ refuses invalid response value (6 ms)
+      √ links photos via updateMany when photoIds supplied (6 ms)
+    uploadPhoto
+      √ computes hash + stores via attachment + writes photo row (8 ms)
+    verifyGpsAgainstFarm
+      √ returns withinTolerance=true when auditor is at the farm (6 ms)
+      √ returns withinTolerance=false beyond tolerance (5 ms)
+      √ returns unknownFarmLocation when farm has no coords (7 ms)
+      √ respects custom toleranceMeters override (6 ms)
+    submitDecision
+      √ PASS decision → transitions to AUDIT_PASSED + notifies (8 ms)
+      √ FAIL decision → transitions to CAR_PENDING + sets correctiveActionRequired (494 ms)
+      √ FAIL decision WITHOUT a summary → throws CAR_COMMENT_REQUIRED (C2-02) (10 ms)
+      √ NEEDS_REVIEW → flags audit, no transition, status stays IN_PROGRESS (8 ms)
+      √ rejects when fewer than minPhotos photos uploaded (9 ms)
+      √ rejects when checklist is incomplete (8 ms)
+      √ rejects invalid decision code (15 ms)
+      √ fanout failure does not throw (best-effort) (6 ms)
+      √ 6.1: PASS transition write opts into assertTransition:true (5 ms)
+      √ 6.1: FAIL transition write opts into assertTransition:true (9 ms)
+      √ 6.1: illegal parent-state transition (already certified) → throws illegal-transition, no silent write (7 ms)
+      √ 6.1: a normal AUDIT_CONFIRMED→AUDIT_PASSED edge still succeeds (no over-block) (6 ms)
+
+PASS __tests__/unit/h4-hmac-lookup-flag.test.js
+  H-4 Phase 1 — computeLookupHmac (helper)
+    √ (c) equals hashData() by default (no AUTH_LOOKUP_HMAC_KEY) (2 ms)
+    √ is NOT raw SHA-256 (keyed HMAC, not a bare hash) (1 ms)
+    √ returns null for empty/falsy input (1 ms)
+    √ uses a dedicated key when AUTH_LOOKUP_HMAC_KEY is set (overridable, decoupled from ENCRYPTION_KEY) (2 ms)
+  H-4 Phase 1 — login() lookup column is flag-gated
+    √ (a) flag OFF → looks up by legacy raw-SHA-256 healthIdHash (unchanged) (3 ms)
+    √ (b) flag ON → looks up by healthIdHmac = computeLookupHmac(typed) (2 ms)
+    √ (b) flag ON, provider → looks up by providerIdHmac (2 ms)
+  H-4 Phase 1 — register() dual-write is flag-gated
+    √ (a) flag OFF → writes ONLY legacy *Hash (no *Hmac keys in payload) (2 ms)
+    √ (b) flag ON → DUAL-WRITES both healthIdHash (sha256) AND healthIdHmac (computeLookupHmac) (1 ms)
+  H-4 Phase 1 — checkIdentifierExists() column is flag-gated
+    √ (a) flag OFF → JURISTIC queries taxIdHash (sha256) (1 ms)
+    √ (b) flag ON → JURISTIC queries taxIdHmac (computeLookupHmac) (2 ms)
+    √ (b) flag ON → COMMUNITY_ENTERPRISE queries communityRegistrationNoHmac (1 ms)
+    √ (b) flag ON → INDIVIDUAL queries idCardHmac (2 ms)
+
+PASS __tests__/unit/entity-transfer-ownership.test.js
+  Wave D — transferOwnership helper
+    √ demotes OWNER to ADMIN and promotes target atomically (3 ms)
+    √ does NOT write an audit row when validation rejects (atomic rollback) (2 ms)
+    √ rejects when fromUser is not the active OWNER (1 ms)
+    √ rejects when toUser is not an active member (1 ms)
+    √ rejects same-user transfer (2 ms)
+    √ rejects when toUser is somehow already an OWNER (1 ms)
+  Wave D — POST /api/entities/:id/transfer-ownership
+    √ OWNER can transfer to ADMIN (35 ms)
+    √ 400 when toUserId missing (32 ms)
+    √ 400 when transferring to self (25 ms)
+    √ 403 when caller is ADMIN (not OWNER) — TRANSFER_OWNERSHIP denied (17 ms)
+    √ 404 when caller is not a member (32 ms)
+    √ 409 TARGET_NOT_MEMBER when toUserId is a stranger (12 ms)
+    √ GET /audit-log returns events for a member (10 ms)
+    √ GET /audit-log returns 404 when caller is not a member (8 ms)
+    √ GET /audit-log clamps limit to [1, 200] (9 ms)
+    √ after transfer, revokeMember error message points to the right flow (1 ms)
+
+PASS __tests__/unit/public-surface-guards.test.js
+  GET /api/metrics is not anonymous
+    √ declares authentication middleware on the route (8 ms)
+    √ still exposes the unauthenticated health probe, which docker and load balancers need (5 ms)
+  the mobile client has one backend origin
+    √ ApiService does not hardcode a base URL (16 ms)
+    √ ApiService resolves its base URL through ApiConfig (4 ms)
+    √ api.dtam.go.th appears nowhere in live mobile code (5 ms)
+    √ ApiConfig remains the single source of truth it claims to be (6 ms)
+
+PASS __tests__/unit/entity-service.test.js
+  entity-service.ensureJuristicEntity
+    √ creates the entity + OWNER membership when none exists (3 ms)
+    √ reuses an existing entity (idempotent) and does not call create (1 ms)
+    √ rejects with APPLICANT_VALIDATION_FAILED when validation fails (1 ms)
+    √ rejects when user.id is missing (41 ms)
+    √ rejects when organizationId is missing (ADR-014) (2 ms)
+  entity-service.ensureCommunityEntity
+    √ creates the entity + OWNER membership for an 11-digit DOAE number (2 ms)
+    √ rejects on a 10-digit (wrong length) registration number (1 ms)
+  entity-service.ensureEntityFromApplicantData (dispatcher)
+    √ returns null for INDIVIDUAL (personal entity already exists from registration) (1 ms)
+    √ returns null for missing applicantType (1 ms)
+    √ dispatches to JURISTIC helper (1 ms)
+    √ dispatches to COMMUNITY_ENTERPRISE helper for the legacy "COMMUNITY" alias (1 ms)
+
+PASS __tests__/unit/entity-my-permissions-route.test.js
+  GET /entities/:id/my-permissions
+    √ ACTIVE member → 200 with role + effective (role baseline) + personal:false on a workspace (18 ms)
+    √ grants are applied — a REVOKE drops the permission from effective (18 ms)
+    √ GRANT widens a VIEWER (empty baseline) to exactly the granted code (10 ms)
+    √ requester with NO membership on the entity → 404 (anti-probing) (9 ms)
+    √ PENDING / REVOKED membership → 404 (getEntityForMember filters ACTIVE) (9 ms)
+    √ OWNER on their own personal INDIVIDUAL entity → personal:true (9 ms)
+    √ non-OWNER member of someone else's INDIVIDUAL entity → personal:false (real workspace) (9 ms)
+
+PASS __tests__/unit/cultivation-viewer-mutation-floor-routes.test.js
+  M2 — POST /planting-cycles probes read-shaped (the CYCLE_CREATE gate is the mutation authority)
+    √ POST / (cycle create) probes WITHOUT the VIEWER floor (M2: grants to VIEWER must reach the gate) (47 ms)
+    √ GET / (list) keeps the read-shaped probe (no forMutation) (10 ms)
+
+PASS __tests__/unit/entity-permission-cycle-route-wiring.test.js
+  Wave B chunk 4 — cycle route registers the per-permission gates
+    √ registers HARVEST_RECORD twice (harvest-batches + legacy harvest) (1 ms)
+    √ registers UNIT_MANAGE four times (generate/confirm/reconcile + legacy generate-units) (1 ms)
+    √ registers QR_GENERATE once (plot-qrs/generate)
+    √ registers the per-type activity resolver for POST /:id/activities
+  Wave B chunk 4 — POST / (cycle create) asserts CYCLE_CREATE
+    √ allowed → 201, assertFarmPermission called with CYCLE_CREATE (22 ms)
+    √ denied → 403 ENTITY_PERMISSION_DENIED naming the permission (17 ms)
+
+PASS __tests__/unit/applications-prepare-active-entity.test.js
+  Wave C PR-5 — /prepare uses req.activeEntity
+    √ uses req.activeEntity.entityId as Application.entityId (53 ms)
+    √ falls back to legacy applicantData when no activeEntity is set (11 ms)
+    √ does not re-materialise when activeEntity is set even with applicantData=JURISTIC (12 ms)
+    √ keeps existing application.entityId when neither activeEntity nor applicantData present (10 ms)
+
+PASS __tests__/unit/fraud-application-farm-linkage.test.js
+  fraud Application↔Farm linkage (Option 1)
+    √ _applicationIdsForFarm resolves via entityId (primary) and short-circuits the owner path (5 ms)
+    √ _applicationIdsForFarm falls back to the owner chain when entityId is null (3 ms)
+    √ _applicationIdsForFarm returns [] when there is no entity and no resolvable owner (2 ms)
+    √ _checkIdCardDuplicates never queries Application.farmId nor includes application.farm (5 ms)
+    √ _checkPhotoDuplicates resolves via appIds and groups exact-hash matches (4 ms)
+
+PASS __tests__/integration/trace-batch-lot-cross-farm-cert.test.js
+  A3 — /trace/batch drops a cross-farm cert (in-memory, no findUnique)
+    √ cycle on a DIFFERENT farm → certificate null (dropped) WITHOUT a findUnique call (37 ms)
+    √ cycle on the SAME farm → certificate surfaced WITHOUT a findUnique call (10 ms)
+    √ MISSING cycle.farmId → fail OPEN (cert kept) WITHOUT a findUnique call (9 ms)
+  A3 — /trace/lot drops a cross-farm cert (in-memory, no findUnique)
+    √ cycle on a DIFFERENT farm → certificate null (dropped) WITHOUT a findUnique call (9 ms)
+    √ cycle on the SAME farm → certificate surfaced WITHOUT a findUnique call (16 ms)
+    √ MISSING cycle.farmId → fail OPEN (cert kept) WITHOUT a findUnique call (10 ms)
+
+PASS __tests__/unit/entity-member-permission-grants-schema.test.js
+  EntityMemberPermissionGrant — schema file
+    √ defines the model with the mirrored UserPermissionGrant columns (2 ms)
+    √ composite PK (membershipId, permission) + cascade off the membership row (1 ms)
+  EntityMemberPermissionGrant — ADR-014 tenant registration
+    √ is registered in TENANT_SCOPED_MODELS like UserPermissionGrant (2 ms)
+  EntityMemberPermissionGrant — handcrafted migration
+    √ creates the table with composite PK + both FKs (mirrors user_permission_grants) (1 ms)
+    √ enables the RLS observe-only policy like the sibling table (1 ms)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-15T06:57:01.190Z"}
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-15T06:57:01.191Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-15T06:57:01.195Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-15T06:57:01.196Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-15T06:57:01.196Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-15T06:57:01.197Z"}
+PASS __tests__/unit/plant-unit-quota-lock.test.js
+  Bug 5.6 — plant-unit quota inside the locked tx
+    √ acquires a pg_advisory_xact_lock inside the tx before createMany (163 ms)
+    √ throws inside the tx when the authoritative recount exceeds the cap (never createMany) (54 ms)
+
+PASS __tests__/unit/harvest-batch-number-race.test.js
+  Bug 5.4 — harvest-batch number race
+    √ allocates the number from harvest_batch_number_seq (not count()+1) (20 ms)
+    √ retries on a single P2002 and succeeds with a fresh number (3 ms)
+    √ maps an unresolved P2002 to a 409 (not a 500) (2 ms)
+    √ re-raises a non-P2002 error unchanged (2 ms)
+
+PASS __tests__/unit/server-boot-receipt-assert.test.js
+  [R7-C] server.js boot hook — assertCanonicalAllocator post prisma.$connect()
+    √ extractBootHookSource returns a non-empty try/catch block (3 ms)
+    √ production + allocator ok → boots fine; process.exit NOT called (3 ms)
+    √ production + allocator fail → process.exit(1) + error logged with reason (3 ms)
+    √ development + allocator fail → process.exit NOT called; logger.warn emitted instead (3 ms)
+    √ development + allocator ok → boots fine (parity with prod-ok) (3 ms)
+    √ allocator throws synchronously → outer catch swallows it as logger.warn (no process.exit) (3 ms)
+
+PASS __tests__/unit/thaid-identity-service.test.js
+  decodeIdTokenSubject
+    √ returns the opaque sub for a valid JWT (2 ms)
+    √ returns null for garbage / missing sub / non-string input (never throws) (3 ms)
+  assertAutoProvisionableRole
+    √ throws AUTH_AUTOPROVISION_ROLE_FORBIDDEN for a provider role (46 ms)
+    √ passes for a citizen (non-provider) role (2 ms)
+    √ throws AUTH_AUTOPROVISION_ROLE_FORBIDDEN for an unknown/foreign role (allow-list, fail-closed) (4 ms)
+  resolveThaidLogin
+    √ missing subject → throws AUTH_IDP_PROFILE_INCOMPLETE (2 ms)
+    √ new subject + new national id (NODE_ENV=test) → register once, link, return user (4 ms)
+    √ NEGATIVE (operator-required): national id matches an EXISTING PROVIDER-role user → REJECT + no link (2 ms)
+    √ national id matches an existing CITIZEN user → link + return (no register) (1 ms)
+    √ NEGATIVE (operator-required): no link + no national-id match + NODE_ENV=production → REJECT + no register (2 ms)
+    √ existing link → return the linked user WITHOUT provisioning (any role — the link was deliberate) (1 ms)
+
+PASS __tests__/unit/backfill-entity-thaicitizenid-hmac.test.js
+  backfill-entity-thaicitizenid-hmac
+    √ backfills thaiCitizenIdHmac for INDIVIDUAL entities missing it; assertion holds (2 ms)
+    √ dry-run writes nothing and reports what would remain (2 ms)
+    √ aborts loudly on a @unique (P2002) conflict — never overwrites (27 ms)
+
+PASS __tests__/unit/entity-grant-lifecycle-reset.test.js
+  S6.1 — revokeMember clears the membership grants (no resurrect-on-reinvite)
+    √ deletes the grant rows and audits ENTITY_PERMISSION_RESET with the before snapshot (6 ms)
+    √ no grants → no deleteMany, no RESET event (clean no-op) (3 ms)
+    √ already-REVOKED membership stays a full no-op (idempotent) (2 ms)
+  S6.2 — addMember upsert-UPDATE branch clears grants on re-invite / role change
+    √ re-invite of a REVOKED row: old grants do NOT resurrect (cleared + RESET audited) (4 ms)
+    √ role change on an ACTIVE row clears the stale role-relative grants (3 ms)
+    √ same-role ACTIVE idempotent re-call does NOT touch the grants (no silent wipe) (3 ms)
+    √ fresh row (no existing membership) never clears anything (3 ms)
+  S6.3 — transferOwnership clears BOTH memberships' grants (promoted-OWNER REVOKE deadlock)
+    √ clears demoted + promoted grants and audits a RESET per member (3 ms)
+
+PASS __tests__/unit/resolve-health-identity-hash-lookup.test.js
+  [Sprint6] resolveHealthIdentity Hash-First Lookup
+    √ UUID input → queries by User.id, NOT by healthId (2 ms)
+    √ 13-digit healthId option → routes through findUserByHealthIdSecurely (hash-first), NOT plaintext WHERE (2 ms)
+    √ hash format matches production writer (raw SHA-256, not HMAC) (1 ms)
+    √ legacy fallback — 13-digit identityRef (no options.healthId) routes through canonical hash-first helper (2 ms)
+    √ non-matching healthId → throws "Health account not found" (10 ms)
+    √ non-matching UUID → throws (no broad fallback) (1 ms)
+    √ UUID exists but has no healthId column → throws "must have healthId" (1 ms)
+    √ garbage input (not UUID, not 13-digit, no healthId option) → throws, no DB call (3 ms)
+    √ empty / null input → throws, no DB call (2 ms)
+    √ explicitUserId (UUID) mismatch with healthId-resolved user → logs masked warn but still returns the healthId-resolved user (1 ms)
+
+PASS __tests__/unit/server-boot-secret-sentinel.test.js
+  [W2-C] validateProductionSecretsAtBoot — boot-time secret sentinel guard
+    √ does NOT exit in production when all production-required secrets are valid (18 ms)
+    √ does NOT exit when ALLOW_PENDING_SECRETS=true despite pending secrets (controlled-pilot bypass) (2 ms)
+    √ STILL exits 1 when ALLOW_PENDING_SECRETS is not exactly "true" (e.g. "1") (18 ms)
+    √ exits 1 in production when PLATFORM_BANK_ACCOUNT_NO holds the PENDING_FINANCE_CONFIRMATION sentinel (3 ms)
+    √ exits 1 in production when PLATFORM_BANK_ACCOUNT_NO is missing entirely (3 ms)
+    √ exits 1 in production when a required secret is shorter than minLength (TOO_SHORT) (3 ms)
+    √ does NOT exit in development when sentinel value is present (skip path) (2 ms)
+    √ does NOT exit in test mode when sentinel value is present (skip path) (2 ms)
+    √ emits BOTH Thai and English actionable messages on production failure (2 ms)
+    √ reports every offending secret in a single boot pass (multi-error aggregation) (2 ms)
+
+PASS __tests__/unit/entity-members-national-id-masking.test.js
+  SEC/PDPA — entity member listings mask the national ID
+    √ does not return a peer plaintext healthId from the members list (2 ms)
+    √ keeps a null healthId null rather than masking it into a string (1 ms)
+    √ does not return plaintext healthId in the membership audit log (2 ms)
+    √ handles an audit event with no actor or target (1 ms)
+
+PASS __tests__/unit/farm-access.test.js
+  Wave A chunk 3 — resolveFarmAccess (row-based predicate)
+    √ allows the SOLO legacy owner without any membership query (entityId=null) (12 ms)
+    √ M1: WORKSPACE farm owner (creator) passes only while their membership is ACTIVE (1 ms)
+    √ allows an ACTIVE co-member of the farm entity (2 ms)
+    √ denies a PENDING member (1 ms)
+    √ denies a non-member (1 ms)
+    √ entityId=null farm stays owner-only (no membership query) (1 ms)
+    √ is falsy-safe: null farm / missing user → false, no throw (1 ms)
+    √ membership lookup failure → legacy owner-only behaviour (deny non-owner, no throw) (1 ms)
+  Wave A chunk 3 — farmAccessWhere (query-guard fragment)
+    √ no memberships → owner pin confined to solo farms (M1: fired worker loses workspace rows) (2 ms)
+    √ ACTIVE memberships → OR of solo owner pin, creator-on-active-entity pin and entity membership (1 ms)
+    √ membership lookup failure → solo owner pin (workspace dimension fails closed, no throw) (1 ms)
+  Wave A chunk 3 — listAccessibleFarmIds
+    √ queries farms with the access where-fragment and maps ids (1 ms)
+    √ returns [] for a missing userId without querying (1 ms)
+  Wave A chunk 3 — farm-service query guards use the access predicate
+    √ getByOwner: co-member where-clause carries the entity OR branch (1 ms)
+    √ getByOwner: solo farmer (no memberships) keeps the solo owner pin (M1) (1 ms)
+    √ getById: keeps 404-semantics chokepoint but honours co-membership (1 ms)
+    √ findOwnedFarmForPlotOps: plot ops honour co-membership (2 ms)
+  Wave A fix S2 — VIEWER floor on mutations (forMutation)
+    √ resolveFarmAccess forMutation: ACTIVE VIEWER co-member is DENIED (1 ms)
+    √ resolveFarmAccess forMutation: ACTIVE MANAGER co-member passes (1 ms)
+    √ resolveFarmAccess READ path: ACTIVE VIEWER still reads (unchanged) (1 ms)
+    √ SOLO legacy owner bypasses the floor (no membership query) (1 ms)
+    √ M1: workspace-farm CREATOR bypasses the floor while ACTIVE (any role, incl. VIEWER) (1 ms)
+    √ farmAccessWhere forMutation: VIEWER memberships are dropped from the MEMBERSHIP branch (1 ms)
+    √ farmAccessWhere READ path keeps VIEWER memberships in the branch (1 ms)
+  Wave A fix M1 — deleteFarm is owner-gated
+    √ SOLO legacy owner still deletes (no membership query needed) (2 ms)
+    √ M1: workspace-farm CREATOR deletes only while their membership is ACTIVE (1 ms)
+    √ ACTIVE co-member VIEWER cannot delete → false (route 404) (1 ms)
+    √ ACTIVE co-member MANAGER cannot delete → false (route 404) (1 ms)
+    √ ACTIVE entity-role OWNER co-member may delete (1 ms)
+    √ PENDING entity-role OWNER is denied (status must be ACTIVE) (1 ms)
+    √ missing farm → false, no update (2 ms)
+    √ membership lookup failure → fail-closed to owner-only (deny co-member, no throw) (1 ms)
+
+PASS __tests__/unit/entity-effective-permissions.test.js
+  getEffectiveEntityPermissions — baseline + union + REVOKE-wins
+    √ MANAGER with zero grants → effective == role defaults (has HARVEST_RECORD, lacks EDIT_FARM/FARM_CREATE) (2 ms)
+    √ legacy membership.permissions[] unions in (VIEWER + legacy PRINT_QR) (2 ms)
+    √ GRANT adds a role-lacked permission (VIEWER + GRANT HARVEST_RECORD) (1 ms)
+    √ REVOKE wins over the role default (MANAGER − HARVEST_RECORD) (1 ms)
+    √ REVOKE wins over the LEGACY permissions[] array (pre-Wave-B seeded EDIT_FARM) (1 ms)
+    √ REVOKE wins over a same-permission GRANT (1 ms)
+    √ an invalid stored GRANT is ignored (drift tolerance) (1 ms)
+    √ resolves the membership by (userId, entityId) when membershipId is not given (1 ms)
+    √ non-ACTIVE membership → empty effective set (fail closed) (11 ms)
+    √ no membership found → empty effective set (fail closed) (1 ms)
+    √ fail-SAFE: grant read throws → role∪legacy baseline + log, no throw (1 ms)
+    √ reads grants LIVE per call, but a shared per-request cache short-circuits the second read (1 ms)
+  entityMemberHasPermission
+    √ true when the role default grants it (2 ms)
+    √ false after REVOKE (1 ms)
+  assertFarmActionPermission — the chunk-4 gate primitive
+    √ the WORKSPACE farm owner passes via ENTITY_PERMISSION (OWNER role default), membership read live (1 ms)
+    √ rule (a) solo: the entityId=null farm owner passes with NO membership lookup (byte-identical) (1 ms)
+    √ M1: the fired (REVOKED) CREATOR of a workspace farm is denied despite ownerId matching (1 ms)
+    √ workspace member whose effective set holds the permission passes (1 ms)
+    √ member WITHOUT the permission → throws ENTITY_PERMISSION_DENIED, statusCode 403, permission named (1 ms)
+    √ VIEWER (role default = none) is denied — the Wave-A floor is preserved (1 ms)
+    √ farm with NO entityId + non-owner caller → denied (fail closed) (1 ms)
+    √ non-ACTIVE membership → denied (2 ms)
+    √ accepts a farmId and loads {ownerId, entityId} itself (1 ms)
+    √ membership lookup THROW on a mutation gate → denied (fail closed), logged (1 ms)
+  isGrantableFarmOperation
+    √ true for farm-operation codes, false for workspace-management codes (1 ms)
+
+PASS __tests__/unit/application-identity-destructure-safe.test.js
+  [carpet BUG-1] identity methods are destructure-safe (no `this` dependency)
+    √ normalizeIdentityValue works when destructured (2 ms)
+    √ buildHealthWhereClause works when destructured (1 ms)
+    √ resolveHealthIdentity works when destructured (the exact BUG-1 call shape) (1 ms)
+    √ resolveHealthUserId / resolveHealthId work when destructured (1 ms)
+    √ does NOT throw "this.normalizeIdentityValue is not a function" (the original 500) (1 ms)
+
+PASS __tests__/unit/farm-access-fired-worker.test.js
+  M1 — fired worker (REVOKED member) who CREATED the workspace farm is denied everywhere
+    √ resolveFarmAccess (read-widened list grade): DENIED (2 ms)
+    √ resolveFarmAccess forMutation: DENIED (2 ms)
+    √ resolveFarmOwnerAccess (soft-DELETE grade): DENIED (10 ms)
+    √ assertFarmActionPermission: throws ENTITY_PERMISSION_DENIED (mutation engine) (1 ms)
+    √ farmAccessWhere: ownerId disjunct is CONFINED to entityId=null (workspace rows need ACTIVE membership) (2 ms)
+    √ listAccessibleFarmIds: farm query carries the confined owner disjunct (1 ms)
+    √ requireFarmOwnership middleware: creator with REVOKED membership → denied (not fast-pathed) (2 ms)
+  M1 — PENDING / missing membership on the farm entity also blocks the creator fast-path
+    √ PENDING member-creator: resolveFarmAccess DENIED (1 ms)
+    √ NO membership row at all: resolveFarmOwnerAccess DENIED (1 ms)
+  M1 — ACTIVE member-creator keeps READ + DELETE authority (any role); per-permission engine ignores authorship (F3)
+    √ ACTIVE VIEWER creator: resolveFarmAccess passes even forMutation (owner fast-path, any role) (1 ms)
+    √ ACTIVE MANAGER creator: resolveFarmOwnerAccess passes (delete authority retained while employed) (1 ms)
+    √ ACTIVE VIEWER creator: assertFarmActionPermission is DENIED (F3 — per-permission engine ignores authorship) (1 ms)
+    √ farmAccessWhere: three-branch OR — solo owner rows, owner rows on ACTIVE entities, membership rows (1 ms)
+    √ farmAccessWhere forMutation with an ACTIVE VIEWER-only membership: owner disjunct keeps the entity, membership branch drops it (1 ms)
+  M1 — solo legacy farms (entityId=null) stay byte-identical
+    √ resolveFarmAccess: owner passes with NO membership query (1 ms)
+    √ resolveFarmOwnerAccess: owner passes with NO membership query (1 ms)
+    √ assertFarmActionPermission: solo owner passes via LEGACY_OWNER with NO membership query (1 ms)
+    √ requireFarmOwnership: solo owner keeps the byte-identical fast-path (1 ms)
+
+PASS __tests__/unit/farm-entityid-stamp.test.js
+  Wave A chunk 2 — createFarm stamps Farm.entityId
+    √ stamps entityId from the active-entity ALS context (2 ms)
+    √ prefers an explicit options.entityId (route-threaded req.activeEntity) over ALS (1 ms)
+    √ is null-safe without any entity context (scripts/seeds) — entityId: null, no throw (1 ms)
+  Wave A chunk 2 — executeWizardSubmission tx.farm.create stamps Farm.entityId
+    √ stamps entityId from the active-entity ALS context inside the tx (2 ms)
+    √ is null-safe without an entity context — entityId: null (1 ms)
+    √ S3: tx.application.create stamps entityId from the same ALS context (1 ms)
+    √ S3: tx.application.create is null-safe without an entity context (1 ms)
+  Wave A fix M3 — cert auto-issue farm.create stamps Farm.entityId
+    √ farm.create carries entityId from the application row (2 ms)
+    √ legacy application without entityId → stamps null (never throws) (1 ms)
+    √ farm-REUSE update branch does NOT touch entityId (no clobber) (2 ms)
+
+PASS __tests__/unit/entity-thaicitizenid-hmac-b2.test.js
+  STAGE B2 — (d) computeLookupHmac matches the H-4 keyed value
+    √ computeLookupHmac(healthId) === hashData(healthId) by default (no dedicated key) (2 ms)
+  STAGE B2 — (a) ensurePersonalIndividualEntity dual-writes thaiCitizenIdHmac
+    √ writes thaiCitizenIdHmac = computeLookupHmac(healthId) ALONGSIDE the legacy thaiCitizenIdHash (2 ms)
+  STAGE B2 — (b) create/dedup prefers the stable OWNER membership link
+    √ resolves the existing personal entity via EntityMembership(userId, OWNER, INDIVIDUAL) without any hash lookup (2 ms)
+  STAGE B2 — (c) flag OFF = legacy unkeyed-hash dedup behaviour
+    √ with no membership link and flag OFF, dedup falls back to the unkeyed thaiCitizenIdHash (never thaiCitizenIdHmac) (1 ms)
+    √ with no membership link and flag ON, dedup uses the keyed thaiCitizenIdHmac (2 ms)
+  STAGE B2 — (b) per-request applicant-query lookup resolves via userId link
+    √ resolves the personal entity from healthIdentity.userId via the OWNER membership link (no hash) (1 ms)
+    √ flag OFF + no membership link → falls back to the legacy unkeyed thaiCitizenIdHash (2 ms)
+    √ returns null when neither a userId link nor a healthId is available (1 ms)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-08-15T06:57:08.252Z"}
+[32minfo[39m: Loaded existing keys {"service":"signature-service","timestamp":"2026-08-15T06:57:08.256Z"}
+[32minfo[39m: Signature service initialized {"service":"signature-service","timestamp":"2026-08-15T06:57:08.257Z"}
+PASS __tests__/integration/harvest-cross-farm-cert-read.test.js
+  A3 — cross-farm cert is dropped on the public trace read
+    √ HARVEST_BATCH: batch.farmId !== cycle.farmId → certificate dropped (null), still 200 (4 ms)
+    √ HARVEST_BATCH: matching farms → certificate surfaced as valid (2 ms)
+    √ LOT: batch.farmId !== cycle.farmId → certificate dropped (null), still 200 (1 ms)
+    √ LOT: matching farms → certificate surfaced as valid (2 ms)
+
+PASS __tests__/unit/personal-entity-determinism-and-invite.test.js
+  (a) findPersonalEntity determinism — active-entity-middleware
+    √ primary OWNER-membership lookup orders by createdAt asc (2 ms)
+    √ legacy-hash fallback lookup orders by createdAt asc (1 ms)
+    √ keyed-HMAC fallback lookup orders by createdAt asc (flag on) (1 ms)
+  (a) findPersonalEntity determinism — ensurePersonalIndividualEntity
+    √ owner-membership link lookup orders by createdAt asc (2 ms)
+    √ national-ID dedup entity lookup orders by createdAt asc (1 ms)
+  (a) findPersonalEntity determinism — application-applicant-query-methods (grep-found 4th resolver)
+    √ membership primary + hash fallback lookups order by createdAt asc (2 ms)
+  (b) personal-workspace invites — binding design pins
+    √ addMember INTO a personal INDIVIDUAL entity works (solo farmer hires a worker) and seeds role-only permissions (1 ms)
+    √ the WORKER gets workspace (personal:false) context on the employer personal entity; the EMPLOYER keeps personal:true (1 ms)
+    √ the worker has NO effective permissions by default beyond the role (VIEWER → none) (2 ms)
+
+PASS __tests__/unit/entity-mine-self-heal.test.js
+  listMembershipsForUserWithHeal
+    √ user WITH memberships → returned as-is, heal path never touched (3 ms)
+    √ orphaned HEALTH user → entity ensured (existing-by-hash) + membership upserted + re-listed (2 ms)
+    √ non-HEALTH / missing healthId / missing org → no heal, empty list returned (1 ms)
+    √ heal failure fails OPEN to the empty list (logged, request not broken) (11 ms)
+
+PASS __tests__/unit/entity-add-member-owner-and-consent.test.js
+  SEC — addMember cannot demote the OWNER
+    √ refuses to change the role on an OWNER row (2 ms)
+    √ refuses even when the requested role is also OWNER (no self-serve transfer) (1 ms)
+    √ still allows a role change on a non-OWNER member (1 ms)
+  SEC — addMember does not accept an invitation for the invitee
+    √ leaves a PENDING invite PENDING when the same person is re-invited (1 ms)
+    √ keeps an ACTIVE member ACTIVE across a role change (2 ms)
+    √ re-opens a REVOKED membership as PENDING, requiring fresh acceptance (1 ms)
+    √ still opens a brand-new invite as PENDING (1 ms)
+
+PASS __tests__/unit/entity-capabilities.test.js
+  Wave C PR-4 — CAPABILITIES table
+    √ exposes the canonical permission codes (2 ms)
+    √ OWNER has every capability by default (2 ms)
+    √ VIEWER has zero capabilities by default (1 ms)
+    √ MANAGER can print QR but not edit farms nor submit applications (Wave B owner decision) (1 ms)
+    √ ADMIN can invite + revoke + submit, but not transfer ownership (1 ms)
+    √ defaultPermissionsFor returns a copy (not the frozen original) (1 ms)
+    √ defaultPermissionsFor unknown role returns empty array
+  Wave C PR-4 — assertCapability
+    √ returns true when role default permits (60 ms)
+    √ throws CAPABILITY_DENIED when role default denies (2 ms)
+    √ grants when permissions[] explicitly grants beyond the role default (1 ms)
+    √ still grants when role default permits, even with empty permissions[] (2 ms)
+    √ throws when role is missing (3 ms)
+  Wave C PR-4 — findInviteeByIdentifier
+    √ resolves by healthId (primary channel) (4 ms)
+    √ returns null when no user matches (3 ms)
+    √ resolves uniquely by email (3 ms)
+    √ returns ambiguous when 2+ users share an email (3 ms)
+    √ throws on unknown channel (4 ms)
+    √ returns null on empty value (3 ms)
+
+PASS __tests__/unit/cultivation-method.test.js
+  normalizeCultivationMethod
+    √ accepts the tokens the web wizard writes (2 ms)
+    √ accepts the tokens the API and Prisma use (1 ms)
+    √ is null for anything else, rather than outdoor (1 ms)
+  mostControlledMethod
+    √ picks the most controlled environment present (1 ms)
+    √ returns the only one when there is only one (1 ms)
+    √ skips tokens it cannot read (1 ms)
+    √ is null for nothing (1 ms)
+  applicationCultivationMethod
+    √ uses what the application explicitly states (1 ms)
+    √ falls back to areaType, in either position (1 ms)
+    √ reads the plots when the application states nothing (1 ms)
+    √ reads the per-plot cultivationMethod alias too (1 ms)
+    √ reads the method list last
+    √ prefers an explicit statement over the plots (1 ms)
+    √ is null when the application says nothing anywhere (1 ms)
+
+PASS __tests__/unit/farm-ownership-middleware.test.js
+  requireFarmOwnership middleware
+    √ blocks when farmId is missing and not optional (400) (2 ms)
+    √ passes when farmId is missing and optional (1 ms)
+    √ blocks when user is not authenticated (401) (1 ms)
+    √ blocks when farm does not exist (404) (1 ms)
+    √ blocks cross-tenant access (403) (1 ms)
+    √ allows farm owner access (1 ms)
+    √ reads farmId from body when not in params (2 ms)
+    √ reads farmId from query when not in params or body (2 ms)
+    √ S12 guard: the permission branch DENIES with the deny-shaped engine stub (never a silent pass) (1 ms)
+
+PASS __tests__/unit/application-entity-scope-where.test.js
+  Wave A chunk 4 — buildHealthWhereClause entity branch
+    √ no entity context (script/headless) → byte-identical legacy applicant pin (1 ms)
+    √ personal default context → byte-identical legacy applicant pin (solo farmer unchanged) (1 ms)
+    √ workspace context (ACTIVE membership, header-chosen) → entityId-scoped where (1 ms)
+    √ workspace context with a healthId-only caller also scopes by entity (1 ms)
+    √ defense-in-depth: workspace context but NO caller identity → null (refuse broad query) (1 ms)
+  Wave A chunk 4 — middleware marks context origin (personal vs workspace)
+    √ header-chosen entity → personal:false on req.activeEntity (1 ms)
+    √ no header → personal INDIVIDUAL default with personal:true (1 ms)
+    √ S1: header naming the user's OWN personal INDIVIDUAL entity → personal:true + strict pin (REAL path) (2 ms)
+    √ S1: header naming a JURISTIC workspace keeps personal:false (relaxed where unchanged) (1 ms)
+  Wave A fix M2 — deleteDraft keeps the strict applicant pin
+    √ under a workspace context the delete lookup pins the APPLICANT, not the entity (2 ms)
+    √ co-member cannot soft-delete the owner's draft (null, no update write) (1 ms)
+    √ owner still soft-deletes their own draft (regression) (1 ms)
+    √ getDraft (READ) still relaxes to the workspace scope (unchanged) (1 ms)
+
+PASS __tests__/unit/cycle-permission-gate-service.test.js
+  resolveActivityPermission — payload type → ACTIVITY_* code
+    √ IRRIGATION → ACTIVITY_IRRIGATION (1 ms)
+    √ FERTILIZER → ACTIVITY_FERTILIZER (1 ms)
+    √ PEST_CONTROL → ACTIVITY_PEST_CONTROL (1 ms)
+    √ WEED_CONTROL → ACTIVITY_WEED_CONTROL (1 ms)
+    √ INSPECTION → ACTIVITY_INSPECTION (1 ms)
+    √ INCIDENT → ACTIVITY_INCIDENT (1 ms)
+    √ OTHER → ACTIVITY_OTHER (1 ms)
+    √ normalizes legacy aliases (PESTICIDE → ACTIVITY_PEST_CONTROL, lowercase ok) (1 ms)
+    √ unknown / missing type → null (1 ms)
+  requireCycleFarmPermission — express gate after ensureCycleOwned
+    √ static permission: allowed → next(), assert called with farmId+userId+permission (2 ms)
+    √ denied → 403 with code ENTITY_PERMISSION_DENIED + permission in the body (1 ms)
+    √ resolver returning null (unknown activity type) → 400 BEFORE any permission check (1 ms)
+    √ resolver with a valid type gates on the per-type code (1 ms)
+    √ shares ONE per-request cache Map across gates on the same req (1 ms)
+    √ unexpected (non-denial) failure → 500, not a hang (1 ms)
+  assertFarmPermission — req-cached wrapper for inline route gates
+    √ delegates with the req-scoped cache (2 ms)
+    √ propagates the denial error untouched (1 ms)
+
+PASS __tests__/unit/audit-onsite-ownership.test.js
+  audit-onsite-service — per-audit ownership (AUDIT-009)
+    submitDecision
+      √ rejects an actor who is NOT the assigned auditor (AUDIT_AUDITOR_MISMATCH) (1 ms)
+      √ allows the assigned auditor (1 ms)
+    submitChecklistItem
+      √ rejects an actor who is NOT the assigned auditor (1 ms)
+      √ allows the assigned auditor (1 ms)
+    uploadPhoto
+      √ rejects an uploader who is NOT the assigned auditor, BEFORE writing the file (2 ms)
+      √ allows the assigned auditor (1 ms)
+
+PASS __tests__/unit/cultivation-viewer-mutation-floor.test.js
+  S2 — verifyOwnedCycle / verifyOwnedFarm mutation floor
+    √ verifyOwnedCycle forMutation: the membership branch excludes VIEWER (JS floor over the ACTIVE lookup) (2 ms)
+    √ verifyOwnedCycle read path uses the same ACTIVE lookup (2 ms)
+    √ VIEWER co-member: mutation lookup finds nothing, read finds the cycle (1 ms)
+    √ MANAGER co-member passes the mutation lookup (1 ms)
+    √ verifyOwnedFarm forMutation (POST /planting-cycles create): VIEWER excluded, MANAGER passes (1 ms)
+  S2 — ensureCycleOwned derives the floor from the HTTP method
+    √ POST (activity/harvest/unit mutations): VIEWER co-member → 404, next NOT called (2 ms)
+    √ POST: MANAGER co-member passes to the handler (1 ms)
+    √ PATCH is a mutation too: VIEWER co-member → 404 (1 ms)
+    √ GET (reads) unchanged for VIEWER: passes (1 ms)
+
+PASS __tests__/unit/auto-trace-actor-identity-mask.test.js
+  [ROUND-4] auto-first-cycle-trace masks actorIdentity in HarvestBatch.notes
+    √ persists the MASKED national ID into the batch note (never the raw 13-digit ID) (4 ms)
+    √ keeps a null actorIdentity as null (no mask on absent value) (1 ms)
+  [ROUND-4] both auto-trace note sites wrap actorIdentity in maskThaiId (source guard)
+    √ auto-first-cycle-trace.js masks actorIdentity at the batch note (1 ms)
+    √ traceability-service.js ensureAutoTraceCycle masks actorIdentity at the cycle note (2 ms)
+
+PASS __tests__/unit/entity-grants-tenant-scope-bypass.test.js
+  S7 — engine grant read bypasses the tenant read scope
+    √ cross-org member under the CALLER-org context: REVOKE still drops the permission (2 ms)
+    √ same-org context keeps working (wrapper is a no-op for the common case) (1 ms)
+  S7 — admin-API grant writes bypass the tenant write guard
+    √ setMemberPermissionGrant stamps the ENTITY org and succeeds under a cross-org caller context (2 ms)
+    √ clearMembershipGrants snapshot read is not org-filtered (revoke under cross-org context still clears) (1 ms)
+
+PASS __tests__/unit/audit-onsite-car-deadline.test.js
+  audit-onsite-service.submitDecision — CAR deadline SLA clock
+    √ FAIL → seeds the RevisionDeadline + stamps formData.carDueAt + transitions CAR_PENDING (2 ms)
+    √ PASS → does NOT seed a CAR deadline and does NOT override formData (2 ms)
+
+PASS __tests__/unit/entity-permission-creator-farm-revoke.test.js
+  assertFarmActionPermission — authorship must not override REVOKE on workspace farms (F3)
+    √ (1) MANAGER-creator + REVOKE HARVEST_RECORD on their own workspace farm → DENIED (2 ms)
+    √ (2) MANAGER-creator + role-default ACTIVITY_IRRIGATION (no grants) → ALLOWED via effective set (1 ms)
+    √ (3) entity OWNER acting on a WORKER-created farm → ALLOWED (OWNER default = all farm ops) (1 ms)
+    √ (4) fired/REVOKED creator → DENIED everything (M1 fired-worker protection preserved) (1 ms)
+    √ (5) solo farm (entityId=null) owner → ALLOWED via LEGACY_OWNER, no membership read (unchanged) (2 ms)
+    √ (6) MANAGER-creator + EDIT_FARM (not in MANAGER default, no grant) → DENIED (behavior-change pin) (1 ms)
+    √ (7) MANAGER-creator + GRANT EDIT_FARM → ALLOWED (explicit grant restores the op) (1 ms)
+
+Test Suites: 1 skipped, 75 passed, 75 of 76 total
+Tests:       6 skipped, 825 passed, 831 total
+Snapshots:   0 total
+Time:        78.174 s

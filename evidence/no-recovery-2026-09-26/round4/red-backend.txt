@@ -1,0 +1,178 @@
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/mfa-setup-reenrol.test.js
+  enabled 2FA: /setup needs the current code
+    ✕ a session without a code cannot re-run setup — 401, the enabled factor is untouched (63 ms)
+    ✕ a wrong current code → 401, untouched (same verifier and answer as /disable) (11 ms)
+    ✕ the right current code starts a re-enrol, but the old factor stays active until the new one is confirmed (30 ms)
+    ✕ verify-setup with a code from the NEW secret swaps the factor and issues new backup codes (46 ms)
+    ✕ verify-setup with a wrong code keeps the old factor (22 ms)
+    ✕ verify-setup with no re-enrol in progress changes nothing (31 ms)
+    ✕ the store for the pending secret is down → 503, nothing changed (22 ms)
+    ✕ a /setup that carries a code goes through the MFA limiter (the one /disable uses) (13 ms)
+  control: 2FA not enabled — first enrolment works as before
+    ✓ setup without a code → 200, verify-setup → enabled (25 ms)
+
+  ● enabled 2FA: /setup needs the current code › a session without a code cannot re-run setup — 401, the enabled factor is untouched
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      109 |     test('a session without a code cannot re-run setup — 401, the enabled factor is untouched', async () => {
+      110 |         const res = await as(request(app).post('/api/mfa/setup')).send({});
+    > 111 |         expect(res.status).toBe(401);
+          |                            ^
+      112 |         expect(res.body.data?.secret).toBeUndefined();
+      113 |         expectOldFactorIntact();
+      114 |         expect(actions()).toContain('MFA_REENROL_REFUSED');
+
+      at Object.toBe (__tests__/unit/mfa-setup-reenrol.test.js:111:28)
+
+  ● enabled 2FA: /setup needs the current code › a wrong current code → 401, untouched (same verifier and answer as /disable)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 401
+    Received: 200
+
+      117 |     test('a wrong current code → 401, untouched (same verifier and answer as /disable)', async () => {
+      118 |         const res = await as(request(app).post('/api/mfa/setup')).send({ code: '000000' });
+    > 119 |         expect(res.status).toBe(401);
+          |                            ^
+      120 |         expect(res.body.error).toBe('Invalid code');
+      121 |         expectOldFactorIntact();
+      122 |     });
+
+      at Object.toBe (__tests__/unit/mfa-setup-reenrol.test.js:119:28)
+
+  ● enabled 2FA: /setup needs the current code › the right current code starts a re-enrol, but the old factor stays active until the new one is confirmed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      101 | function expectOldFactorIntact() {
+      102 |     const r = mockUsers.get('staff-1');
+    > 103 |     expect(r.twoFactorEnabled).toBe(true);
+          |                                ^
+      104 |     expect(r.twoFactorSecret).toBe(OLD_SECRET);
+      105 |     expect(r.twoFactorBackupCodes).toEqual(['old-h1']);
+      106 | }
+
+      at toBe (__tests__/unit/mfa-setup-reenrol.test.js:103:32)
+      at Object.expectOldFactorIntact (__tests__/unit/mfa-setup-reenrol.test.js:130:9)
+
+  ● enabled 2FA: /setup needs the current code › verify-setup with a code from the NEW secret swaps the factor and issues new backup codes
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "MFA_REENROLLED"
+    Received array: ["MFA_SETUP_INITIATED", "MFA_ENABLED"]
+
+      143 |         expect(r.twoFactorBackupCodes).not.toEqual(['old-h1']);
+      144 |         expect(mockRedis.size).toBe(0); // the pending secret is gone
+    > 145 |         expect(actions()).toContain('MFA_REENROLLED');
+          |                           ^
+      146 |     });
+      147 |
+      148 |     test('verify-setup with a wrong code keeps the old factor', async () => {
+
+      at Object.toContain (__tests__/unit/mfa-setup-reenrol.test.js:145:27)
+
+  ● enabled 2FA: /setup needs the current code › verify-setup with a wrong code keeps the old factor
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+      101 | function expectOldFactorIntact() {
+      102 |     const r = mockUsers.get('staff-1');
+    > 103 |     expect(r.twoFactorEnabled).toBe(true);
+          |                                ^
+      104 |     expect(r.twoFactorSecret).toBe(OLD_SECRET);
+      105 |     expect(r.twoFactorBackupCodes).toEqual(['old-h1']);
+      106 | }
+
+      at toBe (__tests__/unit/mfa-setup-reenrol.test.js:103:32)
+      at Object.expectOldFactorIntact (__tests__/unit/mfa-setup-reenrol.test.js:152:9)
+
+  ● enabled 2FA: /setup needs the current code › verify-setup with no re-enrol in progress changes nothing
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 200
+
+      155 |     test('verify-setup with no re-enrol in progress changes nothing', async () => {
+      156 |         const res = await as(request(app).post('/api/mfa/verify-setup')).send({ code: mfaService.generateTOTP(OLD_SECRET) });
+    > 157 |         expect(res.status).toBe(400);
+          |                            ^
+      158 |         expectOldFactorIntact();
+      159 |     });
+      160 |
+
+      at Object.toBe (__tests__/unit/mfa-setup-reenrol.test.js:157:28)
+
+  ● enabled 2FA: /setup needs the current code › the store for the pending secret is down → 503, nothing changed
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 503
+    Received: 200
+
+      162 |         mockRedisState.down = true;
+      163 |         const res = await as(request(app).post('/api/mfa/setup')).send({ code: mfaService.generateTOTP(OLD_SECRET) });
+    > 164 |         expect(res.status).toBe(503);
+          |                            ^
+      165 |         expectOldFactorIntact();
+      166 |     });
+      167 |
+
+      at Object.toBe (__tests__/unit/mfa-setup-reenrol.test.js:164:28)
+
+  ● enabled 2FA: /setup needs the current code › a /setup that carries a code goes through the MFA limiter (the one /disable uses)
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected value: "POST /setup"
+    Received array: []
+
+      168 |     test('a /setup that carries a code goes through the MFA limiter (the one /disable uses)', async () => {
+      169 |         await as(request(app).post('/api/mfa/setup')).send({ code: '000000' });
+    > 170 |         expect(mockLimiterCalls).toContain('POST /setup');
+          |                                  ^
+      171 |     });
+      172 | });
+      173 |
+
+      at Object.toContain (__tests__/unit/mfa-setup-reenrol.test.js:170:34)
+
+Test Suites: 1 failed, 1 total
+Tests:       8 failed, 1 passed, 9 total
+Snapshots:   0 total
+Time:        1.337 s
+Ran all test suites matching /__tests__\/unit\/mfa-setup-reenrol.test.js/i.

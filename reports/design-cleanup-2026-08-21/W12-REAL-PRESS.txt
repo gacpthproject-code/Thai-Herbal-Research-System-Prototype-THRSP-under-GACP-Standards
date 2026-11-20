@@ -1,0 +1,49 @@
+=== W12 REAL PRESS — renewal creation on the live database ===
+certificate : GACP-TH-2569-85B448 (eef54d54-adc4-42ff-91d9-4ce8df8ce21a)
+actor       : 03426862-0209-4e22-87fb-7a95f884d2c5 (the certificate owner)
+
+GACP-REN- applications before: 0
+
+createRenewalApplication returned: {
+  "applicationId": "f93818e0-32e4-42ac-9ac1-7816aea7297a",
+  "renewalOf": "eef54d54-adc4-42ff-91d9-4ce8df8ce21a",
+  "renewalOfCertificateNumber": "GACP-TH-2569-85B448",
+  "draftedAt": "2026-08-22T15:20:32.016Z"
+}
+
+--- PERSISTED ROW ---
+id                : f93818e0-32e4-42ac-9ac1-7816aea7297a
+applicationNumber : GACP-REN-2569-26A553
+status            : PENDING_AUDIT_FEE   <-- the fast-path entry state
+entityId          : 00427ca9-8b73-45ea-ad6b-c6e9fa22dc3f
+
+--- PROVENANCE ON formData ---
+  workflowState               : "PENDING_AUDIT_FEE"
+  workflowEntryState          : "PENDING_AUDIT_FEE"
+  renewalOf                   : "eef54d54-adc4-42ff-91d9-4ce8df8ce21a"
+  renewalOfCertificateNumber  : "GACP-TH-2569-85B448"
+  renewalSourceApplicationId  : "f866374a-8f6b-4c7a-b850-bd09491db042"
+  documentReviewSkipped       : true
+  documentReviewSkipReason    : "RENEWAL_FAST_PATH_OPERATOR_RULING_2026_08_22"
+  workflowStatesSkipped       : ["SUBMITTED","PENDING_DOC_FEE","PHASE_1_SLIP_UNDER_REVIEW","DOC_FEE_PAID","ASSIGNED_FOR_REVIEW","DOC_APPROVED"]
+
+--- AUDIT TRAIL ---
+rows for this application: 1
+  action=RENEWAL_FAST_PATH_ENTRY category=APPLICATION
+    metadata="{\"renewalOf\":\"eef54d54-adc4-42ff-91d9-4ce8df8ce21a\",\"renewalOfCertificateNumber\":\"GACP-TH-2569-85B448\",\"renewalSourceApplicationId\":\"f866374a-8f6b-4c7a-b850-bd09491db042\",\"entryState\":\"PENDING_AUDIT_FEE\",\"documentReviewSkipped\":true,\"documentReviewSkipReason\":\"RENEWAL_FAST_PATH_OPERATOR_RULING_2026_08_22\",\"workflowStatesSkipped\":[\"SUBMITTED\",\"PENDING_DOC_FEE\",\"PHASE_1_SLIP_UNDER_REVIEW\",\"DOC_FEE_PAID\",\"ASSIGNED_FOR_REVIEW\",\"DOC_APPROVED\"]}"
+
+--- WHAT THIS PERSISTED ROW WOULD BE BILLED ---
+(computed from the row as stored; no quotation row is written)
+  isRenewal    : true
+  phase1       : null
+  stateTotal   : 30000
+  grandTotal   : 33210   <-- what the applicant pays
+  DTAM lines   : [{"phase":"PHASE_2","amount":30000}]
+  PLATFORM     : [{"phase":"PHASE_2","amount":3210}]
+  read back    : singleCharge=true phase1=0 phase2=33210
+
+--- SCHEDULING QUEUE ---
+  queue selects status = AUDIT_FEE_PAID
+  this row is one settled payment away from that state.
+
+--- CLEANUP: application f93818e0-32e4-42ac-9ac1-7816aea7297a soft-deleted (isDeleted=true) ---

@@ -1,0 +1,45 @@
+# GREEN, fix round 1 — targeted suites (summary)
+## backend
+PASS __tests__/unit/stripe-checkout-engine.test.js
+    ✓ M1 checkout mints the order with the fee-service decomposition and a satang intent (28 ms)
+    ✓ re-entry returns the open order instead of minting a sibling (4 ms)
+    ✓ a verified succeeded intent settles everything in ONE transaction (4 ms)
+    ✓ payment_intent.succeeded settles and stamps the event processed (9 ms)
+    ✓ payment_intent.payment_failed records the failure without touching the order state (1 ms)
+PASS __tests__/unit/error-codes-catalog.test.js
+PASS __tests__/unit/checkout-hands-the-browser-a-publishable-key.test.js
+    ✓ mock adapter: there is no Stripe account behind a mock intent, so it hands out no key (2 ms)
+PASS __tests__/unit/error-codes-source-pointers.test.js
+PASS __tests__/unit/checkout-reentry-reuses-the-live-intent.test.js
+    ✓ PI_A requires_payment_method → reused, no second intent, order still names PI_A (4 ms)
+    ✓ PI_A requires_action → reused, no second intent, order still names PI_A (2 ms)
+    ✓ PI_A processing → reused, no second intent, order still names PI_A (1 ms)
+    ✓ PI_A succeeded (webhook not landed yet) → nothing new is minted, the state is handed back without a client secret (2 ms)
+    ✓ PI_A canceled → the only replacement, under its own idempotency key, and the order moves to it (2 ms)
+    ✓ an intent state this flow never produces (requires_capture) → refused, nothing minted (1 ms)
+    ✓ the gateway cannot say what PI_A is → refused (fail closed), never a blind second intent (7 ms)
+    ✓ a first entry (no intent on the order yet) still mints under the plain key (2 ms)
+PASS __tests__/unit/frontend-service-facts-mirror.test.js
+    ✓ the channel the copy names is the list the checkout offers (CHECKOUT_PAYMENT_METHOD_TYPES) (1 ms)
+    ✓ the English channel sentence names the same offered list, one source per language (one-fee residue sweep 2026-09-26) (1 ms)
+Tests:       68 passed, 68 total
+## web
+PASS src/app/health/payments/checkout/__tests__/checkout-promptpay-qr.test.tsx
+    ✓ review M-3: a pre-filled payer email sits in an editable field, is re-validated, and what the payer corrects is what Stripe receives (20 ms)
+    ✓ review I-1: re-entering an order whose intent already SUCCEEDED shows no pay button and waits for the webhook, never loading Stripe.js (13 ms)
+    ✓ review I-1: a reused intent that is still processing also waits instead of offering a second confirm (7 ms)
+    ✓ review I-2 (operator 2026-09-27): no sentence on the pay step names the provider (7 ms)
+PASS src/app/health/payments/checkout/__tests__/checkout-shows-quotation-and-terms.test.tsx
+PASS src/__tests__/truthful-copy/platform-status-claims.test.tsx
+PASS src/__tests__/truthful-copy/payee-channel-and-refund-are-one-story.test.tsx
+    ✓ the quotation preview prints the same channel line as the issued PDF renders (1 ms)
+PASS src/app/health/payments/checkout/__tests__/checkout-error-copy-covers-the-quotation-gate.test.ts
+PASS src/app/health/payments/checkout/__tests__/checkout-states.test.tsx
+PASS src/__tests__/csp-admits-stripe-promptpay.test.ts
+PASS src/app/health/payments/checkout/__tests__/checkout-page-flag-guard.test.tsx
+PASS src/app/health/payments/checkout/__tests__/checkout-does-not-promise-online-payment.test.tsx
+PASS src/__tests__/truthful-copy/service-facts-module.test.ts
+PASS src/__tests__/truthful-copy/contact-emails-one-source.test.ts
+PASS src/__tests__/truthful-copy/onboarding-and-faq-fees-and-validity.test.tsx
+    ✓ renewal has no document review and one charge (W12)
+Tests:       163 passed, 163 total

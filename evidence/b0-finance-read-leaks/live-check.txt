@@ -1,0 +1,21 @@
+The leak on the real surface, before and after (2026-10-09). Response bodies were discarded, never saved.
+
+BEFORE — staging today (main code, STORAGE_PROVIDER=local), no credentials:
+  GET https://staging.gacpth.com/uploads/gacp-pdfs/receipts-null.pdf      200 application/pdf 474,516 bytes
+  GET http://127.0.0.1:8001/uploads/gacp-pdfs/receipts-null.pdf (backend)  200 application/pdf 474,516 bytes
+
+AFTER — node server.js from this branch (head 3cb2fe5fa; its runtime code is b9ad8b109), local storage, a stand-in PDF placed at
+public/uploads/gacp-pdfs/receipts-null.pdf, port 8099, scratch Postgres:
+  no session
+    GET /uploads/gacp-pdfs/receipts-null.pdf                       401 JSON, no PDF bytes
+    GET /uploads/gacp-pdfs/receipts%2Dnull.pdf                     401 JSON, no PDF bytes
+    GET /uploads/gacp%2Dpdfs/receipts-null.pdf                     401 JSON, no PDF bytes
+    GET /uploads/lab-results/../gacp-pdfs/receipts-null.pdf        400 JSON (traversal)
+    GET /uploads/lab-results/%2e%2e/gacp-pdfs/receipts-null.pdf    400 JSON (traversal)
+    GET /uploads/lab-results/report.pdf                            200 application/pdf (public trace stays public)
+  applicant session (GET /api/invoices/my answered 200, so the session is valid)
+    GET /uploads/gacp-pdfs/receipts-null.pdf                       404, no PDF bytes
+    POST /api/files/signed-url {fileUrl: that path}                404, no signed URL
+  company finance session (GET /api/invoices/summary answered 200)
+    GET /uploads/gacp-pdfs/receipts-null.pdf                       404, no PDF bytes
+    POST /api/files/signed-url {fileUrl: that path}                404, no signed URL

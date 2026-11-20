@@ -1,0 +1,55 @@
+== Task 2.4 — harness smoke (พิสูจน์ว่า config ผลิต video+trace จริง) ==
+SHA_UNDER_TEST 7692d572520dfb52d44709a56398f5b0daa00c7b
+เวลา (Asia/Bangkok UTC+07): 2026-08-15 23:44:11
+คำสั่ง: cd apps/web-app && npx playwright test --config=playwright.phase0.config.ts
+spec ชั่วคราว: apps/web-app/e2e-phase0/tmp-harness-smoke.spec.ts (ลบแล้วหลังรัน — ดูท้ายไฟล์)
+Playwright @playwright/test 1.57.0 · Chromium 143.0.7499.4 (playwright build v1200)
+
+-- ผลรัน --
+1 passed (6.3s) · exit 0
+
+-- artifact ที่เกิดจริงใน evidence/phase0/test-output/ --
+size=45 Aug 15 23:43 evidence/phase0/test-output/.last-run.json
+size=23291 Aug 15 23:43 evidence/phase0/test-output/e2e-phase0-tmp-harness-smo-238ab-deo-trace-and-helpers-loads-chromium/trace.zip
+size=10182 Aug 15 23:43 evidence/phase0/test-output/e2e-phase0-tmp-harness-smo-238ab-deo-trace-and-helpers-loads-chromium/video.webm
+
+-- ยืนยันว่าไฟล์เป็นของจริงไม่ใช่ไฟล์เปล่า --
+video.webm magic bytes:  1a 45 df a3 (1a 45 df a3 = EBML/WebM ถูกต้อง)
+trace.zip เนื้อใน:
+---------  ---------- -----   ----
+      710  2026-08-15 23:43   resources/src@03f5f9c5fb811a2d6ab25e934165421e6a0d86e4.txt
+    10182  2026-08-15 23:43   resources/70630e597d0db49406889b93becc51d1955a849f
+     8165  2026-08-15 23:43   test.trace
+     5590  2026-08-15 23:43   0-trace.trace
+        0  2026-08-15 23:43   0-trace.network
+    11909  2026-08-15 23:43   resources/page@ed4f137518be5c167dda003079f86bb1-1786812192213.jpeg
+      204  2026-08-15 23:43   0-trace.stacks
+---------                     -------
+    36760                     7 files
+
+-- html report --
+evidence/phase0/playwright-report/index.html + trace viewer assets (19 ไฟล์)
+
+== หมายเหตุสำคัญต่อคนเขียน spec รอบถัดไป (เจอจากการรันจริง ไม่ใช่การเดา) ==
+รอบแรกรัน spec ที่เปิดแค่ about:blank -> ได้ trace.zip แต่ **ไม่มี video.webm**
+รอบสองเพิ่ม setContent + waitForTimeout(1500) ให้เกิดการวาดเฟรมจริง -> video.webm 10182 bytes โผล่ทันที
+สรุปพฤติกรรม: screencast ไม่เขียนไฟล์ถ้าไม่มีเฟรมถูกวาดเลย — ไม่ใช่ config ผิด (trace ออกจาก use block เดียวกัน)
+ผลต่อ scenario จริง: ไม่กระทบ เพราะทุก scenario เปิดหน้าเว็บจริงอยู่แล้ว — แต่ถ้า spec ไหนได้ trace แต่ไม่ได้ video ให้สงสัยข้อนี้ก่อน
+
+== สิ่งที่ smoke นี้ **ไม่ได้** พิสูจน์ (ห้ามเคลมต่อ) ==
+- ไม่ได้แตะแอป GACP เลย ไม่ได้ยิง baseURL localhost:8080 (สแตกยังไม่ขึ้น docker ไม่มี)
+- helpers.psql() / dump() / auditDump() **ยังไม่เคยรัน** — ต้องมี docker ก่อน
+- login() selector ยังไม่เคยถูกยิงใส่ UI จริง
+- ที่พิสูจน์แล้วมีแค่: config โหลดได้ · video+trace ผลิตจริง · helpers.ts compile+import ได้ · thaiId() คืนเลข 13 หลัก
+
+== ลบ spec ชั่วคราวแล้ว (Task 2.4 ท้ายข้อ) ==
+$ rm -f apps/web-app/e2e-phase0/tmp-harness-smoke.spec.ts
+$ ls apps/web-app/e2e-phase0/
+helpers.ts
+เหลือแค่ helpers.ts — ไม่มี .spec.ts ค้างในโฟลเดอร์ (G-10 ไม่มี skip/only ค้างด้วยเพราะไม่มี spec เลย)
+
+== Task 2.5 — git status --porcelain ==
+?? apps/web-app/e2e-phase0/
+?? apps/web-app/playwright.phase0.config.ts
+?? evidence/phase0/
+(ครบตาม G-5 พอดี 3 path: e2e-phase0/ ใหม่ · playwright.phase0.config.ts ใหม่ · evidence/phase0/ — ไม่มีไฟล์ tracked ใดถูกแก้)

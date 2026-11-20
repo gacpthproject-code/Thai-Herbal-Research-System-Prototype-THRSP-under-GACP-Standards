@@ -1,0 +1,770 @@
+# RED round 1 — sources of 3ca9dc44 reverted to b39d4c75 (tests, test-support, working-days helpers kept), TZ=UTC
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/bangkok-business-dates.test.js
+  the checks below really run on a UTC clock
+    ✓ the child process reads 16 Sep for an instant that is 17 Sep in Bangkok (52 ms)
+  CODE-01 — Thai document dates are the Bangkok date on a UTC server
+    ✓ utils/thai-format prints 17 Sep 2569, not 16 (2 ms)
+    ✓ utils/thai-numerals prints the Thai-digit date (certificate body) for the Bangkok day (1 ms)
+    ✓ the tax-invoice / receipt issue date is the Bangkok day (1 ms)
+    ✓ the certificate prints its issue, expiry and revision dates as Bangkok days (2 ms)
+    ✓ the lot label prints the Bangkok day, still zero-padded (2 ms)
+    ✓ the กทล.1 form prints the Bangkok filing day (2 ms)
+    ✓ the CAR and audit reports print Bangkok days (2 ms)
+  number year = printed year — the code mints the numbers on a UTC clock at 00:30 on 1 Jan 2570 in Bangkok
+    ✓ the child clock really is 31 Dec on UTC and 1 Jan 00:30 in Bangkok (1 ms)
+    ✕ the tax invoice minted now is TAX-PRD-2027-… and prints 1 Jan 2570, tax year ๒๕๗๐ (3 ms)
+    ✕ the credit note minted now is CN-PRD-2027-… and prints 2570; the original invoice keeps its own Bangkok day (1 ms)
+    ✕ the certificate number minted now is GACP-TH-2570-… and prints 1 Jan 2570 (1 ms)
+    ✕ the CAR number, the numbering year helpers and the quote-path invoice number read the Bangkok year/day (1 ms)
+  CODE-X1 — audit appointments are Bangkok wall-clock times on a UTC server
+    ✓ the over-cap error and the availability view count both audits on the same Bangkok day (1 ms)
+    ✓ "20 Sep, 09:00" is 09:00 in Bangkok (02:00Z), not 09:00 UTC (16:00 in Bangkok) (1 ms)
+    ✓ a time before 07:00 stays on the chosen Bangkok day (1 ms)
+    ✓ the auditor-busy check counts the Bangkok day of the appointment (1 ms)
+  notification times are Bangkok times on a UTC server
+    ✕ "21 Sep, 09:00" is stored as 02:00Z and every notification prints 09:00 (1 ms)
+  DOMA-10 — the working-day calendar matches the announced holidays
+    ✓ Mon 7 Dec 2569 (substitute for Father's Day on a Saturday) is not a working day (16 ms)
+    ✓ five working days from Fri 4 Dec 2569 skip 7 Dec and 10 Dec and end on Tue 15 Dec (9 ms)
+    ✓ the same deadline comes out the same on a UTC server (97 ms)
+    ✓ 2569: the announced lunar and special days are holidays (2 ms)
+    ✓ 2569: 1 and 2 Jul (the old, wrong Asalha dates) are ordinary working days (2 ms)
+    ✓ 2570: the days in ประกาศ ธปท. 37/2569 are holidays, and 19 Feb is not (2 ms)
+    ✓ 2568: substitutes, the special days and the real Asalha date are holidays; 14 Jul is not (3 ms)
+    ✓ a run of fixed-date holidays that touches a weekend gets one substitute, across the new year too (2 ms)
+    ✓ a substitute that is both announced and derived by the rule is one day off, not two (1 ms)
+    ✓ beyond the dated table, the weekend rule still moves fixed-date holidays (8 ms)
+  VAT period (ภ.พ.30) follows the Bangkok calendar month
+    ✓ September 2569 excludes an invoice issued 2026-09-30T20:00Z (1 Oct 03:00 in Bangkok) (50 ms)
+    ✓ October 2569 includes it (22 ms)
+    ✓ the e-Filing CSV dates that invoice 2026-10-01 (its Bangkok day) (22 ms)
+    ✕ the ledger files the same entry in the same month as ภ.พ.30 — October, on a UTC server (138 ms)
+    ✓ December ends, and January starts, at midnight in Bangkok (25 ms)
+
+  ● number year = printed year — the code mints the numbers on a UTC clock at 00:30 on 1 Jan 2570 in Bangkok › the tax invoice minted now is TAX-PRD-2027-… and prints 1 Jan 2570, tax year ๒๕๗๐
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "TAX-PRD-2027-000001"
+    Received: "TAX-PRD-2026-000001"
+
+      232 |
+      233 |     it('the tax invoice minted now is TAX-PRD-2027-… and prints 1 Jan 2570, tax year ๒๕๗๐', () => {
+    > 234 |         expect(out.taxInvoiceNo).toBe('TAX-PRD-2027-000001');
+          |                                  ^
+      235 |         expect(out.settledNo).toBe('TAX-PRD-2027-000001');
+      236 |         expect(out.taxInvoice).toEqual({
+      237 |             RECEIPT_NUMBER: 'TAX-PRD-2027-000001',
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:234:34)
+
+  ● number year = printed year — the code mints the numbers on a UTC clock at 00:30 on 1 Jan 2570 in Bangkok › the credit note minted now is CN-PRD-2027-… and prints 2570; the original invoice keeps its own Bangkok day
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "CN-PRD-2027-000001"
+    Received: "CN-PRD-2026-000001"
+
+      242 |
+      243 |     it('the credit note minted now is CN-PRD-2027-… and prints 2570; the original invoice keeps its own Bangkok day', () => {
+    > 244 |         expect(out.creditNoteNo).toBe('CN-PRD-2027-000001');
+          |                                  ^
+      245 |         expect(out.creditNote).toEqual({
+      246 |             ISSUE_DATE: '1 ม.ค. 2570',
+      247 |             YEAR_BE_TH: '๒๕๗๐',
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:244:34)
+
+  ● number year = printed year — the code mints the numbers on a UTC clock at 00:30 on 1 Jan 2570 in Bangkok › the certificate number minted now is GACP-TH-2570-… and prints 1 Jan 2570
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "GACP-TH-2570-A3F7B2"
+    Received: "GACP-TH-2569-A3F7B2"
+
+      251 |
+      252 |     it('the certificate number minted now is GACP-TH-2570-… and prints 1 Jan 2570', () => {
+    > 253 |         expect(out.certNo).toBe('GACP-TH-2570-A3F7B2');
+          |                            ^
+      254 |         expect(out.cert).toEqual({
+      255 |             ISSUED_DATE_TH: '1 มกราคม 2570',
+      256 |             ISSUED_DATE_SHORT: '01/01/2570',
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:253:28)
+
+  ● number year = printed year — the code mints the numbers on a UTC clock at 00:30 on 1 Jan 2570 in Bangkok › the CAR number, the numbering year helpers and the quote-path invoice number read the Bangkok year/day
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /^CAR-2570-\d{4}$/
+    Received string:  "CAR-2569-5185"
+
+      259 |
+      260 |     it('the CAR number, the numbering year helpers and the quote-path invoice number read the Bangkok year/day', () => {
+    > 261 |         expect(out.carNo).toMatch(/^CAR-2570-\d{4}$/);
+          |                           ^
+      262 |         expect(out.buddhistYear).toBe(2570);
+      263 |         expect(out.christianYear).toBe(2027);
+      264 |         expect(out.quoteNo).toMatch(/^INV-20270101-[0-9A-F]{8}$/);
+
+      at Object.toMatch (__tests__/unit/bangkok-business-dates.test.js:261:27)
+
+  ● notification times are Bangkok times on a UTC server › "21 Sep, 09:00" is stored as 02:00Z and every notification prints 09:00
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "09:00"
+    Received: "02:00"
+
+      349 |     it('"21 Sep, 09:00" is stored as 02:00Z and every notification prints 09:00', () => {
+      350 |         expect(out.stored).toBe('2026-09-21T02:00:00.000Z');
+    > 351 |         expect(out.time).toBe('09:00');
+          |                          ^
+      352 |         expect(out.date).toContain('21 กันยายน');
+      353 |         expect(out.sms).toContain('09:00');
+      354 |         expect(out.sms).not.toContain('02:00');
+
+      at Object.toBe (__tests__/unit/bangkok-business-dates.test.js:351:26)
+
+  ● VAT period (ภ.พ.30) follows the Bangkok calendar month › the ledger files the same entry in the same month as ภ.พ.30 — October, on a UTC server
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "month": 10,
+    +   "month": 9,
+        "year": 2026,
+      }
+
+      574 |             };
+      575 |         `);
+    > 576 |         expect(out.guardMonth).toEqual({ year: 2026, month: 10 });
+          |                                ^
+      577 |         expect(out.septemberClosableAtEntry).toBe(true);
+      578 |         expect(out.octoberClosableAtEntry).toBe(false);
+      579 |         expect(out.septemberClosableJustBefore).toBe(false);
+
+      at Object.toEqual (__tests__/unit/bangkok-business-dates.test.js:576:32)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T10:04:10.021Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T10:04:10.054Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T10:04:10.286Z"}
+  console.warn
+    [application-status-writer] audit emission failed (status transition, non-fatal): statusTransitionAuditHook is not exported by middleware/audit-logger — cannot emit the default status-transition audit row
+
+      439 |             return true;
+      440 |         } catch (sideEffectError) {
+    > 441 |             console.warn(
+          |                     ^
+      442 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      443 |                 + `${sideEffectError?.message || sideEffectError}`,
+      444 |             );
+
+      at warn (services/application-status-writer.js:441:21)
+
+[31merror[39m: [assignment-ledger] recordAssignment failed (swallowed): {"service":"gacp-backend","timestamp":"2026-09-26T10:04:10.306Z"}
+PASS __tests__/unit/audit-scheduling-service.test.js
+  [Iter25] audit-scheduling-service — assignAuditor
+    ✓ happy path: AUDIT_FEE_PAID → AUDIT_CONFIRMED with auditSchedule (68 ms)
+    ✓ admin role can also assign (ADMIN_OVERRIDE) (23 ms)
+    ✓ rejects non-SCHEDULER actor (FORBIDDEN_ROLE) (18 ms)
+    ✓ tenant guard: rejects a cross-tenant application (APPLICATION_NOT_FOUND) — audit 2.5 (27 ms)
+    ✓ rejects past scheduledDate (VALIDATION_ERROR) (21 ms)
+    ✓ rejects weekend (NON_WORKING_DAY) (22 ms)
+    ✓ rejects when application not in AUDIT_FEE_PAID (INVALID_STATE) (24 ms)
+    ✓ rejects when auditor user not found (AUDITOR_NOT_FOUND) (18 ms)
+    ✓ rejects when auditor does NOT hold AUDITOR role (AUDITOR_INVALID_ROLE) (16 ms)
+    ✓ AUDITOR_OVER_CAP when auditor already has 2 audits that day (28 ms)
+    ✓ AUDITOR_BUSY surfaces overlapping window (17 ms)
+    ✓ returns APPLICATION_NOT_FOUND for unknown id (22 ms)
+    ✓ ONSITE assign find-or-creates one AuditChecklist (IN_PROGRESS, auditorId=assigned, org=app org) (20 ms)
+    ✓ ONSITE assign is idempotent: an existing active AuditChecklist is reused, not duplicated (18 ms)
+  [Iter25] audit-scheduling-service — requestReschedule
+    ✓ HEALTH applicant creates PENDING reschedule entry (24 ms)
+    ✓ rejects non-HEALTH actor (15 ms)
+    ✓ rejects when application state is not AUDIT_CONFIRMED (25 ms)
+    ✓ rejects reason that is too short (15 ms)
+    ✓ rejects ownership mismatch (different healthId) (15 ms)
+  [Iter25] audit-scheduling-service — approveReschedule
+    ✓ scheduler approves PENDING reschedule with new date (22 ms)
+    ✓ rejects when reschedule already APPROVED (RESCHEDULE_NOT_PENDING) (16 ms)
+    ✓ rejects when rescheduleId not found (14 ms)
+    ✓ rejects past date as newDate (29 ms)
+  [Iter25] audit-scheduling-service — getAuditorAvailability
+    ✓ returns busy slots + cap + overCapDays (28 ms)
+    ✓ rejects missing dateRange (13 ms)
+  [Iter25] audit-scheduling-service — getSchedulingQueue
+    ✓ returns AUDIT_FEE_PAID applications (14 ms)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/business-dates-go-through-bangkok-helpers.test.js
+  the scanner (selftest: it fails on each forbidden shape and passes the zoned ones)
+    ✓ flags const y = new Date().getFullYear() + 543; (2 ms)
+    ✓ flags d.setHours(0, 0, 0, 0); (1 ms)
+    ✓ flags const m = d.getUTCMonth() + 1; (1 ms)
+    ✓ flags const day = new Date().toISOString().slice(0, 10); (1 ms)
+    ✓ flags const day = new Date().toISOString().split('T')[0]; (1 ms)
+    ✓ flags d.toLocaleDateString('th-TH') (4 ms)
+    ✓ flags d.toLocaleTimeString('th-TH', { hour: '2-digit' }) (1 ms)
+    ✓ flags new Date(x).toLocaleString('th-TH') (2 ms)
+    ✓ flags new Intl.DateTimeFormat('th-TH', {
+  year: 'numeric',
+  month: 'long',
+}) (1 ms)
+    ✓ flags const start = new Date(y, m - 1, 1); (1 ms)
+    ✓ passes d.toLocaleDateString('th-TH', { timeZone: DEFAULT_TIME_ZONE }) (1 ms)
+    ✓ passes new Intl.DateTimeFormat('th-TH', {
+  timeZone: THAI_TIME_ZONE,
+  year: 'numeric',
+})
+    ✓ passes amount.toLocaleString('th-TH') (1 ms)
+    ✓ passes const due = new Date(Date.UTC(y, m, 15)); (1 ms)
+    ✓ passes const later = new Date(
+    issued.getTime() + ms,
+); (1 ms)
+    ✓ passes // comment: d.getFullYear() would be wrong here (1 ms)
+    ✓ passes /* d.getDate() */ const x = getZonedParts(d).day; (1 ms)
+  business code reads dates only through the Bangkok zone helpers
+    ✓ scans a real tree (not an empty glob) (4 ms)
+    ✕ has no process-clock or UTC calendar reads, UTC day slices or zone-less locale dates (265 ms)
+
+  ● business code reads dates only through the Bangkok zone helpers › has no process-clock or UTC calendar reads, UTC day slices or zone-less locale dates
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  -   1
+    + Received  + 224
+
+    - Array []
+    + Array [
+    +   "backend/services/accounting-service.js:119 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/accounting-service.js:120 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/accounting-service.js:121 UTC calendar read: .getUTCDate(",
+    +   "backend/services/accounting-service.js:264 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/services/application-fan-out.js:41 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/application-service/application-draft-query-methods.js:56 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/application-service/application-submission-methods.js:160 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/ar-aging-service.js:105 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/ar-aging-service.js:105 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/ar-aging-service.js:105 UTC calendar read: .getUTCDate(",
+    +   "backend/services/ar-aging-service.js:106 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/ar-aging-service.js:106 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/ar-aging-service.js:106 UTC calendar read: .getUTCDate(",
+    +   "backend/services/ar-aging-service.js:263 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/services/audit-trail.js:929 process-clock calendar read/write: .setDate(",
+    +   "backend/services/audit-trail.js:929 process-clock calendar read/write: .getDate(",
+    +   "backend/services/certificate-service.js:591 process-clock calendar read/write: .setFullYear(",
+    +   "backend/services/certificate-service.js:591 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/dataset-export-service.js:167 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/services/document-numbering.js:91 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/document-numbering.js:103 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/financial-export-service.js:22 multi-argument new Date (process-clock calendar): new Date(year, month - 1, 1",
+    +   "backend/services/financial-export-service.js:23 multi-argument new Date (process-clock calendar): new Date(year, month, 0, 23, 59, 59, 999",
+    +   "backend/services/financial-export-service.js:30 UTC ISO day/month slice: toISOString().split('T')",
+    +   "backend/services/financial-export-service.js:36 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/services/financial-statements-service.js:79 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/financial-statements-service.js:80 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/financial-statements-service.js:81 UTC calendar read: .getUTCDate(",
+    +   "backend/services/general-ledger-service.js:67 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/general-ledger-service.js:68 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/general-ledger-service.js:69 UTC calendar read: .getUTCDate(",
+    +   "backend/services/journal-entry-period-guard.js:86 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/journal-entry-period-guard.js:87 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/manual-journal-entry-service.js:218 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/notification/domain-helpers.js:190 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/services/notification/domain-helpers.js:218 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/services/notification/domain-helpers.js:278 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/services/notification-fanout-service.js:223 locale date/time without timeZone: Intl.DateTimeFormat(",
+    +   "backend/services/notification-fanout-service.js:228 process-clock calendar read/write: .getDate(",
+    +   "backend/services/notification-fanout-service.js:228 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/notification-fanout-service.js:228 locale date/time without timeZone: .toLocaleString(",
+    +   "backend/services/notification-fanout-service.js:237 locale date/time without timeZone: Intl.DateTimeFormat(",
+    +   "backend/services/notification-fanout-service.js:241 process-clock calendar read/write: .getHours(",
+    +   "backend/services/notification-service.js:220 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/services/pdf/car-report-service.js:252 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/pdf/coa-specimen-template-service.js:83 process-clock calendar read/write: .setDate(",
+    +   "backend/services/pdf/coa-specimen-template-service.js:83 process-clock calendar read/write: .getDate(",
+    +   "backend/services/pdf/invoice-template-service.js:1326 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/pdf/pdpc-breach-report-service.js:52 locale date/time without timeZone: Intl.DateTimeFormat(",
+    +   "backend/services/pdf/pdpc-breach-report-service.js:64 process-clock calendar read/write: .getDate(",
+    +   "backend/services/pdf/pdpc-breach-report-service.js:64 process-clock calendar read/write: .getMonth(",
+    +   "backend/services/pdf/pdpc-breach-report-service.js:64 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/period-close-service.js:146 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/period-close-service.js:147 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/quote-service.js:200 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/services/quote-service.js:381 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/services/quote-service.js:391 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/services/renewal-service.js:147 process-clock calendar read/write: .setHours(",
+    +   "backend/services/renewal-service.js:148 process-clock calendar read/write: .setDate(",
+    +   "backend/services/renewal-service.js:148 process-clock calendar read/write: .getDate(",
+    +   "backend/services/renewal-service.js:150 process-clock calendar read/write: .setDate(",
+    +   "backend/services/renewal-service.js:150 process-clock calendar read/write: .getDate(",
+    +   "backend/services/renewal-service.js:362 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/renewal-service.js:764 process-clock calendar read/write: .setDate(",
+    +   "backend/services/renewal-service.js:764 process-clock calendar read/write: .getDate(",
+    +   "backend/services/scheduler/job-scheduler.js:41 process-clock calendar read/write: .setDate(",
+    +   "backend/services/scheduler/job-scheduler.js:41 process-clock calendar read/write: .getDate(",
+    +   "backend/services/scheduler/job-scheduler.js:66 process-clock calendar read/write: .setDate(",
+    +   "backend/services/scheduler/job-scheduler.js:66 process-clock calendar read/write: .getDate(",
+    +   "backend/services/scheduler/job-scheduler.js:67 process-clock calendar read/write: .setHours(",
+    +   "backend/services/scheduler/job-scheduler.js:69 process-clock calendar read/write: .setDate(",
+    +   "backend/services/scheduler/job-scheduler.js:69 process-clock calendar read/write: .getDate(",
+    +   "backend/services/scheduler/job-scheduler.js:93 process-clock calendar read/write: .setDate(",
+    +   "backend/services/scheduler/job-scheduler.js:93 process-clock calendar read/write: .getDate(",
+    +   "backend/services/scheduler/job-scheduler.js:120 process-clock calendar read/write: .setMonth(",
+    +   "backend/services/scheduler/job-scheduler.js:120 process-clock calendar read/write: .getMonth(",
+    +   "backend/services/scheduler/job-scheduler.js:121 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/scheduler/job-scheduler.js:121 process-clock calendar read/write: .getMonth(",
+    +   "backend/services/scheduler/job-scheduler.js:121 multi-argument new Date (process-clock calendar): new Date(lastMonth.getFullYear(), lastMonth.getMo",
+    +   "backend/services/scheduler/job-scheduler.js:122 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/scheduler/job-scheduler.js:122 process-clock calendar read/write: .getMonth(",
+    +   "backend/services/scheduler/job-scheduler.js:122 multi-argument new Date (process-clock calendar): new Date(lastMonth.getFullYear(), lastMonth.getMo",
+    +   "backend/services/trace-service/common.js:67 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/services/traceability-service.js:352 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/trial-balance-service.js:140 UTC calendar read: .getUTCFullYear(",
+    +   "backend/services/trial-balance-service.js:141 UTC calendar read: .getUTCMonth(",
+    +   "backend/services/trial-balance-service.js:142 UTC calendar read: .getUTCDate(",
+    +   "backend/services/working-days-service.js:53 process-clock calendar read/write: .getFullYear(",
+    +   "backend/services/working-days-service.js:54 process-clock calendar read/write: .getMonth(",
+    +   "backend/services/working-days-service.js:55 process-clock calendar read/write: .getDate(",
+    +   "backend/services/working-days-service.js:62 process-clock calendar read/write: .getDay(",
+    +   "backend/services/working-days-service.js:82 process-clock calendar read/write: .setDate(",
+    +   "backend/services/working-days-service.js:82 process-clock calendar read/write: .getDate(",
+    +   "backend/services/working-days-service.js:103 process-clock calendar read/write: .setDate(",
+    +   "backend/services/working-days-service.js:103 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/admin/audit-log.js:244 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/routes/api/audit/audit.js:39 UTC ISO day/month slice: toISOString().split('T')",
+    +   "backend/routes/api/audit/audits.js:266 locale date/time without timeZone: .toLocaleTimeString(",
+    +   "backend/routes/api/audit/audits.js:389 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/routes/api/auth/auth-health.js:212 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/routes/api/auth/public.js:513 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/routes/api/auth/public.js:517 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/routes/api/auth/public.js:534 locale date/time without timeZone: .toLocaleString(",
+    +   "backend/routes/api/cultivation/planting-cycles-activity-harvest-routes.js:297 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/documents/report-submissions.js:142 process-clock calendar read/write: .getMonth(",
+    +   "backend/routes/api/documents/report-submissions.js:143 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/documents/report-submissions.js:157 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/documents/report-submissions.js:157 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/documents/report-submissions.js:158 process-clock calendar read/write: .getMonth(",
+    +   "backend/routes/api/documents/reports.js:258 process-clock calendar read/write: .setHours(",
+    +   "backend/routes/api/documents/reports.js:260 process-clock calendar read/write: .setHours(",
+    +   "backend/routes/api/documents/reports.js:266 UTC ISO day/month slice: toISOString().split('T')",
+    +   "backend/routes/api/finance/invoice-payment-handlers.js:189 process-clock calendar read/write: .getMonth(",
+    +   "backend/routes/api/finance/invoice-payment-handlers.js:190 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/finance/pricing.js:196 UTC ISO day/month slice: toISOString().split('T')",
+    +   "backend/routes/api/finance/pricing.js:197 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/finance/quotes.js:152 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/finance/quotes.js:152 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/finance/tax-reports.js:104 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/finance/tax-reports.js:104 process-clock calendar read/write: .getMonth(",
+    +   "backend/routes/api/helpers/application-constants.js:249 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/provider/handlers/admin-dashboard-handler.js:24 process-clock calendar read/write: .getFullYear(",
+    +   "backend/routes/api/provider/handlers/admin-dashboard-handler.js:24 process-clock calendar read/write: .getMonth(",
+    +   "backend/routes/api/provider/handlers/admin-dashboard-handler.js:24 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/admin-dashboard-handler.js:24 multi-argument new Date (process-clock calendar): new Date(now.getFullYear(), now.getMonth(), now.g",
+    +   "backend/routes/api/provider/handlers/admin.js:283 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/provider/handlers/admin.js:283 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/admin.js:284 process-clock calendar read/write: .getDay(",
+    +   "backend/routes/api/provider/handlers/audit-log-viewer-handler.js:170 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "backend/routes/api/provider/handlers/auditor-dashboard-handler.js:25 process-clock calendar read/write: .setHours(",
+    +   "backend/routes/api/provider/handlers/auditor-dashboard-handler.js:95 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/provider/handlers/auditor-dashboard-handler.js:95 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/certificates.js:22 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/provider/handlers/certificates.js:22 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/certificates.js:24 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/provider/handlers/certificates.js:24 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/certificates.js:71 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/provider/handlers/certificates.js:71 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/reviewer.js:59 process-clock calendar read/write: .setHours(",
+    +   "backend/routes/api/provider/handlers/scheduler-audit-schedules-get-handler.js:91 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/provider/handlers/scheduler-audit-schedules-get-handler.js:91 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/scheduler-audits-route-optimization-handler.js:22 process-clock calendar read/write: .setHours(",
+    +   "backend/routes/api/provider/handlers/scheduler-audits-route-optimization-handler.js:24 process-clock calendar read/write: .setHours(",
+    +   "backend/routes/api/provider/handlers/scheduler-dashboard-handler.js:132 process-clock calendar read/write: .setDate(",
+    +   "backend/routes/api/provider/handlers/scheduler-dashboard-handler.js:132 process-clock calendar read/write: .getDate(",
+    +   "backend/routes/api/provider/handlers/workflow-side-effects.js:195 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/routes/api/system/analytics-predictive-performance-routes.js:17 process-clock calendar read/write: .setMonth(",
+    +   "backend/routes/api/system/analytics-predictive-performance-routes.js:17 process-clock calendar read/write: .getMonth(",
+    +   "backend/routes/api/system/analytics-predictive-performance-routes.js:54 UTC ISO day/month slice: toISOString().substring(0, 7)",
+    +   "backend/routes/api/system/analytics-predictive-performance-routes.js:109 process-clock calendar read/write: .setMonth(",
+    +   "backend/routes/api/system/analytics-predictive-performance-routes.js:109 process-clock calendar read/write: .getMonth(",
+    +   "backend/routes/api/system/analytics-predictive-performance-routes.js:158 UTC ISO day/month slice: toISOString().substring(0, 7)",
+    +   "backend/controllers/e2e-controller.js:111 process-clock calendar read/write: .getFullYear(",
+    +   "backend/controllers/e2e-controller.js:157 process-clock calendar read/write: .getFullYear(",
+    +   "backend/controllers/e2e-controller.js:384 process-clock calendar read/write: .getFullYear(",
+    +   "backend/controllers/report-controller.js:21 process-clock calendar read/write: .getMonth(",
+    +   "backend/controllers/report-controller.js:22 process-clock calendar read/write: .getFullYear(",
+    +   "backend/controllers/report-controller.js:22 multi-argument new Date (process-clock calendar): new Date(now.getFullYear(), quarter * 3, 1",
+    +   "backend/controllers/report-controller.js:24 process-clock calendar read/write: .getFullYear(",
+    +   "backend/controllers/report-controller.js:24 process-clock calendar read/write: .getMonth(",
+    +   "backend/controllers/report-controller.js:24 multi-argument new Date (process-clock calendar): new Date(now.getFullYear(), now.getMonth(), 1",
+    +   "backend/controllers/report-controller.js:132 process-clock calendar read/write: .getFullYear(",
+    +   "backend/controllers/report-controller.js:132 process-clock calendar read/write: .getMonth(",
+    +   "backend/controllers/report-controller.js:132 multi-argument new Date (process-clock calendar): new Date(now.getFullYear(), now.getMonth(), 1",
+    +   "backend/controllers/report-controller.js:220 UTC ISO day/month slice: toISOString().substring(0, 7)",
+    +   "backend/jobs/dtam-remittance-batch-job.js:40 UTC calendar read: .getUTCFullYear(",
+    +   "backend/jobs/dtam-remittance-batch-job.js:40 UTC calendar read: .getUTCMonth(",
+    +   "backend/jobs/dtam-remittance-batch-job.js:41 UTC calendar read: .getUTCFullYear(",
+    +   "backend/jobs/dtam-remittance-batch-job.js:41 UTC calendar read: .getUTCMonth(",
+    +   "backend/jobs/dtam-remittance-batch-job.js:42 UTC calendar read: .getUTCFullYear(",
+    +   "backend/jobs/dtam-remittance-batch-job.js:42 UTC calendar read: .getUTCMonth(",
+    +   "backend/jobs/scheduler.js:49 process-clock calendar read/write: .setDate(",
+    +   "backend/jobs/scheduler.js:49 process-clock calendar read/write: .getDate(",
+    +   "backend/jobs/scheduler.js:82 locale date/time without timeZone: .toLocaleDateString(",
+    +   "backend/jobs/sla-processor.js:14 process-clock calendar read/write: .setDate(",
+    +   "backend/jobs/sla-processor.js:14 process-clock calendar read/write: .getDate(",
+    +   "backend/cron/renewal-reminder-cron.js:78 process-clock calendar read/write: .getDate(",
+    +   "backend/cron/renewal-reminder-cron.js:78 process-clock calendar read/write: .getMonth(",
+    +   "backend/cron/renewal-reminder-cron.js:78 process-clock calendar read/write: .getFullYear(",
+    +   "backend/shared/harvest-identifiers.js:77 process-clock calendar read/write: .getFullYear(",
+    +   "backend/config/plant-density.js:150 process-clock calendar read/write: .getFullYear(",
+    +   "web-app/src/app/health/applications/[id]/application-detail-page-config.ts:261 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/app/health/applications/[id]/application-detail-page-config.ts:272 locale date/time without timeZone: .toLocaleString(",
+    +   "web-app/src/app/health/applications/[id]/revision/revision-state.ts:90 UTC calendar read: .getUTCFullYear(",
+    +   "web-app/src/app/health/applications/[id]/revision/revision-state.ts:90 UTC calendar read: .getUTCMonth(",
+    +   "web-app/src/app/health/applications/[id]/revision/revision-state.ts:90 UTC calendar read: .getUTCDate(",
+    +   "web-app/src/app/health/applications/preview/preview-page-config.ts:309 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/app/health/planting/[id]/activities/planting-activities-page-config.ts:80 process-clock calendar read/write: .getFullYear(",
+    +   "web-app/src/app/health/planting/[id]/activities/planting-activities-page-config.ts:81 process-clock calendar read/write: .getMonth(",
+    +   "web-app/src/app/health/planting/[id]/activities/planting-activities-page-config.ts:82 process-clock calendar read/write: .getDate(",
+    +   "web-app/src/app/provider/accounting/wht/client-view.tsx:65 locale date/time without timeZone: Intl.DateTimeFormat(",
+    +   "web-app/src/app/provider/accounting/wht/client-view.tsx:91 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "web-app/src/app/provider/accounting/wht/client-view.tsx:96 process-clock calendar read/write: .getFullYear(",
+    +   "web-app/src/app/provider/accounting/wht/client-view.tsx:96 process-clock calendar read/write: .getMonth(",
+    +   "web-app/src/app/provider/applications/[id]/provider-application-detail-config.ts:151 locale date/time without timeZone: .toLocaleString(",
+    +   "web-app/src/app/provider/audits/[id]/provider-audit-job-sheet-config.ts:113 process-clock calendar read/write: .getFullYear(",
+    +   "web-app/src/app/provider/dashboard/dashboard-utils.ts:121 locale date/time without timeZone: .toLocaleString(",
+    +   "web-app/src/app/provider/dashboard/dashboard-utils.ts:134 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/app/provider/dashboard/dashboard-utils.ts:191 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/components/application/application-document-helpers.ts:40 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/components/ui/date-input.tsx:12 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "web-app/src/lib/services/accounting-service.ts:523 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/lib/services/accounting-service.ts:535 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "web-app/src/lib/services/accounting-service.ts:541 process-clock calendar read/write: .getFullYear(",
+    +   "web-app/src/lib/services/accounting-service.ts:541 process-clock calendar read/write: .getMonth(",
+    +   "web-app/src/lib/services/accounting-service.ts:541 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "web-app/src/lib/services/accounting-service.ts:541 multi-argument new Date (process-clock calendar): new Date(d.getFullYear(), d.getMonth(), 1",
+    +   "web-app/src/lib/services/finance-orphans-service.ts:642 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/lib/services/finance-orphans-service.ts:655 process-clock calendar read/write: .getFullYear(",
+    +   "web-app/src/lib/services/finance-orphans-service.ts:655 process-clock calendar read/write: .getMonth(",
+    +   "web-app/src/lib/services/finance-orphans-service.ts:655 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "web-app/src/lib/services/finance-orphans-service.ts:655 multi-argument new Date (process-clock calendar): new Date(d.getFullYear(), d.getMonth(), 1",
+    +   "web-app/src/lib/services/finance-orphans-service.ts:660 UTC ISO day/month slice: toISOString().slice(0, 10)",
+    +   "web-app/src/lib/utils.ts:24 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/lib/utils.ts:36 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/utils/thai-date.ts:15 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/utils/thai-date.ts:31 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/utils/thai-date.ts:47 process-clock calendar read/write: .getDate(",
+    +   "web-app/src/utils/thai-date.ts:48 process-clock calendar read/write: .getMonth(",
+    +   "web-app/src/utils/thai-date.ts:49 process-clock calendar read/write: .getFullYear(",
+    +   "web-app/src/utils/thai-date.ts:63 locale date/time without timeZone: .toLocaleDateString(",
+    +   "web-app/src/utils/thai-date.ts:69 locale date/time without timeZone: .toLocaleTimeString(",
+    + ]
+
+      113 |             }
+      114 |         }
+    > 115 |         expect(offenders).toEqual([]);
+          |                           ^
+      116 |     });
+      117 | });
+      118 |
+
+      at Object.toEqual (__tests__/unit/business-dates-go-through-bangkok-helpers.test.js:115:27)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/invoice-service.test.js
+  invoice-service
+    ✓ marks invoice as PAID_PENDING_RECEIPT when paid (3 ms)
+    ✓ issues receipt and sets RECEIPT_ISSUED status (2 ms)
+    ✓ does NOT overwrite when a concurrent issuance already set a receipt number (race-loser) (1 ms)
+    ✓ returns mapped webhook exceptions for accounting queue (2 ms)
+    [X4-FIX-A RC-2] R5-B per-issuer atomic counter
+      ✕ issues a DTAM receipt for *_STATE_FEE invoices (RCP-DTAM prefix) (3 ms)
+      ✕ issues a PLATFORM receipt for *_PLATFORM_FEE invoices (TAX-PRD prefix) (2 ms)
+      ✓ DTAM and PLATFORM receipts allocate from INDEPENDENT counter streams (no collision) (2 ms)
+      ✓ same-issuer sequential allocations increment monotonically (DTAM) (11 ms)
+      ✓ does NOT call tx.invoice.count anymore (legacy shared counter removed) (2 ms)
+  invoice-service getById — selects only fields that exist in the schema
+    ✓ Entity select in getById() contains no unknown field (2 ms)
+    ✓ still selects the entity type discriminator the PDF/receipt path reads (1 ms)
+
+  ● invoice-service › [X4-FIX-A RC-2] R5-B per-issuer atomic counter › issues a DTAM receipt for *_STATE_FEE invoices (RCP-DTAM prefix)
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      Object {
+    -   "dateOrYear": Any<Date>,
+        "issuer": "DTAM",
+      },
+
+    Number of calls: 1
+
+      179 |         .toHaveBeenCalledWith('PHASE_1_STATE_FEE');
+      180 |       expect(receiptNumberingService.allocateReceiptNumber)
+    > 181 |         .toHaveBeenCalledWith({ issuer: 'DTAM', dateOrYear: expect.any(Date) });
+          |          ^
+      182 |       const updateCall = prisma.invoice.updateMany.mock.calls[0][0];
+      183 |       // The number's year is read from the instant the receipt is dated with
+      184 |       // (Bangkok, operator 2026-09-26): one instant for both.
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/invoice-service.test.js:181:10)
+
+  ● invoice-service › [X4-FIX-A RC-2] R5-B per-issuer atomic counter › issues a PLATFORM receipt for *_PLATFORM_FEE invoices (TAX-PRD prefix)
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    - Expected
+    + Received
+
+      Object {
+    -   "dateOrYear": Any<Date>,
+        "issuer": "PLATFORM",
+      },
+
+    Number of calls: 1
+
+      195 |
+      196 |       expect(receiptNumberingService.allocateReceiptNumber)
+    > 197 |         .toHaveBeenCalledWith({ issuer: 'PLATFORM', dateOrYear: expect.any(Date) });
+          |          ^
+      198 |       const updateCall = prisma.invoice.updateMany.mock.calls[0][0];
+      199 |       // The number's year is read from the instant the receipt is dated with
+      200 |       // (Bangkok, operator 2026-09-26): one instant for both.
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/invoice-service.test.js:197:10)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+[32minfo[39m: [dtam-remittance-job] 2026-08: 2 batch(es) opened, 0 skipped, 0 still open from before, 0 failed {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.209Z"}
+[32minfo[39m: [dtam-remittance-job] 2026-08: 0 batch(es) opened, 1 skipped, 0 still open from before, 0 failed {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.214Z"}
+[33mwarn[39m: [dtam-remittance-job] org-1 still has an OPEN batch — last month's transfer has not been recorded. batch DTAM-2026-07-0001 is still OPEN {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.216Z"}
+[32minfo[39m: [dtam-remittance-job] 2026-08: 0 batch(es) opened, 0 skipped, 1 still open from before, 0 failed {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.216Z"}
+[31merror[39m: [dtam-remittance-job] org-2 failed to open a 2026-08 batch: database exploded {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.219Z"}
+[32minfo[39m: [dtam-remittance-job] 2026-08: 2 batch(es) opened, 0 skipped, 0 still open from before, 1 failed {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.219Z"}
+[32minfo[39m: [dtam-remittance-job] 2026-08: no tenant is holding DTAM money — nothing to gather {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.221Z"}
+[32minfo[39m: [dtam-remittance-job] 2026-08: 1 batch(es) opened, 0 skipped, 0 still open from before, 0 failed {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.223Z"}
+[32minfo[39m: [dtam-remittance-job] 2026-08: no tenant is holding DTAM money — nothing to gather {"service":"gacp-backend","timestamp":"2026-09-26T10:04:12.225Z"}
+FAIL __tests__/unit/dtam-remittance-batch-job.test.js
+  previousPeriod — the month being remitted is the one that ENDED
+    ✕ on 1 September the period is August (2 ms)
+    ✕ the cron fires at 02:00 on the 1st in Bangkok (still the 31st on UTC) and remits the month that just ended (1 ms)
+    ✓ on 1 January the period is the previous December (1 ms)
+    ✕ the cutoff is the first moment of the CURRENT month, so nothing settled this month is swept in (7 ms)
+  openMonthlyBatches
+    ✓ opens one batch per tenant that owes the department something (5 ms)
+    ✓ a tenant with nothing pending is a quiet skip, not an error (2 ms)
+    ✓ a tenant whose last batch is still OPEN is skipped and NAMED — a human has to act (2 ms)
+    ✓ one tenant failing does not stop the rest — a stuck tenant must not hold the others money (3 ms)
+    ✓ no tenant owes anything — the job does nothing and says so (2 ms)
+    ✓ THE POINT OF THIS FILE: the job never records a transfer it cannot witness (2 ms)
+    ✕ only SETTLED orders still at PENDING are looked for (14 ms)
+
+  ● previousPeriod — the month being remitted is the one that ENDED › on 1 September the period is August
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "cutoff": 2026-08-31T17:00:00.000Z,
+    +   "cutoff": 2026-09-01T00:00:00.000Z,
+        "periodLabel": "2026-08",
+      }
+
+      51 |         // Months are Bangkok months (operator 2026-09-26): 1 Sep starts at
+      52 |         // 00:00 in Bangkok, 2026-08-31T17:00Z.
+    > 53 |         expect(previousPeriod(new Date('2026-09-01T03:00:00Z'))).toEqual({
+         |                                                                  ^
+      54 |             periodLabel: '2026-08',
+      55 |             cutoff: new Date('2026-08-31T17:00:00.000Z'),
+      56 |         });
+
+      at Object.toEqual (__tests__/unit/dtam-remittance-batch-job.test.js:53:66)
+
+  ● previousPeriod — the month being remitted is the one that ENDED › the cron fires at 02:00 on the 1st in Bangkok (still the 31st on UTC) and remits the month that just ended
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 2
+    + Received  + 2
+
+      Object {
+    -   "cutoff": 2026-08-31T17:00:00.000Z,
+    -   "periodLabel": "2026-08",
+    +   "cutoff": 2026-08-01T00:00:00.000Z,
+    +   "periodLabel": "2026-07",
+      }
+
+      58 |
+      59 |     test('the cron fires at 02:00 on the 1st in Bangkok (still the 31st on UTC) and remits the month that just ended', () => {
+    > 60 |         expect(previousPeriod(new Date('2026-08-31T19:00:00Z'))).toEqual({
+         |                                                                  ^
+      61 |             periodLabel: '2026-08',
+      62 |             cutoff: new Date('2026-08-31T17:00:00.000Z'),
+      63 |         });
+
+      at Object.toEqual (__tests__/unit/dtam-remittance-batch-job.test.js:60:66)
+
+  ● previousPeriod — the month being remitted is the one that ENDED › the cutoff is the first moment of the CURRENT month, so nothing settled this month is swept in
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-08-31T17:00:00.000Z"
+    Received: "2026-09-01T00:00:00.000Z"
+
+      70 |     test('the cutoff is the first moment of the CURRENT month, so nothing settled this month is swept in', () => {
+      71 |         const { cutoff } = previousPeriod(new Date('2026-09-17T22:00:00Z'));
+    > 72 |         expect(cutoff.toISOString()).toBe('2026-08-31T17:00:00.000Z');
+         |                                      ^
+      73 |     });
+      74 | });
+      75 |
+
+      at Object.toBe (__tests__/unit/dtam-remittance-batch-job.test.js:72:38)
+
+  ● openMonthlyBatches › only SETTLED orders still at PENDING are looked for
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "2026-08-31T17:00:00.000Z"
+    Received: "2026-09-01T00:00:00.000Z"
+
+      160 |         expect(arg.by).toEqual(['organizationId']);
+      161 |         expect(arg.where).toMatchObject({ status: 'SETTLED', dtamRemittanceStatus: 'PENDING' });
+    > 162 |         expect(arg.where.settledAt.lte.toISOString()).toBe('2026-08-31T17:00:00.000Z');
+          |                                                       ^
+      163 |     });
+      164 | });
+      165 |
+
+      at Object.toBe (__tests__/unit/dtam-remittance-batch-job.test.js:162:55)
+
+Test Suites: 4 failed, 1 passed, 5 total
+Tests:       13 failed, 87 passed, 100 total
+Snapshots:   0 total
+Time:        4.812 s
+Ran all test suites matching /__tests__\/unit\/bangkok-business-dates.test.js|__tests__\/unit\/business-dates-go-through-bangkok-helpers.test.js|__tests__\/unit\/invoice-service.test.js|__tests__\/unit\/dtam-remittance-batch-job.test.js|__tests__\/unit\/audit-scheduling-service.test.js/i.
+exit=1
+## b39d4c75 audit-scheduling-service.test.js under TZ=America/Los_Angeles
+    ✕ AUDITOR_OVER_CAP when auditor already has 2 audits that day (24 ms)
+Tests:       1 failed, 25 passed, 26 total

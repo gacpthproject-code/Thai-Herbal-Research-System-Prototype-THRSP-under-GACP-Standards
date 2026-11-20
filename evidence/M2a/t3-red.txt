@@ -1,0 +1,426 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/admin-requirement-rules-routes.test.js
+  the surface is admin-only — and mounted (both proven by one request)
+    √ document_reviewer cannot read the rules (403, no query fired) (55 ms)
+    √ scheduler cannot read the rules (403, no query fired) (13 ms)
+    √ auditor cannot read the rules (403, no query fired) (12 ms)
+    √ account_dtam cannot read the rules (403, no query fired) (19 ms)
+    √ health cannot read the rules (403, no query fired) (11 ms)
+    √ document_reviewer cannot write a rule (403, nothing created, nothing audited) (23 ms)
+    √ scheduler cannot write a rule (403, nothing created, nothing audited) (11 ms)
+    √ auditor cannot write a rule (403, nothing created, nothing audited) (11 ms)
+    √ account_dtam cannot write a rule (403, nothing created, nothing audited) (11 ms)
+    √ health cannot write a rule (403, nothing created, nothing audited) (11 ms)
+    √ document_reviewer cannot close a rule (403, no update) (10 ms)
+    √ scheduler cannot close a rule (403, no update) (23 ms)
+    √ auditor cannot close a rule (403, no update) (11 ms)
+    √ account_dtam cannot close a rule (403, no update) (10 ms)
+    √ health cannot close a rule (403, no update) (11 ms)
+    √ an anonymous caller gets 401, not 403 (auth sits before the admin gate) (27 ms)
+  GET / — the law as of a date
+    × returns the rules in force NOW by default (open window, deterministic order) (19 ms)
+    × ?at= asks the question as of THAT instant, not now (22 ms)
+    × ?includeClosed=true drops the window so retired rules stay readable (AC3) (10 ms)
+    × ?at=garbage is refused (400) instead of silently answering about now (11 ms)
+  POST / — new law enters as a row
+    × 201: the row is created under the caller and an audit row is emitted (10 ms)
+    × a slot written through an old alias is stored canonical (LAND_TITLE → land_deed) (10 ms)
+    × all three dimensions omitted = a rule that binds everyone (201, NULLs stored) (11 ms)
+    × an explicit null dimension is accepted the same way (10 ms)
+    × an unknown slot is refused (400) — a law about a slot that does not exist can never fire (11 ms)
+    × a missing slot is refused (400) (21 ms)
+    × an unknown holderType is refused (400) and the answer names the accepted set (11 ms)
+    × 'RENEW' is refused (400): the vocabulary is NEW/RENEWAL/REPLACEMENT and gets no fifth word (10 ms)
+    × NEW is accepted (10 ms)
+    × RENEWAL is accepted (12 ms)
+    × REPLACEMENT is accepted (11 ms)
+    × INDIVIDUAL is accepted (9 ms)
+    × JURISTIC is accepted (10 ms)
+    × COMMUNITY_ENTERPRISE is accepted (17 ms)
+    × an unparsable effectiveFrom surfaces as 400, not 500 (10 ms)
+    × a DB failure is a 500 that leaks no internals (10 ms)
+  POST /:id/close — retiring a rule is the only touch a row ever gets
+    × 200: exactly effectiveTo/closedBy/closedAt are written, plus an audit row (10 ms)
+    × closing a rule that was already closed is a 409, not a second stamp (11 ms)
+    √ closing a rule that does not exist is a 404 (10 ms)
+    √ there is no route that edits a rule body — PUT/PATCH/DELETE do not exist (26 ms)
+
+  ● GET / — the law as of a date › returns the rules in force NOW by default (open window, deterministic order)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+    [0m [90m 213 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'get'[39m[33m,[39m [33mBASE[39m)[33m.[39msend()[33m;[39m
+     [90m 214 |[39m
+    [31m[1m>[22m[39m[90m 215 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 216 |[39m         expect(res[33m.[39mbody[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 217 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mrows)[33m.[39mtoHaveLength([35m1[39m)[33m;[39m
+     [90m 218 |[39m         [90m// Policy is not PII — the whole row goes back, provenance included.[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:215:28)
+
+  ● GET / — the law as of a date › ?at= asks the question as of THAT instant, not now
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+    [0m [90m 233 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'get'[39m[33m,[39m [32m`${BASE}?at=${encodeURIComponent(AT_ISO)}`[39m)[33m.[39msend()[33m;[39m
+     [90m 234 |[39m
+    [31m[1m>[22m[39m[90m 235 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 236 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mat)[33m.[39mtoBe([33mAT_ISO[39m)[33m;[39m
+     [90m 237 |[39m         [36mconst[39m arg [33m=[39m mockRuleFindMany[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m;[39m
+     [90m 238 |[39m         expect(arg[33m.[39mwhere[33m.[39meffectiveFrom[33m.[39mlte[33m.[39mgetTime())[33m.[39mtoBe([33mAT[39m[33m.[39mgetTime())[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:235:28)
+
+  ● GET / — the law as of a date › ?includeClosed=true drops the window so retired rules stay readable (AC3)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+    [0m [90m 247 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'get'[39m[33m,[39m [32m`${BASE}?includeClosed=true`[39m)[33m.[39msend()[33m;[39m
+     [90m 248 |[39m
+    [31m[1m>[22m[39m[90m 249 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 250 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mincludeClosed)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 251 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mrows)[33m.[39mtoHaveLength([35m2[39m)[33m;[39m
+     [90m 252 |[39m         [36mconst[39m arg [33m=[39m mockRuleFindMany[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:249:28)
+
+  ● GET / — the law as of a date › ?at=garbage is refused (400) instead of silently answering about now
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+    [0m [90m 258 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'get'[39m[33m,[39m [32m`${BASE}?at=not-a-date`[39m)[33m.[39msend()[33m;[39m
+     [90m 259 |[39m
+    [31m[1m>[22m[39m[90m 260 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 261 |[39m         expect(res[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'VALIDATION_ERROR'[39m)[33m;[39m
+     [90m 262 |[39m         expect(mockRuleFindMany)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 263 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:260:28)
+
+  ● POST / — new law enters as a row › 201: the row is created under the caller and an audit row is emitted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 276 |[39m         })[33m;[39m
+     [90m 277 |[39m
+    [31m[1m>[22m[39m[90m 278 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 279 |[39m         expect(res[33m.[39mbody[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 280 |[39m         expect(res[33m.[39mbody[33m.[39mdata[33m.[39mid)[33m.[39mtoBe([32m'rule-new-1'[39m)[33m;[39m
+     [90m 281 |[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:278:28)
+
+  ● POST / — new law enters as a row › a slot written through an old alias is stored canonical (LAND_TITLE → land_deed)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 308 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'LAND_TITLE'[39m })[33m;[39m
+     [90m 309 |[39m
+    [31m[1m>[22m[39m[90m 310 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 311 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mslotId)[33m.[39mtoBe([32m'land_deed'[39m)[33m;[39m
+     [90m 312 |[39m     })[33m;[39m
+     [90m 313 |[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:310:28)
+
+  ● POST / — new law enters as a row › all three dimensions omitted = a rule that binds everyone (201, NULLs stored)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 315 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'id_card'[39m })[33m;[39m
+     [90m 316 |[39m
+    [31m[1m>[22m[39m[90m 317 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 318 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata)[33m.[39mtoMatchObject({
+     [90m 319 |[39m             holderType[33m:[39m [36mnull[39m[33m,[39m requestType[33m:[39m [36mnull[39m[33m,[39m plantCode[33m:[39m [36mnull[39m[33m,[39m slotId[33m:[39m [32m'id_card'[39m[33m,[39m
+     [90m 320 |[39m         })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:317:28)
+
+  ● POST / — new law enters as a row › an explicit null dimension is accepted the same way
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 325 |[39m             [33m.[39msend({ slotId[33m:[39m [32m'id_card'[39m[33m,[39m holderType[33m:[39m [36mnull[39m[33m,[39m requestType[33m:[39m [36mnull[39m })[33m;[39m
+     [90m 326 |[39m
+    [31m[1m>[22m[39m[90m 327 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 328 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mholderType)[33m.[39mtoBeNull()[33m;[39m
+     [90m 329 |[39m     })[33m;[39m
+     [90m 330 |[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:327:28)
+
+  ● POST / — new law enters as a row › an unknown slot is refused (400) — a law about a slot that does not exist can never fire
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+    [0m [90m 332 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_registration_certificate'[39m })[33m;[39m
+     [90m 333 |[39m
+    [31m[1m>[22m[39m[90m 334 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 335 |[39m         expect(res[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'INVALID_SLOT_ID'[39m)[33m;[39m
+     [90m 336 |[39m         expect(mockRuleCreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 337 |[39m         expect(auditLogger[33m.[39mlog)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:334:28)
+
+  ● POST / — new law enters as a row › a missing slot is refused (400)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+    [0m [90m 341 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ holderType[33m:[39m [32m'JURISTIC'[39m })[33m;[39m
+     [90m 342 |[39m
+    [31m[1m>[22m[39m[90m 343 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 344 |[39m         expect(res[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'INVALID_SLOT_ID'[39m)[33m;[39m
+     [90m 345 |[39m         expect(mockRuleCreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 346 |[39m     })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:343:28)
+
+  ● POST / — new law enters as a row › an unknown holderType is refused (400) and the answer names the accepted set
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+    [0m [90m 349 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m holderType[33m:[39m [32m'COMPANY'[39m })[33m;[39m
+     [90m 350 |[39m
+    [31m[1m>[22m[39m[90m 351 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 352 |[39m         expect(res[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'INVALID_HOLDER_TYPE'[39m)[33m;[39m
+     [90m 353 |[39m         expect(res[33m.[39mbody[33m.[39mallowed)[33m.[39mtoEqual([[32m'INDIVIDUAL'[39m[33m,[39m [32m'JURISTIC'[39m[33m,[39m [32m'COMMUNITY_ENTERPRISE'[39m])[33m;[39m
+     [90m 354 |[39m         expect(mockRuleCreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:351:28)
+
+  ● POST / — new law enters as a row › 'RENEW' is refused (400): the vocabulary is NEW/RENEWAL/REPLACEMENT and gets no fifth word
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+    [0m [90m 358 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m requestType[33m:[39m [32m'RENEW'[39m })[33m;[39m
+     [90m 359 |[39m
+    [31m[1m>[22m[39m[90m 360 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 361 |[39m         expect(res[33m.[39mbody[33m.[39mcode)[33m.[39mtoBe([32m'INVALID_REQUEST_TYPE'[39m)[33m;[39m
+     [90m 362 |[39m         expect(res[33m.[39mbody[33m.[39mallowed)[33m.[39mtoEqual([[32m'NEW'[39m[33m,[39m [32m'RENEWAL'[39m[33m,[39m [32m'REPLACEMENT'[39m])[33m;[39m
+     [90m 363 |[39m         expect(mockRuleCreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:360:28)
+
+  ● POST / — new law enters as a row › NEW is accepted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 367 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m requestType })[33m;[39m
+     [90m 368 |[39m
+    [31m[1m>[22m[39m[90m 369 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 370 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mrequestType)[33m.[39mtoBe(requestType)[33m;[39m
+     [90m 371 |[39m     })[33m;[39m
+     [90m 372 |[39m[0m
+
+      at toBe (__tests__/unit/admin-requirement-rules-routes.test.js:369:28)
+
+  ● POST / — new law enters as a row › RENEWAL is accepted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 367 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m requestType })[33m;[39m
+     [90m 368 |[39m
+    [31m[1m>[22m[39m[90m 369 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 370 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mrequestType)[33m.[39mtoBe(requestType)[33m;[39m
+     [90m 371 |[39m     })[33m;[39m
+     [90m 372 |[39m[0m
+
+      at toBe (__tests__/unit/admin-requirement-rules-routes.test.js:369:28)
+
+  ● POST / — new law enters as a row › REPLACEMENT is accepted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 367 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m requestType })[33m;[39m
+     [90m 368 |[39m
+    [31m[1m>[22m[39m[90m 369 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 370 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mrequestType)[33m.[39mtoBe(requestType)[33m;[39m
+     [90m 371 |[39m     })[33m;[39m
+     [90m 372 |[39m[0m
+
+      at toBe (__tests__/unit/admin-requirement-rules-routes.test.js:369:28)
+
+  ● POST / — new law enters as a row › INDIVIDUAL is accepted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 374 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m holderType })[33m;[39m
+     [90m 375 |[39m
+    [31m[1m>[22m[39m[90m 376 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 377 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mholderType)[33m.[39mtoBe(holderType)[33m;[39m
+     [90m 378 |[39m     })[33m;[39m
+     [90m 379 |[39m[0m
+
+      at toBe (__tests__/unit/admin-requirement-rules-routes.test.js:376:28)
+
+  ● POST / — new law enters as a row › JURISTIC is accepted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 374 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m holderType })[33m;[39m
+     [90m 375 |[39m
+    [31m[1m>[22m[39m[90m 376 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 377 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mholderType)[33m.[39mtoBe(holderType)[33m;[39m
+     [90m 378 |[39m     })[33m;[39m
+     [90m 379 |[39m[0m
+
+      at toBe (__tests__/unit/admin-requirement-rules-routes.test.js:376:28)
+
+  ● POST / — new law enters as a row › COMMUNITY_ENTERPRISE is accepted
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 201
+    Received: 404
+
+    [0m [90m 374 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m holderType })[33m;[39m
+     [90m 375 |[39m
+    [31m[1m>[22m[39m[90m 376 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m201[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 377 |[39m         expect(mockRuleCreate[33m.[39mmock[33m.[39mcalls[[35m0[39m][[35m0[39m][33m.[39mdata[33m.[39mholderType)[33m.[39mtoBe(holderType)[33m;[39m
+     [90m 378 |[39m     })[33m;[39m
+     [90m 379 |[39m[0m
+
+      at toBe (__tests__/unit/admin-requirement-rules-routes.test.js:376:28)
+
+  ● POST / — new law enters as a row › an unparsable effectiveFrom surfaces as 400, not 500
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 400
+    Received: 404
+
+    [0m [90m 382 |[39m             [33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m[33m,[39m effectiveFrom[33m:[39m [32m'the day after tomorrow'[39m })[33m;[39m
+     [90m 383 |[39m
+    [31m[1m>[22m[39m[90m 384 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m400[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 385 |[39m         expect(mockRuleCreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 386 |[39m     })[33m;[39m
+     [90m 387 |[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:384:28)
+
+  ● POST / — new law enters as a row › a DB failure is a 500 that leaks no internals
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 500
+    Received: 404
+
+    [0m [90m 391 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [33mBASE[39m)[33m.[39msend({ slotId[33m:[39m [32m'company_reg'[39m })[33m;[39m
+     [90m 392 |[39m
+    [31m[1m>[22m[39m[90m 393 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m500[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 394 |[39m         expect([33mJSON[39m[33m.[39mstringify(res[33m.[39mbody))[33m.[39mnot[33m.[39mtoContain([32m'10.0.0.5'[39m)[33m;[39m
+     [90m 395 |[39m     })[33m;[39m
+     [90m 396 |[39m })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:393:28)
+
+  ● POST /:id/close — retiring a rule is the only touch a row ever gets › 200: exactly effectiveTo/closedBy/closedAt are written, plus an audit row
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 200
+    Received: 404
+
+    [0m [90m 404 |[39m             [33m.[39msend({ reason[33m:[39m [32m'superseded by ministry order 12/2569'[39m })[33m;[39m
+     [90m 405 |[39m
+    [31m[1m>[22m[39m[90m 406 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 407 |[39m         expect(res[33m.[39mbody[33m.[39msuccess)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 408 |[39m
+     [90m 409 |[39m         expect(mockRuleUpdate)[33m.[39mtoHaveBeenCalledTimes([35m1[39m)[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:406:28)
+
+  ● POST /:id/close — retiring a rule is the only touch a row ever gets › closing a rule that was already closed is a 409, not a second stamp
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 404
+
+    [0m [90m 424 |[39m         [36mconst[39m res [33m=[39m [36mawait[39m asAdmin(app[33m,[39m [32m'post'[39m[33m,[39m [32m`${BASE}/rule-1/close`[39m)[33m.[39msend({ reason[33m:[39m [32m'again'[39m })[33m;[39m
+     [90m 425 |[39m
+    [31m[1m>[22m[39m[90m 426 |[39m         expect(res[33m.[39mstatus)[33m.[39mtoBe([35m409[39m)[33m;[39m
+     [90m     |[39m                            [31m[1m^[22m[39m
+     [90m 427 |[39m         expect(mockRuleUpdate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 428 |[39m     })[33m;[39m
+     [90m 429 |[39m[0m
+
+      at Object.toBe (__tests__/unit/admin-requirement-rules-routes.test.js:426:28)
+
+Test Suites: 1 failed, 1 total
+Tests:       22 failed, 18 passed, 40 total
+Snapshots:   0 total
+Time:        2.942 s, estimated 6 s
+Ran all test suites matching /__tests__\\unit\\admin-requirement-rules-routes.test.js/i.

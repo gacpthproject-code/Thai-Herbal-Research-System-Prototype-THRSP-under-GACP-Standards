@@ -1,0 +1,122 @@
+=== Task 4 Step 5 — npx jest auth-idp-routes auth-providers-config auth-idp-providers-endpoint idp-rate-limit ===
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/auth-idp-routes.test.js (7.753 s)
+  POST /api/auth/idp/:provider/authorize-url
+    √ provider ไม่ enabled (thaid = coming_soon) → 503 AUTH_PROVIDER_DISABLED fail-closed (150 ms)
+    √ provider นอก registry → 503 AUTH_PROVIDER_DISABLED (ไม่ leak ว่า key ไหนมีจริง) (13 ms)
+    √ SESSION_SECRET หาย → 503 AUTH_STATE_SECRET_MISSING (fail-closed — ห้ามออก state ไม่ลงลายเซ็น) (12 ms)
+    √ thaid enabled → 200 {authorizeUrl} + state ≥256bit + httpOnly cookie อายุ ≤10 นาที (31 ms)
+    √ state สุ่มใหม่ทุกครั้ง — สองรอบต้องไม่ซ้ำกัน (20 ms)
+    √ tombstone: 'mock' ไม่อยู่ใน registry แล้ว → 503 และแยกไม่ออกจาก key ที่ไม่เคยมี (operator 2026-08-14) (70 ms)
+  callback state anti-CSRF (mandate §D3; auditor แกน 3)
+    √ (ก) ไม่มี state ใน body → 400 AUTH_STATE_INVALID + audit FAILURE (31 ms)
+    √ (ข) state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID (22 ms)
+    √ (ค) state ถูกแต่ส่งซ้ำรอบสอง → รอบแรกผ่าน รอบสองถูกปฏิเสธ (single-use) (53 ms)
+    √ ไม่มี cookie เลย (ส่งแต่ body.state) → 400 AUTH_STATE_INVALID (23 ms)
+    √ cookie ถูกดัดแปลง (ลายเซ็นไม่ตรง) → 400 AUTH_STATE_INVALID (35 ms)
+    √ state หมดอายุ (เกิน 10 นาที) → 400 AUTH_STATE_INVALID (21 ms)
+  POST /api/auth/idp/thaid/callback — เส้น session จริง (แปลงพาหนะจาก mock — coverage เดิมครบ)
+    √ ไม่มี code (state ผ่าน) → 400 VALIDATION_ERROR + audit reason CODE_MISSING จากการ์ดของ route (19 ms)
+    √ code ไม่ใช่สตริง (number) → 400 VALIDATION_ERROR ก่อนถึง adapter (ไม่ยิง IdP) (20 ms)
+    √ happy → 200: mint ผ่าน issueTokensForAuthenticatedUser + provider_token httpOnly cookie (30 ms)
+    √ happy → response body ต้องไม่มี access/refresh token (session = cookie เท่านั้น, E-4) (21 ms)
+    √ ทะเบียนปฏิเสธ fail-closed (auto-provision ปิด) → catalog status + ไม่มี create/upsert/mint + audit FAILURE (22 ms)
+    √ บัญชีที่ผูกเลข 13 หลักเป็นเจ้าหน้าที่ → 403 ไม่ auto-link ไม่ create/upsert/mint + audit FAILURE (20 ms)
+    √ บัญชี status ไม่ ACTIVE → 403 ACCOUNT_INACTIVE ไม่ mint session (21 ms)
+    √ ผู้ใช้กดปฏิเสธที่ IdP → 403 AUTH_IDP_ACCESS_DENIED + audit FAILURE (21 ms)
+    √ code ถูก IdP ปฏิเสธ → 401 AUTH_IDP_CODE_INVALID (ใช้ไม่ได้ = ปฏิเสธก่อน mint) (20 ms)
+    √ id_token ไม่มี subject → 502 AUTH_IDP_PROFILE_INCOMPLETE + audit FAILURE (23 ms)
+  POST /api/auth/idp/providerid/callback — provider จริง (ธง D-MANUAL-HASHCID)
+    √ profile สำเร็จ → 409 AUTH_LINKING_PENDING ข้อความไทยทางการ — ไม่แตะ user ใด ๆ (57 ms)
+    √ IdP ล่ม (network error) → 502 AUTH_IDP_UNAVAILABLE + audit FAILURE (19 ms)
+  POST /api/auth/idp/thaid/callback — state anti-CSRF ยังบังคับกับ provider ThaID
+    √ state ผิด (ไม่ตรง cookie) → 400 AUTH_STATE_INVALID — ไม่แลก token, ไม่ mint session (19 ms)
+    √ ไม่มี state ใน body → 400 AUTH_STATE_INVALID (single-use/anti-CSRF ครอบ thaid ด้วย) (22 ms)
+  audit log ทุก outcome — subjectHash ไม่ใช่ค่าดิบ (mandate §D4; Law 3.3)
+    √ thaid happy → IDP_LOGIN_SUCCESS พร้อม subjectHash = sha256(subject) ไม่มีค่าดิบใน metadata (22 ms)
+    √ ทุกเส้นปฏิเสธ/ล้มเหลวของ callback มี IDP_LOGIN_FAILURE อย่างน้อยหนึ่งรายการ (53 ms)
+  wiring pins — CSRF bypass + mount + rate limiter (plan.md P2:21)
+    √ CSRF bypass ครอบ 2 path ใหม่ (ทั้ง /api และ /api/v1) และไม่ครอบ path อื่นใต้ /auth/idp (23 ms)
+    √ routes/api/index.js mount /auth/idp (12 ms)
+    √ server.js ครอบ /auth/idp ด้วย idp-rate-limit factory ที่รับ authLimiter จริง (23 ms)
+
+PASS __tests__/unit/auth-idp-providers-endpoint.test.js
+  GET /api/auth/idp/providers
+    √ answers 200 with every provider key and its effective state (173 ms)
+    √ pins a POSITIVE state — local resolves enabled, so a handler that answers coming_soon for everything cannot pass (94 ms)
+    √ DISCRIMINATES: staging_only on real production reports enabled:false while the state string alone would read as usable (90 ms)
+    √ resolves enabled for the frontend — staging_only is not a state a browser can interpret (86 ms)
+    √ reflects the fail-closed resolver, not the raw defaults — thaid without env is coming_soon (101 ms)
+    √ never leaks anything beyond key, state and the resolved enabled flag (90 ms)
+    √ is never cached — a delivered credential must flip the badge without a deploy (97 ms)
+    √ requires no authentication — the login page has no session yet (90 ms)
+
+PASS __tests__/unit/idp-rate-limit.test.js
+  createIdpRateLimit
+    √ GET /providers bypasses the strict limiter — the one and only exemption (107 ms)
+    √ POST to the same path is NOT the read and stays on the strict limiter (10 ms)
+    √ the OAuth surfaces stay on the strict limiter (31 ms)
+    √ path variants do not slip through the exemption (18 ms)
+    √ refuses to be built without the strict limiter — no silent unlimited mount (9 ms)
+
+PASS __tests__/unit/auth-providers-config.test.js
+  AUTH_PROVIDERS registry (mandate §D2)
+    √ registry มีครบ 4 provider ตาม vocab: local | healthid | providerid | thaid (3 ms)
+    √ default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED) (2 ms)
+    √ isProviderEnabled defaults ตรงกับ states (2 ms)
+    √ unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN (1 ms)
+  fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment)
+    √ AUTH_PROVIDERID_STATE=enabled แต่ไม่มี config ใดเลย → ไม่ enabled + AUTH_PROVIDER_NOT_CONFIGURED (1 ms)
+    √ ขาดตัวเดียว (SECRET_KEY) ก็ fail-closed เหมือนกัน (2 ms)
+    √ ขาด PID_CLIENT_ID (client ของระบบ Provider ID — audit F1) ก็ fail-closed เหมือนกัน (2 ms)
+    √ config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field (2 ms)
+    √ ค่า state นอก vocab (เช่น "yolo") → fail-closed ไม่ enabled (2 ms)
+    √ staging_only: enabled เฉพาะ non-production (2 ms)
+    √ provider จริงที่ยัง coming_soon (healthid/providerid) → assertProviderReady โยน AUTH_PROVIDER_DISABLED (1 ms)
+    √ thaid: default enabled แต่ยังไม่มี cred → fail-closed เป็น NOT_CONFIGURED (ไม่ใช่ DISABLED) (2 ms)
+  local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended)
+    √ local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6) (2 ms)
+    √ AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5) (1 ms)
+  staging slot (GACP_DEPLOY_SLOT)
+    √ staging_only resolves ENABLED on the staging slot under NODE_ENV=production — the || isStagingSlot() branch had zero coverage (deep review) (2 ms)
+    √ assertProviderReady("thaid") ผ่านบน staging slot — flow ต้องเดิน authorize-url ได้จริง (3 ms)
+    √ assertProviderReady("thaid") ยังโยน DISABLED บน production จริง (ไม่มี marker) (2 ms)
+    √ an unexpected slot value changes nothing — only the exact string counts (2 ms)
+  getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin)
+    √ ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ (3 ms)
+
+Test Suites: 4 passed, 4 total
+Tests:       63 passed, 63 total
+Snapshots:   0 total
+Time:        10.882 s
+Ran all test suites matching /__tests__\\unit\\auth-idp-routes.test.js|__tests__\\unit\\auth-providers-config.test.js|__tests__\\unit\\auth-idp-providers-endpoint.test.js|__tests__\\unit\\idp-rate-limit.test.js/i.
+
+=== Task 4 Step 5b (post-audit) — the two sanity floors that lost their specimen ===
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/unit/identity-provider-naming-collision.test.js
+  [AUTH-01-A/A3] MOPH provider_id (เลขใบประกอบวิชาชีพ) ห้ามไหลเข้า users.providerId (CID)
+    √ sanity: scanner เห็นครบทุกไดเรกทอรีที่อ้างว่าสแกน และมองเห็นทั้งสองชื่อในทะเบียนโค้ด (9 ms)
+    √ ไม่มีไฟล์ไหนอ่าน provider_id จาก IdP แล้วเขียนลง providerId / providerIdHash / providerIdHmac (20 ms)
+    √ ไม่มี subject ของ identity_links ถูกเขียนลง users.providerId (subject ของ providerid = ค่า opaque ห้ามตีความ) (13 ms)
+
+PASS __tests__/unit/oauth-clientid-hardcode-guard.test.js
+  OAuth client_id must come from env, never hardcoded (Law 3.3 + 3.5)
+    √ no backend source assigns a UUID/long-hex/base64 client_id literal (283 ms)
+    √ the ThaID sandbox shared client_id prefix (019c324c) never appears in source (75 ms)
+  sanity floor — the scanner and classifier are not silently broken
+    √ planted specimen: walker + regexes + classifier catch a hardcoded client_id on disk (17 ms)
+    √ the key+literal scan still matches real backend source (and finds no credential there) (84 ms)
+    √ classifier flags credential-shaped ids and passes a readable seam value (1 ms)
+    √ end-to-end: a synthetic hardcoded client_id is detected (2 ms)
+  QA #806 — the closed evasions stay closed
+    √ a BACKTICK-quoted client_id is extracted and flagged, not just single quotes (1 ms)
+    √ a double-quoted client_id is extracted too (all three quote styles) (1 ms)
+    √ a long contiguous hex id is credential-shaped, a readable value is not (1 ms)
+    √ the scan walks the WHOLE backend tree, not a directory allow-list (25 ms)
+    √ the scan still excludes node_modules and test files (24 ms)
+
+Test Suites: 2 passed, 2 total
+Tests:       14 passed, 14 total
+Snapshots:   0 total
+Time:        4.016 s
+Ran all test suites matching /__tests__\\unit\\identity-provider-naming-collision.test.js|__tests__\\unit\\oauth-clientid-hardcode-guard.test.js/i.

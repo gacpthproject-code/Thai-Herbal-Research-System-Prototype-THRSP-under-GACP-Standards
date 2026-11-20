@@ -1,0 +1,27 @@
+# T2 audit fix — mutation evidence (2026-08-14, branch feat/remove-mock-idp)
+# หลักฐานว่า assertion ใหม่ "แดงได้จริง" เมื่อเกราะที่มันอ้างว่าคุ้มถูกลบ
+# (assertion ใหม่เขียวตั้งแต่เกิดบนโค้ดที่ไม่ถูกแตะ = pin ไม่ใช่ fix — Law 3.11)
+
+md5 apps/backend/routes/api/auth/auth-idp.js ก่อน/หลังทุก mutation:
+  1cd201aead7f95716aa9f47ac5295a1f  (ตรงกับที่ผู้ตรวจบันทึกไว้)
+
+## M1 — ลบการ์ด code ของ route (auth-idp.js:437)
+-        if (!code || typeof code !== 'string') {
++        if (false) { // MUTATION M1 — temporary, restored below
+รัน: npx jest __tests__/unit/auth-idp-routes.test.js
+ผล: Tests: 2 failed, 28 passed, 30 total   → red-mutation-M1.txt
+  - 'ไม่มี code ... audit reason CODE_MISSING' : findAuditCall('FAILURE','CODE_MISSING') = undefined
+  - 'code ไม่ใช่สตริง (number) ...'           : Expected 400 / Received 500 (หลุดไปถึง adapter จริง)
+(ก่อนแก้ mutation เดียวกันนี้ให้ 29 passed — เกราะไม่มีใครถือ)
+
+## M2 — ลบ subjectHash จาก FAILURE row ของเส้น resolveThaidLogin (auth-idp.js:300-303)
+-            outcome: 'FAILURE', provider, subjectHash,
++            outcome: 'FAILURE', provider, // MUTATION M2 — subjectHash dropped
+รัน: npx jest __tests__/unit/auth-idp-routes.test.js
+ผล: Tests: 1 failed, 29 passed, 30 total   → red-mutation-M2.txt
+  - 'ทะเบียนปฏิเสธ fail-closed ...' : failure[6].subjectHash = undefined
+    (Expected e1316e5c9434348359a1dcdfb88500db60a2228f88435f3c07210c78136a5d52 = sha256('thaid-subject-1'))
+
+## หลังคืนไฟล์ (git checkout -- apps/backend/routes/api/auth/auth-idp.js)
+md5 = 1cd201aead7f95716aa9f47ac5295a1f · git status: มีแต่ไฟล์เทส + evidence
+รัน: npx jest __tests__/unit/auth-idp-routes.test.js → Tests: 30 passed, 30 total  → test-output.txt

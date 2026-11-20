@@ -1,0 +1,96 @@
+model	column	decision	value or reason
+User	id	kept	primary key: a random UUID that applications, invoices, memberships and audit rows point at; derived from nothing about the person
+User	uuid	kept	random UUID, derived from nothing about the person
+User	createdAt	kept	when the account was opened; §7 item 1 counts the 5 years from it; a date identifies no one
+User	updatedAt	kept	maintained by Prisma on every write
+User	accountType	kept	category HEALTH / PROVIDER / INDIVIDUAL
+User	entityType	kept	category, deprecated column
+User	authType	tombstone	"EMAIL_LEGACY"
+User	email	cleared	NULL
+User	password	tombstone	"PDPA_ERASED"
+User	firstName	tombstone	"PDPA_ERASED"
+User	lastName	tombstone	"PDPA_ERASED"
+User	phoneNumber	cleared	NULL
+User	healthId	cleared	NULL
+User	healthIdHash	cleared	NULL
+User	healthIdHmac	cleared	NULL
+User	providerId	cleared	NULL
+User	providerIdHash	cleared	NULL
+User	providerIdHmac	cleared	NULL
+User	canonicalId	tombstone	the account's own id (unique, never a national ID or HMAC)
+User	canonicalIdLegacy	cleared	NULL
+User	ministryVerified	kept	yes/no flag
+User	ministryVerifiedAt	kept	a date
+User	idCard	cleared	NULL
+User	idCardHash	cleared	NULL
+User	idCardHmac	cleared	NULL
+User	laserCode	cleared	NULL
+User	companyName	cleared	NULL
+User	taxId	cleared	NULL
+User	taxIdHash	cleared	NULL
+User	taxIdHmac	cleared	NULL
+User	representativeName	cleared	NULL
+User	representativePosition	cleared	NULL
+User	communityName	cleared	NULL
+User	communityRegistrationNo	cleared	NULL
+User	communityRegistrationNoHash	cleared	NULL
+User	communityRegistrationNoHmac	cleared	NULL
+User	role	kept	category; which side of the platform the account was on
+User	status	kept	account state value
+User	accountTier	kept	category
+User	address	cleared	NULL
+User	province	cleared	NULL
+User	district	cleared	NULL
+User	subdistrict	cleared	NULL
+User	zipCode	cleared	NULL
+User	isEmailVerified	kept	yes/no flag
+User	emailVerificationToken	cleared	NULL
+User	emailVerificationExpiry	cleared	NULL
+User	passwordResetToken	cleared	NULL
+User	passwordResetExpiry	cleared	NULL
+User	lastLoginAt	kept	a date
+User	loginAttempts	kept	a counter
+User	isLocked	kept	yes/no flag
+User	lockedUntil	kept	a date
+User	sessionsRevokedAt	written	session epoch: every earlier token stops working
+User	createdBy	kept	the id of the account that created this one (an account id, not a personal value)
+User	updatedBy	kept	an account id, not a personal value
+User	createdByIp	cleared	NULL
+User	updatedByIp	cleared	NULL
+User	isDeleted	kept	state marker; the erasure door sets it, the sweep leaves it as found
+User	deletedAt	kept	a date
+User	deletedBy	kept	an account id
+User	deleteReason	cleared	NULL
+User	retainUntil	kept	retention control; the sweep must never write it (legal-hold rule, jobs/pdpa-retention-job.js)
+User	legalHold	kept	retention control; only a person clears a hold
+User	isAnonymized	marker	true
+User	anonymizedAt	marker	time of the run
+User	privacySettings	cleared	NULL
+User	notificationSettings	kept	per-notice-type on/off booleans (services/notification-preferences-service.js); no contact data
+User	twoFactorSecret	cleared	NULL
+User	twoFactorEnabled	cleared	false
+User	twoFactorBackupCodes	cleared	NULL
+User	twoFactorMethod	kept	method name TOTP
+User	organizationId	kept	tenancy key of the organization
+Entity	id	kept	primary key: random UUID that applications and farms point at
+Entity	uuid	kept	random UUID
+Entity	createdAt	kept	a date
+Entity	updatedAt	kept	maintained by Prisma
+Entity	type	kept	category INDIVIDUAL
+Entity	displayName	tombstone	"PDPA_ERASED"; kept while an invoice or receipt of the entity issued within TAX_DOCUMENT_RETENTION_YEARS (7) prints it (ม.87/3, §7 item 2), then cleared by a later sweep
+Entity	slug	cleared	NULL
+Entity	thaiCitizenId	cleared	NULL
+Entity	thaiCitizenIdHash	cleared	NULL
+Entity	thaiCitizenIdHmac	cleared	NULL
+Entity	juristicId	cleared	NULL
+Entity	juristicIdHash	cleared	NULL
+Entity	communityRegNo	cleared	NULL
+Entity	communityRegNoHash	cleared	NULL
+Entity	payload	cleared	NULL
+Entity	status	kept	state value
+Entity	isDeleted	kept	state marker
+Entity	deletedAt	kept	a date
+Entity	deletedBy	kept	an account id
+Entity	createdBy	kept	the account id of the person the entity was made for
+Entity	organizationId	kept	tenancy key of the organization
+IdentityLink	(every row of the account)	deleted	a ThaID subject is a keyed HMAC of the national ID, and a live link signs the person back in

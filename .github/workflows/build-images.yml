@@ -1,0 +1,193 @@
+# ⚠️  ใช้ไม่ได้ตั้งแต่ 2026-08-14 — บัญชี Actions ค้างชำระ ไฟล์นี้จึงรันไม่ขึ้นเลย
+#
+# ยืนยันแล้วสองที่: docs/operations/runbooks/deploy-staging-manual.md บันทึกไว้ว่า
+# "build-images.yml cannot run (Actions unpaid, 2026-08-14) so no new tag ever reaches
+# the registry" และ staging-walkthrough.yml:5-11 บอกว่าการล็อกกินไปถึง self-hosted ด้วย
+#
+# ทางที่ใช้ได้จริงคือ build บนเครื่องแล้วรันสคริปต์เดียวกันนี้ด้วยมือ:
+#   1) docs/operations/runbooks/build-images-on-the-box.md   (ส่ง --build-arg GIT_SHA/BUILT_AT
+#      ให้ครบ ไม่งั้น /api/health จะตอบ revision: null และบอกไม่ได้ว่าเครื่องรัน sha ไหน)
+#   2) sudo IMAGE_TAG=local-<sha12> /opt/gacp-platform/scripts/deploy/deploy-staging.sh
+#
+# อย่าลบไฟล์นี้ทิ้ง — มันคือรูปแบบที่ถูกต้องของลำดับ deploy และเป็นสิ่งที่จะกลับมาใช้
+# ทันทีที่ billing ถูกปลด · ที่เติมหัวนี้เพราะมีคนอ่านไฟล์นี้แล้วสั่งให้กด Run workflow
+# โดยไม่รู้ว่ามันรันไม่ได้ (2026-09-10)
+
+name: Build & Push Container Images
+
+# Builds the backend and frontend container images and pushes them to the
+# GitHub Container Registry (GHCR) so the production server can deploy by
+# pulling immutable, tagged images instead of rebuilding from source on
+# every deploy. This is the Level 4 step in the deploy-maturity ladder
+# (see docs/operations/deploy-runbook.md).
+#
+# Triggers:
+#   - push to main             → builds and tags `:main-<sha>` + `:main-latest`
+#   - push to deploy/production → builds and tags `:prod-<sha>` + `:prod-latest`
+#   - tag matching v*.*.*       → builds and tags `:<version>` (release pin)
+#
+# Image names:
+#   ghcr.io/<owner>/gacp-backend
+#   ghcr.io/<owner>/gacp-frontend
+#
+# Permissions: this workflow uses the built-in GITHUB_TOKEN. The repo's
+# Settings → Actions → General → Workflow permissions must have
+# "Read and write permissions" enabled for `packages: write` to work.
+
+on:
+  push:
+    branches: [main, deploy/production]
+    tags: ['v*.*.*']
+  workflow_dispatch:
+    inputs:
+      tag_suffix:
+        description: 'Optional extra tag (e.g. "hotfix-2026-04-26")'
+        required: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+
+jobs:
+  backend:
+    name: Build & push backend image
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/gacp-backend
+          # docker-metadata-action substitutes {{branch}} with the
+          # branch name (Docker-normalized: `/` → `-`). The previous
+          # config used `prefix={{branch}}-` which produced a double-
+          # prefixed tag like `deploy-production-deploy-production-latest`
+          # — which the production deploy script never matched.
+          # Drop the redundant prefix; the base tag from `event=branch`
+          # IS the branch name.
+          tags: |
+            type=ref,event=branch
+            type=ref,event=branch,suffix=-latest
+            type=ref,event=tag
+            type=sha,prefix=sha-
+            type=raw,value=${{ inputs.tag_suffix }},enable=${{ inputs.tag_suffix != '' }}
+
+      - name: Build & push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/backend/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          # The labels above already carry org.opencontainers.image.revision, but
+          # a process cannot read its own image's labels at runtime — so the same
+          # value goes in a second way, as an env var the app can answer with.
+          # scripts/probes/deploy-drift.sh reads it back over HTTP.
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILT_AT=${{ github.event.repository.updated_at }}
+          cache-from: type=gha,scope=backend
+          cache-to: type=gha,mode=max,scope=backend
+
+      - name: Summary
+        run: |
+          echo "## ✅ backend image pushed" >> $GITHUB_STEP_SUMMARY
+          echo "Digest: \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Tags:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+
+  frontend:
+    name: Build & push frontend image
+    runs-on: ubuntu-latest
+    outputs:
+      tags: ${{ steps.meta.outputs.tags }}
+      digest: ${{ steps.build.outputs.digest }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/gacp-frontend
+          # docker-metadata-action substitutes {{branch}} with the
+          # branch name (Docker-normalized: `/` → `-`). The previous
+          # config used `prefix={{branch}}-` which produced a double-
+          # prefixed tag like `deploy-production-deploy-production-latest`
+          # — which the production deploy script never matched.
+          # Drop the redundant prefix; the base tag from `event=branch`
+          # IS the branch name.
+          tags: |
+            type=ref,event=branch
+            type=ref,event=branch,suffix=-latest
+            type=ref,event=tag
+            type=sha,prefix=sha-
+            type=raw,value=${{ inputs.tag_suffix }},enable=${{ inputs.tag_suffix != '' }}
+
+      - name: Build & push
+        id: build
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: apps/web-app/Dockerfile
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=frontend
+          cache-to: type=gha,mode=max,scope=frontend
+          # The labels above already carry org.opencontainers.image.revision, but
+          # a process cannot read its own image's labels at runtime — so the same
+          # value goes in a second way, as an env var the server can answer with.
+          # scripts/probes/deploy-drift.sh reads it back from GET /api/version.
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILT_AT=${{ github.event.repository.updated_at }}
+          # No Firebase build args: the Firebase Authentication path was removed
+          # entirely so Google is not the identity provider for Thai citizens
+          # and DTAM officers. Login is served by this platform's own API
+          # against our own Postgres. Do not add a foreign IdP's config here —
+          # see docs/audit-reports/2026-07-25-data-sovereignty-audit.md.
+
+      - name: Summary
+        run: |
+          echo "## ✅ frontend image pushed" >> $GITHUB_STEP_SUMMARY
+          echo "Digest: \`${{ steps.build.outputs.digest }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "Tags:" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "${{ steps.meta.outputs.tags }}" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY

@@ -1,0 +1,875 @@
+PASS __tests__/unit/applications-prepare-server-owned-fields.test.js
+  SEC — /prepare rejects server-owned formData keys
+    ✓ does not persist a forged audit-pass record (73 ms)
+    ✓ does not let the applicant set their own CAR / revision SLA deadlines (12 ms)
+    ✓ does not let the applicant assign their own auditor or override admin settings (33 ms)
+    ✓ preserves what the server already recorded, rather than the applicant payload (14 ms)
+    ✓ in CAR_PENDING drops a planted second-visit request and inspector record, and keeps the farm answers (11 ms)
+    ✓ in REVISION_REQUESTED drops a planted deadline-reminder record (20 ms)
+    ✓ still persists the applicant own wizard answers (10 ms)
+    ✓ ignores and strips a body entityId: the update writes no entityId, formData carries none (14 ms)
+    ✓ ignores a body applicantType: the stored one survives (13 ms)
+    ✓ a draft whose holder the caller may read but not edit → 403 ENTITY_PERMISSION_DENIED, nothing written (11 ms)
+    ✓ a draft outside the caller's holders → 404, nothing written (10 ms)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'PAYMENT',
+      action: 'SETTLEMENT_STATUS_REFUSED',
+      severity: 'CRITICAL',
+      error: 'tx.$executeRaw is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-10-09T07:22:23.635Z'
+    }
+
+      540 |
+      541 |                 // Fallback to console
+    > 542 |                 console.error('[AUDIT_FALLBACK]', {
+          |                         ^
+      543 |                     category, action, severity,
+      544 |                     error: error.message,
+      545 |                     code: error.code || null,
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:542:25)
+      at alertSettlementStatusRefused (services/checkout/checkout-settlement-service.js:254:9)
+      at settleFromPaymentIntent (services/checkout/checkout-settlement-service.js:577:9)
+      at Object.<anonymous> (__tests__/unit/dtam-remittance-pipeline-removed.test.js:189:24)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+PASS __tests__/unit/dtam-remittance-pipeline-removed.test.js
+  โมดูลของ pipeline นำส่งเงินกรมฯ ไม่มีอยู่แล้ว
+    ✓ require(services/checkout/dtam-remittance-service) โยน MODULE_NOT_FOUND (6 ms)
+    ✓ require(routes/api/finance/dtam-remittance) โยน MODULE_NOT_FOUND (2 ms)
+    ✓ require(jobs/dtam-remittance-batch-job) โยน MODULE_NOT_FOUND (2 ms)
+    ✓ require(shared/dtam-remittance-status) โยน MODULE_NOT_FOUND (1 ms)
+  ประตู /api/finance/dtam-remittance ไม่ถูก mount
+    ✓ get /api/finance/dtam-remittance → 404 (1211 ms)
+    ✓ post /api/finance/dtam-remittance/batches → 404 (660 ms)
+    ✓ post /api/finance/dtam-remittance/batches/b-1/remit → 404 (556 ms)
+    ✓ post /api/finance/dtam-remittance/batches/b-1/reconcile → 404 (821 ms)
+    ✓ delete /api/finance/dtam-remittance/batches/b-1 → 404 (806 ms)
+  scheduler ไม่ลงทะเบียนงานนำส่งเงินกรมฯ
+    ✓ ไม่มี cron 0 2 1 * * และไม่มี callback ไหนเรียก dtam-remittance-batch-job (5 ms)
+  settlement ไม่เขียน dtamRemittanceStatus อีก
+    ✓ payload ของ checkoutOrder.update ตอน settle มีแค่ status + settledAt (55 ms)
+
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T07:22:24.102Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T07:22:24.105Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T07:22:24.114Z"}
+warn: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-10-09T07:22:24.684Z"}
+info: [renewal-reminder-cron] start {"ranAt":"2026-10-09T07:22:24.832Z","service":"gacp-backend","timestamp":"2026-10-09T07:22:24.838Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.846Z"}
+info: [renewal-reminder-cron] tier complete {"failed":0,"found":0,"sent":0,"service":"gacp-backend","skipped":0,"tier":60,"timestamp":"2026-10-09T07:22:24.851Z","type":"D60"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.854Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.861Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.865Z"}
+info: [renewal-service] Renewal reminder marked {"applicationId":"bc11ecb3-3ad3-4fdc-acff-bdc7ccb779a4","certificateId":"2cfb213b-af39-405e-a3dd-731545c96d09","dispatchId":null,"reminderType":"D30","service":"gacp-backend","timestamp":"2026-10-09T07:22:24.873Z"}
+warn: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-10-09T07:22:24.889Z"}
+warn: [fanout] no template for type=CERTIFICATE_EXPIRING_SOON — IN_APP only via notification-service {"service":"gacp-backend","timestamp":"2026-10-09T07:22:24.892Z"}
+warn: [fanout] no template for type=CERTIFICATE_EXPIRING_SOON — IN_APP only via notification-service {"service":"gacp-backend","timestamp":"2026-10-09T07:22:24.901Z"}
+warn: [fanout] no template for type=CERTIFICATE_EXPIRING_SOON — IN_APP only via notification-service {"service":"gacp-backend","timestamp":"2026-10-09T07:22:24.913Z"}
+info: [renewal-reminder-cron] tier complete {"failed":0,"found":1,"sent":1,"service":"gacp-backend","skipped":0,"tier":30,"timestamp":"2026-10-09T07:22:24.925Z","type":"D30"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.927Z"}
+info: [renewal-reminder-cron] tier complete {"failed":0,"found":0,"sent":0,"service":"gacp-backend","skipped":0,"tier":15,"timestamp":"2026-10-09T07:22:24.930Z","type":"D15"}
+info: [renewal-reminder-cron] finished {"ranAt":"2026-10-09T07:22:24.832Z","service":"gacp-backend","timestamp":"2026-10-09T07:22:24.931Z","totals":{"failed":0,"found":1,"sent":1,"skipped":0}}
+info: [renewal-reminder-cron] start {"ranAt":"2026-10-09T07:22:24.832Z","service":"gacp-backend","timestamp":"2026-10-09T07:22:24.932Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.934Z"}
+info: [renewal-reminder-cron] tier complete {"failed":0,"found":0,"sent":0,"service":"gacp-backend","skipped":0,"tier":60,"timestamp":"2026-10-09T07:22:24.936Z","type":"D60"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.938Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.946Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findFirst","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.949Z"}
+info: [renewal-reminder-cron] tier complete {"failed":0,"found":1,"sent":0,"service":"gacp-backend","skipped":1,"tier":30,"timestamp":"2026-10-09T07:22:24.954Z","type":"D30"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findMany","model":"Certificate","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.956Z"}
+info: [renewal-reminder-cron] tier complete {"failed":0,"found":0,"sent":0,"service":"gacp-backend","skipped":0,"tier":15,"timestamp":"2026-10-09T07:22:24.958Z","type":"D15"}
+info: [renewal-reminder-cron] finished {"ranAt":"2026-10-09T07:22:24.832Z","service":"gacp-backend","timestamp":"2026-10-09T07:22:24.959Z","totals":{"failed":0,"found":1,"sent":0,"skipped":1}}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:24.974Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:25.026Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"Application","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:25.081Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T07:22:25.301Z"}
+PASS __tests__/integration/applicant-notices-reach-the-holder-real-postgres.test.js
+  แจ้งเตือนฝั่งผู้ยื่นถึงผู้ยื่นและผู้ถือ (real Postgres)
+    ขาสถานะของประตู workflow-transitions
+      ✓ REVISION_REQUESTED → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่น ได้คนละหนึ่งแถว (136 ms)
+      ✓ PENDING_AUDIT_FEE → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่น ได้คนละหนึ่งแถว (65 ms)
+      ✓ CERTIFIED → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่น ได้คนละหนึ่งแถว (43 ms)
+      ✓ REJECTED → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่น ได้คนละหนึ่งแถว (56 ms)
+      ✓ ผลตรวจแปลงผ่าน (ตัวเขียนสถานะ AUDIT_PASSED) → ผู้ยื่นและผู้ถือ (154 ms)
+      ✓ ออกใบรับรอง (ผู้อนุมัติตัดสิน → CERTIFIED) → ผู้ยื่นและผู้ถือได้เลขใบรับรอง (74 ms)
+    ใบรับรองใกล้หมดอายุ (D14)
+      ✓ cron เตือนต่ออายุรันซ้ำในวันเดียว → ผู้ยื่นและผู้ถือได้คนละหนึ่งแถวต่อรอบ 30 วัน (138 ms)
+      ✓ งานเที่ยงคืนที่ส่ง CERTIFICATE_EXPIRING ทุกวันไม่มีแล้ว (2 ms)
+    ตัวช่วยแจ้งเตือนฝั่งผู้ยื่น (ส่งแก้ เอกสารผ่าน ใกล้ครบกำหนด นัดตรวจ)
+      ✓ notifyRevisionRequired → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น (52 ms)
+      ✓ notifyDocumentApproved → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น (55 ms)
+      ✓ notifyRevisionDeadlineApproaching → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น (44 ms)
+      ✓ notifyAuditScheduled → ผู้ยื่นและสมาชิกผู้ถือที่มีสิทธิ์ยื่นเท่านั้น (55 ms)
+    ข้อความยกเลิก (เลยกำหนด) (D12)
+      ✓ ค้างจ่ายจนถูกปิด: ไม่ชวนขออนุโลม (เปิดต่อไม่ได้) (1 ms)
+      ✓ เลยกำหนดแก้ไข: บอกทางขอเปิดต่อเป็นรายกรณี (1 ms)
+
+PASS __tests__/unit/m2a-doc-requirements-doors.test.js
+  M2a — POST /submit, DRAFT branch = first submit
+    ✓ JURISTIC with no company registration on file → 422, and NOTHING is written (31 ms)
+    ✓ a client flag cannot buy the way in — documents[].uploaded stays worthless at the door (AC2) (20 ms)
+    ✓ with the document on file → 200, and BOTH hops carry the stamp beside the applicants own answers (27 ms)
+    ✓ SUBMITTED echoes the REAL status — no transition, no writer call, an honest nextRequiredAction (F-SUBMIT-ECHO-LIES fix, Ruling 6) (13 ms)
+    ✓ PENDING_DOC_FEE stays a true no-op echo — nothing written, nothing audited, never re-judged (16 ms)
+  M2a — POST /submit, REVISION_REQUESTED / CAR_PENDING branch = resubmit
+    ✓ judges by the stamp, not by todays law — a rule filed later cannot 422 it (AC3) (11 ms)
+    ✓ the stamped set is still enforced on resubmit → 422 before any write (11 ms)
+    ✓ an application filed before M2a carries no stamp — it is let through, not refused (14 ms)
+  M2a — POST /applications/:id/car (resubmit)
+    ✓ a stamped slot the server cannot see → 422, no status write (18 ms)
+    ✓ stamped and satisfied → the CAR resubmit proceeds, judged by the stamp alone (15 ms)
+  M2a — PUT /applications/:id/revision
+    ✓ a stamped slot the server cannot see → 422, submitRevision never runs (21 ms)
+    ✓ satisfied → the revision goes through, judged by the stamp (13 ms)
+    ✓ a DRAFT here is a FIRST submit — todays law is read and the missing document is refused (14 ms)
+    ✓ a satisfied DRAFT is stamped BY THE DOOR — the snapshot travels as server data, not as client formData (16 ms)
+    ✓ a REVISION_REQUESTED row is still judged by its stamp, and carries no fresh stamp (11 ms)
+  M2a — a filing no filed law can judge is refused BY NAME at every first-submit door
+    ✓ POST /submit (DRAFT) (12 ms)
+    ✓ PUT /applications/:id/revision (a DRAFT here is a FIRST submit) (12 ms)
+  M2a — the applicant cannot write the stamp through /prepare
+    ✓ both M2 snapshot keys are declared server-owned (1 ms)
+    ✓ a full-replacement merge keeps the stored stamp, whatever the client sends (1 ms)
+    ✓ POST /prepare strips a forged stamp at the edge — the stored one survives (10 ms)
+
+warn: [correction-deadline-sweep] reminder for APP-cds-11-840f2bff (24h) reached nobody; released for the next run {"service":"gacp-backend","timestamp":"2026-10-09T07:22:26.917Z"}
+warn: [correction-deadline-sweep] APP-cds-13-840f2bff: formData is not an object or no organization, skipped {"service":"gacp-backend","timestamp":"2026-10-09T07:22:26.992Z"}
+warn: [correction-deadline-sweep] APP-cds-13-840f2bff: formData is not an object or no organization, skipped {"service":"gacp-backend","timestamp":"2026-10-09T07:22:27.084Z"}
+warn: [correction-deadline-sweep] APP-cds-14-840f2bff not expired: CONCURRENCY_CONFLICT writeApplicationStatus: concurrent modification of application 8abb8524-38d3-40d2-98a1-c206f002a68f (expected version 1; row was advanced by another writer) {"service":"gacp-backend","timestamp":"2026-10-09T07:22:27.168Z"}
+PASS __tests__/integration/correction-deadline-sweep-real-postgres.test.js
+  correction-deadline sweep (real Postgres)
+    ✓ a second revision round gets its own 48 and 24 hour reminders, though the first round's record is still on the filing (77 ms)
+    ✓ run by hand, a round whose deadline is new is reminded even with the earlier round's reminder recorded (44 ms)
+    ✓ a reminder that reached nobody leaves no record, and the next run sends it (59 ms)
+    ✓ a filing that is not an object is skipped; the run goes on and the others are reminded (I3) (59 ms)
+    ✓ an expiry read before the applicant's resubmission committed does not cancel the resubmission (174 ms)
+
+PASS __tests__/integration/deadline-reminder-stamp-real-postgres.test.js
+  the deadline reminder stamps only its own field (real Postgres)
+    ✓ control: nothing else happened, the reminder is stamped and the filing is as it was (45 ms)
+    ✓ the applicant resubmits while the reminder goes out: the resubmission stays, and the record names only the deadline it was about (54 ms)
+    ✓ an officer saves the filing while the reminder goes out: both the save and the stamp stay (37 ms)
+    ✓ an officer's save read before the reminder was recorded and written while it goes out: the record is written again (34 ms)
+
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T07:22:28.531Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T07:22:28.534Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T07:22:28.535Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.733Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.744Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.748Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.756Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.760Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.765Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.770Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.775Z"}
+warn: [fanout] Redis unavailable — degrading to per-process dedupe Map {"service":"gacp-backend","timestamp":"2026-10-09T07:22:28.778Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.780Z"}
+warn: [fanout] no template for type=APPLICATION_EXPIRED — IN_APP only via notification-service {"service":"gacp-backend","timestamp":"2026-10-09T07:22:28.784Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.785Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.791Z"}
+warn: [fanout] no template for type=DEADLINE_REMINDER — IN_APP only via notification-service {"service":"gacp-backend","timestamp":"2026-10-09T07:22:28.793Z"}
+warn: [rls-shadow] missing tenant context on a tenant-scoped op {"action":"findUnique","model":"User","service":"gacp-backend","signal":"MISSING_CONTEXT","timestamp":"2026-10-09T07:22:28.795Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T07:22:28.872Z"}
+PASS __tests__/integration/always-on-notices-cannot-be-muted-real-postgres.test.js
+  always-on notices cannot be muted (real Postgres)
+    ✓ saving a mute keeps only the mutable type, and the answer names the always-on types (53 ms)
+    ✓ a mute stored before the ruling is ignored at send time, on both paths; another type stays muted (68 ms)
+
+PASS __tests__/unit/a0-pr2-hop-emission-contract.test.js
+  PR-A0-2 — per-hop emission contract (client + tri-state) [PIN]
+    ✓ #8/#9 routes/api/applications/applications.js[0] — initial submit hop 1 (DRAFT→SUBMITTED) — shares one tx with hop 2 (10 ms)
+    ✓ #9 routes/api/applications/applications.js[1] — initial submit hop 2 (SUBMITTED→PENDING_DOC_FEE) — same tx as hop 1 (2 ms)
+    ✓ #7 routes/api/admin/applications.js[0] — admin override — caller emits the canonical + ADMIN rows fail-closed (2 ms)
+    ✓ #10 routes/api/applications/applications.js[2] — correction resubmit — tx shared with the append-only snapshot (R2 M7) (2 ms)
+    ✓ #13 routes/api/applications/applications-car.js[0] — CAR deadline expiry — tx shared with the RevisionDeadline fail (2 ms)
+    ✓ #14 routes/api/applications/applications-car.js[1] — CAR evidence resubmit — tx shared with the append-only snapshot (2 ms)
+    ✓ #15 jobs/correction-deadline-sweep.js[0] — auto-expire sweep — tx shared with the RevisionDeadline fail (1 ms)
+    ✓ #24 services/audit-scheduling-service.js[0] — scheduler assign — Serializable tx shared with the slot re-assert (2 ms)
+    ✓ #18 routes/api/provider/handlers/workflow-transitions-handler.js[0] — forced expire — its sibling write cannot join a caller tx (see below) (2 ms)
+    ✓ #19 routes/api/provider/handlers/scheduler-audit-schedules-post-handler.js[0] — schedule →AUDIT_CONFIRMED — Serializable slot tx shared with the evidence arming (fix round 1) (1 ms)
+    ✓ #20 routes/api/provider/handlers/workflow-side-effects.js[0] — DOC_APPROVED auto-chain — sibling writes cannot join a caller tx (2 ms)
+    ✓ #21 routes/api/provider/handlers/workflow-revision-expirations-handler.js[0] — forced expire route — sibling writes cannot join a caller tx (2 ms)
+    ✓ #22 routes/api/provider/handlers/workflow-side-effects.js[1] — DOC_APPROVED auto-chain, shared by both approval doors — same sibling-write constraint as #20 (1 ms)
+    ✓ #4 routes/api/provider/handlers/workflow-transitions-handler.js[1] — cert-voiding reversal — caller-owned emitter in its own tx (1 ms)
+    ✓ #5 routes/api/provider/handlers/workflow-transitions-handler.js[2] — revision/CAR decision — caller-owned emitter in its own tx (2 ms)
+    ✓ #RD1 services/application-service/application-review-revision-methods.js[0] — revision-door DRAFT resubmit hop 1 (DRAFT→SUBMITTED) — shares one tx with hop 2 (2 ms)
+    ✓ #RD2 services/application-service/application-review-revision-methods.js[1] — revision-door DRAFT resubmit hop 2 (SUBMITTED→PENDING_DOC_FEE, actorRole system) — same tx as hop 1 (2 ms)
+    ✓ #RD3 services/application-service/application-review-revision-methods.js[2] — revision-door REVISION_REQUESTED resubmit (REVISION_REQUESTED→ASSIGNED_FOR_REVIEW) — its own tx (1 ms)
+    ✓ the inventory covers every writeApplicationStatus call in the PR-A0-2 files (1 ms)
+  PR-A0-2 — hops left on the bare client keep their sibling-write shape [PIN]
+    ✓ #18 / #21 fail the RevisionDeadline rows through the service singleton (3 ms)
+    ✓ #20 closes its deadline rows through the same singleton service (1 ms)
+    ✓ #19 has no DB sibling write — only best-effort notifications and its own audit row (1 ms)
+
+info: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T07:22:29.893Z"}
+info:    URL: {"service":"prisma-database","timestamp":"2026-10-09T07:22:29.896Z"}
+info:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T07:22:29.897Z"}
+warn: [application-parties] no recipient for application app-1 (INFO) {"service":"gacp-backend","timestamp":"2026-10-09T07:22:29.997Z"}
+info: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T07:22:30.311Z"}
+PASS __tests__/unit/reviewer-inspector-separation.test.js
+  the helper
+    ✓ same person on both sides is refused, each way, with its own code (33 ms)
+    ✓ different people, or an empty side, pass (2 ms)
+    ✓ errors carry a Thai message, and the three codes are in the catalogue with Thai text (3 ms)
+  reviewer assignment refuses the application's own inspector
+    ✓ assign-reviewer: the person already assigned as this application's inspector is refused, nothing written (59 ms)
+    ✓ assign-reviewer: a field inspector who is NOT this application's inspector is still a valid reviewer (185 ms)
+    ✓ reviewer reassign: same refusal (37 ms)
+  inspector assignment (queue door, assignAuditor) refuses the application's own reviewer
+    ✓ 409 INSPECTOR_IS_APPLICATION_REVIEWER, no transaction opened (53 ms)
+  decision time
+    ✓ document-decision: the reviewer who is also the application's inspector may not decide (403, nothing moves) (130 ms)
+    ✓ audit-decision (PASS/MINOR/MAJOR/REJECT): the inspector who is also the application's document reviewer may not decide (43 ms)
+    ✓ onsite decision (submitDecision): same refusal on the field-app door (39 ms)
+
+PASS __tests__/unit/payment-reminder-job.test.js
+  sweep scope — every unpaid milestone, none without a clock start
+    ✓ a milestone whose clock start is not on record is skipped and logged, never guessed (15 ms)
+  three reminder types — send day is the SHIFTED day, ICT date-equality
+    ✓ run on 2026-08-06 dispatches PRE_DUE for the milestone due Tue 2026-08-11 (10 ms)
+    ✓ run on 2026-08-11 dispatches DUE_DATE for the milestone due Tue 2026-08-11 (9 ms)
+    ✓ run on 2026-08-13 dispatches OVERDUE_NOTICE for the milestone due Tue 2026-08-11 (8 ms)
+    ✓ a day that is no reminder day sends nothing (Fri 2026-08-07) (9 ms)
+    ✓ catch-up: no sweep ran on any reminder day → the earliest goes out now, worded as overdue (6 ms)
+    ✓ a type already on the ledger under another intended day is not sent again (5 ms)
+  durable dedup — insert-first, unique constraint is the last line
+    ✓ same-day re-run: P2002 on the insert → skip silently, no second send (8 ms)
+  a reminder that reached nobody is resent on its own row
+    ✓ an unsent PRE_DUE row exists → no insert, the locked row is dispatched and stamped (5 ms)
+    ✓ another sweep holds the unsent row (SKIP LOCKED returns nothing) → deduped, no send (5 ms)
+  collision — DUE_DATE and OVERDUE_NOTICE on the same working day
+    ✓ due Sat 2026-08-08: both fall on Mon 08-10 → one per sweep, DUE_DATE first, both worded as overdue (16 ms)
+  working-day shift — real calendar, no send on the holiday
+    ✓ intended OVERDUE_NOTICE lands on วันแม่ (Wed 2026-08-12): holiday run sends nothing, next working day does (9 ms)
+  fault isolation — one broken milestone never sinks the sweep
+    ✓ non-P2002 insert failure on application 1 is logged; application 2 still gets its reminder (10 ms)
+    ✓ a reminder that reached nobody leaves sentAt unstamped and is not counted as sent (14 ms)
+  source pins — derived-only stays derived-only
+    ✓ no stored-overdue literal, no invoice mutation call in the job source (2 ms)
+    ✓ no calendar or reminder-window data of its own — schedule service + config own those (2 ms)
+    ✓ real notification-service defines PAYMENT_REMINDER + template (static) (2 ms)
+  scheduler registration — daily 09:00 Asia/Bangkok, additive block
+    ✓ registers the payment-reminder block: 11 blocks total, last 0 9 * * * Asia/Bangkok drives the sweep (5 ms)
+    ✓ sweep failure is swallowed and logged — the cron never throws (3 ms)
+
+PASS __tests__/unit/terminal-decision-letter.test.js
+  buildTerminalDecisionLetter — four mandatory elements
+    ✓ emits ผลการพิจารณา + stage + เหตุผล + สิทธิ์ยื่นใหม่ + สิทธิ์โต้แย้ง (6 ms)
+    ✓ reason is a MANDATORY field — missing / empty / whitespace all THROW (41 ms)
+    ✓ an unknown or missing stage THROWS (element 1 impossible) (4 ms)
+    ✓ NO deadline: no dueAt in metadata, no กำหนดส่ง wording, and a dueAt argument is ignored (3 ms)
+    ✓ appeal placeholder is verbatim and invents NO appeal window or channel (3 ms)
+    ✓ the <ช่องทางติดต่อกรม> value comes from the existing contact SSOT, not a fresh literal (3 ms)
+  mintTerminalDecisionLetter — D-8 atomic, no round
+    ✓ writes ONE letter through the caller tx and NEVER a CorrectionRound row (5 ms)
+    ✓ an empty reason REJECTS before any row is written (D-8: no letter, no transition) (4 ms)
+    ✓ an unresolvable recipient REJECTS (no letter, no transition) (3 ms)
+  auditor audit-decision REJECT — terminal letter atomic with the decision
+    ✓ REJECT mints the TERMINAL_DECISION letter through the SAME tx as the status write (77 ms)
+    ✓ ไม่มี round — a terminal REJECT writes NO CorrectionRound row (32 ms)
+    ✓ ATOMIC: a failing letter write fails the whole decision (500, tx rejected) (38 ms)
+    ✓ PASS mints NO terminal letter (negative control) (27 ms)
+  canonical workflow-transitions → REJECTED — terminal letter atomic (D-8)
+    ✓ AUDIT_CONFIRMED → REJECTED mints the letter in the same tx as the status write (43 ms)
+    ✓ a force reject off a cert-live state (CERTIFIED → REJECTED) still mints its letter (38 ms)
+    ✓ เหตุผลว่าง → REJECT ล้มทั้ง tx: no letter, status write rolled back, no post-commit effect (42 ms)
+    ✓ ATOMIC: letter write failure fails the transition — no post-commit effect runs (17 ms)
+    ✓ a non-terminal transition (AUDIT_PASSED) mints NO terminal letter (negative control) (12 ms)
+  admin status-override — no terminal letter (order 35)
+    ✓ the override mints no letter: REJECTED is not an admin's to write (order 35; the writer refuses it, staff-access-2-real-postgres) (21 ms)
+    ✓ a non-terminal override (CAR_REVIEWING) mints NO letter (negative control) (23 ms)
+  terminal letter template SSOT
+    ✓ the terminal Thai copy is defined ONLY in shared/terminal-letter-template.js (251 ms)
+    ✓ every REJECTED-writing surface mints through decision-letter-service and spells no letter copy (7 ms)
+    ✓ the terminal template never reaches for the correction template deadline copy (7 ms)
+    ✓ the terminal mint never writes a correction round (grep pin, both directions) (7 ms)
+
+  console.warn
+    [application-status-writer] audit emission failed (CERT_AUTO_GEN_ROLLBACK marker, non-fatal): [audit-logger] logWithin(event, tx) requires a Prisma transaction client (with auditLog.create). Pass the `tx` argument from prisma.$transaction(async (tx) => ...). If you want the non-transactional path, call log(event) instead.
+
+      453 |             return true;
+      454 |         } catch (sideEffectError) {
+    > 455 |             console.warn(
+          |                     ^
+      456 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      457 |                 + `${sideEffectError?.message || sideEffectError}`,
+      458 |             );
+
+      at warn (services/application-status-writer.js:455:21)
+
+  console.warn
+    [application-status-writer] audit emission failed (CERT_AUTO_GEN_ROLLBACK marker, non-fatal): [audit-logger] logWithin(event, tx) requires a Prisma transaction client (with auditLog.create). Pass the `tx` argument from prisma.$transaction(async (tx) => ...). If you want the non-transactional path, call log(event) instead.
+
+      453 |             return true;
+      454 |         } catch (sideEffectError) {
+    > 455 |             console.warn(
+          |                     ^
+      456 |                 `[application-status-writer] ${sp.label} emission failed (${context}, non-fatal): `
+      457 |                 + `${sideEffectError?.message || sideEffectError}`,
+      458 |             );
+
+      at warn (services/application-status-writer.js:455:21)
+
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+PASS __tests__/unit/application-status-writer-cert-hook-evidence-gate.test.js
+  APPROVED auto-issue hook -> REAL generateCertificate -> REAL onsite-evidence-gate (choke point)
+    ✓ cert-gen refuses (NO_ONSITE_AUDIT) -> writer rolls the status back to fromStatus and re-throws -> caller tx aborts, nothing persists at APPROVED (133 ms)
+    ✓ cert-gen refuses (EVIDENCE_CAPTURE_UNAVAILABLE — audit row exists but photo/checklist models are not provisioned) -> same refuse-and-revert contract (94 ms)
+    ✓ control: sufficient evidence -> the real chain mints a certificate and does NOT roll back (199 ms)
+
+PASS __tests__/unit/atomic-decision-letter.test.js
+  canonical workflow-transitions — letter atomic with decision (D-8)
+    ✓ CAR_PENDING mints the letter too (CAR branch had NO letter before) (43 ms)
+    ✓ ATOMIC: letter write failure fails the whole transition — no post-commit effect runs (41 ms)
+    ✓ REVISION_REQUESTED is refused here (per-document check is the door) and mints NO letter (14 ms)
+    ✓ DOC_APPROVED is refused here (per-document check is the door) and mints NO letter (9 ms)
+  auditor audit-decision — CAR letter atomic with decision (D-8)
+    ✓ MAJOR → CAR_PENDING mints the Thai OFFICIAL_LETTER in the tx (was: English notice, no due date, no items) (17 ms)
+    ✓ ATOMIC: letter write failure fails the decision — deadline never seeded, 500 (10 ms)
+    ✓ PASS mints NO correction letter (negative control) (12 ms)
+  letter template SSOT
+    ✓ the Thai letter copy is defined ONLY in shared/correction-letter-template.js (74 ms)
+    ✓ buildCorrectionLetter emits all five elements + structured metadata (M3: round number) (3 ms)
+    ✓ buildCorrectionLetter falls back to the decision message when no structured items exist (1 ms)
+    ✓ buildCorrectionLetter REFUSES an incomplete letter (D-8: no letter, no transition) (5 ms)
+    ✓ letters land as kind=OFFICIAL_LETTER via the M1 helper only — no direct kind stamp outside notification-service (3 ms)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at Object.require (routes/api/provider/handlers/auditor-audit-decision-handler.js:31:25)
+      at Object.require (__tests__/unit/auditor-decision-admin-exclusion.test.js:79:35)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at Object.require (routes/api/provider/handlers/auditor-audit-decision-handler.js:31:25)
+      at Object.require (__tests__/unit/auditor-decision-admin-exclusion.test.js:79:35)
+
+PASS __tests__/unit/auditor-decision-admin-exclusion.test.js
+  AUDIT-001/#539 — primary auditor decision surface excludes ADMIN
+    ✓ admin is rejected with 403 (not in ROLE_GROUPS.AUDITORS) (39 ms)
+    ✓ document_reviewer is rejected with 403 (not in ROLE_GROUPS.AUDITORS) (27 ms)
+    ✓ scheduler is rejected with 403 (not in ROLE_GROUPS.AUDITORS) (12 ms)
+    ✓ account_dtam is rejected with 403 (not in ROLE_GROUPS.AUDITORS) (9 ms)
+    ✓ account_platform is rejected with 403 (not in ROLE_GROUPS.AUDITORS) (10 ms)
+    ✓ health is rejected with 403 (not in ROLE_GROUPS.AUDITORS) (8 ms)
+    ✓ the assigned AUDITOR passes the gate (not 403) (10 ms)
+    ✓ an AUDITOR who does NOT own the audit gets 403 (unconditional ownership) (10 ms)
+
+PASS __tests__/unit/waiver-reopen-dual-engine.test.js
+  MUST-7 — post-reopen, both REAL expiry engines leave the app alone
+    ✓ REAL cron /auto-cancel neither expires nor (yet) reminds the reopened app (21 ms)
+    ✓ REAL revision-deadline-checker does not expire the re-seeded deadline (5 ms)
+
+PASS __tests__/unit/purpose-one-check-every-door.test.js
+  round 3 - PUT /applications/:id/revision judges the formData that WILL be stored
+    ✓ draft first-submit leg: a MEDICAL purpose written by the revision body is refused (30 ms)
+    ✓ resubmit leg (REVISION_REQUESTED): MEDICAL / COMMERCIAL is refused as well (11 ms)
+    ✓ draft first-submit leg: stored [] + body [EXPORT] on cannabis without pt10 -> APPLICATION_INCOMPLETE naming licence_pt10 (17 ms)
+    ✓ draft first-submit leg: no purpose at all (stored [] and body silent) is refused (10 ms)
+    ✓ draft first-submit leg: a valid purpose with its licence on file goes through (13 ms)
+    ✓ resubmit leg: a purpose ADDED by the revision body brings its licence with it (12 ms)
+
+PASS __tests__/unit/waiver-reopen-service.test.js
+  waiver-reopen — createReopenRequest gates
+    ✓ assigned reviewer opens a request on a revision-expired app (origin snapshot server-derived) (10 ms)
+    ✓ CAR-expired app: only the ASSIGNED auditor may open (newStatus/previousStatus shape normalized) (4 ms)
+    ✓ non-EXPIRED app → 409 WAIVER_NOT_EXPIRED (2 ms)
+    ✓ unassigned reviewer → 403 WAIVER_NOT_ASSIGNED (7 ms)
+    ✓ wrong role for origin (auditor on revision-expiry) → 403 (3 ms)
+    ✓ ADMIN cannot open (เท่านั้น — inspector path only) (3 ms)
+    ✓ once-only: APPROVED LENIENCY request already exists → 409 WAIVER_ALREADY_USED (3 ms)
+    ✓ Q1 lane separation: a WRONGFUL_EXPIRY reinstate does NOT consume the leniency once-only (7 ms)
+    ✓ open PENDING already exists → 409 WAIVER_ALREADY_PENDING (2 ms)
+    ✓ reason too short → 400 (contact evidence is mandatory) (2 ms)
+    ✓ expired from a non-reopenable state → 409 WAIVER_ORIGIN_UNKNOWN (2 ms)
+  waiver-reopen — approveReopenRequest (SoD + atomic legs)
+    ✓ DTAM-side accountant approves: atomic tx wires every leg (14 ms)
+    ✓ reinstate clears the checker-lane _autoExpired marker + guard-lane expiredAt/expiredReason residue (hardening batch) (5 ms)
+    ✓ CAR-expired approval targets CAR_PENDING and asserts PHASE_2 settlement (5 ms)
+    ✓ fee not settled (HELD/FORFEITED/unpaid) → 409, nothing written (2 ms)
+    ✓ PLATFORM-side accountant approves too — approverSide records PLATFORM truthfully (6 ms)
+    ✓ ADMIN → 403 WAIVER_APPROVER_ROLE (mirror AUDIT-001) (2 ms)
+    ✓ AUDITOR → 403 WAIVER_APPROVER_ROLE (role allow-list — finance roles only) (1 ms)
+    ✓ requester cannot approve their own request → 403 WAIVER_SELF_APPROVAL (1 ms)
+    ✓ application no longer EXPIRED (race with break-glass) → 409 WAIVER_STATE_DRIFT (2 ms)
+    ✓ already-decided request → 409 WAIVER_ALREADY_DECIDED (1 ms)
+  waiver-reopen — denyReopenRequest
+    ✓ DTAM-side accountant denies with a mandatory note (masked) (5 ms)
+    ✓ deny without a note → 400 (1 ms)
+    ✓ PLATFORM-side can deny too (same gate) — approverSide PLATFORM (2 ms)
+  carpet-bomb S3 — org walls fail CLOSED (never open) on unresolved organizationId
+    ✓ listPendingReopenRequests without organizationId throws NO_ORGANIZATION (was: returned ALL orgs) (2 ms)
+    ✓ approve by an approver with NO organizationId → 404 (org wall no longer short-circuits) (1 ms)
+    ✓ deny by an approver with NO organizationId → 404 (mirror) (2 ms)
+  carpet-bomb S1 — settlement gate is REFUND-aware (a refunded fee is not reusable)
+    ✓ approve rejects WAIVER_FEE_NOT_SETTLED when the origin phase is refunded (2 ms)
+    ✓ a paid, unrefunded origin phase may be reused (5 ms)
+  hardening batch — live User-row ACTIVE checks (approver + requester)
+    ✓ T1 approve: JWT claims account_dtam but the live User row is missing/suspended → 403 WAIVER_APPROVER_NOT_ACTIVE, no reopen leg runs (2 ms)
+    ✓ T2 deny: suspended approver cannot kill a petition either → 403, request not flipped (2 ms)
+    ✓ T3 petition: requester whose live User row is missing/suspended → 403 WAIVER_REQUESTER_NOT_ACTIVE, no request created (5 ms)
+    ✓ T4 approve happy path: the live-row query is fail-closed on DB role + org + ACTIVE + not-deleted (6 ms)
+  Q1 — batchReinstateWrongfulExpiry (platform-fault lane, no petition, no friction)
+    ✓ reinstates a batch: WRONGFUL_EXPIRY rows created+APPROVED, SYSTEM transitions, batch audit trail (9 ms)
+    ✓ L6: approver of org-1 cannot reinstate an org-2 application — skipped, nothing written (2 ms)
+    ✓ L6: approver with no organizationId → skipped (fail closed) (2 ms)
+    ✓ batch lane clears _autoExpired/expiredAt/expiredReason residue too (shared executor) (5 ms)
+    ✓ skips (does not throw batch-wide) non-EXPIRED and unsettled apps, with reasons (2 ms)
+    ✓ requires an accountable approver + bugRef (audit-trail mandate) (2 ms)
+    ✓ MUST-1: createReopenRequest rejects caller-supplied WRONGFUL_EXPIRY (petition lane is LENIENCY-only) (1 ms)
+    ✓ S2: batch rejects an approver who is not an ACTIVE finance officer (truthful approverSide) (2 ms)
+    ✓ S2-wiring: รูปแบบ approver ดิบที่ ops CLI ส่งมา ({id, role, status, organizationId}) ถูกรับ (9 ms)
+    ✓ S1: a failed reopen leg cleans up its own PENDING row (no orphan wedging the app) (6 ms)
+    ✓ S3: same bugRef already remediated for an application → skipped WAIVER_BUGREF_ALREADY_REMEDIATED (idempotent re-run) (5 ms)
+    ✓ S7: a bound tenant context walls the application lookup (org mismatch → skipped NOT_FOUND) (2 ms)
+    ✓ dryRun: runs the SAME gates but writes NOTHING (ops preview) (2 ms)
+
+PASS __tests__/unit/onsite-photo-provenance.test.js
+  layer A — the photograph records where it was taken
+    ✓ a photo at the farm and a photo 5 km away both upload, and the row says which is which (41 ms)
+    ✓ an unknown farm location records UNKNOWN, never "0 metres away" (7 ms)
+    ✓ a reviewer sees FARM_LOCATION_UNKNOWN as its own finding, not as "far from the farm" (7 ms)
+    ✓ beyond the tolerance is flagged for a human and still stored (6 ms)
+  layer B — the photograph records when it was taken
+    ✓ a photo captured after the auditor checked in is INSIDE the visit window (15 ms)
+    ✓ a photo taken three weeks before the visit is recorded OUTSIDE, with a negative offset, and still uploads (9 ms)
+    ✓ with no check-in row the planned visit day is used, in Asia/Bangkok (25 ms)
+    ✓ with neither a check-in nor a planned date the window is UNKNOWN, not "today" (7 ms)
+    ✓ the stored capture time never claims to be the shutter (22 ms)
+  layer C — the photograph records what it looks like
+    ✓ a re-encoded copy is a different FILE and is recorded as the same PHOTOGRAPH (25 ms)
+    ✓ a genuinely different photograph is NOT reported as a near duplicate (14 ms)
+    ✓ a near duplicate is FLAGGED and never refused (19 ms)
+    ✓ hashes from different algorithms are never compared (19 ms)
+  what a NULL means to whoever reads it
+    ✓ a row written before any of this existed reads as NOT_RECORDED, never as verified (7 ms)
+    ✓ a fully measured, unremarkable photograph raises nothing (6 ms)
+    ✓ an unprovisioned photo model refuses to answer instead of reporting an empty, clean audit (2 ms)
+  provenance never costs a photograph
+    ✓ a failing metadata lookup still stores the evidence (6 ms)
+    ✓ bytes that cannot be decoded leave the hash NULL and still store the row (2 ms)
+
+PASS __tests__/unit/audit-onsite-car-deadline.test.js
+  audit-onsite-service.submitDecision — CAR deadline SLA clock
+    ✓ FAIL → seeds the RevisionDeadline + stamps formData.carDueAt + transitions CAR_PENDING (133 ms)
+    ✓ PASS → does NOT seed a CAR deadline; formData is preserved and pinned with onsiteAuditId (Task 3), not clobbered (4 ms)
+
+PASS __tests__/unit/notification-expiry-blockers.test.js
+  I-1 — enum-miss class: every referenced NotifyType key exists with a real Thai template
+    ✓ NotifyType.APPLICATION_EXPIRED is defined (callers currently pass undefined) (2 ms)
+    ✓ NotifyType.REVISION_DEADLINE_EXPIRED is defined (callers currently pass undefined) (1 ms)
+    ✓ NotifyType.CAR_REVIEWING is defined (callers currently pass undefined) (2 ms)
+    ✓ NotifyType.DEADLINE_REMINDER is defined (callers currently pass undefined) (1 ms)
+    ✓ NotifyType.NEW_APPLICATION is defined (callers currently pass undefined) (12 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for APPLICATION_EXPIRED (2 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for REVISION_DEADLINE_EXPIRED (1 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for CAR_REVIEWING (2 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for DEADLINE_REMINDER (1 ms)
+    ✓ NotifyTemplates resolves a non-generic Thai template for NEW_APPLICATION (2 ms)
+    ✓ APPLICATION_EXPIRED template states the consequence (ยื่นใหม่ + ชำระใหม่) (2 ms)
+  I-2/I-3 — notifyRevisionDeadlineApproaching: unit-aware copy + success signal
+    ✓ unit:'hours' → message says ชั่วโมง, NOT '24 วัน' (I-2) (6 ms)
+    ✓ default (days) copy is unchanged (4 ms)
+    ✓ returns truthy on delivered, null on failure — so cron can stamp only on success (I-3) (5 ms)
+  I-4 — GET /cron/auto-cancel: EXPIRED notifies the applicant
+    ✓ EXPIRED branch notifies the applicant with APPLICATION_EXPIRED (I-4) (73 ms)
+
+PASS __tests__/unit/correction-round.test.js
+  per-stage round counter (FINAL ข้อ 2: นับเลขครั้งต่อ stage)
+    ✓ roundNo = prior rounds of (application, stage) + 1, counted through the SAME tx (13 ms)
+    ✓ DOC_REVIEW round 3 does NOT bleed into FIELD_AUDIT round 1 (independent counters) (3 ms)
+    ✓ วนไม่จำกัดครั้ง — round 42 is minted without any cap (D-2: เพดาน 3 ครั้ง ถูกยกเลิก) (3 ms)
+    ✓ round record carries decidedAt + dueAt of the decision (3 ms)
+  unique round key — concurrent decisions
+    ✓ P2002 on the round key rejects with a CLEAR error (no swallow, no silent skip) (21 ms)
+    ✓ non-P2002 round-write failure propagates as-is (atomic — tx ทั้งก้อนล้ม) (4 ms)
+  letter round number (M2 template, 5th mandatory element)
+    ✓ buildCorrectionLetter emits "การแก้ไขครั้งที่ N ของขั้นตอน..." + metadata.roundNo (2 ms)
+    ✓ a letter WITHOUT its round number is REFUSED (throw — D-8: no letter, no transition) (7 ms)
+    ✓ mintCorrectionLetter always sends the round number into the letter (3 ms)
+    ✓ the round-line Thai copy is defined ONLY in the letter template SSOT (Law 3.5/3.6) (48 ms)
+  round-stage vocabulary SSOT
+    ✓ exports the frozen DOC_REVIEW/FIELD_AUDIT vocabulary (3 ms)
+    ✓ maps the M2 letter stages: DOC_REVIEW→DOC_REVIEW, FIELD_AUDIT_CAR→FIELD_AUDIT; unknown → throw (4 ms)
+  append-only round ledger (FINAL ข้อ 4)
+    ✓ no backend .js file mutates correctionRound (update/upsert/delete are forbidden) (45 ms)
+    ✓ the ONLY correctionRound writer is decision-letter-service (the M2 mint point) (41 ms)
+    ✓ CorrectionRound is registered tenant-scoped (services/tenant-prisma-extension.js) (2 ms)
+  schema EXPAND — CorrectionRound
+    ✓ correction-round.prisma declares the append ledger with the per-stage unique key (4 ms)
+    ✓ RevisionDeadline stays untouched (EXPAND, not contract — Law 3.10) (2 ms)
+    ✓ exactly one add_correction_rounds migration exists, EXPAND-only, timestamp not colliding (4 ms)
+  SSOT เลข 5 (Law 3.5/3.6) — พฤติกรรมเท่าเดิม, แหล่งเดียว
+    ✓ canonical value unchanged: PAYMENT.REVISION_DEADLINE_BUSINESS_DAYS === 5 (3 ms)
+    ✓ workflow-handler-deps reads config — no REVISION_SLA_DAYS = 5 literal (2 ms)
+    ✓ workflow-transitions-handler: CAR_SLA_DAYS is derived, not re-spelled (2 ms)
+    ✓ car-deadline-service reads config directly — no `?? 5` shadow source (2 ms)
+    ✓ SLA_LITERAL flags every prefixed spelling and no bare day count (3 ms)
+    ✓ grep-pin: no revision-SLA day literal in services/routes/jobs/scripts/utils outside the waiver family (L4) (76 ms)
+    ✓ the L4 waiver exception is the ONLY thing the pin skips, and it is still there (4 ms)
+    ✓ ops scripts read config — restamp/identify-cohort no longer own an SLA constant (2 ms)
+    ✓ utils/working-days calculateRevisionDeadline defaults FROM config, not from a literal (11 ms)
+  กำหนดส่งแก้ที่ผ่านไปแล้ว
+    ✓ dueAt a day before now is refused (CORRECTION_DUE_DATE_PASSED): no round, no letter (4 ms)
+    ✓ dueAt exactly now is refused (CORRECTION_DUE_DATE_PASSED): no round, no letter (1 ms)
+
+PASS __tests__/services/onsite-evidence-gate.test.js
+  onsite-evidence-gate.assertOnsiteEvidenceSufficient
+    ✓ throws TypeError when prisma is missing (18 ms)
+    ✓ throws TypeError when applicationId is missing (2 ms)
+    ✓ NO_ONSITE_AUDIT: no AuditChecklist row exists for the application (3 ms)
+    ✓ EVIDENCE_CAPTURE_UNAVAILABLE: BOTH evidence models unprovisioned (1 ms)
+    ✓ EVIDENCE_CAPTURE_UNAVAILABLE: only farmAuditPhoto provisioned (checklist model absent) — partial deployment still fail-closed (11 ms)
+    ✓ EVIDENCE_CAPTURE_UNAVAILABLE: only farmAuditChecklistItem provisioned (photo model absent) — partial deployment still fail-closed (2 ms)
+    ✓ INSUFFICIENT_PHOTOS: provisioned but below the minimum (1 ms)
+    ✓ INCOMPLETE_CHECKLIST: enough photos but the checklist is short (1 ms)
+    ✓ resolves with auditId + counts when evidence is sufficient (2 ms)
+    ✓ respects a custom minPhotos override (1 ms)
+    ✓ when multiple AuditChecklist rows exist for the application, checks the most recent one (2 ms)
+    cross-row resolution honors status + isDeleted, not just recency
+      ✓ resolves to the IN_PROGRESS row — not a newer COMPLETED row, not a soft-deleted (even newer, even IN_PROGRESS) row (2 ms)
+      ✓ falls back to the most-recent live row when no row is IN_PROGRESS (2 ms)
+
+PASS __tests__/unit/audits-result-farm-location-refusal-wire-status.test.js
+  error catalog — CERTIFICATE_FARM_LOCATION_MISSING has a row that agrees with the service
+    ✓ catalogued at 422 with a Thai message that names the farm location, not the status (3 ms)
+  POST /audits/:id/result surfaces a farm-location refusal as the catalogued 422
+    ✓ refusal on the cert-minting PASS → HTTP 422 with code CERTIFICATE_FARM_LOCATION_MISSING (35 ms)
+    ✓ the wire status and both messages match the catalog entry exactly (9 ms)
+    ✓ the Thai answer states the real reason (farm location), never the application status (12 ms)
+    ✓ the refusal's missingFields reach the client, so the specific blanks are not lost (10 ms)
+    ✓ a sub-500 writer error with no missingFields carries no missingFields key (9 ms)
+    ✓ the same branch serves the catalogued WAIVER_REOPEN_REQUIRED messages too (11 ms)
+    ✓ an uncatalogued sub-500 writer error still answers with its own message and the generic Thai line (9 ms)
+
+PASS __tests__/unit/workflow-reject-deadline-holiday.test.js
+  Blocker F — canonical reject deadline is Thai-holiday-aware + Asia/Bangkok
+    ✓ deps barrel exports THE holiday-aware util (identity — not the holiday-blind service) (45 ms)
+    ✓ 5-working-day deadline spanning วันเฉลิมฯ ร.10 (2026-07-28) lands Wed 2026-08-05, not Fri 07-31 (36 ms)
+    ✓ the transitions handler no longer references loadHolidaySet (wiring pin) (2 ms)
+    ✓ timezone: Friday 23:30 ICT reject still counts Friday as day zero (ICT, not UTC) (7 ms)
+    ✓ lunar-holiday coverage past the table (2028+) warns loudly instead of silently under-counting (9 ms)
+
+PASS __tests__/unit/m2a-revision-formdata-ownership.test.js
+  submitRevision — the applicant may not write server-owned keys (F2)
+    ✓ a forged serverRequirementSnapshot in the request body does not reach the column — the stored stamp survives (79 ms)
+    ✓ an application with NO stamp does not acquire one from the request body (3 ms)
+    ✓ the other server-owned keys are refused by the same one rule, not by a list of special cases (4 ms)
+    ✓ applicant answers already stored survive a partial resubmit (4 ms)
+  submitRevision — a door may record server truth through serverFormDataPatch
+    ✓ the patch is persisted (this is how the fifth door stamps a DRAFT first submit) (20 ms)
+    ✓ the patch outranks a forged key sent in the same request (3 ms)
+    ✓ the patch cannot rewrite the lifecycle keys the method owns itself (12 ms)
+    ✓ omitting the fourth argument changes nothing (4 ms)
+
+PASS __tests__/unit/applications-draft-formdata-allowlist.test.js
+  F-G4-14 — POST /draft writes the wizard store the autosave sends
+    ✓ round-trips applicantData / farmData / plots through a reload (42 ms)
+    ✓ keeps a wizard answer the farmer cleared — an empty list is an edit, not a missing field (14 ms)
+    ✓ an autosave with no formData behaves exactly as before (10 ms)
+    ✓ does not let an empty certificationPurposes inside formData wipe the saved selection (Bug 8.2, new door) (12 ms)
+  F-G4-14 — POST /draft refuses the server-owned half of the same blob
+    ✓ does not let an autosave overwrite workflowState, the audit outcome, the assignment or the deadlines (13 ms)
+    ✓ does not let an autosave author the uploadedDocuments record (filePath reaches unlink) (9 ms)
+    ✓ does not let an autosave price its own application (11 ms)
+    ✓ does not let a client claim a step by hiding `steps` inside formData (9 ms)
+  F-G4-14 — the step-claim door is unchanged
+    ✓ still clamps a step an empty wizard has not earned (9 ms)
+    ✓ still refuses step-scoped legacy data for an unearned step, writing nothing (11 ms)
+    ✓ a saved wizard store does not let the NEXT save claim a step it has not earned (16 ms)
+  F-G4-14 — the allowlist itself
+    ✓ never contains a server-owned key (1 ms)
+    ✓ never contains a key the server derives on this route (3 ms)
+    ✓ is frozen and free of duplicates, so the list stays the single statement of what may be written (2 ms)
+    ✓ picks nothing at all from a payload with no formData (1 ms)
+    ✓ keeps falsy answers the farmer actually gave (1 ms)
+
+PASS __tests__/unit/no-membership-fee.test.js
+  M3 — ไม่มีค่าสมาชิก และไม่มีพื้นผิวแพ็กเกจสมาชิกเหลืออยู่
+    ✓ หลังบ้าน services/subscription/entitlements-service.js ไม่มีอยู่แล้ว (3 ms)
+    ✓ หลังบ้าน services/subscription/subscription-order-service.js ไม่มีอยู่แล้ว (1 ms)
+    ✓ หลังบ้าน routes/api/system/subscription.js ไม่มีอยู่แล้ว (1 ms)
+    ✓ หลังบ้าน routes/api/system/subscription-orders.js ไม่มีอยู่แล้ว (1 ms)
+    ✓ หน้าบ้าน lib/services/subscription-service.ts ไม่มีอยู่แล้ว (1 ms)
+    ✓ หน้าบ้าน hooks/use-entitlements.ts ไม่มีอยู่แล้ว (10 ms)
+    ✓ หน้าบ้าน lib/capabilities.ts ไม่มีอยู่แล้ว (2 ms)
+    ✓ หน้าบ้าน app/provider/accounting/subscription-cancel-modal.tsx ไม่มีอยู่แล้ว (1 ms)
+    ✓ หน้าบ้าน app/health/subscription/page.tsx ไม่มีอยู่แล้ว (2 ms)
+    ✓ หน้าบ้าน app/health/subscription/client-view.tsx ไม่มีอยู่แล้ว (1 ms)
+    ✓ ไม่มี router ไหน mount /subscription (2 ms)
+    ✓ ไม่มีตัวเลขราคาแผนสมาชิกหลงเหลือในโค้ดฝั่งหลังบ้าน (73 ms)
+    ✓ ไม่มี cron ต่ออายุแพ็กเกจ (ซึ่งคือการเรียกเก็บซ้ำ) (4 ms)
+  ประตูสร้างล็อตเปิด แต่ยังตรวจความเป็นเจ้าของ
+    ✓ ไม่มีประตูแพ็กเกจกั้นการสร้างล็อตอีก (2 ms)
+    ✓ ยังตรวจว่ารุ่นที่จะบรรจุเป็นของผู้เรียก (2 ms)
+
+PASS __tests__/unit/audits-result-transition-audit.test.js
+  Blocker H — POST /audits/:id/result writes an immutable transition audit row
+    ✓ PASS (→AUDIT_PASSED, cert-minting) wires statusTransitionAuditHook({tx}) as onAudit (45 ms)
+    ✓ FAIL (→CAR_PENDING, starts the 5-day CAR clock) wires the same audit hook (20 ms)
+    ✓ writer 4xx faults keep their own HTTP status — EXPIRED-exit fence → 409 WAIVER_REOPEN_REQUIRED, not 500 (10 ms)
+
+PASS __tests__/unit/audits-result-signing-outage-wire-status.test.js
+  Ruling 2 fix round — POST /audits/:id/result surfaces a signing outage as the catalogued status
+    ✓ signing outage on the cert-minting PASS → HTTP 503 with code CERT_SIGNING_UNAVAILABLE (32 ms)
+    ✓ the wire status and message match the catalog entry exactly (19 ms)
+    ✓ an ordinary writer failure with no declared status stays 500 (no reclassification) (10 ms)
+    ✓ a 4xx the writer declared is still honoured by its own branch (12 ms)
+  Ruling 2 fix round — the status-writer wrapper carries the cert error HTTP intent
+    ✓ wrapped cert errors keep both code and statusCode (3 ms)
+
+PASS __tests__/unit/onsite-evidence-checklist-verdicts.test.js
+  the checklist half reads the verdicts, not the row count
+    ✓ an inspection whose items are ALL recorded FAIL does not satisfy the gate (5 ms)
+    ✓ ONE critical item recorded FAIL refuses issuance, even with every other item PASS (2 ms)
+    ✓ the refusal names how many critical items failed, so the operator can find them (16 ms)
+    ✓ a NON-critical FAIL still mints — the documented rule is about CRITICAL items (3 ms)
+    ✓ NA on a critical item is not FAIL, so it does not block (2 ms)
+  a row is not an answer
+    ✓ rows carrying no recognised verdict are INCOMPLETE_CHECKLIST, not a completed checklist (2 ms)
+    ✓ an unanswered item is not evidence: one blank row leaves the checklist short (2 ms)
+    ✓ rows for itemCodes outside the template do not pad the total (2 ms)
+  the unbound call is closed
+    ✓ a caller supplying only an auditId is refused before any lookup happens (3 ms)
+    ✓ an auditId-only call cannot borrow ANOTHER application's fully-evidenced audit (2 ms)
+    ✓ naming the application still catches the borrowed pin (AUDIT_APPLICATION_MISMATCH) (9 ms)
+  the legitimate path still mints
+    ✓ a completed, passing inspection with enough distinct photos resolves (2 ms)
+    ✓ and so does the unpinned resolve-from-application path (1 ms)
+
+PASS __tests__/unit/working-days-service.test.js
+  working-days-service — countWorkingDays (regression: shadowed toDate)
+    ✓ does NOT throw (the parameter no longer shadows the toDate helper) (4 ms)
+    ✓ counts Mon–Fri inclusive as 5 working days (2 ms)
+    ✓ counts Mon–next-Mon inclusive as 6 working days (skips the weekend) (9 ms)
+    ✓ counts a pure weekend (Sat–Sun) as 0 (2 ms)
+    ✓ returns 0 for a reversed range (from > to) (2 ms)
+    ✓ excludes a holiday inside the range (3 ms)
+    ✓ accepts ISO-string inputs (parsed via the toDate helper) (2 ms)
+    ✓ returns 0 when either endpoint is unparseable (2 ms)
+  working-days-service — sibling helpers (baseline coverage)
+    ✓ isWorkingDay: weekday true, weekend false, holiday false (2 ms)
+    ✓ addWorkingDays: +5 from Monday lands on the next Monday (skips weekend) (2 ms)
+    ✓ addWorkingDays: 0/negative returns the start date unchanged (6 ms)
+    ✓ toDateKey: formats YYYY-MM-DD and rejects garbage (1 ms)
+  L-001 — the Thai holiday calendar has exactly ONE defining file
+    ✓ working-days-service names no holiday table of its own (1 ms)
+    ✓ working-days-service reads no holiday source from env or systemConfig (1 ms)
+    ✓ working-days-service no longer exports a holiday loader (2 ms)
+    ✓ routes/api/system/system.js does not build its own holiday set (2 ms)
+    ✓ routes/api/system/cron.js does not build its own holiday set (2 ms)
+    ✓ exactly one file under services/ utils/ shared/ config/ defines holidays (21 ms)
+
+PASS __tests__/unit/scheduler-renewal-job.test.js
+  scheduler — renewal-reminder cron registration (R2-C)
+    ✓ registers exactly one renewal-reminder block with 0 9 * * * Asia/Bangkok (7 ms)
+    ✓ callback awaits renewalReminderCron.run() and logs the summary (5 ms)
+    ✓ failure path is swallowed and routed through logger.error (5 ms)
+
+PASS __tests__/unit/audit-onsite-ownership.test.js
+  audit-onsite-service — per-audit ownership (AUDIT-009)
+    submitDecision
+      ✓ rejects an actor who is NOT the assigned auditor (AUDIT_AUDITOR_MISMATCH) (4 ms)
+      ✓ allows the assigned auditor (3 ms)
+    submitChecklistItem
+      ✓ rejects an actor who is NOT the assigned auditor (7 ms)
+      ✓ allows the assigned auditor (2 ms)
+    uploadPhoto
+      ✓ rejects an uploader who is NOT the assigned auditor, BEFORE writing the file (2 ms)
+      ✓ allows the assigned auditor (24 ms)
+
+PASS __tests__/unit/onsite-evidence-distinct-photos.test.js
+  onsite-evidence-gate — the photo minimum counts distinct photographs
+    ✓ 5 copies of ONE photograph do not satisfy a minimum of 5 (11 ms)
+    ✓ 5 genuinely different photographs DO satisfy the minimum (8 ms)
+    ✓ a row with an empty or missing fileHash counts as zero, not as one (fail closed) (3 ms)
+    ✓ the same digest recorded in a different letter case counts once (13 ms)
+    ✓ photographs recorded on another audit do not count toward this one (21 ms)
+  uploadPhoto — the same bytes are refused at the door
+    ✓ a second upload of the same bytes is refused with the Thai message (70 ms)
+    ✓ the duplicate message survives the route sanitizer instead of becoming a generic English fallback (6 ms)
+    ✓ the same bytes are refused even when offered for a DIFFERENT checklist item (9 ms)
+    ✓ genuinely different bytes are accepted (28 ms)
+    ✓ the same bytes on a DIFFERENT audit are accepted (audits do not interfere) (20 ms)
+
+PASS __tests__/unit/audit-chain-per-tenant-baseline.test.js
+  FU-2 — per-tenant audit-chain baselines (SystemConfig audit_chain_baselines)
+    ✓ A1: map present — org-NEW (no entry) gets floor 0 and IS swept from seq 1 (7 ms)
+    ✓ A2: map present — org-LEGACY keeps its mapped floor 485 (5 ms)
+    ✓ A3: object-shape value (future Json column) still tolerated (13 ms)
+    ✓ B: no SystemConfig row — legacy global env floor applies to BOTH orgs (unchanged) (5 ms)
+    ✓ C: malformed SystemConfig value — falls back to the env floor (fail-open to legacy) (5 ms)
+    ✓ D: SystemConfig read failure — sweep still runs on the env floor (never blocks the control) (5 ms)
+    ✓ E: explicit fromSequence (forensic call) still wins when no map row exists (4 ms)
+    ✓ F: explicit fromSequence OVERRIDES the map (forensic caller intent wins) — MUST-3 (6 ms)
+
+PASS __tests__/unit/audit-chain-periodic-verify.test.js
+  audit gap #14 (B) — runScheduledChainVerification (periodic integrity sweep)
+    ✓ verifies every tenant chain and reports a clean summary (no alert) (7 ms)
+    ✓ detects a break and emits an [AUDIT_CHAIN_ALERT] with forensic detail (4 ms)
+    ✓ scopes each verify to a bounded recent window (tail - windowSize + 1, floored at 1) (4 ms)
+    ✓ a verify that throws for one tenant does not abort the whole sweep (8 ms)
+  audit gap #14 (B) — baseline floor scopes the sweep to v2-forward (AUDIT_CHAIN_VERIFY_FROM_SEQ)
+    ✓ a pre-existing benign break BELOW the baseline is NOT alerted (4 ms)
+    ✓ a break AT/ABOVE the baseline STILL alerts (real tamper not masked) (3 ms)
+    ✓ fromSequence unset/0 → unchanged full recent-window behavior (legacy break IS seen) (3 ms)
+    ✓ reads the baseline from env AUDIT_CHAIN_VERIFY_FROM_SEQ when no explicit fromSequence (3 ms)
+    ✓ a malformed env value (NaN) falls back to baseline 0 (no accidental suppression) (6 ms)
+
+PASS __tests__/unit/scheduler-precheck-stale-sweep.test.js
+  scheduler — stale PENDING pre-check sweep
+    ✓ one block, every 5 minutes, Asia/Bangkok, drives the sweep (7 ms)
+    ✓ a failing sweep is logged, not thrown (5 ms)
+
+PASS __tests__/unit/correction-deadline-sweep-scheduled.test.js
+  ✓ an hourly block runs the correction-deadline sweep on the Bangkok clock (12 ms)
+
+PASS __tests__/unit/law-dimensions-are-checked-before-written.test.js
+  certScope — the applicant answers, and the answer can only ask for more
+    ✓ PROCESSING is honoured, because only PROCESSING adds a rule (9 ms)
+    ✓ PLANTING is honoured too — it is the default either way (2 ms)
+    ✓ a word nobody filed law for does not become the law (3 ms)
+    ✓ saying nothing does not erase what was already stored (2 ms)
+  requestType — RENEWAL and REPLACEMENT are granted only against a real certificate
+    ✓ NEW needs no proof, and CLEARS any linkage a previous answer left behind (2 ms)
+    ✓ RENEWAL against a live certificate the caller owns writes the linkage (68 ms)
+    ✓ RENEWAL typed from the paper (GACP-DTAM-…) finds the certificate and stores the canonical number (4 ms)
+    ✓ REPLACEMENT writes replacementOf, not renewalOf — they are different claims (3 ms)
+    ✓ a certificate another member filed is accepted when the holder matches and the caller may submit (3 ms)
+    ✓ RENEWAL with no number typed yet falls back to NEW and says why (3 ms)
+    ✓ RENEWAL with a number nobody issued falls back to NEW and says why (8 ms)
+    ✓ RENEWAL with a revoked certificate falls back to NEW and says why (3 ms)
+    ✓ RENEWAL with an expired certificate falls back to NEW and says why (2 ms)
+    ✓ RENEWAL with a certificate of another holder falls back to NEW and says why (2 ms)
+    ✓ RENEWAL with a certificate with no holder falls back to NEW and says why (3 ms)
+    ✓ RENEWAL with a VIEWER of the holder falls back to NEW and says why (3 ms)
+    ✓ RENEWAL with no membership in the holder falls back to NEW and says why (2 ms)
+    ✓ REPLACEMENT with a certificate of another holder falls back to NEW and says why (2 ms)
+    ✓ REPLACEMENT with a VIEWER of the holder falls back to NEW and says why (5 ms)
+    ✓ an unverified claim NEVER throws — the autosave must still save (3 ms)
+    ✓ saying nothing about the request type leaves the filing untouched (2 ms)
+  what the resolver may return at all
+    ✓ it writes ONLY server-owned keys — never an applicant field (3 ms)
+
+PASS __tests__/unit/application-requirements-service.test.js
+  the one lens — which documents this filing must carry
+    ✓ the community + rented + indoor case asks for exactly the eleven กทล.1 slots (9 ms)
+    ✓ renting the land is why the landlord consent is asked for, and the payload says so (5 ms)
+    ✓ owning the land instead removes the landlord consent, nothing else (4 ms)
+    ✓ every slot carries the words a farmer needs: label, what it is, where to get it (10 ms)
+  what the server can already see
+    ✓ a โฉนด filed years ago under CHANOTE satisfies the land right (4 ms)
+    ✓ an NS3 alone satisfies it too — the four land papers are one requirement (3 ms)
+    ✓ a ส.ป.ก. alone satisfies it, and an unrelated paper does not (4 ms)
+    ✓ a draft upload counts, and the wizard’s own checklist never does (4 ms)
+    ✓ missingRequired names exactly the required slots with nothing behind them (4 ms)
+    ✓ complete flips only when every required slot is answered (7 ms)
+  the two conditions no rule row can express
+    ✓ a PLANTING filing shows the planting licence as optional, and EXPORT adds its own licence (3 ms)
+    ✓ a filing that declares no scope defaults to PLANTING — the licence is optional there too (3 ms)
+    ✓ a replacement asks for the police report OR the damaged certificate, never both (3 ms)
+    ✓ an individual filing asks for the producer supervision letter (2 ms)
+  optional slots never block a filing
+    ✓ the three optional slots are offered, never required, never missing (2 ms)
+  a draft can say anything; the rule engine may only be asked what it knows
+    ✓ a lowercase legacy certScope resolves to the vocabulary, not to a refusal (2 ms)
+    ✓ a padded holder type still matches the rules written for it (5 ms)
+    ✓ a word the rule table has never heard becomes the wildcard, never a guess (2 ms)
+    ✓ a filing that has not said how it grows is judged by the rules that bind everybody (3 ms)
+    ✓ which law judges this filing is read from server-owned keys only (2 ms)
+    ✓ a stated holder type is used as given — including when it is null (1 ms)
+    ✓ a filing that names no plant is refused, not judged by nothing (4 ms)
+    ✓ the plant is read from the filing, not assumed (3 ms)
+    ✓ every ลักษณะพื้นที่ the filing ticks is carried, in vocabulary order (3 ms)
+    ✓ the wizard’s third land option asks for the consent letter (2 ms)
+    ✓ if the engine still refuses a word, the applicant sees an internal error, not rule vocabulary (3 ms)
+
+PASS __tests__/unit/submit-requires-declarations.test.js
+  a first submit must carry the declarations
+    ✓ a payload that accepts them is stamped with the SERVER's time (3 ms)
+    ✓ a payload that does not is refused, and the refusal is catalogued (12 ms)
+    ✓ only a real boolean true counts — false does not (2 ms)
+    ✓ only a real boolean true counts — a string does not (7 ms)
+    ✓ only a real boolean true counts — a number does not (2 ms)
+    ✓ only a real boolean true counts — missing does not (2 ms)
+    ✓ only a real boolean true counts — null does not (2 ms)
+    ✓ a client-supplied timestamp is IGNORED — the platform stamps its own (2 ms)
+    ✓ a draft that already carries a client-written stamp does not satisfy the gate (2 ms)
+  a resubmit is the same filing
+    ✓ an acceptance already recorded by the server stands (2 ms)
+    ✓ a resubmit of a filing that somehow has none is still refused (2 ms)
+    ✓ re-accepting on a resubmit does not move the original time (5 ms)
+  the refusal reaches the person who has to act on it
+    ✓ it carries Thai copy naming what to do (2 ms)
+    ✓ it is in shared/error-codes.js — a code no catalogue knows cannot be explained (8 ms)
+  the submit door actually runs the gate
+    ✓ applications.js requires the gate (2 ms)
+    ✓ and writes the server stamp into formData, not the payload's (2 ms)
+    ✓ declarationsAcceptedAt is server-owned, so /prepare cannot write it (2 ms)
+
+PASS __tests__/unit/car-deadline-service.test.js
+  car-deadline-service
+    ✓ uses the 5-working-day window (13 ms)
+    ✓ computeCarDueDate skips Thai public holidays (Asia/Bangkok), not just weekends (11 ms)
+    ✓ seedCarRevisionDeadline upserts a PENDING row, bumping revisionCount on an existing CAR loop (5 ms)
+    ✓ seedCarRevisionDeadline starts revisionCount at 1 for a first-time CAR (3 ms)
+    ✓ seedCarRevisionDeadline is a no-op on missing/invalid args (no upsert) (3 ms)
+
+PASS __tests__/unit/wizard-answers-are-writable.test.js
+  คำตอบของ wizard ทุกข้อ มีที่ให้ลงบนเซิร์ฟเวอร์
+    ✓ อ่านชนิดของสถานะได้จริง ไม่ใช่รายการว่าง (3 ms)
+    ✓ ไม่มีฟิลด์ไหนหายไปเงียบ ๆ — เขียนได้ หรือประกาศว่าไม่เก็บ (3 ms)
+    ✓ สี่ฟิลด์ของขั้น 1 และขั้น 4 ที่ผู้ยื่นเขียนได้ เขียนลงได้จริง (6 ms)
+    ✓ applicantType ผู้ยื่นเขียนเองไม่ได้ — เป็นชนิดของผู้ถือที่เลือกตอนสร้างคำขอ (2 ms)
+    ✓ requestType และ certScope ผู้ยื่นเขียนเองไม่ได้ — เป็นการเลือกกฎที่จะตัดสินตัวเอง (1 ms)
+    ✓ ของที่เซิร์ฟเวอร์เป็นเจ้าของ ยังเขียนทับไม่ได้เหมือนเดิม (1 ms)
+
+PASS __tests__/unit/application-detail-formdata-carries-step1-answers.test.js
+  buildApplicationDetailPayload — the edit-hydration door echoes step 1 answers back
+    ✓ carries requestType, applicantType and certScope in the formData it hands the edit page (4 ms)
+    ✓ a draft that never answered step 1 gets null, not a thrown error or a guessed default (2 ms)
+
+PASS __tests__/unit/auditor-decision-car-deadline-guard.test.js
+  auditor audit-decision handler — CAR SLA clock + comment gate
+    ✓ imports the canonical CAR-deadline helper (3 ms)
+    ✓ computes a CAR due date when entering CAR_PENDING and stamps it into formData (2 ms)
+    ✓ seeds the RevisionDeadline row after the status write (3 ms)
+    ✓ requires a justification for a MINOR/MAJOR corrective-action request (6 ms)
+
+Test Suites: 45 passed, 45 total
+Tests:       508 passed, 508 total
+Snapshots:   0 total
+Time:        32.465 s, estimated 34 s
+Ran all test suites matching __tests__/integration/deadline-reminder-stamp-real-postgres.test.js|__tests__/integration/always-on-notices-cannot-be-muted-real-postgres.test.js|__tests__/unit/working-days-service.test.js|__tests__/unit/waiver-reopen-dual-engine.test.js|__tests__/unit/waiver-reopen-service.test.js|__tests__/unit/a0-pr2-hop-emission-contract.test.js|__tests__/unit/notification-expiry-blockers.test.js|__tests__/unit/workflow-reject-deadline-holiday.test.js|__tests__/integration/correction-deadline-sweep-real-postgres.test.js|__tests__/unit/correction-deadline-sweep-scheduled.test.js|__tests__/unit/applications-prepare-server-owned-fields.test.js|__tests__/integration/applicant-notices-reach-the-holder-real-postgres.test.js|__tests__/unit/application-requirements-service.test.js|__tests__/unit/atomic-decision-letter.test.js|__tests__/unit/correction-deadline-sweep-scheduled.test.js|__tests__/unit/correction-round.test.js|__tests__/unit/onsite-photo-provenance.test.js|__tests__/unit/car-deadline-service.test.js|__tests__/unit/onsite-evidence-distinct-photos.test.js|__tests__/unit/audit-chain-periodic-verify.test.js|__tests__/unit/payment-reminder-job.test.js|__tests__/unit/applications-draft-formdata-allowlist.test.js|__tests__/unit/m2a-revision-formdata-ownership.test.js|__tests__/unit/audit-onsite-car-deadline.test.js|__tests__/unit/auditor-decision-admin-exclusion.test.js|__tests__/unit/application-detail-formdata-carries-step1-answers.test.js|__tests__/unit/audits-result-transition-audit.test.js|__tests__/unit/onsite-evidence-checklist-verdicts.test.js|__tests__/unit/audits-result-signing-outage-wire-status.test.js|__tests__/services/onsite-evidence-gate.test.js|__tests__/unit/scheduler-renewal-job.test.js|__tests__/unit/submit-requires-declarations.test.js|__tests__/unit/no-membership-fee.test.js|__tests__/unit/workflow-reject-deadline-holiday.test.js|__tests__/unit/law-dimensions-are-checked-before-written.test.js|__tests__/unit/wizard-answers-are-writable.test.js|__tests__/unit/reviewer-inspector-separation.test.js|__tests__/unit/terminal-decision-letter.test.js|__tests__/unit/audit-chain-per-tenant-baseline.test.js|__tests__/unit/audits-result-farm-location-refusal-wire-status.test.js|__tests__/unit/m2a-doc-requirements-doors.test.js|__tests__/unit/auditor-decision-car-deadline-guard.test.js|__tests__/unit/dtam-remittance-pipeline-removed.test.js|__tests__/unit/audit-onsite-ownership.test.js|__tests__/unit/purpose-one-check-every-door.test.js|__tests__/unit/application-status-writer-cert-hook-evidence-gate.test.js|__tests__/unit/scheduler-precheck-stale-sweep.test.js.

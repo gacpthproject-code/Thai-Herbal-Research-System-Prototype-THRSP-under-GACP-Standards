@@ -1,0 +1,14 @@
+# Does Stripe require billing_details.email to confirm a PromptPay PaymentIntent?
+# Run 2026-09-27, Stripe TEST mode (livemode=False), secret key read from apps/backend/.env into a shell var, never printed.
+#
+# 1) Type level (@stripe/stripe-js 9.17.0, dist/stripe-js/payment-intents.d.ts:348-351):
+#      export interface CreatePaymentMethodPromptPayData extends PaymentMethodCreateParams { type: 'promptpay'; }
+#    -> billing_details is OPTIONAL in the types (compare bancontact :98, which types `name` as required).
+# 2) API level (the authority) — POST /v1/payment_intents (thb, payment_method_types[]=promptpay),
+#    then POST /v1/payment_intents/:id/confirm with payment_method_data[type]=promptpay and NO billing_details:
+created: pi_3UK58BQ4HsQ2Gmd51B3DYOt3 False requires_payment_method
+NO-EMAIL confirm -> ERROR parameter_missing | billing_details[email] | Missing required param: billing_details[email].
+# cleanup:
+pi_3UK58BQ4HsQ2Gmd51B3DYOt3 canceled False
+#
+# Verdict: the types do not require it, the API does. The email fallback STAYS.

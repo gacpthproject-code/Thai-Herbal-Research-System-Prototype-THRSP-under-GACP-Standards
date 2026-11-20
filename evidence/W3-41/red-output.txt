@@ -1,0 +1,345 @@
+## Q2-D1 RED
+# date: 2026-08-02T23:56:47Z | branch: feat/w2-03-checkout-ui | cmd: npx jest --config jest.config.cjs __tests__/unit/checkout-schedule-service.test.js __tests__/unit/stripe-checkout-engine.test.js
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/stripe-checkout-engine.test.js
+  config/stripe — the locked constants and fail-closed posture
+    ✓ the statement descriptor is exactly the locked value and within the 22-char limit (5 ms)
+    ✓ THB amounts convert to satang exactly (2 ms)
+    ✓ the client factory fails closed without a secret key (25 ms)
+    ✓ the webhook secret assertion fails closed (2 ms)
+  stripe-checkout-service — one order, one invoice, one intent
+    ✓ M1 checkout mints the order with the fee-service decomposition and a satang intent (6 ms)
+    ✕ mint stamps invoice.dueDate — billing.prisma requires it NOT NULL, so a mint without it crashes on the real DB (7 ms)
+    ✓ re-entry returns the open order instead of minting a sibling (2 ms)
+    ✓ concurrent double-checkout: winner mints, loser gets a clean 409 — never a raw P2002 (3 ms)
+    ✓ M2 is refused before the documents pass (canonical step 4 gate) (2 ms)
+    ✓ an unknown milestone is refused outright (1 ms)
+  checkout-settlement-service — the atomic settle
+    ✓ a verified succeeded intent settles everything in ONE transaction (4 ms)
+    ✓ M2 settlement unlocks the dispatcher-2 queue state (2 ms)
+    ✓ an amount mismatch is an alert, NOT a settlement (1 ms)
+    ✓ an already-settled order is an idempotent no-op (2 ms)
+  the webhook route — verify, dedup, dispatch
+    ✓ an invalid signature is a 400 with zero side effects (68 ms)
+    ✓ a redelivered event id is a 200 no-op (insert-first dedup) (22 ms)
+    ✓ payment_intent.succeeded settles and stamps the event processed (16 ms)
+    ✓ an unrelated event type is acknowledged without settling anything (17 ms)
+  handleStripeEvent — failure and cancellation paths
+    ✓ payment_intent.payment_failed records the failure without touching the order state (1 ms)
+
+  ● stripe-checkout-service — one order, one invoice, one intent › mint stamps invoice.dueDate — billing.prisma requires it NOT NULL, so a mint without it crashes on the real DB
+
+    expect(received).toBeInstanceOf(expected)
+
+    Expected constructor: Date
+
+    Received value has no prototype
+    Received value: undefined
+
+      238 |
+      239 |         const invoiceData = mockDb.invoice.create.mock.calls[0][0].data;
+    > 240 |         expect(invoiceData.dueDate).toBeInstanceOf(Date);
+          |                                     ^
+      241 |
+      242 |         // And it must be the schedule service's answer for the mint instant
+      243 |         // (config-driven M1 window on the canonical Thai calendar). Both
+
+      at Object.toBeInstanceOf (__tests__/unit/stripe-checkout-engine.test.js:240:37)
+
+FAIL __tests__/unit/checkout-schedule-service.test.js
+  ● Test suite failed to run
+
+    Cannot find module '../../services/checkout/checkout-schedule-service' from '__tests__/unit/checkout-schedule-service.test.js'
+
+      33 |     overdueInvoiceWhere,
+      34 |     computeReminderDates,
+    > 35 | } = require('../../services/checkout/checkout-schedule-service');
+         |     ^
+      36 |
+      37 | const SERVICE_FILE = path.join(
+      38 |     __dirname, '..', '..', 'services', 'checkout', 'checkout-schedule-service.js',
+
+      at Resolver._throwModNotFoundError (../../node_modules/.pnpm/jest-resolve@29.7.0/node_modules/jest-resolve/build/resolver.js:427:11)
+      at Object.require (__tests__/unit/checkout-schedule-service.test.js:35:5)
+
+Test Suites: 2 failed, 2 total
+Tests:       1 failed, 18 passed, 19 total
+Snapshots:   0 total
+Time:        1.449 s
+Ran all test suites matching /__tests__\/unit\/checkout-schedule-service.test.js|__tests__\/unit\/stripe-checkout-engine.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+## Q2-D2 RED
+# date: 2026-08-03T00:14:08Z | branch: feat/w2-03-checkout-ui | cmd: npx jest --config jest.config.cjs __tests__/unit/payment-reminder-job.test.js (job = throwing stub; schema/scheduler untouched)
+# note: earlier run without any job file failed suite-level 'Cannot find module ../../jobs/payment-reminder-job'; stub added to surface assertion-level RED below.
+# green-at-birth pins (Law 3.11 — pin not fix): 'no stored-overdue literal...' and 'real notification-service defines PAYMENT_REMINDER...'
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/payment-reminder-job.test.js
+  sweep scope — checkout invoices only, where-clause pin
+    ✕ queries exactly serviceType CERTIFICATION_CHECKOUT + status pending, not soft-deleted (4 ms)
+  three reminder types — send day is the SHIFTED day, ICT date-equality
+    ✕ run on 2026-08-06 dispatches PRE_DUE for the due-Tue-2026-08-11 invoice (3 ms)
+    ✕ run on 2026-08-11 dispatches DUE_DATE for the due-Tue-2026-08-11 invoice (2 ms)
+    ✕ run on 2026-08-13 dispatches OVERDUE_NOTICE for the due-Tue-2026-08-11 invoice (2 ms)
+    ✕ a day that is no reminder day sends nothing (Fri 2026-08-07) (7 ms)
+  durable dedup — insert-first, unique constraint is the last line
+    ✕ same-day re-run: P2002 on the insert → skip silently, no second send (2 ms)
+  collision — DUE_DATE and OVERDUE_NOTICE on the same working day
+    ✕ due Sat 2026-08-08: both reminders go out on Mon 08-10, one per type (24 ms)
+  working-day shift — real calendar, no send on the holiday
+    ✕ intended OVERDUE_NOTICE lands on วันแม่ (Wed 2026-08-12): holiday run sends nothing, next working day does (2 ms)
+  fault isolation — one broken invoice never sinks the sweep
+    ✕ non-P2002 insert failure on invoice 1 is logged; invoice 2 still gets its reminder (2 ms)
+    ✕ a notification that does not persist (null) leaves sentAt unstamped and is not counted as sent (1 ms)
+  source pins — derived-only stays derived-only
+    ✓ no stored-overdue literal, no invoice mutation call in the job source (2 ms)
+    ✕ no calendar or reminder-window data of its own — schedule service + config own those (3 ms)
+    ✓ real notification-service defines PAYMENT_REMINDER + template (static) (2 ms)
+  scheduler registration — daily 09:00 Asia/Bangkok, additive block
+    ✕ registers the payment-reminder block: 11 blocks total, last 0 9 * * * Asia/Bangkok drives the sweep (9 ms)
+    ✕ sweep failure is swallowed and logged — the cron never throws (3 ms)
+
+  ● sweep scope — checkout invoices only, where-clause pin › queries exactly serviceType CERTIFICATION_CHECKOUT + status pending, not soft-deleted
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at Object.runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:144:15)
+
+  ● three reminder types — send day is the SHIFTED day, ICT date-equality › run on 2026-08-06 dispatches PRE_DUE for the due-Tue-2026-08-11 invoice
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:165:31)
+
+  ● three reminder types — send day is the SHIFTED day, ICT date-equality › run on 2026-08-11 dispatches DUE_DATE for the due-Tue-2026-08-11 invoice
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:165:31)
+
+  ● three reminder types — send day is the SHIFTED day, ICT date-equality › run on 2026-08-13 dispatches OVERDUE_NOTICE for the due-Tue-2026-08-11 invoice
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:165:31)
+
+  ● three reminder types — send day is the SHIFTED day, ICT date-equality › a day that is no reminder day sends nothing (Fri 2026-08-07)
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at Object.runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:204:31)
+
+  ● durable dedup — insert-first, unique constraint is the last line › same-day re-run: P2002 on the insert → skip silently, no second send
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at Object.runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:216:29)
+
+  ● collision — DUE_DATE and OVERDUE_NOTICE on the same working day › due Sat 2026-08-08: both reminders go out on Mon 08-10, one per type
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at Object.runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:240:31)
+
+  ● working-day shift — real calendar, no send on the holiday › intended OVERDUE_NOTICE lands on วันแม่ (Wed 2026-08-12): holiday run sends nothing, next working day does
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at Object.runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:256:34)
+
+  ● fault isolation — one broken invoice never sinks the sweep › non-P2002 insert failure on invoice 1 is logged; invoice 2 still gets its reminder
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at Object.runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:274:31)
+
+  ● fault isolation — one broken invoice never sinks the sweep › a notification that does not persist (null) leaves sentAt unstamped and is not counted as sent
+
+    not implemented
+
+      3 | // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+      4 | async function runPaymentReminderSweep() {
+    > 5 |     throw new Error('not implemented');
+        |           ^
+      6 | }
+      7 |
+      8 | module.exports = { runPaymentReminderSweep };
+
+      at runPaymentReminderSweep (jobs/payment-reminder-job.js:5:11)
+      at Object.runPaymentReminderSweep (__tests__/unit/payment-reminder-job.test.js:288:31)
+
+  ● source pins — derived-only stays derived-only › no calendar or reminder-window data of its own — schedule service + config own those
+
+    expect(received).toMatch(expected)
+
+    Expected pattern: /require\('\.\.\/services\/checkout\/checkout-schedule-service'\)/
+    Received string:  "'use strict';·
+    // W3-41 Q2-D2 RED stub — replaced by the real sweep in the GREEN phase.
+    async function runPaymentReminderSweep() {
+        throw new Error('not implemented');
+    }·
+    module.exports = { runPaymentReminderSweep };
+    "
+
+      305 |         expect(src).not.toMatch(/HOLIDAY/i);
+      306 |         expect(src).not.toMatch(/['"]\d{2}-\d{2}['"]/);
+    > 307 |         expect(src).toMatch(/require\('\.\.\/services\/checkout\/checkout-schedule-service'\)/);
+          |                     ^
+      308 |     });
+      309 |
+      310 |     // Mock-vs-reality guard (waiver-job idiom): the NotifyType mocked above
+
+      at Object.toMatch (__tests__/unit/payment-reminder-job.test.js:307:21)
+
+  ● scheduler registration — daily 09:00 Asia/Bangkok, additive block › registers the payment-reminder block: 11 blocks total, last 0 9 * * * Asia/Bangkok drives the sweep
+
+    expect(jest.fn()).toHaveBeenCalledTimes(expected)
+
+    Expected number of calls: 11
+    Received number of calls: 10
+
+      361 |
+      362 |         // 10 pre-existing blocks + the W3-41 payment-reminder block.
+    > 363 |         expect(mockCronSchedule).toHaveBeenCalledTimes(11);
+          |                                  ^
+      364 |
+      365 |         const morningCalls = mockCronSchedule.mock.calls.filter((call) => {
+      366 |             const opts = call[2];
+
+      at Object.toHaveBeenCalledTimes (__tests__/unit/payment-reminder-job.test.js:363:34)
+
+  ● scheduler registration — daily 09:00 Asia/Bangkok, additive block › sweep failure is swallowed and logged — the cron never throws
+
+    expect(jest.fn()).toHaveBeenCalledWith(...expected)
+
+    Expected: "[Cron] Payment Reminder Sweep failed:", Any<Error>
+
+    Number of calls: 0
+
+      390 |
+      391 |         await expect(callback()).resolves.toBeUndefined();
+    > 392 |         expect(mockLogger.error).toHaveBeenCalledWith(
+          |                                  ^
+      393 |             '[Cron] Payment Reminder Sweep failed:', expect.any(Error),
+      394 |         );
+      395 |
+
+      at Object.toHaveBeenCalledWith (__tests__/unit/payment-reminder-job.test.js:392:34)
+
+Test Suites: 1 failed, 1 total
+Tests:       13 failed, 2 passed, 15 total
+Snapshots:   0 total
+Time:        1.088 s
+Ran all test suites matching /__tests__\/unit\/payment-reminder-job.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

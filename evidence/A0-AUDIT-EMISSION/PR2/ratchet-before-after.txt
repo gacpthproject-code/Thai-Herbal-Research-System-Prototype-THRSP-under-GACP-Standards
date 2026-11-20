@@ -1,0 +1,96 @@
+A0-AUDIT-EMISSION / PR-A0-2 — ratchet + lint
+worktree: /home/user/GACP-Certification-Application/.claude/worktrees/agent-a835af3549aea5a20
+base:     8e7804d5 (main at dispatch time)
+
+== BEFORE (clean tree, before any edit) ==
+$ bash scripts/probes/ratchet.sh
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4
+  (evidence/ratchet-current.txt)
+
+== AFTER (full PR-A0-2 diff applied) ==
+$ bash scripts/probes/ratchet.sh
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4
+  (evidence/ratchet-current.txt)
+
+== DELTA ==
+hardcode 43 → 43 | todo 59 → 59 | env-direct 169 → 169 | dup-source 4 → 4   (no counter moved)
+
+== no-skip probe (because PR-A0-2 adds a self-skipping integration suite) ==
+The new integration file uses the repo's `const d = HAS_DB ? describe : describe.skip;`
+idiom (same as PR-A0-1's status-writer-audit-default-invariant.test.js).
+
+$ bash scripts/probes/no-skip.sh                       # WITH the new file
+FAIL: apps/web-app/playwright/farmer-full-journey.spec.ts:425 …  (+ 9 more, all apps/web-app)
+
+$ git stash push -u apps/backend/__tests__/integration/a0-pr2-per-hop-invariant.test.js
+$ bash scripts/probes/no-skip.sh                       # WITHOUT the new file
+FAIL: apps/web-app/playwright/farmer-full-journey.spec.ts:425 …  (+ 9 more, all apps/web-app)
+
+Identical output with and without the diff — the probe's FAIL is the pre-existing
+apps/web-app playwright set (L-006 waiver), and PR-A0-2 adds nothing to it.
+
+== eslint on every touched file (run from apps/backend) ==
+$ npx eslint routes/api/admin/applications.js \
+    routes/api/applications/application-bundles.js \
+    routes/api/applications/applications.js \
+    __tests__/unit/a0-pr2-admin-override-canonical-row.test.js \
+    __tests__/unit/a0-pr2-hop-emission-contract.test.js \
+    __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js \
+    __tests__/integration/a0-pr2-per-hop-invariant.test.js \
+    __tests__/integration/bundle-terminal-integrity.test.js \
+    __tests__/unit/applications-submit-canonical-validation.test.js
+(no output — exit 0)
+
+Note on one lint finding that WAS hit and how it was resolved WITHOUT touching the rule:
+an earlier draft of the integration file seeded a fixture with
+`prisma.application.update({ data: { status: 'EXPIRED' } })` to provoke a mid-loop
+failure in the bundle submit. `gacp/no-direct-application-status-write` flagged it
+(correctly). The fixture was removed rather than the rule relaxed or the call
+disguised: that scenario is unreachable through the HTTP route anyway (the R1a
+terminal gate rejects every case the writer's fences would reject), so the rollback
+case was rewritten at the transaction-shape level and labelled as such in the file.
+
+
+════════════════════════════════════════════════════════════════════════════════
+AUDIT ROUND 1 FIXES (F1–F6) — ratchet + lint re-run
+════════════════════════════════════════════════════════════════════════════════
+
+$ bash scripts/probes/ratchet.sh
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4
+
+DELTA across the WHOLE PR (clean tree → round-1 fixes applied):
+hardcode 43 → 43 | todo 59 → 59 | env-direct 169 → 169 | dup-source 4 → 4   (no counter moved)
+
+$ npx eslint services/application-status-writer.js \
+    routes/api/admin/applications.js \
+    routes/api/applications/application-bundles.js \
+    routes/api/applications/applications.js \
+    __tests__/unit/a0-pr2-work-activity-fence.test.js \
+    __tests__/unit/a0-pr2-admin-override-canonical-row.test.js \
+    __tests__/unit/a0-pr2-hop-emission-contract.test.js \
+    __tests__/unit/a0-pr2-submit-hops-audit-emission.test.js \
+    __tests__/integration/a0-pr2-per-hop-invariant.test.js \
+    __tests__/integration/admin-applications.test.js \
+    __tests__/integration/bundle-terminal-integrity.test.js \
+    __tests__/unit/applications-submit-canonical-validation.test.js
+(no output — exit 0)
+
+NOTE on `evidence/probe-results.json`: running the probes rewrites it with the
+ABSOLUTE path of whatever checkout ran them, so in a worktree its only diff is
+the path prefix. It was reverted rather than committed — a worktree-local
+absolute path is not a result.

@@ -1,0 +1,58 @@
+ชุดเทสต์เต็มของกิ่ง fix/quotation-total-and-drift-alert ผ่าน ~/work/state/heavy.sh
+[driver] head fbb2433f4  ·  ฐานข้อมูลทดลองของกิ่ง (gacp_qtdrift, migrate ใหม่ก่อนรัน)  ·  --maxWorkers=2  ·  NODE_OPTIONS=--max-old-space-size=3072  ·  SIGNING_KEY_DIR ส่วนตัว
+integration รันด้วย PAYMENT_ADAPTER=mock (worktree อ่าน apps/backend/.env ของ main ผ่าน @prisma/client) · ทุกครั้งตรวจก่อนว่า DATABASE_URL ชี้ฐานทดลองของกิ่ง
+
+== ลำดับการรัน
+[driver] head fbb2433f4
+[driver] 2026-10-13 16:52:29 queue unit
+[heavy] waiting for lock: bash /tmp/qtdrift/full-suites.sh unit
+[heavy] running: bash /tmp/qtdrift/full-suites.sh unit
+[assert-db] ok: scratch database gacp_qtdrift on the qtdrift-pg container
+[driver] 2026-10-13 17:30:45 done unit
+[driver] 2026-10-13 17:30:45 queue integration
+[heavy] waiting for lock: bash /tmp/qtdrift/full-suites.sh integration
+[heavy] running: bash /tmp/qtdrift/full-suites.sh integration
+[assert-db] ok: scratch database gacp_qtdrift on the qtdrift-pg container
+[driver] 2026-10-13 17:51:19 done integration
+[driver] 2026-10-13 17:51:19 queue web
+[heavy] waiting for lock: bash /tmp/qtdrift/full-suites.sh web
+[heavy] running: bash /tmp/qtdrift/full-suites.sh web
+[assert-db] ok: scratch database gacp_qtdrift on the qtdrift-pg container
+[driver] 2026-10-13 18:15:33 done web
+[driver] 2026-10-13 18:15:33 queue tsc
+[heavy] waiting for lock: bash /tmp/qtdrift/full-suites.sh tsc
+[heavy] running: bash /tmp/qtdrift/full-suites.sh tsc
+[assert-db] ok: scratch database gacp_qtdrift on the qtdrift-pg container
+[driver] 2026-10-13 18:43:16 done tsc
+
+== รหัสออก
+unit exit=0
+integration exit=1
+web exit=0
+tsc exit=0
+
+== backend unit
+Tests:       12131 passed, 12131 total
+Test Suites: 886 passed, 886 total
+
+== backend integration (Postgres จริง)
+Test Suites: 7 failed, 1 skipped, 167 passed, 174 of 175 total
+Tests:       23 failed, 13 skipped, 1783 passed, 1819 total
+baseline (main 63305b5f gate): 23 names · this branch: 23 names
+NEW on this branch:
+GONE (fail on main, pass here):
+
+== web jest
+Test Suites: 489 passed, 489 total
+Tests:       3956 passed, 3956 total
+
+== web tsc (--noEmit)
+บรรทัดผลลัพธ์: 0 (0 = ไม่มี error)
+
+== หมายเหตุ head
+บันทึกการรันเขียน head fbb2433f4 เพราะสคริปต์อ่าน head ตอนเข้าคิว (16:52:29) · 595b6f06b ถูก commit ตามมาที่ 16:52:48 และต่างแค่หนึ่งบรรทัดในไฟล์สกิล · unit เริ่มรันราว 17:18 (เสร็จ 17:30:45 ใช้ 737 วินาที) ทุกชุดจึงรันบนต้นไม้ของ 595b6f06b
+
+== รอบก่อนหน้า (ไม่ใช่ผลของ head สุดท้าย)
+- 2026-10-10 02:37 บนต้นไม้ 9ac886994: unit ล้ม 2 ข้อ คือ error-codes-source-pointers (ตัวชี้บรรทัด 28 ตัวเลื่อนหลังย้ายด่าน แก้ใน f69c8e9f6) และ document-precheck/extract (ช้าเกินเวลาภายใต้โหลด) · integration ล้ม 26 = baseline 23 + finance-documents "only the company finance officer records it" (เทสต์คาด 403 กับใบลดหนี้ขององค์กรอื่น ข้อ 3 เปลี่ยนคำตอบเป็น 404 จึงแก้เทสต์ใน 3b8339c32) + holder-scope Q3 สองข้อ (worktree รับ PAYMENT_ADAPTER จาก .env ของ main รอบหลังจึงรัน integration ด้วย PAYMENT_ADAPTER=mock) · web 489 ชุด 3,955 ข้อผ่าน · tsc ไม่มี error
+- document-precheck/extract.test.js รันเดี่ยว 2026-10-13 17:05 (load 1.5): 13/13 ผ่าน · รอบสุดท้ายผ่านในชุดเต็ม
+- 2026-10-13 16:40 และ 16:49: หยุดสองรอบระหว่างรอคิวเพื่อแก้ข้อค้นพบ Jev ก่อน ไม่มีผลรัน

@@ -1,0 +1,153 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+PASS __tests__/integration/provider-admin-planting-integrity.test.js
+  Provider/Admin planting integrity summary
+    √ returns integrity summary in provider list and detail (60 ms)
+    √ returns integrity summary in admin list and detail (27 ms)
+
+PASS __tests__/unit/farm-entityid-stamp.test.js
+  Wave A chunk 2 — createFarm stamps Farm.entityId
+    √ stamps entityId from the active-entity ALS context (3 ms)
+    √ prefers an explicit options.entityId (route-threaded req.activeEntity) over ALS (2 ms)
+    √ is null-safe without any entity context (scripts/seeds) — entityId: null, no throw (3 ms)
+  Wave A chunk 2 — executeWizardSubmission tx.farm.create stamps Farm.entityId
+    √ stamps entityId from the active-entity ALS context inside the tx (2 ms)
+    √ is null-safe without an entity context — entityId: null (2 ms)
+    √ S3: tx.application.create stamps entityId from the same ALS context (2 ms)
+    √ S3: tx.application.create is null-safe without an entity context (1 ms)
+  Wave A fix M3 — cert auto-issue farm.create stamps Farm.entityId
+    √ farm.create carries entityId from the application row (2 ms)
+    √ legacy application without entityId → stamps null (never throws) (1 ms)
+    √ farm-REUSE update branch does NOT touch entityId (no clobber) (1 ms)
+
+PASS __tests__/unit/certificate-area-sqm.test.js
+  submittedAreaSqm
+    √ passes the wizard's square metres through unchanged (16 ms)
+    √ converts an application submitted before the switch (1 ms)
+    √ is zero for an area that was never filled in (1 ms)
+    √ is zero for a negative or unreadable area (1 ms)
+    √ reads a numeric string, because form data arrives as one (1 ms)
+    when the unit is missing or unknown
+      √ refuses, rather than printing a guess on a certificate (10 ms)
+      √ names the field, so the application can be corrected (1 ms)
+      √ does not refuse when there is no area to convert (1 ms)
+
+[32minfo[39m: [Certificate] Generating for App: app-1 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.119Z"}
+[33mwarn[39m: [Certificate] Application app-1 states no cultivation method. Leaving the farm's own value alone rather than recording OUTDOOR. {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.123Z"}
+[32minfo[39m: [Certificate] Farm reused for cert: farm-1 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.124Z"}
+[32minfo[39m: [Certificate] Created: GACP-TH-2569-8B8118 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.127Z"}
+[31merror[39m: [object Object] {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.128Z"}
+[32minfo[39m: [Certificate] Generating for App: app-2 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.135Z"}
+[33mwarn[39m: [Certificate] Application app-2 states no cultivation method. Leaving the farm's own value alone rather than recording OUTDOOR. {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.136Z"}
+[32minfo[39m: [Certificate] Farm created for cert: farm-1 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.137Z"}
+[32minfo[39m: [Certificate] Created: GACP-TH-2569-0FC638 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.138Z"}
+[31merror[39m: [object Object] {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.140Z"}
+[32minfo[39m: [Certificate] Generating for App: app-3 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.143Z"}
+[33mwarn[39m: [Certificate] Application app-3 states no cultivation method. Leaving the farm's own value alone rather than recording OUTDOOR. {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.144Z"}
+[32minfo[39m: [Certificate] Farm created for cert: farm-1 {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.145Z"}
+[32minfo[39m: [Certificate] Created: GACP-TH-2569-B8DB3F {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.146Z"}
+[31merror[39m: [object Object] {"service":"gacp-backend","timestamp":"2026-08-15T10:53:04.147Z"}
+PASS __tests__/unit/certificate-issuance-holder-wiring.test.js
+  M1 issuance holder wiring (F7 tripwire)
+    √ writes holder columns from the application entity and keeps the frozen person columns (17 ms)
+    √ falls back to the farm entity on the create path, and the create rides entity along (8 ms)
+    √ the reuse-by-address lookup rides entity along too (F9 mutant B) (7 ms)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'CERTIFICATE',
+      action: 'CERTIFICATE_SUSPENDED',
+      severity: 'WARNING',
+      error: 'this.prisma.$transaction is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-15T10:53:04.603Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at CertificateService._auditCertLifecycle (services/certificate-service.js:1290:13)
+      at CertificateService.suspendCertificate (services/certificate-service.js:1361:9)
+      at Object.<anonymous> (__tests__/unit/certificate-service.test.js:333:21)
+
+  console.error
+    [AUDIT_FALLBACK] {
+      category: 'CERTIFICATE',
+      action: 'CERTIFICATE_REINSTATED',
+      severity: 'WARNING',
+      error: 'this.prisma.$transaction is not a function',
+      code: null,
+      attempt: 1,
+      timestamp: '2026-08-15T10:53:04.647Z'
+    }
+
+    [0m [90m 530 |[39m
+     [90m 531 |[39m                 [90m// Fallback to console[39m
+    [31m[1m>[22m[39m[90m 532 |[39m                 console[33m.[39merror([32m'[AUDIT_FALLBACK]'[39m[33m,[39m {
+     [90m     |[39m                         [31m[1m^[22m[39m
+     [90m 533 |[39m                     category[33m,[39m action[33m,[39m severity[33m,[39m
+     [90m 534 |[39m                     error[33m:[39m error[33m.[39mmessage[33m,[39m
+     [90m 535 |[39m                     code[33m:[39m error[33m.[39mcode [33m||[39m [36mnull[39m[33m,[39m[0m
+
+      at AuditLogger.error [as log] (middleware/audit-logger.js:532:25)
+      at CertificateService._auditCertLifecycle (services/certificate-service.js:1290:13)
+      at CertificateService.reinstateCertificate (services/certificate-service.js:1404:9)
+      at Object.<anonymous> (__tests__/unit/certificate-service.test.js:364:21)
+
+PASS __tests__/unit/certificate-service.test.js
+  certificate-service.findById
+    √ returns null when id is empty without hitting Prisma (2 ms)
+    √ returns null when id is null without hitting Prisma (1 ms)
+    √ queries by id with isDeleted: false filter and NO userId predicate (2 ms)
+    √ returns null when Prisma returns null (soft-deleted or missing) (1 ms)
+    √ forwards include option to Prisma (e.g. application relation) (1 ms)
+    √ forwards select option to Prisma (column projection) (2 ms)
+    √ returns revoked certificates (REVOKED is a status, not a delete) (1 ms)
+  certificate-service.findById — tenant scoping (C3)
+    √ adds organizationId to the where when an organizationId is supplied (non-cross-tenant provider) (1 ms)
+    √ a tenant-A scoped lookup of a tenant-B cert returns null (Prisma where excludes it) (1 ms)
+    √ does NOT add organizationId when crossTenant is true (PLATFORM_ADMIN) (2 ms)
+    √ does NOT add organizationId when none is supplied (legacy/back-compat callers) (1 ms)
+  certificate-service.listCertificates — tenant scoping (C3)
+    √ scope=all + organizationId → where narrowed to that org (no userId) (2 ms)
+    √ scope=all + crossTenant:true (PLATFORM_ADMIN) → no organizationId filter (1 ms)
+    √ scope=self still narrows by userId (HEALTH owner) and ignores org filter (1 ms)
+  certificate-service.getCertificateForUser (ownership preserved)
+    √ returns null when certificateId is missing (1 ms)
+    √ returns null when userId is missing (1 ms)
+    √ queries with BOTH id, userId, and isDeleted filters (IDOR guard) (1 ms)
+  certificate-service.findCertificateForApplication (dedupe primitive)
+    √ returns null for empty applicationId without hitting Prisma (1 ms)
+    √ filters out soft-deleted AND revoked certs so a re-pass re-issues (#17) (1 ms)
+  certificate-service.revokeCertificateForApplication (audit-pass reversal)
+    √ returns null for empty applicationId without hitting Prisma (1 ms)
+    √ is a no-op (null) when no live cert exists for the application (1 ms)
+    √ voids the live cert: status=revoked + soft-delete + forensic fields (2 ms)
+    √ uses the provided transaction handle (opts.prisma) for atomicity (1 ms)
+    √ defaults revokedBy to 'system' and a generic reason when omitted (1 ms)
+  certificate-service.suspendCertificate
+    √ rejects a missing certificateId with VALIDATION_ERROR (1 ms)
+    √ requires a reason of at least 3 chars (ISO 17065 record of decision) (2 ms)
+    √ suspends an active cert: status→suspended, scoped to {id, status:active, isDeleted:false} (38 ms)
+    √ maps Prisma P2025 (no active row) to CERTIFICATE_NOT_SUSPENDABLE (13 ms)
+  certificate-service.reinstateCertificate
+    √ reinstates a suspended cert: status→active, scoped to {id, status:suspended, isDeleted:false} (6 ms)
+    √ maps Prisma P2025 (not suspended) to CERTIFICATE_NOT_REINSTATABLE (2 ms)
+
+PASS __tests__/unit/certificate-holder-resolver.test.js
+  M1 resolveHolderForIssuance
+    √ uses application entity displayName first (2 ms)
+    √ falls back to farm entity, then to person name as LEGACY_PERSON (1 ms)
+    √ never lets the providerId/SYSTEM leak into submittedByUserId (1 ms)
+
+Test Suites: 6 passed, 6 total
+Tests:       56 passed, 56 total
+Snapshots:   0 total
+Time:        4.651 s, estimated 16 s
+Ran all test suites matching /__tests__\\unit\\certificate-issuance-holder-wiring.test.js|__tests__\\unit\\certificate-service.test.js|__tests__\\unit\\certificate-holder-resolver.test.js|__tests__\\unit\\certificate-area-sqm.test.js|__tests__\\unit\\farm-entityid-stamp.test.js|__tests__\\integration\\provider-admin-planting-integrity.test.js/i.

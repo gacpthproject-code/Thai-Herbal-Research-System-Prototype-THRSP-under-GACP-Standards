@@ -1,0 +1,94 @@
+Round-2 mutants: each change makes the code wrong at one point; the named test must go red.
+Every file was restored byte-equal (cmp) and `git status` was empty after each set.
+
+## L1 (move script), on 3ff6e576f
+=== L1-m1 unlinkSource never refuses (condition replaced by false)
+    ✕ a public gacp-pdfs that is a symlink into the vault is not emptied: a file is never unlinked onto itself
+    ✕ a destination file that is a bind mount of the source is never unlinked
+Tests:       2 failed, 25 passed, 27 total
+(L1-m0, the condition before the fix, is the RED run of 30cba4b1d: the hard-link case red.)
+
+## L2 (public folder links), on c7fb6160d
+=== L2-m1 symlink check dropped
+    ✕ a symlink is refused even when it points at another lab report (13 ms)
+Tests:       1 failed, 4 passed, 5 total
+=== L2-m2 realpath check dropped
+    ✕ a file under a symlinked folder answers 404 and sends no bytes (26 ms)
+Tests:       1 failed, 4 passed, 5 total
+=== L2-m3 public paths unchecked (round-1 gate)
+    ✕ a symlink to a stored certificate copy answers 404 and sends no bytes (19 ms)
+    ✕ a symlink to a file outside the uploads root answers 404 and sends no bytes (10 ms)
+    ✕ a file under a symlinked folder answers 404 and sends no bytes (14 ms)
+    ✕ a symlink is refused even when it points at another lab report (10 ms)
+Tests:       4 failed, 1 passed, 5 total
+
+## L3 (nginx guard): live mutants injected into real config files, on 6d82d5d02
+=== N0 control
+Tests:       20 passed, 20 total
+=== N1 alias in a /uploads location
+    ✕ nginx/nginx.qa.conf: every location that can answer /uploads proxies it to the backend (18 ms)
+Tests:       1 failed, 19 passed, 20 total
+=== N2 root inside a ^~ /uploads location
+    ✕ nginx/nginx.qa.conf: every location that can answer /uploads proxies it to the backend (19 ms)
+Tests:       1 failed, 19 passed, 20 total
+=== N3 bare /uploads location inheriting a server-level root
+    ✕ nginx/nginx.qa.conf: every location that can answer /uploads proxies it to the backend (18 ms)
+Tests:       1 failed, 19 passed, 20 total
+=== N4 alternation regex location with root
+    ✕ nginx/nginx.qa.conf: every location that can answer /uploads proxies it to the backend (5 ms)
+Tests:       1 failed, 19 passed, 20 total
+=== N5 alias in a subfolder config nginx/conf.d/
+    ✕ nginx/conf.d/uploads-mutant.conf: every location that can answer /uploads proxies it to the backend (6 ms)
+Tests:       1 failed, 20 passed, 21 total
+=== N6 static-file regex under a server-level root captures /uploads/*.pdf
+    ✕ nginx/nginx.qa.conf: every location that can answer /uploads proxies it to the backend (11 ms)
+Tests:       1 failed, 19 passed, 20 total
+nginx/nginx.qa.conf restored byte-equal
+nginx/conf.d removed (it did not exist before)
+git status lines: 0
+
+## I5 (soft-deleted application, mint stranger), on fbc61148f
+=== I5-m1 (U4) isDeleted dropped on the ApplicationDocument lookup
+     12     +     "deletedDocument": "read",
+      1       ✕ GET /uploads/<file> with a session: every actor gets exactly its read model (3741 ms)
+      1       ✕ GET /uploads/<file> with a session: every actor gets exactly its read model (3974 ms)
+      1       ✕ POST /api/files/signed-url: the mint grants exactly what the session door grants (3489 ms)
+      1       ✕ POST /api/files/signed-url: the mint grants exactly what the session door grants (3498 ms)
+      1 Tests:       4 failed, 6 passed, 10 total
+=== I5-m2 isDeleted dropped on the CAR lookup
+      1 Tests:       10 passed, 10 total
+=== I5-m3 isDeleted dropped from isApplicationVisibleTo (staff)
+      1 Tests:       10 passed, 10 total
+=== I5-m4 (U2) health lookup unscoped
+    ✕ the user who uploaded it but is no longer a member → 404 (23 ms)
+    ✕ a member of another holder in another tenant → 404, though the document has an owner (16 ms)
+Tests:       2 failed, 8 passed, 10 total
+git status lines: 0
+=== I5-m0 extension off for Application only
+      1 Tests:       10 passed, 10 total
+=== I5-m5 extension off + isDeleted dropped on the CAR lookup
+     12     +     "deletedCar": "read",
+      1       ✕ GET /uploads/<file> with a session: every actor gets exactly its read model (2758 ms)
+      1       ✕ GET /uploads/<file> with a session: every actor gets exactly its read model (3475 ms)
+      1       ✕ POST /api/files/signed-url: the mint grants exactly what the session door grants (2425 ms)
+      1       ✕ POST /api/files/signed-url: the mint grants exactly what the session door grants (2666 ms)
+      1 Tests:       4 failed, 6 passed, 10 total
+=== I5-m6 extension off + isDeleted dropped from isApplicationVisibleTo
+     16     +     "deletedPhoto": "read",
+      1       ✕ GET /uploads/<file> with a session: every actor gets exactly its read model (2604 ms)
+      1       ✕ GET /uploads/<file> with a session: every actor gets exactly its read model (2825 ms)
+      1       ✕ POST /api/files/signed-url: the mint grants exactly what the session door grants (2595 ms)
+      1       ✕ POST /api/files/signed-url: the mint grants exactly what the session door grants (2721 ms)
+      1 Tests:       4 failed, 6 passed, 10 total
+git status lines: 0
+
+I5 reading: m2 and m3 stay green alone because services/soft-delete-extension.js adds
+isDeleted:false to every Application read, so each of those two filters is backed by the
+extension. With the extension also off (m5, m6) the new rows go red. The ApplicationDocument
+path (m1) has no such backing: its filter is a relation filter the extension does not add.
+
+## L1 after Jev's MEDIUM, on 48b606d47
+=== L1-m2 single-link check dropped (same-folder check only)
+    ✕ a destination file that is a bind mount of the source is never unlinked
+Tests:       1 failed, 27 passed, 28 total
+(dropping the same-folder check instead is the RED run of c365b8cba: the backup-link case red.)

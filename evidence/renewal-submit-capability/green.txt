@@ -1,0 +1,216 @@
+# GREEN — renewal requires SUBMIT_APPLICATION on the certificate holder
+# code: fix/renewal-submit-capability 00973803 (parent 34b2d924)
+# db: scratch postgres:17 on 127.0.0.1:55440, prisma migrate deploy, jest -i, SIGNING_KEY_DIR=mktemp
+# signing key mtime before/after every run: 1788623435 (unchanged)
+
+## Target suite — witness mode 'throw' (test default, not disabled)
+    ✓ VIEWER who filed the certificate is refused 403 and nothing is written (120 ms)
+    ✓ MANAGER without a SUBMIT_APPLICATION grant who filed the certificate is refused 403 and nothing is written (26 ms)
+    ✓ a non-member is refused (the existing owner check) and nothing is written (23 ms)
+    ✓ a certificate with no holder is refused 400 APPLICANT_ENTITY_MISSING and nothing is written (38 ms)
+    ✓ OWNER who filed the certificate gets 201 with exactly one new application and one new quotation (174 ms)
+    ✓ MANAGER with a SUBMIT_APPLICATION GRANT gets 201 (73 ms)
+Tests:       6 passed, 6 total
+
+## What changed and why the witness is clean
+- services/renewal-service.js: the certificate read selects application.entityId (the holder, via the
+  certificate's own relation; a nested select is not rewritten by the witness or the entity dimension).
+  Holder null -> 400 APPLICANT_ENTITY_MISSING (APPLICATION_HOLDER_REQUIRED does not exist on main;
+  APPLICANT_ENTITY_MISSING is main's code for "no legal applicant"). Otherwise
+  assertHolderCapability(actorId, holder, 'SUBMIT_APPLICATION') -> 403 ENTITY_PERMISSION_DENIED.
+  Both run after the existing cert.userId check and before any write.
+- R1 neutrality: on main the renewal path made 6 unscoped health reads (see red.txt Run A), which in
+  throw mode is a 500 for every caller. The renewals door now passes holderScope(req); the Certificate and
+  source-Application reads spread r1HolderOrLegacyWhenScoped(scope, model, { id }) — the legacy branch is the
+  row's own id beside the same id key, so the rows read are exactly main's rows (the holder filter cannot
+  hide the certificate). issueQuotationOnSubmit and getApplicationSlice get the same scope through their
+  existing holderScope parameters (the submit door's path). Callers with no scope keep the old where.
+- The kept cert.userId check: still blocks an OWNER of C who is not the original filer (403
+  FORBIDDEN_NOT_OWNER), as on main. Kept: removing it widens who may renew, which the ruling did not ask.
+
+## Unit suites adjusted to the new contract (stub prisma; the gate itself is proven above on real PG)
+renewal-service.test.js, renewal-fast-path.test.js, renewal-issues-quotation.test.js: certificate stub now
+carries application.entityId; holder-access stubbed to allow. Result: 64/65 pass; the 1 failure
+(renewal-fast-path "audit-trail row ... ADMIN_ALERT_NO_RECIPIENT") fails identically on main 34b2d924
+when a database is reachable (re-run on stashed main in this session).
+
+## Error-code pointers
+5 renewal-service pointers in shared/error-codes.js moved to their new lines; error-codes-source-pointers
++ error-codes-catalog: 18/18 pass.
+
+## Full backend suite, same scratch PG (fresh container + migrate per run), jest -i
+main   34b2d924: 970 suites, 11 failed suites, 12749 tests, 33 failed, 54 pending
+branch 00973803: 971 suites, 12 failed suites, 12755 tests, 39 failed, 54 pending
+failures on main not on branch: none
+failures on branch not on main: 6, all in unit/finance-paper-text-inside-print-margin.test.js —
+  puppeteer "Navigation timeout of 30000 ms exceeded" at page.setContent. Re-run alone: branch 6/6 pass
+  twice, main 6/6 pass twice. Order/load-dependent timeout, not this change (no finance/PDF file touched).
+=> no new failures.
+pending 54 = 54 on main (no new skip; probe no-skip PASS).
+
+## Probes (this worktree)
+ratchet PASS hardcode=26 todo=53 env-direct=101 dup-source=0 · retired-words PASS · no-skip PASS ·
+no-secret PASS (layer1 0 hits, gitleaks clean) · green-mask PASS (no net-new masks) ·
+check-thai-copy-style exits 1 on main too (pre-existing em-dash in canonical-application-validator.js:464).
+
+# ===== ROUND 1 — GREEN (commits 52b8d0e4 backend gate, 52fc3144 fee comment, 7a9beeae web copy) =====
+## related backend suites (real PG 55440, witness throw where the suite sets it)
+PASS __tests__/integration/draft-renewal-save-on-one-connection-real-postgres.test.js
+PASS __tests__/unit/error-codes-source-pointers.test.js
+PASS __tests__/unit/draft-door-writes-the-checked-law.test.js
+FAIL __tests__/unit/renewal-fast-path.test.js
+    ✕ an audit-trail row records the skip, the certificate and the entry state (13 ms)
+PASS __tests__/services/renewal-service.test.js
+PASS __tests__/unit/renewal-issues-quotation.test.js
+PASS __tests__/unit/law-dimensions-are-checked-before-written.test.js
+PASS __tests__/unit/a-renewal-inherits-the-plant-it-renews.test.js
+PASS __tests__/integration/holder-write-doors-witness-real-postgres.test.js
+PASS __tests__/integration/renewal-requires-submit-capability-real-postgres.test.js
+PASS __tests__/integration/draft-save-repeat-is-harmless-real-postgres.test.js
+PASS __tests__/integration/renewal-wizard-holder-gate-real-postgres.test.js
+PASS __tests__/integration/draft-explicit-id-routes-to-its-application-real-postgres.test.js
+PASS __tests__/unit/error-codes-catalog.test.js
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+PASS __tests__/unit/application-submit-guard.test.js
+PASS __tests__/unit/a-renewal-goes-straight-to-the-field.test.js
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+PASS __tests__/unit/certificate-revision-error-codes.test.js
+Tests:       1 failed, 192 passed, 193 total
+renewal-fast-path 1 failure = ADMIN_ALERT_NO_RECIPIENT, identical on main 34b2d924 (see round 0)
+## decisions
+- Draft door (POST /draft; there is no PATCH door): the refusal is a lawNotice + NEW reading,
+  HTTP 200, not a 4xx. application-law-dimensions.js documents a no-throw contract: the
+  autosave posts the whole wizard every few seconds, so a 4xx would drop the applicant's other
+  typed answers. The draft is not judged a RENEWAL (renewalOf stays null). Codes:
+  PREVIOUS_CERTIFICATE_OTHER_HOLDER (a) / PREVIOUS_CERTIFICATE_NO_SUBMIT_RIGHT (b).
+- Submit door: assertRenewalHolderMatches after assertSubmitAllowed, before any write -> 422
+  RENEWAL_HOLDER_MISMATCH (new catalog code; CERTIFICATE_HOLDER_MISMATCH means something else)
+  + APPLICATION_SUBMIT_DENIED audit. (b) at submit = assertSubmitAllowed on the draft's entity,
+  which equals the holder once (a) holds.
+- Renewals door: refusals now go through assertSubmitAllowed / recordSubmitDenial (same audit row).
+- Witness: the draft-door and submit-door certificate reads are scoped with the R1 helpers
+  (legacy branch = the number / id itself), 0 witness lines in the new suite.
+- Fixture fix: draft-renewal-save-on-one-connection gave the filer no membership in their own
+  entity; under the ruling that renewal is now refused, so the fixture gets an OWNER row.
+- No fee formula / state touched (L3). REPLACEMENT claims are not gated (ruling names renewal).
+## full backend suite, branch 7a9beeae vs main 34b2d924 (same scratch PG, jest -i)
+main suites 970 failedSuites 11 tests 12749 failed 33 pending 54
+branch-r1 suites 972 failedSuites 11 tests 12769 failed 33 pending 54
+failing set identical (0 new, 0 fixed). key mtime 1788623435 before/after.
+## web
+Test Suites: 438 passed, 438 total
+Tests:       3628 passed, 3628 total
+tsc --noEmit: exit 0 (after narrowing the envelope arg)
+## probes: ratchet 26/53/101/0 PASS · no-skip PASS · green-mask PASS · thai-copy 86 hits = 86 on main
+
+# ===== ROUND 1b — GREEN (836e1c97) =====
+      ✓ X is a MANAGER of C without the grant: the C draft is not judged a RENEWAL (58 ms)
+      ✓ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a RENEWAL (83 ms)
+      ✓ X is OWNER of C, draft under C: RENEWAL accepted, and submit takes its path (317 ms)
+        ✓ the draft door does not judge the P draft a RENEWAL of C's certificate (240 ms)
+        ✓ a P draft already judged a RENEWAL of C's certificate is refused at submit: no state change, no quotation (118 ms)
+        ✓ the draft door does not judge the P draft a RENEWAL of C's certificate (64 ms)
+        ✓ a P draft already judged a RENEWAL of C's certificate is refused at submit: no state change, no quotation (90 ms)
+      ✓ X is a MANAGER of C without the grant: the C draft is not judged a REPLACEMENT (58 ms)
+      ✓ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a REPLACEMENT (99 ms)
+      ✓ X is OWNER of C, draft under C: REPLACEMENT accepted, and submit takes its path (243 ms)
+        ✓ the draft door does not judge the P draft a REPLACEMENT of C's certificate (49 ms)
+        ✓ a P draft already judged a REPLACEMENT of C's certificate is refused at submit: no state change, no quotation (107 ms)
+        ✓ the draft door does not judge the P draft a REPLACEMENT of C's certificate (69 ms)
+        ✓ a P draft already judged a REPLACEMENT of C's certificate is refused at submit: no state change, no quotation (125 ms)
+Tests:       14 passed, 14 total
+## related suites
+FAIL __tests__/unit/renewal-fast-path.test.js
+    ✕ an audit-trail row records the skip, the certificate and the entry state (47 ms)
+PASS __tests__/integration/renewal-wizard-holder-gate-real-postgres.test.js
+PASS __tests__/integration/holder-write-doors-witness-real-postgres.test.js
+PASS __tests__/unit/error-codes-catalog.test.js
+PASS __tests__/integration/renewal-requires-submit-capability-real-postgres.test.js
+PASS __tests__/integration/draft-save-repeat-is-harmless-real-postgres.test.js
+PASS __tests__/integration/draft-explicit-id-routes-to-its-application-real-postgres.test.js
+PASS __tests__/unit/law-dimensions-are-checked-before-written.test.js
+PASS __tests__/unit/m1-submit-guard-doors.test.js
+PASS __tests__/integration/draft-renewal-save-on-one-connection-real-postgres.test.js
+PASS __tests__/unit/renewal-single-charge-billing.test.js
+PASS __tests__/unit/renewal-issues-quotation.test.js
+PASS __tests__/unit/draft-door-writes-the-checked-law.test.js
+PASS __tests__/services/renewal-service.test.js
+PASS __tests__/unit/a-renewal-inherits-the-plant-it-renews.test.js
+PASS __tests__/unit/quotation-gate-error-codes.test.js
+PASS __tests__/unit/application-submit-guard.test.js
+PASS __tests__/unit/a-renewal-goes-straight-to-the-field.test.js
+PASS __tests__/unit/error-codes-source-pointers.test.js
+PASS __tests__/unit/certificate-revision-error-codes.test.js
+Tests:       1 failed, 219 passed, 220 total
+(renewal-fast-path ADMIN_ALERT_NO_RECIPIENT = same on main)
+## decisions
+- Draft door: (a)+(b) now apply to RENEWAL and REPLACEMENT; refusal = 200 + lawNotice, NEW, replacementOf null.
+- Submit: assertRenewalHolderMatches gates any succession claim read the way the requirement
+  engine / quotation-service read it (requestType RENEWAL|REPLACEMENT, or a renewalOf /
+  replacementOf link); every linked certificate's holder must equal the filing's entityId;
+  a claim naming no certificate is refused. Same 422 RENEWAL_HOLDER_MISMATCH + audit.
+- No dedicated replacement route exists (only renewals.js), so nothing else to gate.
+- Other claim types grepped (services/routes/shared/modules): previousCertNumber is a stored
+  column only, nothing keys law/price off it; 'AMENDMENT' appears only as a label in
+  routes/api/system/config.js:224; 'OWNERSHIP_TRANSFER' is entity ownership, not a filing.
+  No other filing references another certificate/application this way.
+## full backend suite (same scratch PG, jest -i)
+main suites 970 failedSuites 11 tests 12749 failed 33 pending 54
+branch-r1b suites 972 failedSuites 11 tests 12778 failed 33 pending 54
+failing set identical to main (0 new). key mtime 1788623435 unchanged.
+## web
+Test Suites: 438 passed, 438 total
+Tests:       3628 passed, 3628 total
+tsc exit 0
+## probes: ratchet 26/53/101/0 · no-skip · no-secret · retired-words · green-mask PASS
+
+# ===== ROUND 2 — GREEN (d60b2fcd) =====
+      ✓ X is a MANAGER of C without the grant: the C draft is not judged a RENEWAL (38 ms)
+      ✓ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a RENEWAL (52 ms)
+      ✓ X is OWNER of C, draft under C: RENEWAL accepted, and submit takes its path (217 ms)
+        ✓ the draft door does not judge the P draft a RENEWAL of C's certificate (206 ms)
+        ✓ a P draft already judged a RENEWAL of C's certificate is refused at submit: no state change, no quotation (84 ms)
+        ✓ the draft door does not judge the P draft a RENEWAL of C's certificate (48 ms)
+        ✓ a P draft already judged a RENEWAL of C's certificate is refused at submit: no state change, no quotation (68 ms)
+      ✓ X is a MANAGER of C without the grant: the C draft is not judged a REPLACEMENT (44 ms)
+      ✓ X is a MANAGER of C with a SUBMIT_APPLICATION grant: the C draft is judged a REPLACEMENT (42 ms)
+      ✓ X is OWNER of C, draft under C: REPLACEMENT accepted, and submit takes its path (152 ms)
+        ✓ the draft door does not judge the P draft a REPLACEMENT of C's certificate (36 ms)
+        ✓ a P draft already judged a REPLACEMENT of C's certificate is refused at submit: no state change, no quotation (62 ms)
+        ✓ the draft door does not judge the P draft a REPLACEMENT of C's certificate (41 ms)
+        ✓ a P draft already judged a REPLACEMENT of C's certificate is refused at submit: no state change, no quotation (69 ms)
+      ✓ /prepare cannot carry a RENEWAL of C's certificate to P: the draft stays under C (R1) and a holder change is re-judged (100 ms)
+      ✓ a P draft still carrying a RENEWAL of C's certificate is refused at BUNDLE submit: 422, no state change, audit row (74 ms)
+      ✓ /prepare cannot carry a REPLACEMENT of C's certificate to P: the draft stays under C (R1) and a holder change is re-judged (75 ms)
+      ✓ a P draft still carrying a REPLACEMENT of C's certificate is refused at BUNDLE submit: 422, no state change, audit row (57 ms)
+Tests:       18 passed, 18 total
+(+ audit metadata.permission = CERTIFICATE_HOLDER_MATCH asserted on the bundle refusals; final run 23/23 with source-pointer test)
+## every path that moves a filing out of DRAFT (or resubmits) and its guard
+- POST /api/applications/submit (applications.js) -> assertSubmitAllowed (+ holder rule inside)
+- POST /api/applications/bundles/:id/submit (application-bundles.js) -> assertSubmitAllowed per case
+- PUT /api/applications/:id/revision (application-workflow-handlers.js; submitRevision accepts DRAFT) -> assertSubmitAllowed
+- resubmits: PUT revision-deadline/:id/submit (revision-deadline.js), POST /:id/car (applications-car.js) -> assertSubmitAllowed
+- POST /api/applications/renewals: creates the renewal itself under the certificate's holder (by construction) -> assertSubmitAllowed on the holder
+- application-draft-query-methods.submitApplication (saveDraft status SUBMITTED): no caller in routes/services (dead)
+All five doors pass holderScope so the certificate read is witness-clean.
+## /prepare
+- On an entityId change it re-judges the stored claim against the new holder (rejudgeClaimForHolder,
+  same rules as the draft door); failing -> NEW, links cleared, lawNotice in the response.
+- Under R1 a draft is only found under its own holder (test pins 404 + draft unchanged); the
+  re-judge itself is proven on the real client/real certificate (C->P refused, C->C kept).
+## other doors that change entityId: only null-holder heals (findOrCreate, bundles, CAR,
+   revision, revision-deadline, renewals). They never move a non-null holder; the submit guard
+   catches a healed draft whose claim names another holder's certificate.
+## related suites (55 files)
+Tests:       4 failed, 559 passed, 563 total
+(4 failures in that run: 2 = metadata JSON-string assertion, fixed; 1 = source pointer, fixed; 1 = renewal-fast-path ADMIN_ALERT_NO_RECIPIENT, same on main)
+## full backend suite (scratch PG, jest -i)
+main suites 970 failedSuites 11 tests 12749 failed 33 pending 54
+branch-r2 suites 972 failedSuites 12 tests 12782 failed 35 pending 54
+2 extra failures, both r1-application-reads-neutral-real-postgres: read-doors test hit the 30 s timeout under full-suite load, and the write-doors test then read the map the timed-out test was still filling. Re-run alone: branch 2/2 twice (16.7 s, 13.8 s), main 2/2. Timing flake, no new failure.
+key mtime 1788623435 unchanged.
+## web
+Test Suites: 438 passed, 438 total
+Tests:       3628 passed, 3628 total
+tsc exit 0
+## probes: ratchet 26/53/101/0 · no-skip · no-secret · retired-words · green-mask PASS · error-code catalog validate OK

@@ -1,0 +1,44 @@
+{
+  "workItem": "R-HOTFIX-PDPA",
+  "recordedAt": "2026-08-04T00:55:00Z",
+  "recordedBy": "orchestrator (รันเอง ไม่ได้คัดลอกจากรายงาน sub-agent)",
+  "branch": "fix/remove-dead-erasure-fallback",
+  "commit": "c121fb91",
+  "baseCommit": "00445dba",
+  "probes": [
+    {
+      "name": "ratchet",
+      "command": "bash scripts/probes/ratchet.sh",
+      "exit": 0,
+      "status": "PASS",
+      "counters": { "hardcode": 43, "todo": 59, "env-direct": 169, "dup-source": 4 },
+      "baseline": { "hardcode": 43, "todo": 59, "env-direct": 169, "dup-source": 4 },
+      "note": "ดู ratchet-before-after.txt — วัดทั้งสองฝั่งเอง delta = 0"
+    },
+    {
+      "name": "evidence-complete",
+      "command": "WORK_ITEM=R-HOTFIX-PDPA bash scripts/probes/evidence-complete.sh",
+      "exit": 1,
+      "status": "FAIL ที่รอบ audit → แก้ในคอมมิตนี้",
+      "note": "auditor พบว่าขาด probe-results.json + ratchet-before-after.txt (scripts/probes/evidence-complete.sh:8) ขาดมาก่อนแล้วบน origin/main ไฟล์นี้กับ ratchet-before-after.txt คือการปิดช่อง"
+    },
+    {
+      "name": "no-secret",
+      "command": "bash scripts/probes/no-secret.sh",
+      "exit": 2,
+      "status": "BLOCKED(operator:secret-scanner)",
+      "note": "พฤติกรรมที่ถูกต้องตาม Law 3.3 ฉบับแก้ (#740): เครื่อง dev ไม่มี deep scanner ⇒ ต้อง fail-loud ห้าม PASS เงียบ · ชั้นที่รันจริงคือ CI job Secret Scanning (TruffleHog) ซึ่งเขียวบน PR #743"
+    }
+  ],
+  "suite": {
+    "note": "เครื่อง dev มี uuid 11.1.1 แต่ jest.config.cjs ยัง map ไป layout v9 (แก้อยู่ใน PR #742) จึงวัด A/B ทั้งสองฐาน",
+    "runs": [
+      { "tree": "origin/main @ 00445dba", "passed": 6813, "failed": 36, "skipped": 68 },
+      { "tree": "branch นี้ (ฐานเดียวกับ main)", "passed": 6813, "failed": 36, "skipped": 68 },
+      { "tree": "branch #742 (fix/pin-uuid-and-jest-mapper)", "passed": 7142, "failed": 1, "skipped": 68 },
+      { "tree": "branch นี้ + #742 merged", "passed": 7142, "failed": 1, "skipped": 68 }
+    ],
+    "delta": "ดิฟนี้เพิ่ม failure 0 ตัวบนทั้งสองฐาน",
+    "remainingFailure": "__tests__/unit/dataset-export-service.test.js (Prisma.dmmf) — pre-existing"
+  }
+}

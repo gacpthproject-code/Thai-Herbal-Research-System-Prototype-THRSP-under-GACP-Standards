@@ -1,0 +1,1196 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main]
+  # On-demand staging deploy. Until this existed, `deploy-staging` fired only on
+  # a push to main, so there was no way to put a branch on staging to demo or to
+  # run the acceptance suites against it before merging. Build the branch's image
+  # first via the Build & Push Container Images workflow (it tags
+  # `type=ref,event=branch` and `sha-<sha>`), then dispatch this with that tag.
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Image tag to deploy to staging (e.g. main-latest, sha-abc1234, or a branch name)'
+        required: false
+        default: 'main-latest'
+
+env:
+  NODE_VERSION: '24.x'
+
+jobs:
+  system-integrity:
+    name: System Integrity Check
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Run system integrity check
+        run: node scripts/system-integrity-check.js
+
+      # A cross-tenant IDOR in the support-ticket routes came from reading two
+      # fields that look right and are not: `req.user.userId` (does not exist —
+      # an undefined value in a Prisma `where` is DROPPED, so a filter meant to
+      # narrow to one applicant returned every row) and the raw `req.user.role`
+      # column, which is "HEALTH" while the canonical vocabulary is lowercase,
+      # making `role === 'health'` dead code that always allowed. One direction:
+      # identity -> req.user.id, authorization -> req.user.canonicalRole.
+      - name: Identity/role field gate
+        run: node scripts/ci/check-identity-field-usage.js
+
+      # Blocks any reintroduction of a specific, documented list of foreign
+      # services (Google Maps, Firebase, Google Fonts, ...) each removed for
+      # its own concrete harm. Runs in the gate every other job depends on,
+      # and scans Dart and YAML as well as TS/JS — the jest suites cannot
+      # reach those.
+      - name: Third-party services gate
+        run: node scripts/ci/check-third-party-services.js
+
+      # The farm address on an application is what an auditor drives to. No
+      # government body has attested to the shipped dataset, so this gate is
+      # what guarantees a future update stays coherent — no orphans, no
+      # duplicates, no province whose dropdown is a dead end.
+      # See apps/backend/data/source/PROVENANCE.md.
+      - name: Thai administrative data gate
+        run: node scripts/ci/check-thai-locations.js
+
+      # Five ตำบล rows were corrected after cross-checking them against more
+      # than one independent transcription — two of them because an อำเภอ name
+      # was occupying a ตำบล slot, so those farmers could not enter their own
+      # address. This asserts the shipped file still carries those corrections;
+      # without it a rebuild could revert them while the corrections file sits
+      # alongside looking applied.
+      - name: Thai administrative data corrections gate
+        run: node scripts/data/apply-thai-locations-corrections.js --check
+
+  lint:
+    name: Lint & Format
+    runs-on: [self-hosted, linux]
+    needs: system-integrity
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run ESLint
+        # Backend lint flipped to REQUIRED on 2026-05-04 — error count was
+        # 221 (mostly `curly` rule) before the cleanup; now 0 errors / 66
+        # warnings. Warnings are mostly intentional `_error` no-prefix and
+        # the `gacp/no-direct-audit-or-notification-write` rule still in
+        # `warn` ratchet stage (see eslint.config.js comment).
+        working-directory: apps/backend
+        run: npm run lint --if-present
+
+      - name: Check Prettier formatting
+        working-directory: apps/backend
+        continue-on-error: true
+        run: npx prettier --check "**/*.js" --ignore-path .gitignore
+
+      # Two typographic rules from .claude/skills/thai-ui-copy: Thai separates
+      # clauses with a space rather than an em dash, and ไม้ยมก takes a space
+      # before it. Both had drifted back into shipped copy because nothing
+      # checked them.
+      #
+      # It lives in this job rather than system-integrity because it parses
+      # TS/TSX with the TypeScript compiler, and system-integrity runs
+      # `node scripts/...` without installing anything. Reading only string
+      # literals and JSX text is what keeps it honest: an em dash in an English
+      # code comment is not a finding, and the naive grep reported 101 files
+      # where the real issues lived in far fewer.
+      - name: Thai copy style gate
+        run: node scripts/ci/check-thai-copy-style.js
+
+      # Copy the app never reads is copy the app cannot translate: the English
+      # key at the same path goes unread too, so a user who picked English is
+      # served Thai. Lives in this job for the same reason as the gate above —
+      # it resolves `dict.a.b` chains, `t('a.b.c')` paths and direct dictionary
+      # imports with the TypeScript compiler, which needs dependencies present.
+      - name: i18n reachability ratchet
+        run: node scripts/ci/check-i18n-reachability.js
+
+  # Frontend lint — flipped to REQUIRED on 2026-05-04 (audit Wave D).
+  # apps/web-app warning count is now 1 (was 333 in 2026-03-02 baseline,
+  # then ~150 mid-cleanup). Well under the script's --max-warnings=50
+  # ceiling, so the gate is safe to enforce. The remaining single warning
+  # is `@next/next/no-img-element` on the audit-document preview viewer
+  # (`provider/audits/[id]/audit-application-tab-panel.tsx:168`) — kept
+  # by design because the source URL is an arbitrary upload host that
+  # next/image cannot optimize without `images.remotePatterns` plus a
+  # rewrite of the zoom/rotate transform.
+  lint-frontend:
+    name: Frontend Lint
+    runs-on: [self-hosted, linux]
+    needs: system-integrity
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run ESLint (web-app)
+        # No --if-present — pnpm forwards unknown flags to the script,
+        # and eslint rejects --if-present as an invalid option. The
+        # web-app `lint` script always exists, so the flag is moot.
+        run: pnpm --filter web-app run lint
+
+      - name: TypeScript check (web-app)
+        working-directory: apps/web-app
+        run: npx tsc --noEmit
+
+      # FU-3 (full-system audit area J, 2026-07-07): the TH/EN dictionary-parity
+      # suite existed but NEVER ran in CI (this job ran only lint + tsc), so a
+      # key added to one language could silently ship untranslated. The run was
+      # narrowed to src/lib/i18n to dodge "known local-env-flaky app suites".
+      #
+      # 2026-07-26: those suites were not flaky. The `test` script carried
+      # --experimental-vm-modules, which loads every test file as an ES module;
+      # 62 of the 218 use __dirname or require() and therefore threw at LOAD
+      # time. Dropping the flag takes the suite from 113/218 suites failing to
+      # 218/218 passing, and from 1140 to 1780 tests actually executed — 518
+      # tests had never run even once. With the suite green there is no reason
+      # for CI to look at a tenth of it, so the filter is gone. (The narrowed
+      # step was also red in its own right: the src/lib/i18n glob picked up
+      # i18n-policy-doc.test.ts, which threw the same __dirname error.)
+      - name: Web-app jest suite (full)
+        working-directory: apps/web-app
+        run: npm test -- --no-coverage
+
+      # Keeps the runner flag and jest.config.mjs from drifting back into a
+      # half-ESM state where suites fail to load and report as fewer tests
+      # rather than as failures.
+      - name: Jest module-mode gate (web-app)
+        run: node scripts/ci/check-webapp-jest-module-mode.js
+
+      # Full-system audit area J (2026-07-11): the mojibake/encoding scanner
+      # existed (npm run check:encoding) but ran ONLY in the manual verify:build
+      # chain — never in CI. A PR introducing CP1252-mangled Thai (e.g.
+      # "à¹€à¸­à¸") could merge green and reach the farmer-facing UI. Wire the
+      # sibling of the dict-parity gate so garbled Thai is caught automatically.
+      - name: Mojibake / encoding gate
+        run: node scripts/ci/check-mojibake-encoding.js
+
+      # Full-system audit follow-up (2026-07-24): both gates existed as npm
+      # scripts but never ran in CI, so violations accumulated silently
+      # (52 banner lines, 54 stray emoji, one legacy brand term — all cleaned
+      # up when this was wired). Repo-wide, dependency-free node scripts —
+      # same class as the mojibake gate above.
+      - name: Banned terms gate
+        run: npm run check:banned-terms
+
+      - name: AI style smells gate
+        run: npm run check:ai-style
+
+  # Full-system audit follow-up (2026-07-24): the API-mocked portal journeys
+  # under apps/web-app/playwright (farmer / auditor / DTAM staff / payment /
+  # renewal / VAT flows) only ever ran by hand, so selector and route drift
+  # shipped undetected. Every backend call is mocked via page.route, so the
+  # job needs only the Next.js dev server — no postgres/redis/backend.
+  # --no-deps skips the `setup` project (live-backend login) that the
+  # chromium project depends on; the mock specs handle auth themselves.
+  mock-journeys:
+    name: Mock Journeys (web-app)
+    runs-on: [self-hosted, linux]
+    needs: system-integrity
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright browsers
+        # Scoped bootstrap (same rationale as the e2e jobs): the workspace
+        # install keeps --ignore-scripts for supply-chain safety.
+        run: pnpm --filter web-app exec playwright install --with-deps chromium
+
+      - name: Start Next.js dev server
+        working-directory: apps/web-app
+        run: |
+          npm run dev > dev-server.log 2>&1 &
+          for i in {1..60}; do
+            if curl -sf http://localhost:3000 >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Dev server failed to start"
+          cat dev-server.log
+          exit 1
+
+      - name: Run API-mocked Playwright journeys + accessibility gate
+        working-directory: apps/web-app
+        env:
+          E2E_BASE_URL: http://localhost:3000
+        # Wave 3 fixed every serious axe finding (contrast, dl structure,
+        # topbar overflow), so the accessibility scan is now part of the
+        # HARD gate — a new serious violation on the 5 core surfaces fails
+        # this job, same as any journey-contract drift.
+        run: npx playwright test playwright/ --project=chromium --no-deps --reporter=line
+
+      - name: Upload Playwright artifacts on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: mock-journeys-artifacts
+          path: |
+            apps/web-app/playwright-report
+            apps/web-app/test-results
+            apps/web-app/dev-server.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+  # ─────────────────────────────────────────────
+  # Tier-2 preventive control: workflow script-path validator.
+  # Catches stale `node scripts/...` references in workflows BEFORE merge.
+  # No deps, no install — just node + a small file walk. Real gate.
+  # ─────────────────────────────────────────────
+  workflow-paths-check:
+    name: Workflow Paths Check
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate every workflow's script references resolve
+        run: node scripts/ci/validate-workflow-paths.js
+
+  # NOTE: The previous `prisma-drift-check` job that lived here was redundant.
+  # `migration-drift-check` (further down in this file) does the same thing
+  # correctly — it provisions a postgres service container and passes
+  # `--shadow-database-url` to `prisma migrate diff`, which is required when
+  # diffing `--from-migrations` against `--to-schema-datamodel`. The old job
+  # never had a shadow DB and so always exited 1 with the message
+  # "You must pass the --shadow-database-url ...", which masqueraded as
+  # advisory drift but was actually unable to run at all. Deleted to remove
+  # the misleading red ❌ from every PR's check list.
+
+  # Enforcement guardrails — auth/RBAC/schema convention drift detector.
+  # Real gate (no continue-on-error). Folded into Build Success.
+  enforcement-guardrails:
+    name: Enforcement Guardrails
+    runs-on: [self-hosted, linux]
+    needs: system-integrity
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run enforcement guardrails
+        env:
+          # G-06 runs `prisma validate` which requires the env var to exist;
+          # it does not actually connect to a database.
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+        run: node scripts/ci/check-enforcement-guardrails.js
+
+      # Anti green-mask ratchet: no PR may add a status assertion that accepts
+      # both a 2xx and a 4xx/5xx (passes whether the hop worked or failed). The
+      # known masks are grandfathered in green-mask-baseline.json and can only be
+      # burned down (UAT-01), never added to. (HARNESS 2026-08-05.)
+      - name: Run green-mask assertion ratchet
+        run: node scripts/ci/check-green-mask-assertions.js
+
+      # Probe gate — the FIRST time HARNESS.md §4's probe registry is enforced by
+      # CI at all. Until this step existed, no workflow invoked check-done.sh or
+      # anything under scripts/probes/: the only references anywhere under
+      # .github/ were two CODEOWNERS ownership lines, and session-check.sh printed
+      # a CACHED probe-results.json rather than re-running. CLAUDE.md:29 and
+      # HARNESS.md:60 both promised "CI fail" on a ratchet increase; neither could
+      # happen.
+      #
+      # Which probes run here is decided in scripts/probes/probe-registry.txt, one
+      # signed line per probe. Waivers and temporary parkings MUST carry an expiry
+      # date; an expired one fails this step rather than warning forever. A probe
+      # file with no registry line also fails it, which is what closes the
+      # "checker exists but nothing runs it" class generically.
+      - name: Probe gate (HARNESS.md registry)
+        run: node scripts/ci/probe-gate.js
+
+  # apps/mobile-app ships 17 Dart test files and a large lib/, and nothing in
+  # this pipeline ever compiled any of it. Dart changes were merged on review
+  # plus one JS parity test that reads health_dashboard_stage.dart as text —
+  # useful, but it cannot know whether the file compiles. PR #704 flagged the
+  # gap in writing; this closes it.
+  #
+  # `flutter test` is hermetic here: apps/mobile-app/dart_test.yaml tags the
+  # network integration tests `live` and skips them by default, so no step
+  # below reaches the real backend.
+  flutter:
+    name: Flutter Analyze & Test
+    runs-on: [self-hosted, linux]
+    needs: system-integrity
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          # Pinned to a channel rather than a version so a patch release does
+          # not silently change what the analyzer accepts.
+          channel: stable
+          cache: true
+
+      - name: Install packages
+        working-directory: apps/mobile-app
+        run: flutter pub get
+
+      # Errors only, for now. apps/mobile-app/analysis_options.yaml now
+      # includes the flutter_lints rule set — the package had been in
+      # dev_dependencies doing nothing — so the analyzer has rules to apply
+      # for the first time. What it has never had is a run: there is no
+      # Flutter SDK in the authoring environment, so the size of the backlog
+      # those rules expose is unknown. Failing the build on it blind would
+      # mean a red pipeline nobody can size. This step keeps the property
+      # that already holds: Dart that does not analyse cannot merge.
+      - name: Analyze
+        working-directory: apps/mobile-app
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      # The measurement. Same analyzer, full strictness, output kept and the
+      # job allowed to continue — so the next iteration reads the real
+      # backlog off a real run instead of guessing at it. When this step
+      # reports clean, its flags move up to the blocking step above and this
+      # one is deleted.
+      - name: Analyze (strict, reporting only)
+        working-directory: apps/mobile-app
+        continue-on-error: true
+        run: flutter analyze --fatal-infos --fatal-warnings
+
+      - name: Test
+        working-directory: apps/mobile-app
+        run: flutter test
+
+  test:
+    name: Test
+    runs-on: [self-hosted, linux]
+    needs: lint
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: gacp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Generate Prisma Client
+        working-directory: apps/backend
+        run: npx prisma generate
+
+      - name: Run database migrations
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/gacp_test
+        run: npx prisma migrate deploy
+
+      # Curated subset — same surface as production.yml release-test-gate
+      # so what passes here also passes on tag. The full jest suite's
+      # integration tests need a seeded DB (CI only runs `migrate deploy`),
+      # so this stays a curated list; it is EXPANDED as suites are stabilised.
+      # 2026-08-03: added the two REAL-Postgres integration suites
+      # (cert-issuance-atomicity-be-t1 / optimistic-lock-wf-f7). They were the
+      # only two tests in the repo that talk to a live database, and because
+      # they were absent from this pattern they had never actually executed —
+      # they self-skip via `HAS_DB = Boolean(process.env.DATABASE_URL)`, so a
+      # local run without a DB reported them as "skipped" and a CI run never
+      # selected them at all. Nothing else was missing: this job has had a
+      # postgres:15 service, DATABASE_URL, `prisma generate` and
+      # `prisma migrate deploy` all along. Both suites are self-seeding
+      # (they create their own organization/user/application with a
+      # timestamp+random suffix) and clean up in afterEach/afterAll scoped to
+      # their own ids, so they need no seed script and cannot collide.
+      # 2026-08-04: added integration/identity-links (AUTH-01-A). Self-seeding
+      # and cleaned up the same way; it is the DB-side proof of the
+      # identity_links EXPAND (backfill / UNIQUE / CHECK / CASCADE / one user
+      # holding several providers without touching users_single_identity_ck).
+      # The suite-count guard below moved 3 -> 4 in the same commit.
+      # 2026-06-24: added the 7 mock-based suites stabilised in the debug sweep
+      # (two-money-flow-contract / error-codes-catalog / tenant-scope-drift /
+      # daily-cash / bank-reconciliation / admin-routes-rbac / provider-admin-shim)
+      # — all mock prisma (no seed dependency) so they run identically in CI.
+      # This closes the gap where #532 broke two-money-flow-contract undetected.
+      # 2026-07-27: added 6 more mock-based suites. A full-suite run on main
+      # found all six red while every CI check was green — they simply were not
+      # in this pattern. Five were stale partial mocks that stopped matching the
+      # code (a prisma mock ignoring `where.canonicalId`; mocks missing
+      # `$transaction`, `statusTransitionAuditHook`, `verifyCertificateSignature`;
+      # an exact-select assertion broken by an unrelated added column) and one
+      # was real schema drift (survey.prisma models absent from the soft-delete
+      # registry). All six mock prisma, so they run identically here.
+      - name: Run backend test gate (curated subset)
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/gacp_test
+          JWT_SECRET: test-secret-key-for-ci
+          ENCRYPTION_KEY: ci-test-encryption-key-32chars!!
+          NODE_ENV: test
+        run: |
+          npx jest --config jest.config.cjs \
+            --testPathPatterns '__tests__/(simple|tenant-context|crypto-service|security-nonce|unit/applications-draft|unit/provider-legacy|integration/mfa-roundtrip|integration/mfa-challenge-binding|integration/mfa-verify-guards|unit/mint-mfa-challenge-token|unit/health-profile-email-set|unit/two-money-flow-contract|unit/error-codes-catalog|unit/tenant-scope-drift|unit/daily-cash-report-service|unit/bank-reconciliation-service|unit/admin-routes-rbac|unit/provider-admin-shim-rbac|unit/audit-scheduling-service|unit/soft-delete-registry-drift|unit/canonicalid-rekey-stage0|unit/closed-reason-reserved-slots|integration/production-smoke|integration/admin-batch-assign-validation|integration/provider-cms-workflow|integration/bundle-terminal-integrity|integration/cert-issuance-atomicity-be-t1|integration/optimistic-lock-wf-f7|integration/pdpa-retention-legal-hold|integration/identity-links|integration/correction-deadline-expired-be|integration/payment-closure-be|integration/tenant-isolation-cross-org-be|integration/correction-append-only-be|integration/staff-chain-assign-then-see|integration/staff-scope-contract|integration/public-scan-scope-contract|integration/officer-review-round-trip|integration/farmer-tnt-flow|integration/both-public-scan-paths-agree|integration/tnt-scope-contract|integration/farmer-keeps-sight-of-own-cycles|integration/qr-only-after-certificate|unit/public-farm-projection|unit/planting-requires-certificate)' \
+            --no-coverage --forceExit
+
+      # 2026-09-06: added the three scope contracts written this session
+      # (staff-chain-assign-then-see / staff-scope-contract /
+      # public-scan-scope-contract). They are the executable form of three
+      # questions the operator asked — what a staff member may see, what an
+      # anonymous scan may see, and whether work assigned to someone reaches
+      # their own list — and the first of them exists because that last one was
+      # BROKEN and no unit test could see it: the bug lived between a door that
+      # wrote what it said it wrote and a filter that read what it said it read.
+      # A contract that never runs is a comment, so they go in the curated list
+      # AND in the did-they-really-run guard below; the suite count moves 8 -> 13.
+      # officer-review-round-trip joins them: it walks the whole document-review cycle
+      # (accept one, ask for another, farmer sees only the ask, resubmit refused while
+      # stale, accepted once fixed, then the decision) through the real routers.
+      # farmer-tnt-flow covers the grower's own side: a plot is born with its permanent
+      # code (a Prisma extension no mock can see), the data behind the public QR stops
+      # being editable at the cut while `notes` does not, and a COA is a file on the
+      # BATCH rather than a number anyone types.
+      # both-public-scan-paths-agree joins them 2026-09-06, and it is the reason the
+      # others were not enough: the public scan has TWO doors, and every contract above
+      # tested the one the buyer does NOT open. The page a QR on a bag leads to calls
+      # GET /api/trace/lot/:id, which had its own hand-written projection — so the ruling
+      # that opened the address and the COA was true on one door and false on the other,
+      # and the same buyer scanning the same bag got different answers depending on which
+      # way the QR sent them. It drives BOTH doors' real handlers against real rows.
+      # tnt-scope-contract is the operator's 2026-09-05 T&T ruling in machine form: a
+      # staff member sees planting cycles on farms nobody assigned to them ("ฟาร์มทุกประเทศ"),
+      # can still narrow to one farm, carries no grower PII in that list, and a farmer asking
+      # about someone else's farm gets an answer that does not confirm it exists. Proved
+      # against a real database and mutation-proved both ways: scoping the staff list to
+      # assignments turns it red, and adding the owner to the projection turns it red.
+      # farmer-keeps-sight-of-own-cycles is the other half of that ruling and it was broken:
+      # the owner's list filtered on an ACTIVE certificate, so the day a certificate expired
+      # the farmer's own planting history vanished from their screen while staff still saw it
+      # and the public QR still resolved it. Measured on a real database before the fix
+      # (active → owner sees 1, expired → owner sees 0, staff sees 2 in both). Reading your
+      # own history and recording a new cycle are different acts; the write gate is
+      # unchanged and unit/planting-requires-certificate pins its refusal.
+      # qr-only-after-certificate closes the last gap the T&T walk found: a plot QR sign
+      # could be minted for land whose certificate had expired or been revoked (measured:
+      # 201 with a stored sign, and the public page served it 200). A sign is a certification
+      # mark standing on real ground, so issuing a new one there is the platform marking
+      # uncertified land as certified. Signs already issued are untouched — a test pins that
+      # too, because revoking one is a decision somebody makes, not an expiry side effect.
+      # unit/public-farm-projection (no database) pins the shape underneath it: every
+      # column the projection publishes is asked for by the select, and nothing more —
+      # the defect that shipped three times in this batch (T8, T12, N6).
+      # All are self-seeding and clean up their own ids, like the eight above them.
+      # Guard for the real-Postgres suites above: jest exits 0 when a suite
+      # self-skips, so "green" alone does not prove they ran against a database.
+      # This asserts they actually executed — if DATABASE_URL ever stops
+      # reaching them the job fails loudly instead of silently going back to
+      # skipping. (R-CI-1, operator 2026-08-03.)
+      - name: Assert real-Postgres suites actually ran (not skipped)
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/gacp_test
+          JWT_SECRET: test-secret-key-for-ci
+          ENCRYPTION_KEY: ci-test-encryption-key-32chars!!
+          NODE_ENV: test
+        run: |
+          npx jest --config jest.config.cjs \
+            --testPathPatterns 'integration/(cert-issuance-atomicity-be-t1|optimistic-lock-wf-f7|pdpa-retention-legal-hold|identity-links|correction-deadline-expired-be|payment-closure-be|tenant-isolation-cross-org-be|correction-append-only-be|staff-chain-assign-then-see|staff-scope-contract|public-scan-scope-contract|officer-review-round-trip|farmer-tnt-flow|both-public-scan-paths-agree|tnt-scope-contract|farmer-keeps-sight-of-own-cycles|qr-only-after-certificate)' \
+            --no-coverage --forceExit --json --outputFile=/tmp/db-suites.json
+          node -e '
+            const r = require("/tmp/db-suites.json");
+            const skipped = r.numPendingTests + r.numTodoTests;
+            const passed = r.numPassedTests;
+            console.log("passed=" + passed + " skipped=" + skipped + " suites=" + r.numTotalTestSuites);
+            if (r.numTotalTestSuites !== 17) {
+              console.error("FAIL: expected 17 real-Postgres suites, got " + r.numTotalTestSuites);
+              process.exit(1);
+            }
+            if (skipped > 0) {
+              console.error("FAIL: " + skipped + " test(s) skipped — DATABASE_URL is not reaching the suites");
+              process.exit(1);
+            }
+            if (passed === 0) {
+              console.error("FAIL: no tests executed against Postgres");
+              process.exit(1);
+            }
+          '
+
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: apps/backend/coverage/
+          retention-days: 14
+
+      - name: Coverage summary
+        if: always()
+        working-directory: apps/backend
+        run: |
+          if [ -f coverage/coverage-summary.json ]; then
+            echo '## 📊 Code Coverage Report' >> $GITHUB_STEP_SUMMARY
+            node -e "const s=require('./coverage/coverage-summary.json').total;const f=v=>v.pct+'%';console.log('| Metric | Coverage |');console.log('|--------|----------|');console.log('| Statements | '+f(s.statements)+' |');console.log('| Branches | '+f(s.branches)+' |');console.log('| Functions | '+f(s.functions)+' |');console.log('| Lines | '+f(s.lines)+' |');" >> $GITHUB_STEP_SUMMARY
+          else
+            echo 'Coverage report not generated' >> $GITHUB_STEP_SUMMARY
+          fi
+
+  # Auth Hardening Gate is now a static gate: runs the consolidated
+  # security-conventions check + the curated client-ip unit tests.
+  # The previous runtime smoke step depended on
+  # scripts/test-auth-hardening-flow.js which was deleted in commit
+  # bd52474 ("purge ThaiD remnants") — DB / server / smoke are gone.
+  # The security-nonce test was also previously curated here, but the
+  # security-nonce module itself was removed once ThaID went away
+  # (see PR closing the OAuth-state chain).
+  auth-hardening:
+    name: Auth Hardening Gate
+    runs-on: [self-hosted, linux]
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Run auth hardening gate
+        run: npm run gate:auth-hardening
+
+  bi-integrity:
+    name: BI Contract Gate
+    runs-on: [self-hosted, linux]
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install backend dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run BI reports contract test
+        working-directory: apps/backend
+        run: npm test -- --runTestsByPath __tests__/integration/reports.test.js
+
+  ux-ui-baseline:
+    name: UX/UI Baseline Gate
+    runs-on: [self-hosted, linux]
+    needs: lint
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Verify frontend accessibility baseline
+        run: node scripts/ci/check-ui-a11y-baseline.js
+
+  # ERP Regression Gate — flipped to REQUIRED on 2026-05-04 (Wave G).
+  # Three blockers were resolved together:
+  #   1. seed-gacp.js now seeds an active Certificate for the ERP test
+  #      farm (commit `bcbbf39`) — unblocks createCycle auto-link,
+  #      plant-units/generate validateCertificate, and harvest-batches
+  #      cycle.certificateId guard.
+  #   2. routes/api/index.js mounted cultivation/plant-units.js at
+  #      `/plant-units` even though the file's routes use absolute paths
+  #      (`/planting-cycles/:cycleId/plant-units`, `/plant-units/qr/...`).
+  #      Re-mounted at `/` so all routes resolve correctly.
+  #   3. The `/admin` namespace is gated behind
+  #      `ENABLE_PROVIDER_LEGACY_ALIAS=true` in routes/api/index.js:210.
+  #      Set the env var below so the gate's admin read-only check works.
+  #
+  # All three reproduced locally with postgres + the gate running clean
+  # ("[planting-erp] PASS" + "[verify-upload-integration] PASS") before
+  # this commit. Reverting either the seed or the route fix will surface
+  # immediately on the next PR.
+  erp-regression:
+    name: ERP Regression Gate
+    runs-on: [self-hosted, linux]
+    needs: test
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: gacp
+          POSTGRES_PASSWORD: ci-test-only-not-production
+          POSTGRES_DB: gacp_db
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+      - name: Install backend dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Generate Prisma Client
+        working-directory: apps/backend
+        run: npx prisma generate
+
+      - name: Run database migrations
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://gacp:ci-test-only-not-production@localhost:5432/gacp_db
+        run: npx prisma migrate deploy
+
+      - name: Seed MOPH identities
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://gacp:ci-test-only-not-production@localhost:5432/gacp_db
+        run: node prisma/seed-gacp.js
+
+      - name: Start backend server
+        working-directory: apps/backend
+        env:
+          PORT: 5000
+          DATABASE_URL: postgresql://gacp:ci-test-only-not-production@localhost:5432/gacp_db
+          REDIS_URL: redis://localhost:6379
+          PUBLIC_TRACE_URL: http://localhost:5000/api/trace
+          JWT_SECRET: test-secret-key-for-workflow
+          NODE_ENV: test
+          ENABLE_E2E_ROUTES: "true"
+          # validate-health-planting-flow.js exercises /api/admin/planting-cycles/:id
+          # (provider read-only verification step). The /admin namespace is gated
+          # behind ENABLE_PROVIDER_LEGACY_ALIAS in routes/api/index.js — required
+          # here so the gate can verify the admin read-only contract.
+          ENABLE_PROVIDER_LEGACY_ALIAS: "true"
+        run: |
+          node server.js > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -sf http://localhost:5000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend health check failed"
+          cat server.log
+          exit 1
+
+      - name: Run required ERP E2E scripts
+        env:
+          BASE_URL: http://localhost:5000/api
+          PUBLIC_BASE_URL: http://localhost:5000
+          ERP_GATE_RETRIES: "2"
+        run: node scripts/test/run-regression-gate.js
+
+      - name: Upload backend logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: erp-regression-backend-log
+          path: apps/backend/server.log
+
+  # Security Audit — gating since Iter W2 (2026-05-17).
+  #
+  # Previously this job ran `npm audit --audit-level=high` from
+  # `apps/backend`. That failed every run with `ENOLOCK — This command
+  # requires an existing lockfile` because this repo is a pnpm workspace
+  # (the lockfile lives at the repo root as `pnpm-lock.yaml`; per-workspace
+  # package-lock.json files do not exist). The job was kept advisory
+  # (`continue-on-error: true`), so the broken invocation was effectively
+  # a no-op — supply-chain CVEs could land on `main` undetected.
+  #
+  # W2 fix: run `pnpm audit --audit-level=high` at the repo root (covers
+  # all workspaces in a single pass) and remove `continue-on-error`. See
+  # docs/operations/security-ci-policy.md for the override procedure and
+  # the accepted-residuals catalogue.
+  security:
+    name: Security Audit
+    runs-on: [self-hosted, linux]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      # The exception guard runs FIRST and without network: if someone has
+      # suppressed an advisory in pnpm.auditConfig.ignoreCves without a
+      # documented, in-date record in security/vulnerability-exceptions.json,
+      # the job fails here — before the audit itself has a chance to come
+      # back green off the back of that suppression.
+      - name: Validate vulnerability exceptions (expiry + justification)
+        run: node scripts/ci/check-vulnerability-exceptions.js
+
+      - name: Run pnpm audit (workspace-wide, gating)
+        run: pnpm audit --audit-level=high
+
+  # Runtime Readiness validates code-quality / structural readiness
+  # (orphan API, prisma schema, monitoring config, security headers,
+  # docs). Production-host-only artifacts (.env.production, SSL certs,
+  # docker-compose.production.yml validity, the backend test suite that
+  # requires DATABASE_URL at module load) are skipped via --ci-mode and
+  # validated on the production host as part of deploy.
+  runtime-readiness:
+    name: Runtime Readiness
+    runs-on: [self-hosted, linux]
+    needs: [test]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install workspace dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Provision local readiness assets
+        run: node scripts/deploy/provision-local-production-assets.js
+
+      - name: Run production readiness checks (CI subset)
+        run: node scripts/ci/production-readiness-check.js --ci-mode
+
+  # Detect Prisma schema drift — i.e. any difference between the committed
+  # migration history under apps/backend/prisma/migrations and the Prisma
+  # schema under apps/backend/prisma/schema. A non-zero exit means the
+  # schema was changed without a corresponding migration.
+  #
+  # Wave C cleanup (PR #144) shipped a reconciliation migration that
+  # closed the long-standing drift. With drift = 0 since 2026-05-02 this
+  # job is now required (no longer continue-on-error). If a future
+  # schema change drifts, the drift-cleanup workflow in
+  # apps/backend/scripts/idempotify-drift.js + create-shadow-db.js +
+  # apply-reconcile-test.js can regenerate a reconcile migration in
+  # minutes — see PR #144 for the playbook.
+  migration-drift-check:
+    name: Migration Drift Check
+    runs-on: [self-hosted, linux]
+    needs: lint
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: drift
+          POSTGRES_PASSWORD: drift
+          POSTGRES_DB: drift
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Detect schema drift
+        working-directory: apps/backend
+        env:
+          # migrate diff needs a shadow database to apply --from-migrations
+          # against; reuse the postgres service container for that.
+          DATABASE_URL: postgresql://drift:drift@localhost:5432/drift
+        run: |
+          npx prisma migrate diff \
+            --from-migrations prisma/migrations \
+            --to-schema-datamodel prisma/schema \
+            --shadow-database-url "$DATABASE_URL" \
+            --exit-code
+
+  build-success:
+    name: Build Success
+    runs-on: [self-hosted, linux]
+    # e2e is intentionally excluded — the e2e job is `continue-on-error: true`
+    # so it is advisory by design. Including it in `needs:` would still skip
+    # build-success when e2e fails (continue-on-error keeps the workflow run
+    # green but the JOB conclusion stays `failure`, which `needs:` treats as
+    # "did not succeed" → downstream skipped). When e2e is stabilised, drop
+    # its continue-on-error and add it back here.
+    # migration-drift-check is now required (PR #144 reconciled the drift
+    # to 0) — included so a future schema change without a migration
+    # blocks merge instead of accumulating tech debt silently.
+    needs: [lint, lint-frontend, mock-journeys, workflow-paths-check, enforcement-guardrails, test, auth-hardening, bi-integrity, ux-ui-baseline, security, runtime-readiness, migration-drift-check, erp-regression, flutter]
+    steps:
+      - name: All checks passed
+        run: echo "All CI checks passed successfully!"
+
+  e2e:
+    name: E2E Tests
+    runs-on: [self-hosted, linux]
+    needs: test
+    continue-on-error: true
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+          POSTGRES_DB: gacp_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 8
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts
+
+      - name: Install Playwright browsers
+        # Run via the workspace package that owns @playwright/test (gacp-backend)
+        # so the binary resolves regardless of hoisting. We keep
+        # --ignore-scripts on the workspace install above for supply-chain
+        # safety; this step is the explicit, scoped Playwright bootstrap.
+        run: pnpm --filter gacp-backend exec playwright install --with-deps
+
+      - name: Generate Prisma Client
+        working-directory: apps/backend
+        run: npx prisma generate --schema prisma/schema
+
+      - name: Run database migrations
+        working-directory: apps/backend
+        env:
+          DATABASE_URL: postgresql://test:test@localhost:5432/gacp_test
+        run: npx prisma migrate deploy
+
+      - name: Start backend server
+        working-directory: apps/backend
+        env:
+          PORT: 3000
+          DATABASE_URL: postgresql://test:test@localhost:5432/gacp_test
+          REDIS_URL: redis://localhost:6379
+          PUBLIC_TRACE_URL: http://localhost:3000/api/trace
+          JWT_SECRET: test-secret-key-for-e2e
+          NODE_ENV: test
+          ENABLE_E2E_ROUTES: "true"
+        run: |
+          node server.js > server.log 2>&1 &
+          for i in {1..30}; do
+            if curl -sf http://localhost:3000/api/health >/dev/null; then
+              exit 0
+            fi
+            sleep 2
+          done
+          echo "Backend health check failed"
+          cat server.log
+          exit 1
+
+      - name: Run E2E Tests
+        continue-on-error: true
+        working-directory: apps/backend
+        env:
+          NODE_ENV: test
+          API_URL: http://localhost:3000
+        run: npx playwright test --reporter=list
+
+      - name: Upload backend logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-backend-log
+          path: apps/backend/server.log
+
+  # ─────────────────────────────────────────────
+  # Auto-deploy main → staging (so every merge gets exercised end-to-end
+  # before it can be promoted to deploy/production)
+  # ─────────────────────────────────────────────
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: [self-hosted, linux]
+    needs: [build-success]
+    # §0 NO-AUTO-DEPLOY (operator mandate 2026-08-04): staging deploy is
+    # MANUAL only — never on push. A push to main no longer SSHes to the host.
+    # Run it from the Actions tab (workflow_dispatch) when the operator wants a
+    # staging build. This also stops the perpetual "main red" that masked real
+    # gate failures (the job failed on every push at the SSH-connect step).
+    if: github.event_name == 'workflow_dispatch'
+    env:
+      DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+      # main-latest on a push to main; whatever the operator asked for on a
+      # manual run. `promote-deploy-branch` stays push-only, so a dispatch can
+      # exercise staging without ever advancing deploy/production.
+      STAGING_IMAGE_TAG: ${{ github.event.inputs.image_tag || 'main-latest' }}
+
+    steps:
+      # When the deploy host secret is not configured, skip the staging deploy
+      # gracefully instead of hard-failing on appleboy/ssh-action's "missing
+      # server host" — a perpetual false-failure that otherwise blocks the
+      # promote → deploy/production step. Secrets can't be read in `if:`
+      # directly, so presence is surfaced via a step output.
+      - name: Check deploy host configured
+        id: cfg
+        run: |
+          if [ -z "${DEPLOY_HOST}" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::PRODUCTION_HOST secret is not set — skipping staging deploy (not a failure). Set it to enable the staging gate."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy via SSH (delegates to scripts/deploy/deploy-staging.sh)
+        if: steps.cfg.outputs.configured == 'true'
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          envs: STAGING_IMAGE_TAG
+          script: |
+            # Same droplet, separate slot. The staging deploy script targets
+            # the `gacp_staging` database and 127.0.0.1:8001 / :3001 ports.
+            # Reads /opt/gacp-platform/.env.staging — must exist before this
+            # job runs for the first time (see docs/operations/staging-activation.md).
+            IMAGE_TAG="${STAGING_IMAGE_TAG:-main-latest}" /opt/gacp-platform/scripts/deploy/deploy-staging.sh
+
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "::error::Staging deploy failed — review SSH script logs and /var/log/gacp-deploys/staging-*.log on the host"
+
+  # ─────────────────────────────────────────────
+  # Promote main → deploy/production (main branch only)
+  # ─────────────────────────────────────────────
+  promote-deploy-branch:
+    name: Promote main → deploy/production
+    runs-on: [self-hosted, linux]
+    # Only promote AFTER staging accepted the build. This catches deploy-time
+    # regressions (env-var validation failures, missing GHCR image, prisma
+    # migration failures) before the same code lands on deploy/production.
+    needs: [build-success, deploy-staging]
+    # §0 NO-AUTO-DEPLOY: advancing deploy/production must be an EXPLICIT operator
+    # action, never an automatic consequence of a push to main. Disabled here
+    # pending the A11 deploy-pipeline ADR, which will define who promotes, on
+    # what criteria, and how it ties to the freeze / Tier C. Do not re-enable a
+    # push trigger without that ADR.
+    if: false
+
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure git identity
+        run: |
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git config user.name "github-actions[bot]"
+
+      - name: Fast-forward deploy/production to main (if possible)
+        run: |
+          git fetch origin deploy/production
+          git checkout deploy/production
+          if git merge-base --is-ancestor HEAD origin/main; then
+            git merge --ff-only origin/main
+            git push origin deploy/production
+            echo "✅ deploy/production fast-forwarded to main"
+          else
+            echo "⚠️  deploy/production has commits not on main — opening PR instead"
+            BRANCH="auto/promote-main-to-deploy-${{ github.sha }}"
+            git checkout -b "$BRANCH"
+            git merge --no-ff origin/main -m "Merge main into deploy/production (auto-promote $GITHUB_SHA)"
+            git push origin "$BRANCH"
+            gh pr create --base deploy/production --head "$BRANCH" \
+              --title "auto: promote main → deploy/production" \
+              --body "Automatic promotion gated by CI; review for any production-only conflicts before merge."
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  # Production deploy lives in .github/workflows/production.yml.
+  #
+  # The previous `deploy` job here was unreachable: ci.yml only triggers
+  # on push to [main, develop] (see `on.push.branches` at the top of
+  # this file), but the job's condition was
+  # `if: github.ref == 'refs/heads/deploy/production'` — that ref can
+  # never be the trigger source for ci.yml, so the job never ran.
+  #
+  # It also referenced `secrets.SSH_PRIVATE_KEY` while the rest of the
+  # deploy plumbing uses `secrets.PRODUCTION_SSH_KEY`, two slightly
+  # different shapes for the same intent — neither one wired
+  # end-to-end through this workflow.
+  #
+  # production.yml runs the same release-test gate as a required
+  # upstream, builds GHCR images, and SSH-deploys via
+  # scripts/deploy/deploy-production.sh. Keeping the deploy logic in
+  # one workflow avoids the silent drift that made this job dead in
+  # the first place.
+  #
+  # 2026-08-13: production.yml is now `workflow_dispatch` ONLY. It used
+  # to also trigger on push to deploy/production and on v* tags, which
+  # contradicted the §0 NO-AUTO-DEPLOY rule stated on the promote job
+  # above — that rule was enforced here by `if: false` but not there,
+  # so deploy/production still had a live automatic path. The branch
+  # exists on origin, so this was reachable, and the deploy recreates
+  # the nginx container that staging shares.
+  # See reports/risk-assessment/2026-08-13.md §4 R1.

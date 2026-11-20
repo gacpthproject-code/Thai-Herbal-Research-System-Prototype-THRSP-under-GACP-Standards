@@ -1,0 +1,156 @@
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/notification-preferences-service.test.js (5.829 s)
+  normalize
+    √ returns empty channels for null/undefined input (6 ms)
+    × drops legacy email/sms keys plus any other unknown key (channel concept removed — in-app only) (11 ms)
+    × drops non-boolean channel values (2 ms)
+  getPrefs
+    √ returns empty channels for unknown user (2 ms)
+    × returns normalized notificationSettings (in-app only) (2 ms)
+    × legacy-shaped stored value (email/sms only, no inApp ever written) does not crash — normalizes to empty entry (2 ms)
+  updatePrefs
+    × writes normalized JSON (in-app only — email/sms are dropped on write) (10 ms)
+  isAllowed
+    √ default-allow when no settings (1 ms)
+    √ default-allow when type missing (1 ms)
+    √ default-allow when channel missing for the type (1 ms)
+    √ returns false when explicitly opted out (1 ms)
+    √ falls back to DB lookup when only userId is given (1 ms)
+    √ returns true when channel is unknown (1 ms)
+    × email/sms channels no longer supported — always default-allow, even when the legacy value says opted-out (2 ms)
+
+  ● normalize › drops legacy email/sms keys plus any other unknown key (channel concept removed — in-app only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 2
+
+      Object {
+    +   "email": true,
+        "inApp": true,
+    +   "sms": false,
+      }
+
+    [0m [90m 58 |[39m             }[33m,[39m
+     [90m 59 |[39m         })[33m;[39m
+    [31m[1m>[22m[39m[90m 60 |[39m         expect(out[33m.[39mchannels[33m.[39m[33mFOO[39m)[33m.[39mtoEqual({ inApp[33m:[39m [36mtrue[39m })[33m;[39m
+     [90m    |[39m                                  [31m[1m^[22m[39m
+     [90m 61 |[39m     })[33m;[39m
+     [90m 62 |[39m
+     [90m 63 |[39m     test([32m'drops non-boolean channel values'[39m[33m,[39m () [33m=>[39m {[0m
+
+      at Object.toEqual (__tests__/unit/notification-preferences-service.test.js:60:34)
+
+  ● normalize › drops non-boolean channel values
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 3
+
+    - Object {}
+    + Object {
+    +   "sms": false,
+    + }
+
+    [0m [90m 67 |[39m             }[33m,[39m
+     [90m 68 |[39m         })[33m;[39m
+    [31m[1m>[22m[39m[90m 69 |[39m         expect(out[33m.[39mchannels[33m.[39m[33mFOO[39m)[33m.[39mtoEqual({})[33m;[39m
+     [90m    |[39m                                  [31m[1m^[22m[39m
+     [90m 70 |[39m     })[33m;[39m
+     [90m 71 |[39m })[33m;[39m
+     [90m 72 |[39m[0m
+
+      at Object.toEqual (__tests__/unit/notification-preferences-service.test.js:69:34)
+
+  ● getPrefs › returns normalized notificationSettings (in-app only)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 2
+
+      Object {
+    +   "email": false,
+        "inApp": true,
+    +   "sms": true,
+      }
+
+    [0m [90m 84 |[39m         }[33m;[39m
+     [90m 85 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m prefs[33m.[39mgetPrefs([32m'u-1'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 86 |[39m         expect(r[33m.[39mchannels[33m.[39m[33mWORK_ACTIVITY_BREACH[39m)[33m.[39mtoEqual({ inApp[33m:[39m [36mtrue[39m })[33m;[39m
+     [90m    |[39m                                                 [31m[1m^[22m[39m
+     [90m 87 |[39m     })[33m;[39m
+     [90m 88 |[39m
+     [90m 89 |[39m     [90m// Legacy JSON tolerance pin (Task 4, external-services cleanup): a[39m[0m
+
+      at Object.toEqual (__tests__/unit/notification-preferences-service.test.js:86:49)
+
+  ● getPrefs › legacy-shaped stored value (email/sms only, no inApp ever written) does not crash — normalizes to empty entry
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 4
+
+    - Object {}
+    + Object {
+    +   "email": true,
+    +   "sms": true,
+    + }
+
+    [0m [90m 100 |[39m         }[33m;[39m
+     [90m 101 |[39m         [36mconst[39m r [33m=[39m [36mawait[39m prefs[33m.[39mgetPrefs([32m'u-legacy'[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 102 |[39m         expect(r[33m.[39mchannels[33m.[39m[33mAPPLICATION_SUBMITTED[39m)[33m.[39mtoEqual({})[33m;[39m
+     [90m     |[39m                                                  [31m[1m^[22m[39m
+     [90m 103 |[39m
+     [90m 104 |[39m         [36mconst[39m ok [33m=[39m [36mawait[39m prefs[33m.[39misAllowed({
+     [90m 105 |[39m             userId[33m:[39m [32m'u-legacy'[39m[33m,[39m type[33m:[39m [32m'APPLICATION_SUBMITTED'[39m[33m,[39m channel[33m:[39m [32m'inApp'[39m[33m,[39m[0m
+
+      at Object.toEqual (__tests__/unit/notification-preferences-service.test.js:102:50)
+
+  ● updatePrefs › writes normalized JSON (in-app only — email/sms are dropped on write)
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 0
+    + Received  + 1
+
+      Object {
+    +   "email": true,
+        "inApp": false,
+      }
+
+    [0m [90m 118 |[39m         })[33m;[39m
+     [90m 119 |[39m         [36mconst[39m stored [33m=[39m dbState[33m.[39musers[[32m'u-1'[39m][33m.[39mnotificationSettings[33m;[39m
+    [31m[1m>[22m[39m[90m 120 |[39m         expect(stored[33m.[39mchannels[33m.[39m[33mFOO[39m)[33m.[39mtoEqual({ inApp[33m:[39m [36mfalse[39m })[33m;[39m
+     [90m     |[39m                                     [31m[1m^[22m[39m
+     [90m 121 |[39m         expect(stored[33m.[39mchannels[33m.[39m[33mBAR[39m)[33m.[39mtoEqual({})[33m;[39m
+     [90m 122 |[39m     })[33m;[39m
+     [90m 123 |[39m })[33m;[39m[0m
+
+      at Object.toEqual (__tests__/unit/notification-preferences-service.test.js:120:37)
+
+  ● isAllowed › email/sms channels no longer supported — always default-allow, even when the legacy value says opted-out
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: true
+    Received: false
+
+    [0m [90m 179 |[39m         [36mconst[39m okSms [33m=[39m [36mawait[39m prefs[33m.[39misAllowed({ userId[33m:[39m [32m'u-1'[39m[33m,[39m type[33m:[39m [32m'X'[39m[33m,[39m channel[33m:[39m [32m'sms'[39m })[33m;[39m
+     [90m 180 |[39m         [36mconst[39m okEmail [33m=[39m [36mawait[39m prefs[33m.[39misAllowed({ userId[33m:[39m [32m'u-1'[39m[33m,[39m type[33m:[39m [32m'X'[39m[33m,[39m channel[33m:[39m [32m'email'[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 181 |[39m         expect(okSms)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m     |[39m                       [31m[1m^[22m[39m
+     [90m 182 |[39m         expect(okEmail)[33m.[39mtoBe([36mtrue[39m)[33m;[39m
+     [90m 183 |[39m     })[33m;[39m
+     [90m 184 |[39m })[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/notification-preferences-service.test.js:181:23)
+
+Test Suites: 1 failed, 1 total
+Tests:       6 failed, 8 passed, 14 total
+Snapshots:   0 total
+Time:        6.544 s
+Ran all test suites matching /__tests__\\unit\\notification-preferences-service.test.js/i.

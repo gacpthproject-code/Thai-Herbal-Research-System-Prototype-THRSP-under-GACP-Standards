@@ -1,0 +1,11 @@
+Task 10 — M1 claim check (the comment now in routes/api/provider/document-reviews.js GET /:id/document-check).
+Scratch PG17 127.0.0.1:5436, throwaway database gacp_t10_nomig: prisma migrate deploy (all migrations),
+then ALTER TABLE application_document_reviews DROP COLUMN precheck_id CASCADE (= a DB one migration behind),
+then the same read loadCheck makes (findMany, no select, orderBy createdAt) through a plain PrismaClient:
+
+  $ node -e "...applicationDocumentReview.findMany({where:{applicationId:'x'},orderBy:{createdAt:'asc'}})..."
+  code P2022 The column `application_document_reviews.precheck_id` does not exist in the current database.
+
+=> the officer's GET document-check and POST document-reviews fail inside loadCheck before the warn-only
+   pre-check fallback is reached; only the applicant's GET requirements (reviews read inside its own try) degrades.
+   Database dropped after the check.

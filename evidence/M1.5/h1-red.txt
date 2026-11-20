@@ -1,0 +1,290 @@
+# M1.5 H1 — RED
+# date: 2026-08-15T10:27:09Z
+# HEAD: b8cf47868d8ca2516b06d84d63007d8d900f3424
+# cmd: npx jest --config jest.config.cjs --testPathPattern="entity-claim-guard|entity-service|applications-prepare-active-entity"
+
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+FAIL __tests__/unit/entity-claim-guard.test.js
+  M1.5 H1 — an existing org workspace cannot be claimed by its registration number
+    × stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row with membershipStatus:null (9 ms)
+    × the refusal audit row carries a HASH, never the raw registration number (2 ms)
+    × PENDING invitee → 409 with the "accept your invitation" message (2 ms)
+    × ACTIVE non-OWNER → 409 telling them to switch workspace, and NO silent upgrade to OWNER (2 ms)
+    × the real OWNER retrying → idempotent success, NO write (6 ms)
+    √ a brand-new registration number → create entity + OWNER membership (unchanged) (3 ms)
+  M1.5 H1 — the same guard on ensureCommunityEntity
+    × stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row (2 ms)
+    × PENDING invitee → 409 with the "accept your invitation" message (2 ms)
+    × the real OWNER retrying → idempotent success, NO write (3 ms)
+    √ a brand-new DOAE number → create entity + OWNER membership (unchanged) (2 ms)
+  M1.5 H1 — POST /api/entities surfaces the refusal as 409, not 500
+    × someone else already registered the tax ID → HTTP 409 + code, no membership write (62 ms)
+    √ a free registration number still creates the workspace (200) (13 ms)
+
+  ● M1.5 H1 — an existing org workspace cannot be claimed by its registration number › stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row with membershipStatus:null
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "ent-1", "type": "JURISTIC"}, "fresh": false, "membership": {"id": "mem-new", "role": "OWNER"}}
+
+    [0m [90m 127 |[39m         client[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue([36mnull[39m)[33m;[39m
+     [90m 128 |[39m
+    [31m[1m>[22m[39m[90m 129 |[39m         [36mawait[39m expect(ensureJuristicEntity({ user[33m:[39m stranger[33m,[39m applicantData[33m:[39m [33mVALID_JURISTIC[39m[33m,[39m tx[33m:[39m client }))
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 130 |[39m             [33m.[39mrejects[33m.[39mtoMatchObject({ status[33m:[39m [35m409[39m[33m,[39m code[33m:[39m [32m'ENTITY_ALREADY_REGISTERED'[39m })[33m;[39m
+     [90m 131 |[39m
+     [90m 132 |[39m         expect(client[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-claim-guard.test.js:129:15)
+
+  ● M1.5 H1 — an existing org workspace cannot be claimed by its registration number › the refusal audit row carries a HASH, never the raw registration number
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "ent-1", "type": "JURISTIC"}, "fresh": false, "membership": {"id": "mem-new", "role": "OWNER"}}
+
+    [0m [90m 143 |[39m         client[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue([36mnull[39m)[33m;[39m
+     [90m 144 |[39m
+    [31m[1m>[22m[39m[90m 145 |[39m         [36mawait[39m expect(ensureJuristicEntity({ user[33m:[39m stranger[33m,[39m applicantData[33m:[39m [33mVALID_JURISTIC[39m[33m,[39m tx[33m:[39m client }))
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 146 |[39m             [33m.[39mrejects[33m.[39mtoMatchObject({ code[33m:[39m [32m'ENTITY_ALREADY_REGISTERED'[39m })[33m;[39m
+     [90m 147 |[39m
+     [90m 148 |[39m         [36mconst[39m envelope [33m=[39m firstAuditEnvelope()[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-claim-guard.test.js:145:15)
+
+  ● M1.5 H1 — an existing org workspace cannot be claimed by its registration number › PENDING invitee → 409 with the "accept your invitation" message
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "ent-1", "type": "JURISTIC"}, "fresh": false, "membership": {"id": "mem-new", "role": "OWNER"}}
+
+    [0m [90m 160 |[39m         client[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue({ role[33m:[39m [32m'ADMIN'[39m[33m,[39m status[33m:[39m [32m'PENDING'[39m })[33m;[39m
+     [90m 161 |[39m
+    [31m[1m>[22m[39m[90m 162 |[39m         [36mawait[39m expect(ensureJuristicEntity({ user[33m:[39m invitee[33m,[39m applicantData[33m:[39m [33mVALID_JURISTIC[39m[33m,[39m tx[33m:[39m client }))
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 163 |[39m             [33m.[39mrejects[33m.[39mtoMatchObject({ status[33m:[39m [35m409[39m[33m,[39m message[33m:[39m expect[33m.[39mstringContaining([32m'คำเชิญ'[39m) })[33m;[39m
+     [90m 164 |[39m         expect(client[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 165 |[39m         expect(client[33m.[39mentityMembership[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-claim-guard.test.js:162:15)
+
+  ● M1.5 H1 — an existing org workspace cannot be claimed by its registration number › ACTIVE non-OWNER → 409 telling them to switch workspace, and NO silent upgrade to OWNER
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "ent-1", "type": "JURISTIC"}, "fresh": false, "membership": {"id": "mem-new", "role": "OWNER"}}
+
+    [0m [90m 170 |[39m         client[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue({ role[33m:[39m [32m'MANAGER'[39m[33m,[39m status[33m:[39m [32m'ACTIVE'[39m })[33m;[39m
+     [90m 171 |[39m
+    [31m[1m>[22m[39m[90m 172 |[39m         [36mawait[39m expect(ensureJuristicEntity({ user[33m:[39m member[33m,[39m applicantData[33m:[39m [33mVALID_JURISTIC[39m[33m,[39m tx[33m:[39m client }))
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 173 |[39m             [33m.[39mrejects[33m.[39mtoMatchObject({ status[33m:[39m [35m409[39m[33m,[39m message[33m:[39m expect[33m.[39mstringContaining([32m'สลับ workspace'[39m) })[33m;[39m
+     [90m 174 |[39m         expect(client[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 175 |[39m         expect(client[33m.[39mentityMembership[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-claim-guard.test.js:172:15)
+
+  ● M1.5 H1 — an existing org workspace cannot be claimed by its registration number › the real OWNER retrying → idempotent success, NO write
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 1
+    + Received  + 0
+
+      Object {
+        "role": "OWNER",
+    -   "status": "ACTIVE",
+      }
+
+    [0m [90m 188 |[39m         expect(out[33m.[39mfresh)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 189 |[39m         expect(out[33m.[39mentity)[33m.[39mtoMatchObject({ id[33m:[39m [32m'ent-1'[39m })[33m;[39m
+    [31m[1m>[22m[39m[90m 190 |[39m         expect(out[33m.[39mmembership)[33m.[39mtoMatchObject({ role[33m:[39m [32m'OWNER'[39m[33m,[39m status[33m:[39m [32m'ACTIVE'[39m })[33m;[39m
+     [90m     |[39m                                [31m[1m^[22m[39m
+     [90m 191 |[39m         expect(client[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 192 |[39m         expect(client[33m.[39mentityMembership[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 193 |[39m         expect(auditLogger[33m.[39mlog)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at Object.toMatchObject (__tests__/unit/entity-claim-guard.test.js:190:32)
+
+  ● M1.5 H1 — the same guard on ensureCommunityEntity › stranger → 409 ENTITY_ALREADY_REGISTERED, NO membership write, audit row
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "ent-2", "type": "COMMUNITY_ENTERPRISE"}, "fresh": false, "membership": {"id": "mem-new", "role": "OWNER"}}
+
+    [0m [90m 221 |[39m         client[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue([36mnull[39m)[33m;[39m
+     [90m 222 |[39m
+    [31m[1m>[22m[39m[90m 223 |[39m         [36mawait[39m expect(ensureCommunityEntity({ user[33m:[39m stranger[33m,[39m applicantData[33m:[39m [33mVALID_COMMUNITY[39m[33m,[39m tx[33m:[39m client }))
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 224 |[39m             [33m.[39mrejects[33m.[39mtoMatchObject({ status[33m:[39m [35m409[39m[33m,[39m code[33m:[39m [32m'ENTITY_ALREADY_REGISTERED'[39m })[33m;[39m
+     [90m 225 |[39m
+     [90m 226 |[39m         expect(client[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-claim-guard.test.js:223:15)
+
+  ● M1.5 H1 — the same guard on ensureCommunityEntity › PENDING invitee → 409 with the "accept your invitation" message
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "ent-2", "type": "COMMUNITY_ENTERPRISE"}, "fresh": false, "membership": {"id": "mem-new", "role": "OWNER"}}
+
+    [0m [90m 240 |[39m         client[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue({ role[33m:[39m [32m'VIEWER'[39m[33m,[39m status[33m:[39m [32m'PENDING'[39m })[33m;[39m
+     [90m 241 |[39m
+    [31m[1m>[22m[39m[90m 242 |[39m         [36mawait[39m expect(ensureCommunityEntity({ user[33m:[39m invitee[33m,[39m applicantData[33m:[39m [33mVALID_COMMUNITY[39m[33m,[39m tx[33m:[39m client }))
+     [90m     |[39m               [31m[1m^[22m[39m
+     [90m 243 |[39m             [33m.[39mrejects[33m.[39mtoMatchObject({ status[33m:[39m [35m409[39m[33m,[39m message[33m:[39m expect[33m.[39mstringContaining([32m'คำเชิญ'[39m) })[33m;[39m
+     [90m 244 |[39m     })[33m;[39m
+     [90m 245 |[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-claim-guard.test.js:242:15)
+
+  ● M1.5 H1 — the same guard on ensureCommunityEntity › the real OWNER retrying → idempotent success, NO write
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: {"create": {"acceptedAt": 2026-08-15T10:27:14.674Z, "entityId": "ent-2", "invitedAt": null, "invitedBy": null, "organizationId": "org-1", "permissions": ["SUBMIT_APPLICATION", "APPROVE_APPLICATION", "PRINT_QR", "EDIT_FARM", "INVITE_MEMBER", "REVOKE_MEMBER", "VIEW_FINANCIAL", "EDIT_ENTITY_PROFILE", "TRANSFER_OWNERSHIP", "DELETE_ENTITY", …], "role": "OWNER", "status": "ACTIVE", "userId": "user-owner"}, "update": {"acceptedAt": 2026-08-15T10:27:14.674Z, "role": "OWNER", "status": "ACTIVE"}, "where": {"userId_entityId": {"entityId": "ent-2", "userId": "user-owner"}}}
+
+    [0m [90m 251 |[39m
+     [90m 252 |[39m         expect(out[33m.[39mfresh)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 253 |[39m         expect(client[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                                                    [31m[1m^[22m[39m
+     [90m 254 |[39m         expect(client[33m.[39mentityMembership[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m 255 |[39m     })[33m;[39m
+     [90m 256 |[39m[0m
+
+      at Object.toHaveBeenCalled (__tests__/unit/entity-claim-guard.test.js:253:52)
+
+  ● M1.5 H1 — POST /api/entities surfaces the refusal as 409, not 500 › someone else already registered the tax ID → HTTP 409 + code, no membership write
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: 409
+    Received: 200
+
+    [0m [90m 288 |[39m         })[33m;[39m
+     [90m 289 |[39m
+    [31m[1m>[22m[39m[90m 290 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m409[39m)[33m;[39m
+     [90m     |[39m                          [31m[1m^[22m[39m
+     [90m 291 |[39m         expect(r[33m.[39mbody)[33m.[39mtoMatchObject({ success[33m:[39m [36mfalse[39m[33m,[39m code[33m:[39m [32m'ENTITY_ALREADY_REGISTERED'[39m })[33m;[39m
+     [90m 292 |[39m         expect([36mtypeof[39m r[33m.[39mbody[33m.[39merror)[33m.[39mtoBe([32m'string'[39m)[33m;[39m
+     [90m 293 |[39m         expect(r[33m.[39mbody[33m.[39merror)[33m.[39mnot[33m.[39mtoContain([33mVALID_TAX_ID[39m)[33m;[39m[0m
+
+      at Object.toBe (__tests__/unit/entity-claim-guard.test.js:290:26)
+
+FAIL __tests__/unit/entity-service.test.js
+  entity-service.ensureJuristicEntity
+    √ creates the entity + OWNER membership when none exists (2 ms)
+    × refuses to attach a non-member to an existing entity found by tax ID (409) (1 ms)
+    × reuses an existing entity for its real OWNER (idempotent) and does not call create (1 ms)
+    √ rejects with APPLICANT_VALIDATION_FAILED when validation fails (1 ms)
+    √ rejects when user.id is missing (15 ms)
+    √ rejects when organizationId is missing (ADR-014) (2 ms)
+  entity-service.ensureCommunityEntity
+    √ creates the entity + OWNER membership for an 11-digit DOAE number (1 ms)
+    √ rejects on a 10-digit (wrong length) registration number (2 ms)
+  entity-service.ensureEntityFromApplicantData (dispatcher)
+    √ returns null for INDIVIDUAL (personal entity already exists from registration) (1 ms)
+    √ returns null for missing applicantType (2 ms)
+    √ dispatches to JURISTIC helper (1 ms)
+    √ dispatches to COMMUNITY_ENTERPRISE helper for the legacy "COMMUNITY" alias (1 ms)
+
+  ● entity-service.ensureJuristicEntity › refuses to attach a non-member to an existing entity found by tax ID (409)
+
+    expect(received).rejects.toMatchObject()
+
+    Received promise resolved instead of rejected
+    Resolved to value: {"entity": {"id": "entity-1"}, "fresh": false, "membership": {"id": "membership-1", "role": "OWNER"}}
+
+    [0m [90m 88 |[39m         prisma[33m.[39mentityMembership[33m.[39mfindUnique[33m.[39mmockResolvedValue([36mnull[39m)[33m;[39m
+     [90m 89 |[39m
+    [31m[1m>[22m[39m[90m 90 |[39m         [36mawait[39m expect(entityService[33m.[39mensureJuristicEntity({
+     [90m    |[39m               [31m[1m^[22m[39m
+     [90m 91 |[39m             user[33m:[39m { id[33m:[39m [32m'user-1'[39m[33m,[39m organizationId[33m:[39m [32m'org-1'[39m }[33m,[39m
+     [90m 92 |[39m             applicantData[33m:[39m { taxId[33m:[39m [33mVALID_JURISTIC_TAX_ID[39m[33m,[39m companyName[33m:[39m [32m'X Co.'[39m }[33m,[39m
+     [90m 93 |[39m         }))[33m.[39mrejects[33m.[39mtoMatchObject({ status[33m:[39m [35m409[39m[33m,[39m code[33m:[39m [32m'ENTITY_ALREADY_REGISTERED'[39m })[33m;[39m[0m
+
+      at expect (../../node_modules/.pnpm/expect@29.7.0/node_modules/expect/build/index.js:113:15)
+      at Object.expect (__tests__/unit/entity-service.test.js:90:15)
+
+  ● entity-service.ensureJuristicEntity › reuses an existing entity for its real OWNER (idempotent) and does not call create
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: {"create": {"acceptedAt": 2026-08-15T10:27:15.393Z, "entityId": "entity-1", "invitedAt": null, "invitedBy": null, "organizationId": "org-1", "permissions": ["SUBMIT_APPLICATION", "APPROVE_APPLICATION", "PRINT_QR", "EDIT_FARM", "INVITE_MEMBER", "REVOKE_MEMBER", "VIEW_FINANCIAL", "EDIT_ENTITY_PROFILE", "TRANSFER_OWNERSHIP", "DELETE_ENTITY", …], "role": "OWNER", "status": "ACTIVE", "userId": "user-1"}, "update": {"acceptedAt": 2026-08-15T10:27:15.393Z, "role": "OWNER", "status": "ACTIVE"}, "where": {"userId_entityId": {"entityId": "entity-1", "userId": "user-1"}}}
+
+    [0m [90m 109 |[39m         expect(out[33m.[39mfresh)[33m.[39mtoBe([36mfalse[39m)[33m;[39m
+     [90m 110 |[39m         expect(prisma[33m.[39mentity[33m.[39mcreate)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+    [31m[1m>[22m[39m[90m 111 |[39m         expect(prisma[33m.[39mentityMembership[33m.[39mupsert)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                                                    [31m[1m^[22m[39m
+     [90m 112 |[39m     })[33m;[39m
+     [90m 113 |[39m
+     [90m 114 |[39m     it([32m'rejects with APPLICANT_VALIDATION_FAILED when validation fails'[39m[33m,[39m [36masync[39m () [33m=>[39m {[0m
+
+      at Object.toHaveBeenCalled (__tests__/unit/entity-service.test.js:111:52)
+
+FAIL __tests__/unit/applications-prepare-active-entity.test.js
+  Wave C PR-5 — /prepare uses req.activeEntity
+    √ uses req.activeEntity.entityId as Application.entityId (35 ms)
+    × does NOT materialise from legacy applicantData — entityId stays the application's own (11 ms)
+    √ does not re-materialise when activeEntity is set even with applicantData=JURISTIC (11 ms)
+    √ keeps existing application.entityId when neither activeEntity nor applicantData present (11 ms)
+
+  ● Wave C PR-5 — /prepare uses req.activeEntity › does NOT materialise from legacy applicantData — entityId stays the application's own
+
+    expect(jest.fn()).not.toHaveBeenCalled()
+
+    Expected number of calls: 0
+    Received number of calls: 1
+
+    1: {"applicantData": {"applicantType": "JURISTIC", "companyName": "X Co.", "taxId": "0105561234560"}, "user": {"id": "user-1", "organizationId": "org-1"}}
+
+    [0m [90m 172 |[39m
+     [90m 173 |[39m         expect(r[33m.[39mstatus)[33m.[39mtoBe([35m200[39m)[33m;[39m
+    [31m[1m>[22m[39m[90m 174 |[39m         expect(entityService[33m.[39mensureEntityFromApplicantData)[33m.[39mnot[33m.[39mtoHaveBeenCalled()[33m;[39m
+     [90m     |[39m                                                                 [31m[1m^[22m[39m
+     [90m 175 |[39m         expect(applicationService[33m.[39mupdateApplicantDraftColumns)[33m.[39mtoHaveBeenCalledWith(
+     [90m 176 |[39m             [32m'app-1'[39m[33m,[39m
+     [90m 177 |[39m             expect[33m.[39mobjectContaining({ entityId[33m:[39m [32m'ent-personal'[39m })[33m,[39m[0m
+
+      at Object.toHaveBeenCalled (__tests__/unit/applications-prepare-active-entity.test.js:174:65)
+
+PASS __tests__/unit/thaid-identity-service.test.js
+  decodeIdTokenSubject
+    √ returns the opaque sub for a valid JWT (2 ms)
+    √ returns null for garbage / missing sub / non-string input (never throws) (2 ms)
+  assertAutoProvisionableRole
+    √ throws AUTH_AUTOPROVISION_ROLE_FORBIDDEN for a provider role (24 ms)
+    √ passes for a citizen (non-provider) role (2 ms)
+    √ throws AUTH_AUTOPROVISION_ROLE_FORBIDDEN for an unknown/foreign role (allow-list, fail-closed) (2 ms)
+  resolveThaidLogin
+    √ missing subject → throws AUTH_IDP_PROFILE_INCOMPLETE (2 ms)
+    √ new subject + new national id (NODE_ENV=test) → register once, link, return user (3 ms)
+    √ NEGATIVE (operator-required): national id matches an EXISTING PROVIDER-role user → REJECT + no link (2 ms)
+    √ national id matches an existing CITIZEN user → link + return (no register) (2 ms)
+    √ NEGATIVE (operator-required): no link + no national-id match + NODE_ENV=production → REJECT + no register (1 ms)
+    √ existing link → return the linked user WITHOUT provisioning (any role — the link was deliberate) (3 ms)
+
+Test Suites: 3 failed, 1 passed, 4 total
+Tests:       12 failed, 27 passed, 39 total
+Snapshots:   0 total
+Time:        4.314 s, estimated 12 s
+Ran all test suites matching /entity-claim-guard|entity-service|applications-prepare-active-entity/i.

@@ -1,0 +1,244 @@
+# Fix round 1 — MUTATION PROOF for review r0 F2 (the pins bite)
+#
+# F2's two assertions ship green on the fixed tree, because the behaviour they
+# describe (persisting landTenure/areaType/certScope) shipped untested in round 0.
+# They are therefore PINS, not fixes — and a pin is only worth its line count if
+# it fails when the behaviour is removed. So it was removed and the suites re-run:
+#
+# Mutation applied to apps/backend/services/requirement-rule-service.js (the exact
+# three lines review r0 F2 named, in the createRule `data` block):
+#     -            landTenure: caseDimensions.landTenure,
+#     -            areaType: caseDimensions.areaType,
+#     -            certScope: caseDimensions.certScope,
+#
+# Command: cd apps/backend && npx jest __tests__/unit/requirement-rule-service.test.js \
+#            __tests__/unit/admin-requirement-rules-routes.test.js --runInBand
+# Result: 5 failed, 59 passed  (round 0 reported the same mutation as ALL GREEN)
+# The service was then restored byte-identical (diff -q clean) and re-run green
+# (fix1-test-output.txt).
+# ---------------------------------------------------------------------------
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+[jest-globalsetup] local test database is NOT reachable: 
+Invalid `prisma.$queryRawUnsafe()` invocation:
+
+
+Can't reach database server at `127.0.0.1:5432`
+
+Please make sure your database server is running at `127.0.0.1:5432`.
+[jest-globalsetup] Suites that need a database will report it; unit tests are unaffected.
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/admin-requirement-rules-routes.test.js
+  the surface is admin-only — and mounted (both proven by one request)
+    √ document_reviewer cannot read the rules (403, no query fired) (69 ms)
+    √ scheduler cannot read the rules (403, no query fired) (14 ms)
+    √ auditor cannot read the rules (403, no query fired) (11 ms)
+    √ account_dtam cannot read the rules (403, no query fired) (11 ms)
+    √ health cannot read the rules (403, no query fired) (12 ms)
+    √ document_reviewer cannot write a rule (403, nothing created, nothing audited) (25 ms)
+    √ scheduler cannot write a rule (403, nothing created, nothing audited) (12 ms)
+    √ auditor cannot write a rule (403, nothing created, nothing audited) (11 ms)
+    √ account_dtam cannot write a rule (403, nothing created, nothing audited) (11 ms)
+    √ health cannot write a rule (403, nothing created, nothing audited) (12 ms)
+    √ document_reviewer cannot close a rule (403, no update) (10 ms)
+    √ scheduler cannot close a rule (403, no update) (19 ms)
+    √ auditor cannot close a rule (403, no update) (10 ms)
+    √ account_dtam cannot close a rule (403, no update) (10 ms)
+    √ health cannot close a rule (403, no update) (12 ms)
+    √ an anonymous caller gets 401, not 403 (auth sits before the admin gate) (34 ms)
+  GET / — the law as of a date
+    √ returns the rules in force NOW by default (open window, deterministic order) (26 ms)
+    √ ?at= asks the question as of THAT instant, not now (11 ms)
+    √ ?includeClosed=true drops the window so retired rules stay readable (AC3) (11 ms)
+    √ ?at=garbage is refused (400) instead of silently answering about now (10 ms)
+  POST / — new law enters as a row
+    √ 201: the row is created under the caller and an audit row is emitted (12 ms)
+    √ a slot written through an old alias is stored canonical (LAND_TITLE → land_deed) (11 ms)
+    √ all three dimensions omitted = a rule that binds everyone (201, NULLs stored) (10 ms)
+    √ an explicit null dimension is accepted the same way (11 ms)
+    √ an unknown slot is refused (400) — a law about a slot that does not exist can never fire (11 ms)
+    √ a missing slot is refused (400) (21 ms)
+    √ an unknown holderType is refused (400) and the answer names the accepted set (11 ms)
+    √ 'RENEW' is refused (400): the vocabulary is NEW/RENEWAL/REPLACEMENT and gets no fifth word (10 ms)
+    √ NEW is accepted (10 ms)
+    √ RENEWAL is accepted (10 ms)
+    √ REPLACEMENT is accepted (10 ms)
+    √ INDIVIDUAL is accepted (10 ms)
+    √ JURISTIC is accepted (10 ms)
+    √ COMMUNITY_ENTERPRISE is accepted (18 ms)
+    √ a per-plant rule is refused (400) instead of being filed as law that can never fire (11 ms)
+    √ the refusal says WHY, so the admin does not simply retype it (10 ms)
+    √ plantCode null still means "every plant" (201) (9 ms)
+    √ plantCode "" still means "every plant" (201) (10 ms)
+    × 201: landTenure/areaType/certScope reach the row and the audit row (14 ms)
+    × the case dimensions are optional — omitted still means "every case" (201, NULLs) (11 ms)
+    √ a mistyped landTenure is refused (400) and the answer names the accepted set (10 ms)
+    √ a mistyped areaType is refused (400) and the answer names the accepted set (10 ms)
+    √ a mistyped certScope is refused (400) and the answer names the accepted set (10 ms)
+    √ an unparsable effectiveFrom surfaces as 400, not 500 (10 ms)
+    √ a DB failure is a 500 that leaks no internals (12 ms)
+  POST /:id/close — retiring a rule is the only touch a row ever gets
+    √ 200: exactly effectiveTo/closedBy/closedAt are written, plus an audit row (10 ms)
+    √ closing a rule that was already closed is a 409, not a second stamp (9 ms)
+    √ closing a rule that does not exist is a 404 (9 ms)
+    √ there is no route that edits a rule body — PUT/PATCH/DELETE do not exist (29 ms)
+
+  ● POST / — new law enters as a row › 201: landTenure/areaType/certScope reach the row and the audit row
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  - 3
+    + Received  + 0
+
+      Object {
+    -   "areaType": "INDOOR",
+    -   "certScope": "PLANTING",
+    -   "landTenure": "RENTED",
+        "slotId": "land_deed",
+      }
+
+      430 |
+      431 |         expect(res.status).toBe(201);
+    > 432 |         expect(mockRuleCreate.mock.calls[0][0].data).toMatchObject({
+          |                                                      ^
+      433 |             slotId: 'land_deed', landTenure: 'RENTED', areaType: 'INDOOR', certScope: 'PLANTING',
+      434 |         });
+      435 |         expect(auditLogger.log.mock.calls[0][0].metadata).toMatchObject({
+
+      at Object.toMatchObject (__tests__/unit/admin-requirement-rules-routes.test.js:432:54)
+
+  ● POST / — new law enters as a row › the case dimensions are optional — omitted still means "every case" (201, NULLs)
+
+    expect(received).toMatchObject(expected)
+
+    - Expected  -  3
+    + Received  + 10
+
+      Object {
+    -   "areaType": null,
+    -   "certScope": null,
+    -   "landTenure": null,
+    +   "createdBy": "admin-1",
+    +   "effectiveFrom": 2026-09-04T04:06:00.530Z,
+    +   "effectiveTo": null,
+    +   "holderType": null,
+    +   "isRequired": true,
+    +   "maxDocumentAgeMonths": null,
+    +   "plantCode": null,
+    +   "reason": null,
+    +   "requestType": null,
+    +   "slotId": "id_card",
+      }
+
+      442 |
+      443 |         expect(res.status).toBe(201);
+    > 444 |         expect(mockRuleCreate.mock.calls[0][0].data).toMatchObject({
+          |                                                      ^
+      445 |             landTenure: null, areaType: null, certScope: null,
+      446 |         });
+      447 |     });
+
+      at Object.toMatchObject (__tests__/unit/admin-requirement-rules-routes.test.js:444:54)
+
+  console.warn
+    [jest-setup] DATABASE_URL is unset; pinning it to a local test database so that
+    [jest-setup] @prisma/client cannot load a live URL out of .env when it is imported.
+
+      94 |     // lose. Both earlier versions of this block failed exactly here, and each failure
+      95 |     // cost another real journal entry.
+    > 96 |     console.warn(
+         |             ^
+      97 |       current
+      98 |         ? `[jest-setup] DATABASE_URL points at "${host || 'an unparseable host'}", which is not this machine.\n` +
+      99 |             '[jest-setup] Redirecting the suite to a local test database: tests write real rows.\n' +
+
+      at Object.warn (jest.setup.js:96:13)
+
+FAIL __tests__/unit/requirement-rule-service.test.js
+  rulesAt — the law in force on the day asked about
+    √ a rule effective yesterday..open applies today; effective tomorrow does not; closed yesterday does not (3 ms)
+    √ dimension null matches everything; a JURISTIC rule never fires for COMMUNITY_ENTERPRISE (2 ms)
+    √ runs on the caller-supplied client when given one (submit gate passes its tx) (2 ms)
+  createRule — a new row is the only way to change the law
+    √ stores the slot in canonical form, so a rule written through an alias still fires (6 ms)
+    √ writes only whitelisted columns — a caller cannot choose the id or forge the closing stamps (2 ms)
+    √ refuses a rule with no slot and a rule with no actor — createdBy/slotId are NOT NULL (2 ms)
+    √ writes an audit row carrying the substance of the rule (1 ms)
+    × persists landTenure/areaType/certScope onto the row AND into the audit row (2 ms)
+    × a rule that names no case dimension binds every case (all three stored NULL) (1 ms)
+    × trims a dimension value, so a stray space in a seed row is not a different word (2 ms)
+  closeRule — retiring a rule is the only touch an existing row ever gets
+    √ updates exactly effectiveTo/closedBy/closedAt and nothing else (1 ms)
+    √ writes the REQUIREMENT_RULE_CLOSED audit row with the reason (2 ms)
+    √ refuses to re-close a closed rule, and refuses a rule that does not exist (1 ms)
+  the service exposes NO way to edit a rule body
+    √ exports exactly rulesAt/createRule/closeRule + the vocabulary — no updateRule, no deleteRule (2 ms)
+    √ closeRule has nowhere to put a slotId — the signature is (id, actor, reason) (1 ms)
+
+  ● createRule — a new row is the only way to change the law › persists landTenure/areaType/certScope onto the row AND into the audit row
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "RENTED"
+    Received: undefined
+
+      280 |
+      281 |         const { data } = prisma.requirementRule.create.mock.calls[0][0];
+    > 282 |         expect(data.landTenure).toBe('RENTED');
+          |                                 ^
+      283 |         expect(data.areaType).toBe('INDOOR');
+      284 |         expect(data.certScope).toBe('PLANTING');
+      285 |
+
+      at Object.toBe (__tests__/unit/requirement-rule-service.test.js:282:33)
+
+  ● createRule — a new row is the only way to change the law › a rule that names no case dimension binds every case (all three stored NULL)
+
+    expect(received).toBeNull()
+
+    Received: undefined
+
+      294 |
+      295 |         const { data } = prisma.requirementRule.create.mock.calls[0][0];
+    > 296 |         expect(data.landTenure).toBeNull();
+          |                                 ^
+      297 |         expect(data.areaType).toBeNull();
+      298 |         expect(data.certScope).toBeNull();
+      299 |     });
+
+      at Object.toBeNull (__tests__/unit/requirement-rule-service.test.js:296:33)
+
+  ● createRule — a new row is the only way to change the law › trims a dimension value, so a stray space in a seed row is not a different word
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "RENTED"
+    Received: undefined
+
+      315 |         const { data } = prisma.requirementRule.create.mock.calls[0][0];
+      316 |         expect(data.holderType).toBe('JURISTIC');
+    > 317 |         expect(data.landTenure).toBe('RENTED');
+          |                                 ^
+      318 |         expect(data.areaType).toBe('INDOOR');
+      319 |         // A value that is ONLY whitespace says nothing, so it means "every value".
+      320 |         await svc.createRule({ slotId: 'id_card', effectiveFrom: AT, certScope: '   ' }, ACTOR);
+
+      at Object.toBe (__tests__/unit/requirement-rule-service.test.js:317:33)
+
+Test Suites: 2 failed, 2 total
+Tests:       5 failed, 59 passed, 64 total
+Snapshots:   0 total
+Time:        3.025 s, estimated 8 s
+Ran all test suites matching /__tests__\\unit\\requirement-rule-service.test.js|__tests__\\unit\\admin-requirement-rules-routes.test.js/i.

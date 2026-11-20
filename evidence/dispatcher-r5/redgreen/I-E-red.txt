@@ -1,0 +1,84 @@
+[32minfo[39m: PRISMA INIT - Docker Production Mode {"service":"prisma-database","timestamp":"2026-10-09T13:28:28.510Z"}
+[32minfo[39m:    URL: {"service":"prisma-database","timestamp":"2026-10-09T13:28:28.514Z"}
+[32minfo[39m:    Pool: 20 connections, 15s timeout {"service":"prisma-database","timestamp":"2026-10-09T13:28:28.515Z"}
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.
+
+      110 |
+      111 |   if (isDevelopment && !process.env.HEALTH_JWT_SECRET && !process.env.JWT_SECRET) {
+    > 112 |     console.warn('DEVELOPMENT MODE: Using stable dev Health JWT secret. Do NOT ship this to production.');
+          |             ^
+      113 |   }
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:112:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:50:47)
+
+  console.warn
+    DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.
+
+      114 |
+      115 |   if (isDevelopment && !process.env.PROVIDER_JWT_SECRET && !process.env.DTAM_JWT_SECRET) {
+    > 116 |     console.warn('DEVELOPMENT MODE: Using stable dev Provider JWT secret. Do NOT ship this to production.');
+          |             ^
+      117 |   }
+      118 |
+      119 |   const providerConfig = {
+
+      at Object.warn [as getJWTConfiguration] (config/jwt-security.js:116:13)
+      at loadJWTConfiguration (middleware/auth-middleware.js:49:28)
+      at Object.loadConfigSafely (middleware/auth-middleware.js:75:1)
+      at requireActual (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:19:25)
+      at Object.require (routes/api/provider/applications.js:2:34)
+      at Object.require (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:50:47)
+
+[33mwarn[39m: Using local key management (dev mode) {"service":"signature-service","timestamp":"2026-10-09T13:28:29.147Z"}
+[secrets] WARNING: Using DEV FALLBACK for RSA_PRIVATE_KEY_PASSPHRASE. Set a real value in .env for production-like behavior.
+[31merror[39m: Failed to initialize signature service: [signature-service] FATAL: the certificate signing key in /tmp/dispatcher-r5/signing-keys could not be loaded and used (expected private.pem + public.pem, decryptable with RSA_PRIVATE_KEY_PASSPHRASE). Refusing to start: generating a replacement key here would silently invalidate every certificate already signed with the previous key, and overwrite the only copy of that key. Mount the existing key (read-only secret mount), or set the passphrase it was encrypted with, and restart. If this box is scratch and you truly want a new key, remove /tmp/dispatcher-r5/signing-keys/private.pem and public.pem by hand first — that is a deliberate act, and it is meant to be. Cause: error:1C800064:Provider routines::bad decrypt {"service":"signature-service","stack":"Error: [signature-service] FATAL: the certificate signing key in /tmp/dispatcher-r5/signing-keys could not be loaded and used (expected private.pem + public.pem, decryptable with RSA_PRIVATE_KEY_PASSPHRASE). Refusing to start: generating a replacement key here would silently invalidate every certificate already signed with the previous key, and overwrite the only copy of that key. Mount the existing key (read-only secret mount), or set the passphrase it was encrypted with, and restart. If this box is scratch and you truly want a new key, remove /tmp/dispatcher-r5/signing-keys/private.pem and public.pem by hand first — that is a deliberate act, and it is meant to be. Cause: error:1C800064:Provider routines::bad decrypt\n    at SignatureService.ensureLocalKeys (/home/ubuntu/work/wt-dispatcher/apps/backend/services/crypto/signature-service.js:570:15)\n    at SignatureService.initialize (/home/ubuntu/work/wt-dispatcher/apps/backend/services/crypto/signature-service.js:144:9)","timestamp":"2026-10-09T13:28:29.173Z"}
+[31merror[39m: [signature-service] initialization failed: [signature-service] FATAL: the certificate signing key in /tmp/dispatcher-r5/signing-keys could not be loaded and used (expected private.pem + public.pem, decryptable with RSA_PRIVATE_KEY_PASSPHRASE). Refusing to start: generating a replacement key here would silently invalidate every certificate already signed with the previous key, and overwrite the only copy of that key. Mount the existing key (read-only secret mount), or set the passphrase it was encrypted with, and restart. If this box is scratch and you truly want a new key, remove /tmp/dispatcher-r5/signing-keys/private.pem and public.pem by hand first — that is a deliberate act, and it is meant to be. Cause: error:1C800064:Provider routines::bad decrypt {"service":"signature-service","timestamp":"2026-10-09T13:28:29.174Z"}
+[32minfo[39m: Prisma disconnected {"service":"prisma-database","timestamp":"2026-10-09T13:28:29.513Z"}
+FAIL __tests__/integration/applicant-contact-withheld-real-postgres.test.js
+  the applicant's contact is withheld from the dispatcher and the field inspector (real Postgres)
+    the application detail door
+      ○ skipped the dispatcher reads the filing without any contact of the applicant or of the site
+      ○ skipped the field inspector assigned to the visit reads it the same way
+      ○ skipped an older filing's contact keys, and keys no screen knows, never reach the dispatcher or the inspector (L-A)
+      ○ skipped the document reviewer still reads the applicant's contact
+    the audit timeline (security re-review M-B)
+      ○ skipped a reviewer's correction of contact fields reaches the dispatcher and the inspector as the field's name only
+    the field inspector's own action doors (security re-review M-A)
+      ○ skipped starting the inspection and recording the decision answer the number and status only
+    the on-site contact door
+      ✕ the dispatcher reads the name and phone of the person on site while booking, and every view is logged (215 ms)
+      ○ skipped the field inspector assigned to the visit reads it on its audit pages; an inspector not assigned does not
+      ○ skipped outside the booking stages, in another organization, or for another role, nothing is read and nothing is logged
+      ○ skipped a view that cannot be logged shows nothing
+      ○ skipped a filing that names no one on site says so
+
+  ● the applicant's contact is withheld from the dispatcher and the field inspector (real Postgres) › the on-site contact door › the dispatcher reads the name and phone of the person on site while booking, and every view is logged
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "no-store"
+    Received: undefined
+
+      211 |             expect(first.body.data).toEqual({ applicationNumber: row.applicationNumber, siteContactName: 'นายสมศักดิ์ ดูแลแปลง', sitePhone: '0865556666' });
+      212 |             // No browser or proxy keeps a copy of a view that was logged once (security re-review I-E).
+    > 213 |             expect(first.headers['cache-control']).toBe('no-store');
+          |                                                    ^
+      214 |             expect(JSON.stringify(first.body)).not.toContain('0891112222');
+      215 |             await siteContact(row);
+      216 |             const views = await viewsOf(row.id);
+
+      at Object.toBe (__tests__/integration/applicant-contact-withheld-real-postgres.test.js:213:52)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 10 skipped, 11 total
+Snapshots:   0 total
+Time:        2.086 s, estimated 3 s
+Ran all test suites matching __tests__/integration/applicant-contact-withheld-real-postgres.test.js with tests matching "reads the name and phone of the person on site".

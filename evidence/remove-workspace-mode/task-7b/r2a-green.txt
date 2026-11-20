@@ -1,0 +1,19 @@
+Task 7b round 2 (a) — GREEN: activity save accepts the cycle door's attachments
+Date: 2026-10-03 · Real Postgres 17 :55438 · key mtime 1788623435 before/after (unchanged)
+
+planting-attachment-door-real-postgres.test.js + holder-write-doors-witness-real-postgres.test.js +
+r1-cert-doc-finance-reads-neutral-real-postgres.test.js + unit/error-codes-source-pointers.test.js (jest -i):
+  Test Suites 4 passed · Tests 25 passed, 25 total · 0 skipped
+  ✓ an activity saved with an attachment from this door is 201 and carries it   (was 403 in r2a-red.txt)
+  ✓ negatives stay refused: other cycle · deleted · other user's unreachable farm · capability revoked · unknown id
+unit/cert-finance-reads-carry-holder-marker.test.js 27 passed · integration/planting-plot-trace.test.js passed
+
+Decision: the application-document branch is REMOVED (planting-service.findOwnedApplicationDocuments deleted).
+  Its only caller was this door; the hook stopped sending application-document ids in cde25f0c; and it never
+  matched an upload anyway (it compared ApplicationDocument.id, uploads return documentId).
+Test changes that follow from that decision:
+  - r1-cert-doc-finance-reads-neutral.expected.json: exactly the 11 rows "<A|M>|<hdr>|POST /planting-cycles/:id/activities|<own doc>"
+    201 → 403 (first run after the change showed "- Expected 11 / + Received 11", all of them this door, nothing else moved)
+  - holder-write-doors-witness: the activity test now uploads through the cycle door and saves with that id (201, witness clean)
+  - cert-finance-reads-carry-holder-marker: the two unit tests of the deleted method removed; planting-plot-trace: its mock removed
+  - shared/error-codes.js ATTACHMENT_OWNERSHIP_DENIED: pointer :64 → :63 and remediation states the new rule

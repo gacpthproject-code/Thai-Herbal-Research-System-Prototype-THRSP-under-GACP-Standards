@@ -1,0 +1,167 @@
+# ⚠️  ใช้ไม่ได้ตั้งแต่ 2026-08-14 — บัญชี Actions ค้างชำระ ไฟล์นี้จึงรันไม่ขึ้นเลย
+#
+# ยืนยันแล้วสองที่: docs/operations/runbooks/deploy-staging-manual.md บันทึกไว้ว่า
+# "build-images.yml cannot run (Actions unpaid, 2026-08-14) so no new tag ever reaches
+# the registry" และ staging-walkthrough.yml:5-11 บอกว่าการล็อกกินไปถึง self-hosted ด้วย
+#
+# ทางที่ใช้ได้จริงคือ build บนเครื่องแล้วรันสคริปต์เดียวกันนี้ด้วยมือ:
+#   1) docs/operations/runbooks/build-images-on-the-box.md   (ส่ง --build-arg GIT_SHA/BUILT_AT
+#      ให้ครบ ไม่งั้น /api/health จะตอบ revision: null และบอกไม่ได้ว่าเครื่องรัน sha ไหน)
+#   2) sudo IMAGE_TAG=local-<sha12> /opt/gacp-platform/scripts/deploy/deploy-staging.sh
+#
+# อย่าลบไฟล์นี้ทิ้ง — มันคือรูปแบบที่ถูกต้องของลำดับ deploy และเป็นสิ่งที่จะกลับมาใช้
+# ทันทีที่ billing ถูกปลด · ที่เติมหัวนี้เพราะมีคนอ่านไฟล์นี้แล้วสั่งให้กด Run workflow
+# โดยไม่รู้ว่ามันรันไม่ได้ (2026-09-10)
+
+name: Deploy to Staging (manual)
+
+# A11 part 2 — a first-class, operator-triggered staging deploy.
+#
+# Replaces the ad-hoc VM process: click "Run workflow" in the Actions tab to
+# build+push fresh backend/frontend images from the default branch and recreate
+# the staging containers on the VM. NO AUTO-DEPLOY (mandate §0) — this workflow
+# has ONLY a workflow_dispatch trigger; nothing runs it on push.
+#
+# The on-VM sequence (preflight .env.staging → pg_dump backup of gacp_staging →
+# prisma migrate deploy → recreate backend-staging via the two-file compose
+# form) is delegated to scripts/deploy/deploy-staging.sh — the same script the
+# manual runbook drives (docs/operations/runbooks/deploy-staging-manual.md).
+#
+# REQUIRED SECRETS (operator must set before this can run):
+#   PRODUCTION_HOST   — staging/prod droplet host (staging shares the droplet)
+#   PRODUCTION_USER   — SSH user
+#   PRODUCTION_SSH_KEY — SSH key for that user. This is the canonical name the
+#                       rest of the deploy plumbing (production.yml) uses; all
+#                       three are set (since 2026-06-04). An earlier draft of
+#                       this workflow referenced a non-existent `SSH_PRIVATE_KEY`
+#                       and failed at connect for that reason — aligned here.
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: 'Deploy an EXISTING tag without rebuilding (e.g. main-latest, sha-abc1234). Leave blank to build+push the current default branch first.'
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+  packages: write
+
+concurrency:
+  group: deploy-staging
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_OWNER: ${{ github.repository_owner }}
+
+jobs:
+  build:
+    name: Build & push images (skipped when image_tag is given)
+    if: ${{ github.event.inputs.image_tag == '' }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - name: backend
+            dockerfile: apps/backend/Dockerfile
+          - name: frontend
+            dockerfile: apps/web-app/Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build & push ${{ matrix.name }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ${{ matrix.dockerfile }}
+          push: true
+          # Immutable per-commit tag (what deploy uses) + a moving staging-latest.
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/gacp-${{ matrix.name }}:staging-${{ github.sha }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_OWNER }}/gacp-${{ matrix.name }}:staging-latest
+          cache-from: type=gha,scope=${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+          # No foreign-IdP build args — see build-images.yml.
+          #
+          # Build identity (design-reproducibility/01-build-identity): this job
+          # was building+pushing staging images with NEITHER build-arg set, so
+          # GET /api/webapp-version on staging always answered null — the exact
+          # "cannot tell what is deployed" gap deploy-drift.sh exists to catch
+          # (see that probe's header for the 2026-08-14 incident). Same args as
+          # build-images.yml, applied to both matrix legs since both Dockerfiles
+          # (apps/backend, apps/web-app) already declare these ARGs.
+          build-args: |
+            GIT_SHA=${{ github.sha }}
+            BUILT_AT=${{ github.event.repository.updated_at }}
+
+  deploy:
+    name: Recreate staging on the VM (SSH)
+    needs: [build]
+    # Run whether build ran (success) or was skipped (image_tag given), but not
+    # if build was requested and failed.
+    if: ${{ always() && (needs.build.result == 'success' || needs.build.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    env:
+      DEPLOY_HOST: ${{ secrets.PRODUCTION_HOST }}
+      DEPLOY_KEY: ${{ secrets.PRODUCTION_SSH_KEY }}
+      # If the operator gave an existing tag, use it; otherwise the freshly-built
+      # immutable staging-<sha>. docker-compose.staging.yml reads STAGING_IMAGE_TAG.
+      STAGING_IMAGE_TAG: ${{ github.event.inputs.image_tag != '' && github.event.inputs.image_tag || format('staging-{0}', github.sha) }}
+    steps:
+      - name: Require deploy secrets (fail loudly, not silently)
+        run: |
+          missing=""
+          [ -z "${DEPLOY_HOST}" ] && missing="$missing PRODUCTION_HOST"
+          [ -z "${DEPLOY_KEY}" ]  && missing="$missing PRODUCTION_SSH_KEY"
+          if [ -n "$missing" ]; then
+            echo "::error::Missing required secret(s):$missing — cannot deploy to staging. Set them in repo Settings → Secrets, or use a self-hosted runner on the VM."
+            exit 1
+          fi
+          echo "Deploy secrets present."
+
+      - name: Deploy via SSH (delegates to scripts/deploy/deploy-staging.sh)
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          command_timeout: 15m
+          envs: STAGING_IMAGE_TAG
+          script: |
+            set -euo pipefail
+            cd /opt/gacp-platform
+            git fetch origin main --quiet
+            echo "Deploying staging with STAGING_IMAGE_TAG=${STAGING_IMAGE_TAG}"
+            # deploy-staging.sh: preflight .env.staging → pg_dump gacp_staging →
+            # prisma migrate deploy (staging DB) → recreate backend-staging
+            # (two-file compose form). Reads /opt/gacp-platform/.env.staging.
+            STAGING_IMAGE_TAG="${STAGING_IMAGE_TAG}" IMAGE_TAG="${STAGING_IMAGE_TAG}" \
+              /opt/gacp-platform/scripts/deploy/deploy-staging.sh
+
+      - name: Verify staging health
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PRODUCTION_HOST }}
+          username: ${{ secrets.PRODUCTION_USER }}
+          key: ${{ secrets.PRODUCTION_SSH_KEY }}
+          script: |
+            code=$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8001/api/health || echo 000)
+            echo "staging /api/health -> $code"
+            [ "$code" = "200" ] || { echo "::error::staging health check failed ($code) — review deploy-staging logs on the VM"; exit 1; }
+
+      - name: Failure notice
+        if: failure()
+        run: echo "::error::Staging deploy failed. Follow docs/operations/runbooks/deploy-staging-manual.md §4 (rollback) on the VM. deploy-staging.sh took a pre-deploy pg_dump of gacp_staging."

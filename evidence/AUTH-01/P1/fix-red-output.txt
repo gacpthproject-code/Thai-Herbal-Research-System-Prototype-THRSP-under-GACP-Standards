@@ -1,0 +1,494 @@
+# AUTH-01 P1 — fix cycle 1/3: RED evidence (2026-08-03)
+# branch: fix/auth-01-p1-audit — แก้ audit findings F1/F3 (evidence/AUTH-01/P1/audit-report.md)
+#
+# ============================================================================
+# ส่วนที่ 1 — F1: RED จริงก่อนแก้ implementation (Law 3.11 ปกติ)
+# ============================================================================
+# วิธี: เขียน/แก้ test pin ก่อนแตะโค้ด —
+#   - auth-providers-config.test.js: เพิ่ม pin `pidClientId` ใน getProviderConfig
+#     + test ใหม่ "ขาด PID_CLIENT_ID ก็ fail-closed" + เพิ่ม AUTH_PROVIDERID_PID_CLIENT_ID
+#     ใน setFullProviderIdEnv
+#   - idp-adapter.test.js: แก้ assertion happy-path ขา 2 ให้ client_id ต้องเป็น
+#     ค่า PID + test ใหม่ "แยก credential สองการลงทะเบียน" (ขา 1 = คู่ Health ID,
+#     ขา 2 + header profile = pidClientId)
+# แล้วรันทั้งสองไฟล์บนโค้ดเดิม (ยังผูก cfg.clientId ตัวเดียว) → 4 fail ตามคาด:
+# output จริงทั้งหมด:
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/idp-adapter.test.js
+  getIdpAdapter factory — fail-closed (แบบ payment-adapter seam)
+    ✓ unknown key → AUTH_PROVIDER_UNKNOWN (8 ms)
+    ✓ providerid default (coming_soon) → AUTH_PROVIDER_DISABLED (4 ms)
+    ✓ providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED (3 ms)
+    ✓ providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method (6 ms)
+    ✓ mock บน non-production → ได้ adapter (4 ms)
+    ✓ mock บน production → AUTH_PROVIDER_DISABLED (§D5 บังคับใน logic) (4 ms)
+    ✓ local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER (4 ms)
+  ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด)
+    getAuthorizeUrl — [P-OAUTH] หน้า 3
+      ✓ สร้าง URL ครบ 4 param: client_id, redirect_uri, response_type=code, state (5 ms)
+      ✓ state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR (8 ms)
+    exchangeCode — happy path 2 ขา
+      ✕ ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract (21 ms)
+    แยก credential สองการลงทะเบียน — audit F1 ([P-OAUTH] หน้า 4 vs หน้า 7/9)
+      ✕ ขา 1 ใช้คู่ Health ID · ขา 2 + header profile ใช้ pidClientId ของระบบ Provider ID ไม่ใช่ clientId (9 ms)
+    exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5)
+      ✓ 422 "Access grant has denied" → AUTH_IDP_ACCESS_DENIED (4 ms)
+      ✓ 422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED (5 ms)
+      ✓ 422 "Code is invalid" → AUTH_IDP_CODE_INVALID (5 ms)
+      ✓ 401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED (14 ms)
+      ✓ 500 → AUTH_IDP_UNAVAILABLE (5 ms)
+      ✓ network ล่ม/timeout → AUTH_IDP_UNAVAILABLE (4 ms)
+    exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8)
+      ✓ 400 "This user has not provider id" → AUTH_PROVIDERID_NOT_FOUND (แยกเป็น error ของตัวเอง) (4 ms)
+      ✓ 400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED (4 ms)
+      ✓ 401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED (4 ms)
+      ✓ 500 → AUTH_IDP_UNAVAILABLE (audit F3 pin — [P-OAUTH] หน้า 8 "500") (5 ms)
+    exchangeCode — envelope ไม่มี access_token (audit F3 pin — pin ไม่ใช่ fix, RED ด้วย mutation)
+      ✓ ขา 1 envelope ไม่มี data.access_token → AUTH_IDP_EXCHANGE_FAILED (4 ms)
+      ✓ ขา 2 response ไม่มี access_token → AUTH_IDP_EXCHANGE_FAILED (9 ms)
+    getProfile — [P-OAUTH] หน้า 9-12
+      ✓ GET + headers Authorization Bearer / client-id / secret-key แล้วคืน raw profile เท่านั้น (5 ms)
+      ✓ 401 "access_token is invalid" → AUTH_IDP_TOKEN_INVALID (4 ms)
+      ✓ 404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND (4 ms)
+      ✓ 401 client ผิด (non-token message) → AUTH_IDP_CLIENT_AUTH_FAILED (audit F3 pin — หน้า 12) (3 ms)
+      ✓ 400 param ขาด → AUTH_IDP_EXCHANGE_FAILED (audit F3 pin — หน้า 12) (3 ms)
+      ✓ 503 → AUTH_IDP_UNAVAILABLE (4 ms)
+  MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network)
+    ✓ มี fixture code ครบ 5 ชุด (3 ms)
+    ✓ happy: exchangeCode ตาม contract แล้ว getProfile ได้ profile ครบ (in_registry=true) (5 ms)
+    ✓ deny → AUTH_IDP_ACCESS_DENIED (3 ms)
+    ✓ expired-code → AUTH_IDP_CODE_EXPIRED (3 ms)
+    ✓ code ไม่รู้จัก → AUTH_IDP_CODE_INVALID (8 ms)
+    ✓ profile-missing-field: token ผ่าน แต่ profile ไม่มี hash_cid (4 ms)
+    ✓ staff-not-in-registry: profile valid แต่ flag in_registry=false (consumer P2 ใช้) (3 ms)
+    ✓ deterministic: code เดิม → ผลเดิมทุกครั้ง (4 ms)
+    ✓ ไม่แตะ network เลย (fetch ต้องไม่ถูกเรียก) (3 ms)
+    ✓ getAuthorizeUrl มี state เสมอ + response_type=code (โครงเดียวกับของจริง) (3 ms)
+    ✓ getProfile ด้วย token ไม่รู้จัก → AUTH_IDP_TOKEN_INVALID (3 ms)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — happy path 2 ขา › ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract
+
+    expect(received).toEqual(expected) // deep equality
+
+    - Expected  - 1
+    + Received  + 1
+
+      Object {
+    -   "client_id": "test-providerid-pid-client",
+    +   "client_id": "test-providerid-client",
+        "secret_key": "test-providerid-secret-key-value",
+        "token": "healthid-access-token-1",
+        "token_by": "Health ID",
+      }
+
+      201 |                 && (opts2.headers['Content-Type'] || opts2.headers['content-type']);
+      202 |             expect(contentType2).toBe('application/json');
+    > 203 |             expect(JSON.parse(String(opts2 && opts2.body))).toEqual({
+          |                                                             ^
+      204 |                 client_id: 'test-providerid-pid-client',
+      205 |                 secret_key: 'test-providerid-secret-key-value',
+      206 |                 token_by: 'Health ID',
+
+      at Object.toEqual (__tests__/unit/idp-adapter.test.js:203:61)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › แยก credential สองการลงทะเบียน — audit F1 ([P-OAUTH] หน้า 4 vs หน้า 7/9) › ขา 1 ใช้คู่ Health ID · ขา 2 + header profile ใช้ pidClientId ของระบบ Provider ID ไม่ใช่ clientId
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "test-providerid-pid-client"
+    Received: "test-providerid-client"
+
+      236 |             const [, opts2] = global.fetch.mock.calls[1] || [];
+      237 |             const leg2Body = JSON.parse(String(opts2 && opts2.body)) || {};
+    > 238 |             expect(leg2Body.client_id).toBe('test-providerid-pid-client');
+          |                                        ^
+      239 |             expect(leg2Body.client_id).not.toBe(form.get('client_id'));
+      240 |
+      241 |             // header profile — หน้า 9: client-id คู่กับ secret-key ของระบบ Provider ID
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:238:40)
+
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/auth-providers-config.test.js
+  AUTH_PROVIDERS registry (mandate §D2)
+    ✓ registry มีครบ 5 provider ตาม vocab: local | healthid | providerid | thaid | mock (4 ms)
+    ✓ default states: local=enabled, healthid/providerid/thaid=coming_soon (B1-CRED), mock=enabled (non-prod) (4 ms)
+    ✓ isProviderEnabled defaults ตรงกับ states (8 ms)
+    ✓ unknown key: isProviderEnabled=false, getProviderConfig/assertProviderReady โยน AUTH_PROVIDER_UNKNOWN (2 ms)
+  mock ปิดบน production — บังคับใน logic ไม่ใช่แค่ default (mandate §D5)
+    ✓ NODE_ENV=production + AUTH_MOCK_STATE=enabled → mock ก็ยังไม่ enabled (2 ms)
+    ✓ non-production: mock enabled โดย default (ไม่ตั้ง env ใด) (3 ms)
+  fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment)
+    ✓ AUTH_PROVIDERID_STATE=enabled แต่ไม่มี config ใดเลย → ไม่ enabled + AUTH_PROVIDER_NOT_CONFIGURED (3 ms)
+    ✓ ขาดตัวเดียว (SECRET_KEY) ก็ fail-closed เหมือนกัน (2 ms)
+    ✕ ขาด PID_CLIENT_ID (client ของระบบ Provider ID — audit F1) ก็ fail-closed เหมือนกัน (2 ms)
+    ✕ config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field (16 ms)
+    ✓ ค่า state นอก vocab (เช่น "yolo") → fail-closed ไม่ enabled (4 ms)
+    ✓ staging_only: enabled เฉพาะ non-production (4 ms)
+    ✓ provider จริง default coming_soon → assertProviderReady โยน AUTH_PROVIDER_DISABLED (5 ms)
+  local = provider TRANSITIONAL ถอดได้ด้วย config (mandate §C4 amended)
+    ✓ local ยัง enabled บน production (ยังไม่ถึงเงื่อนไขถอดตาม §F0.6) (4 ms)
+    ✓ AUTH_LOCAL_STATE=coming_soon → local ปิดได้ด้วย config (seam สำหรับ two-state pin P5) (3 ms)
+  getAuthProviders() ห้ามคืน secret (Law 3.3 grep-pin)
+    ✓ ไม่มีชื่อ key หรือค่า secret ใด ๆ ใน output แม้ config ครบ (5 ms)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › ขาด PID_CLIENT_ID (client ของระบบ Provider ID — audit F1) ก็ fail-closed เหมือนกัน
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: false
+    Received: true
+
+      132 |         delete process.env.AUTH_PROVIDERID_PID_CLIENT_ID;
+      133 |         process.env.AUTH_PROVIDERID_STATE = 'enabled';
+    > 134 |         expect(isProviderEnabled('providerid')).toBe(false);
+          |                                                 ^
+      135 |         expect(thrownCode(() => assertProviderReady('providerid'))).toBe('AUTH_PROVIDER_NOT_CONFIGURED');
+      136 |     });
+      137 |
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:134:49)
+
+  ● fail-closed: config ไม่ครบ = ไม่มีทางเป็น enabled (mandate §D2 + แบบ assertReady ของ payment) › config ครบ + STATE=enabled → enabled จริง และ getProviderConfig คืนครบทุก field
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "test-providerid-pid-client"
+    Received: undefined
+
+      149 |         expect(cfg.profileUrl).toBe('https://providerid.example/api/v1/services/profile');
+      150 |         // audit F1: คู่ระบบ Provider ID เป็น field แยก — คนละการลงทะเบียนกับคู่ Health ID
+    > 151 |         expect(cfg.pidClientId).toBe('test-providerid-pid-client');
+          |                                 ^
+      152 |         expect(cfg.secretKey).toBe('test-providerid-secret-key-value');
+      153 |         expect(cfg.tokenExchangeUrl).toBe('https://providerid.example/api/v1/services/token');
+      154 |         expect(typeof cfg.timeoutMs).toBe('number');
+
+      at Object.toBe (__tests__/unit/auth-providers-config.test.js:151:33)
+
+Test Suites: 2 failed, 2 total
+Tests:       4 failed, 52 passed, 56 total
+Snapshots:   0 total
+Time:        1.873 s, estimated 3 s
+Ran all test suites matching /__tests__\/unit\/auth-providers-config.test.js|__tests__\/unit\/idp-adapter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+# ============================================================================
+# ส่วนที่ 2 — F3: RED ด้วย MUTATION (behavior มีอยู่แล้ว → test ใหม่เป็น
+# "pin ไม่ใช่ fix" — born-green ตอนเขียน; Law 3.11 พิสูจน์ด้วย mutation แทน)
+# ============================================================================
+# วิธี mutation (ทำหลัง F1 เขียวแล้ว เพื่อให้เหลือแดงเฉพาะ F3; ทุก mutation
+# ถูก revert ก่อน commit — ยืนยันด้วย grep -c "MUTATION-F3" = 0):
+#   (1) comment branch ขา 2 status >= 500 ใน throwProviderExchangeError
+#       (provider-id-adapter.js — เดิม :133-137)
+#   (2) comment branch profile 401 client ผิด ใน throwProfileError (เดิม :155-161)
+#   (3) บิด code fallthrough ของ throwProfileError จาก AUTH_IDP_EXCHANGE_FAILED
+#       เป็น AUTH_IDP_MUTATED_F3 (เดิม :176-180)
+#   (4) comment guard ขา 1 envelope ไม่มี data.access_token (เดิม :229-234)
+#   (5) comment guard ขา 2 response ไม่มี access_token (เดิม :251-256)
+# ผล: F3 pin ทั้ง 5 แดงด้วยเหตุถูกต้องตัวต่อตัว:
+#   ขา2 500:            Expected AUTH_IDP_UNAVAILABLE      / Received AUTH_IDP_EXCHANGE_FAILED
+#   ขา1 no access_token: Expected AUTH_IDP_EXCHANGE_FAILED / Received undefined
+#   ขา2 no access_token: Expected AUTH_IDP_EXCHANGE_FAILED / Received undefined
+#   profile 401 client:  Expected AUTH_IDP_CLIENT_AUTH_FAILED / Received AUTH_IDP_MUTATED_F3
+#   profile 400 param:   Expected AUTH_IDP_EXCHANGE_FAILED / Received AUTH_IDP_MUTATED_F3
+# output จริงทั้งหมด (idp-adapter.test.js ระหว่าง mutation):
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/idp-adapter.test.js
+  getIdpAdapter factory — fail-closed (แบบ payment-adapter seam)
+    ✓ unknown key → AUTH_PROVIDER_UNKNOWN (9 ms)
+    ✓ providerid default (coming_soon) → AUTH_PROVIDER_DISABLED (4 ms)
+    ✓ providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED (4 ms)
+    ✓ providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method (181 ms)
+    ✓ mock บน non-production → ได้ adapter (4 ms)
+    ✓ mock บน production → AUTH_PROVIDER_DISABLED (§D5 บังคับใน logic) (3 ms)
+    ✓ local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER (3 ms)
+  ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด)
+    getAuthorizeUrl — [P-OAUTH] หน้า 3
+      ✓ สร้าง URL ครบ 4 param: client_id, redirect_uri, response_type=code, state (5 ms)
+      ✓ state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR (10 ms)
+    exchangeCode — happy path 2 ขา
+      ✓ ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract (10 ms)
+    แยก credential สองการลงทะเบียน — audit F1 ([P-OAUTH] หน้า 4 vs หน้า 7/9)
+      ✓ ขา 1 ใช้คู่ Health ID · ขา 2 + header profile ใช้ pidClientId ของระบบ Provider ID ไม่ใช่ clientId (6 ms)
+    exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5)
+      ✓ 422 "Access grant has denied" → AUTH_IDP_ACCESS_DENIED (4 ms)
+      ✓ 422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED (4 ms)
+      ✓ 422 "Code is invalid" → AUTH_IDP_CODE_INVALID (4 ms)
+      ✓ 401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED (4 ms)
+      ✓ 500 → AUTH_IDP_UNAVAILABLE (4 ms)
+      ✓ network ล่ม/timeout → AUTH_IDP_UNAVAILABLE (8 ms)
+    exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8)
+      ✓ 400 "This user has not provider id" → AUTH_PROVIDERID_NOT_FOUND (แยกเป็น error ของตัวเอง) (4 ms)
+      ✓ 400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED (4 ms)
+      ✓ 401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED (4 ms)
+      ✕ 500 → AUTH_IDP_UNAVAILABLE (audit F3 pin — [P-OAUTH] หน้า 8 "500") (9 ms)
+    exchangeCode — envelope ไม่มี access_token (audit F3 pin — pin ไม่ใช่ fix, RED ด้วย mutation)
+      ✕ ขา 1 envelope ไม่มี data.access_token → AUTH_IDP_EXCHANGE_FAILED (4 ms)
+      ✕ ขา 2 response ไม่มี access_token → AUTH_IDP_EXCHANGE_FAILED (3 ms)
+    getProfile — [P-OAUTH] หน้า 9-12
+      ✓ GET + headers Authorization Bearer / client-id / secret-key แล้วคืน raw profile เท่านั้น (3 ms)
+      ✓ 401 "access_token is invalid" → AUTH_IDP_TOKEN_INVALID (3 ms)
+      ✓ 404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND (5 ms)
+      ✕ 401 client ผิด (non-token message) → AUTH_IDP_CLIENT_AUTH_FAILED (audit F3 pin — หน้า 12) (4 ms)
+      ✕ 400 param ขาด → AUTH_IDP_EXCHANGE_FAILED (audit F3 pin — หน้า 12) (3 ms)
+      ✓ 503 → AUTH_IDP_UNAVAILABLE (3 ms)
+  MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network)
+    ✓ มี fixture code ครบ 5 ชุด (4 ms)
+    ✓ happy: exchangeCode ตาม contract แล้ว getProfile ได้ profile ครบ (in_registry=true) (4 ms)
+    ✓ deny → AUTH_IDP_ACCESS_DENIED (2 ms)
+    ✓ expired-code → AUTH_IDP_CODE_EXPIRED (3 ms)
+    ✓ code ไม่รู้จัก → AUTH_IDP_CODE_INVALID (2 ms)
+    ✓ profile-missing-field: token ผ่าน แต่ profile ไม่มี hash_cid (4 ms)
+    ✓ staff-not-in-registry: profile valid แต่ flag in_registry=false (consumer P2 ใช้) (4 ms)
+    ✓ deterministic: code เดิม → ผลเดิมทุกครั้ง (4 ms)
+    ✓ ไม่แตะ network เลย (fetch ต้องไม่ถูกเรียก) (8 ms)
+    ✓ getAuthorizeUrl มี state เสมอ + response_type=code (โครงเดียวกับของจริง) (3 ms)
+    ✓ getProfile ด้วย token ไม่รู้จัก → AUTH_IDP_TOKEN_INVALID (2 ms)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8) › 500 → AUTH_IDP_UNAVAILABLE (audit F3 pin — [P-OAUTH] หน้า 8 "500")
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_UNAVAILABLE"
+    Received: "AUTH_IDP_EXCHANGE_FAILED"
+
+      323 |                 .mockResolvedValueOnce(jsonResponse(200, HAPPY_LEG1_ENVELOPE))
+      324 |                 .mockResolvedValueOnce(jsonResponse(500, { message: 'Server error' }));
+    > 325 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_UNAVAILABLE');
+          |                                                                             ^
+      326 |         });
+      327 |     });
+      328 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:325:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — envelope ไม่มี access_token (audit F3 pin — pin ไม่ใช่ fix, RED ด้วย mutation) › ขา 1 envelope ไม่มี data.access_token → AUTH_IDP_EXCHANGE_FAILED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_EXCHANGE_FAILED"
+    Received: undefined
+
+      333 |                 status: 200, data: { token_type: 'Bearer' }, message: 'success',
+      334 |             }));
+    > 335 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_EXCHANGE_FAILED');
+          |                                                                             ^
+      336 |         });
+      337 |
+      338 |         test('ขา 2 response ไม่มี access_token → AUTH_IDP_EXCHANGE_FAILED', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:335:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › exchangeCode — envelope ไม่มี access_token (audit F3 pin — pin ไม่ใช่ fix, RED ด้วย mutation) › ขา 2 response ไม่มี access_token → AUTH_IDP_EXCHANGE_FAILED
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_EXCHANGE_FAILED"
+    Received: undefined
+
+      343 |                     result: 'success', username: 'officer-test',
+      344 |                 }));
+    > 345 |             expect(await rejectedCode(adapter.exchangeCode({ code: 'c' }))).toBe('AUTH_IDP_EXCHANGE_FAILED');
+          |                                                                             ^
+      346 |         });
+      347 |     });
+      348 |
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:345:77)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getProfile — [P-OAUTH] หน้า 9-12 › 401 client ผิด (non-token message) → AUTH_IDP_CLIENT_AUTH_FAILED (audit F3 pin — หน้า 12)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_CLIENT_AUTH_FAILED"
+    Received: "AUTH_IDP_MUTATED_F3"
+
+      398 |                 message: 'client is invalid',
+      399 |             }));
+    > 400 |             expect(await rejectedCode(adapter.getProfile({ accessToken: 'x' }))).toBe('AUTH_IDP_CLIENT_AUTH_FAILED');
+          |                                                                                  ^
+      401 |         });
+      402 |
+      403 |         test('400 param ขาด → AUTH_IDP_EXCHANGE_FAILED (audit F3 pin — หน้า 12)', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:400:82)
+
+  ● ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด) › getProfile — [P-OAUTH] หน้า 9-12 › 400 param ขาด → AUTH_IDP_EXCHANGE_FAILED (audit F3 pin — หน้า 12)
+
+    expect(received).toBe(expected) // Object.is equality
+
+    Expected: "AUTH_IDP_EXCHANGE_FAILED"
+    Received: "AUTH_IDP_MUTATED_F3"
+
+      407 |                 message: 'required parameter is missing',
+      408 |             }));
+    > 409 |             expect(await rejectedCode(adapter.getProfile({ accessToken: 'x' }))).toBe('AUTH_IDP_EXCHANGE_FAILED');
+          |                                                                                  ^
+      410 |         });
+      411 |
+      412 |         test('503 → AUTH_IDP_UNAVAILABLE', async () => {
+
+      at Object.toBe (__tests__/unit/idp-adapter.test.js:409:82)
+
+Test Suites: 1 failed, 1 total
+Tests:       5 failed, 35 passed, 40 total
+Snapshots:   0 total
+Time:        1.623 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/idp-adapter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+# ============================================================================
+# หลัง revert mutation ทั้งหมด: รันสองไฟล์ = 56/56 PASS
+# (auth-providers-config 16 + idp-adapter 40)
+Test Suites: 2 passed, 2 total
+Tests:       56 passed, 56 total
+Snapshots:   0 total
+Time:        1.707 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/auth-providers-config.test.js|__tests__\/unit\/idp-adapter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+# ============================================================================
+# รอบ 2 — fix cycle 2/3 (2026-08-03): F-NEW remediation ของ
+# AUTH_IDP_CLIENT_AUTH_FAILED (shared/error-codes.js:2422) ชี้ env ผิดคู่หลัง F1
+# ============================================================================
+# วิธี: RED ธรรมชาติ (ไม่ใช่ mutation) — เพิ่ม pin ใน idp-adapter.test.js
+# assert ว่า remediation สะกดชื่อ env เต็มถูกขา (PID_CLIENT_ID+SECRET_KEY ฝั่ง
+# leg-2/profile, CLIENT_ID+CLIENT_SECRET ฝั่ง leg-1) แล้วรันบน string เดิม → แดงจริง:
+[baseline-browser-mapping] The data in this module is over two months old.  To ensure accurate Baseline data, please update: `npm i baseline-browser-mapping@latest -D`
+  console.warn
+    [jest-setup] Prisma cleanup: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.
+
+      61 |       await client.$disconnect();
+      62 |     } catch (e) {
+    > 63 |       console.warn(`[jest-setup] Prisma cleanup: ${e.message}`);
+         |               ^
+      64 |     }
+      65 |   });
+      66 | }
+
+      at warn (jest.setup.js:63:15)
+      at task (jest.setup.js:31:13)
+      at Object.<anonymous> (jest.setup.js:98:3)
+
+FAIL __tests__/unit/idp-adapter.test.js
+  getIdpAdapter factory — fail-closed (แบบ payment-adapter seam)
+    ✓ unknown key → AUTH_PROVIDER_UNKNOWN (6 ms)
+    ✓ providerid default (coming_soon) → AUTH_PROVIDER_DISABLED (3 ms)
+    ✓ providerid enabled แต่ config ไม่ครบ → AUTH_PROVIDER_NOT_CONFIGURED (3 ms)
+    ✓ providerid enabled + config ครบ → ได้ adapter ครบ contract 3 method (13 ms)
+    ✓ mock บน non-production → ได้ adapter (3 ms)
+    ✓ mock บน production → AUTH_PROVIDER_DISABLED (§D5 บังคับใน logic) (2 ms)
+    ✓ local เป็น provider ใน registry แต่ไม่ใช่ OAuth IdP → AUTH_PROVIDER_NO_ADAPTER (2 ms)
+  ProviderIdAdapter — [P-OAUTH] ส่วนที่ 1+2 (mock HTTP ทั้งหมด)
+    getAuthorizeUrl — [P-OAUTH] หน้า 3
+      ✓ สร้าง URL ครบ 4 param: client_id, redirect_uri, response_type=code, state (5 ms)
+      ✓ state ส่งเสมอ (mandate §D3) — ไม่ส่ง state = โยน VALIDATION_ERROR (3 ms)
+    exchangeCode — happy path 2 ขา
+      ✓ ขา 1 form-urlencoded ครบ 5 field + ขา 2 JSON token exchange + ผลลัพธ์ตาม contract (13 ms)
+    แยก credential สองการลงทะเบียน — audit F1 ([P-OAUTH] หน้า 4 vs หน้า 7/9)
+      ✓ ขา 1 ใช้คู่ Health ID · ขา 2 + header profile ใช้ pidClientId ของระบบ Provider ID ไม่ใช่ clientId (10 ms)
+    exchangeCode — error mapping ขา 1 ([P-OAUTH] หน้า 5)
+      ✓ 422 "Access grant has denied" → AUTH_IDP_ACCESS_DENIED (3 ms)
+      ✓ 422 "Code has been expired" → AUTH_IDP_CODE_EXPIRED (3 ms)
+      ✓ 422 "Code is invalid" → AUTH_IDP_CODE_INVALID (3 ms)
+      ✓ 401 "Credential is required" → AUTH_IDP_CLIENT_AUTH_FAILED (3 ms)
+      ✓ 500 → AUTH_IDP_UNAVAILABLE (3 ms)
+      ✓ network ล่ม/timeout → AUTH_IDP_UNAVAILABLE (3 ms)
+    exchangeCode — error mapping ขา 2 ([P-OAUTH] หน้า 8)
+      ✓ 400 "This user has not provider id" → AUTH_PROVIDERID_NOT_FOUND (แยกเป็น error ของตัวเอง) (5 ms)
+      ✓ 400 "The requested parameter can not used." → AUTH_IDP_EXCHANGE_FAILED (4 ms)
+      ✓ 401 (client_id+secret_key ผิด) → AUTH_IDP_CLIENT_AUTH_FAILED (6 ms)
+      ✓ 500 → AUTH_IDP_UNAVAILABLE (audit F3 pin — [P-OAUTH] หน้า 8 "500") (4 ms)
+    exchangeCode — envelope ไม่มี access_token (audit F3 pin — pin ไม่ใช่ fix, RED ด้วย mutation)
+      ✓ ขา 1 envelope ไม่มี data.access_token → AUTH_IDP_EXCHANGE_FAILED (3 ms)
+      ✓ ขา 2 response ไม่มี access_token → AUTH_IDP_EXCHANGE_FAILED (3 ms)
+    getProfile — [P-OAUTH] หน้า 9-12
+      ✓ GET + headers Authorization Bearer / client-id / secret-key แล้วคืน raw profile เท่านั้น (4 ms)
+      ✓ 401 "access_token is invalid" → AUTH_IDP_TOKEN_INVALID (3 ms)
+      ✓ 404 "This user has no provider id" → AUTH_PROVIDERID_NOT_FOUND (3 ms)
+      ✓ 401 client ผิด (non-token message) → AUTH_IDP_CLIENT_AUTH_FAILED (audit F3 pin — หน้า 12) (3 ms)
+      ✓ 400 param ขาด → AUTH_IDP_EXCHANGE_FAILED (audit F3 pin — หน้า 12) (4 ms)
+      ✓ 503 → AUTH_IDP_UNAVAILABLE (3 ms)
+  MockIdpAdapter — fixtures 5 ชุดตาม §D5 (deterministic, no network)
+    ✓ มี fixture code ครบ 5 ชุด (5 ms)
+    ✓ happy: exchangeCode ตาม contract แล้ว getProfile ได้ profile ครบ (in_registry=true) (3 ms)
+    ✓ deny → AUTH_IDP_ACCESS_DENIED (3 ms)
+    ✓ expired-code → AUTH_IDP_CODE_EXPIRED (2 ms)
+    ✓ code ไม่รู้จัก → AUTH_IDP_CODE_INVALID (2 ms)
+    ✓ profile-missing-field: token ผ่าน แต่ profile ไม่มี hash_cid (3 ms)
+    ✓ staff-not-in-registry: profile valid แต่ flag in_registry=false (consumer P2 ใช้) (2 ms)
+    ✓ deterministic: code เดิม → ผลเดิมทุกครั้ง (3 ms)
+    ✓ ไม่แตะ network เลย (fetch ต้องไม่ถูกเรียก) (3 ms)
+    ✓ getAuthorizeUrl มี state เสมอ + response_type=code (โครงเดียวกับของจริง) (2 ms)
+    ✓ getProfile ด้วย token ไม่รู้จัก → AUTH_IDP_TOKEN_INVALID (2 ms)
+  error catalog — remediation แยกคู่ credential ตาม F1 (fix cycle 2 F-NEW)
+    ✕ AUTH_IDP_CLIENT_AUTH_FAILED ชี้ env ถูกขา: leg-1 = คู่ Health ID · leg-2/profile = คู่ระบบ Provider ID (14 ms)
+
+  ● error catalog — remediation แยกคู่ credential ตาม F1 (fix cycle 2 F-NEW) › AUTH_IDP_CLIENT_AUTH_FAILED ชี้ env ถูกขา: leg-1 = คู่ Health ID · leg-2/profile = คู่ระบบ Provider ID
+
+    expect(received).toContain(expected) // indexOf
+
+    Expected substring: "AUTH_PROVIDERID_PID_CLIENT_ID"
+    Received string:    "Operator: verify AUTH_PROVIDERID_CLIENT_ID / _CLIENT_SECRET / _SECRET_KEY against the values registered with MOPH ([P-OAUTH] p.5/p.8 401)."
+
+      512 |         const remediation = String((ERROR_CODES.AUTH_IDP_CLIENT_AUTH_FAILED || {}).remediation);
+      513 |         // leg-2 401 ([P-OAUTH] p.8) + profile 401 (p.12) เกิดจากคู่ของระบบ Provider ID
+    > 514 |         expect(remediation).toContain('AUTH_PROVIDERID_PID_CLIENT_ID');
+          |                             ^
+      515 |         expect(remediation).toContain('AUTH_PROVIDERID_SECRET_KEY');
+      516 |         // leg-1 401 ([P-OAUTH] p.5) เกิดจากคู่ที่ลงทะเบียนกับ Health ID — ต้องสะกดชื่อเต็ม
+      517 |         expect(remediation).toContain('AUTH_PROVIDERID_CLIENT_ID');
+
+      at Object.toContain (__tests__/unit/idp-adapter.test.js:514:29)
+
+Test Suites: 1 failed, 1 total
+Tests:       1 failed, 40 passed, 41 total
+Snapshots:   0 total
+Time:        1.631 s, estimated 2 s
+Ran all test suites matching /__tests__\/unit\/idp-adapter.test.js/i.
+[jest-teardown] Prisma disconnect warning: @prisma/client did not initialize yet. Please run "prisma generate" and try to import it again.

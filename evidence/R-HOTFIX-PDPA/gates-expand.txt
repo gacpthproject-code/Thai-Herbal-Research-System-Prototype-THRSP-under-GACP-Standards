@@ -1,0 +1,70 @@
+=== GATES — R-HOTFIX-PDPA step 2 (EXPAND isAnonymized + anonymizedAt) ===
+date: 2026-08-03T18:02:12Z
+head: 4f22e3a2  branch: fix/pdpa-retention-legal-hold
+
+--- GATE 1: npx jest (full, from apps/backend) ---
+Test Suites: 1 failed, 6 skipped, 529 passed, 530 of 536 total
+Tests:       1 failed, 68 skipped, 7142 passed, 7211 total
+Snapshots:   0 total
+Time:        268.736 s, estimated 270 s
+exit: 1  (the single failure is the pre-existing baseline red below)
+
+Summary of all failing tests
+FAIL __tests__/unit/dataset-export-service.test.js
+  ● dataset-domains config (single source of truth) › STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)
+
+    TypeError: Cannot read properties of undefined (reading 'datamodel')
+
+      79 |     test('STATIC GUARD: every allowlisted field exists on its Prisma model (DMMF)', () => {
+      80 |         const { Prisma } = require('@prisma/client');
+    > 81 |         const models = new Map(Prisma.dmmf.datamodel.models.map(m => [m.name, new Set(m.fields.map(f => f.name))]));
+         |                                            ^
+      82 |         for (const domain of DATASET_DOMAINS) {
+      83 |             const union = new Set(models.get(domain.model));
+      84 |             expect(union.size).toBeGreaterThan(0);
+
+      at Object.datamodel (__tests__/unit/dataset-export-service.test.js:81:44)
+
+
+Test Suites: 1 failed, 6 skipped, 529 passed, 530 of 536 total
+baseline was 7137 passed / 1 failed; now 7142 passed / 1 failed.
++5 = the five new schema-agreement tests in __tests__/unit/pdpa-retention-job.test.js.
+The retry test was REPLACED 1-for-1 (net 0), not deleted.
+
+--- GATE 2: bash scripts/probes/ratchet.sh (repo root) ---
+  dup [holiday-calendar] 3 sources: /home/user/GACP-Certification-Application/apps/backend/services/working-days-service.js /home/user/GACP-Certification-Application/apps/backend/utils/working-days.js /home/user/GACP-Certification-Application/apps/backend/routes/api/provider/handlers/workflow-handler-deps.js
+  dup [fee-table] 3 sources: /home/user/GACP-Certification-Application/apps/backend/modules/billing/internal/fee-service.js /home/user/GACP-Certification-Application/apps/backend/config/business-rules.js /home/user/GACP-Certification-Application/apps/backend/config/payment-fees.js
+hardcode: 43
+todo: 59
+env-direct: 169
+dup-source: 4
+dead-route: DRAFT (no mechanical counter yet)
+PASS: no counter above baseline — current: hardcode=43 todo=59 env-direct=169 dup-source=4 (/home/user/GACP-Certification-Application/evidence/ratchet-current.txt)
+baseline (AUDIT_LEDGER.md): hardcode 43 / todo 59 / env-direct 169 / dup-source 4 — unchanged.
+
+--- GATE 3: npx eslint <changed files> (from apps/backend) ---
+$ npx eslint jobs/pdpa-retention-job.js __tests__/unit/pdpa-retention-job.test.js __tests__/integration/pdpa-retention-legal-hold.test.js
+exit: 0
+
+--- GATE 4: node scripts/ci/check-thai-copy-style.js (repo root) ---
+[thai-copy-style] OK — no em dash or ไม้ยมก spacing issues in Thai copy
+exit: 0
+
+--- GATE 5: npm run check:banned-terms (repo root) ---
+> node scripts/ci/check-banned-terms.js
+
+[banned-terms] Repository scan passed
+exit: 0
+
+--- NOT RUN (infra, reported not routed around — Law 3.8) ---
+$ npx prisma validate   (from apps/backend)
+Error: Failed to fetch sha256 checksum at https://binaries.prisma.sh/.../libquery_engine.so.node.gz.sha256 - 403 Forbidden
+$ PRISMA_ENGINES_CHECKSUM_IGNORE_MISSING=1 npx prisma validate
+Error: Failed to fetch the engine file at https://binaries.prisma.sh/.../schema-engine.gz - 403 Forbidden
+=> schema syntax is NOT locally verified. CI ci.yml:339 runs prisma validate; ci.yml:442 runs
+   prisma migrate deploy before the Postgres lane at ci.yml:482,499.
+
+$ npx jest __tests__/integration/pdpa-retention-legal-hold.test.js
+=> self-skips here (HAS_DB guard, test file:30) — no DATABASE_URL, no Postgres in this container,
+   and @prisma/client is not generated. The three integration assertions are NOT verified locally.
+   Evidence for them must come from CI on PR #737.

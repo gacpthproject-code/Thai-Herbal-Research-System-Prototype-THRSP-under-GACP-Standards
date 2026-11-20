@@ -1,0 +1,160 @@
+W12 — gate results, branch fix/renewal-fee-30k (worktree gacp-wt-renewal), 2026-08-22
+Rebased onto main 67ef3612 (which already contains the money-safety work as d71421b3).
+Baseline for every comparison: pristine detached worktree gacp-wt-w12base @ 67ef3612.
+
+tier-check   TIER=C  (money: routes/api/finance/pricing.js,
+                             modules/billing/internal/fee-service.js)
+             -> operator merge.
+             Run: git status --porcelain | sed 's/^...//' | bash scripts/probes/tier-check.sh -
+
+ratchet      PASS — hardcode=30 todo=56 env-direct=122 dup-source=2
+             baseline @ 67ef3612: hardcode=30 todo=56 env-direct=122 dup-source=2
+             IDENTICAL. The renewal fee lives in config/ (excluded from the hardcode
+             scan) and matches no hardcode-patterns.txt entry.
+
+tsc          apps/web-app: npx tsc --noEmit -p tsconfig.json -> 62 lines,
+             all of them the known e2e-phase0 baseline. ZERO new lines.
+
+eslint       backend (config/business-rules.js, modules/billing/internal/fee-service.js,
+             routes/api/finance/pricing.js, services/renewal-service.js,
+             services/audit-scheduling-service.js, routes/api/applications/renewals.js,
+             both new test files): exit 0, no output.
+             web-app --max-warnings=0 (constants/fees.ts, hooks/use-pricing.ts, the three
+             renewal steps, both i18n sections, plant-selection-config.ts, the new test):
+             exit 0, no output.
+
+thai-copy    check-thai-copy-style.js: 8 em-dash warnings on BOTH branch and baseline.
+             No new Thai copy defects.
+banned-terms PASS      mojibake/encoding PASS
+system-integrity-check.js: ALL CHECKS PASSED
+
+UNIT BATTERY — 115 suites selected by
+  ls __tests__/unit | grep -E '(workflow|certificate|cert-|audit|scheduler|renewal|fee|
+      pricing|billing|quotation|invoice|money|business-rules|config|status-writer)'
+
+  baseline @ 67ef3612 : Test Suites 4 failed / 109 passed / 113
+                        Tests       12 failed / 1271 passed / 1283
+  branch              : Test Suites 3 failed / 112 passed / 115
+                        Tests       10 failed / 1300 passed / 1310
+
+  The branch adds 2 suites and 29 passing tests. Its failures are a SUBSET of the
+  baseline's: certificate-farm-resolution, certificate-issuance-holder-wiring and
+  sc-ten-1-auditor-tenant-scope fail on main too. The fourth baseline failure,
+  audit-onsite-wire-contract, is the known parallel-run flake (it passed on the branch
+  run and passes serially on both trees). NO NEW FAILURES.
+
+WEB-APP SUITES  30 suites / 202 tests, all PASS
+  (src/__tests__/renewal-fee-display.test.tsx + the whole renewal wizard +
+   the new-application wizard steps + hooks)
+
+NEW SUITES
+  apps/backend/__tests__/unit/renewal-fee-ssot.test.js   13 tests
+  apps/backend/__tests__/unit/renewal-fast-path.test.js  14 tests
+  apps/web-app/src/__tests__/renewal-fee-display.test.tsx 18 tests
+  RED evidence: W12-RED.txt (backend, 15 failed / 11 passed before implementation)
+                W12-RED-fe-display.txt (frontend, whole suite red before implementation)
+  GREEN evidence: W12-GREEN.txt (27/27), W12-GREEN-fe.txt (18/18)
+
+════════════════════════════════════════════════════════════════════════════
+ROUND 2 — Q1 (single-charge billing, L3 exception eabfc020) + Q5 doc, 2026-08-22
+Baseline for comparison: gacp-wt-w12base @ main 67ef3612
+
+MONEY BATTERY  71 suites (checkout|settle|quotation|invoice|receipt|pricing|
+               fee|billing|money|renewal|payment)
+               71 passed / 737 tests passed / 0 failed
+
+WIDE BATTERY   148 suites on branch : 4 failed / 144 passed, 12 failed / 1606 passed
+               145 suites baseline  : 3 failed / 142 passed, 10 failed / 1572 passed
+               The branch adds 3 suites (+34 passing tests). Its extra suite-level
+               failure is audit-onsite-wire-contract, which PASSES serially on BOTH
+               trees (jest -i: 8/8 on branch, 8/8 on baseline) = parallel-run flake.
+               The three real failures are identical on both: certificate-farm-resolution,
+               certificate-issuance-holder-wiring, sc-ten-1-auditor-tenant-scope.
+               NO NEW FAILURES.
+
+PROBES
+  ratchet               PASS  hardcode=30 todo=56 env-direct=122 dup-source=2
+                              (identical to baseline)
+  stripe-sdk-isolated   PASS  stripe SDK only in services/payment/stripe-adapter.js
+  settle-webhook-only   PASS  only checkout-settlement-service.js writes SETTLED;
+                              settle test green
+  money-equation        BLOCKED — needs DATABASE_URL + psql against the real DB.
+                              Reported as BLOCKED, not passed. No vacuous pass.
+
+tsc      62 lines, all the known e2e-phase0 baseline. Zero new.
+eslint   changed backend files (fee-service, billing/index, pricing, quotation-service,
+         both touched test files): exit 0, no output.
+system-integrity-check.js: ALL CHECKS PASSED
+banned-terms PASS · mojibake/encoding PASS
+
+THE THREE NUMBERS (renewal-single-charge-billing.test.js, all from real code paths)
+  screen/API   GET /api/pricing/fees -> renewalTotalPerCert          33,210
+  quotation    _resolveBillableFees(app).grandTotal                  33,210
+  settlement   frozen phase1.phaseTotal + phase2.phaseTotal = 0 +    33,210
+  asserted as new Set([...]).size === 1
+  stored lines: DTAM PHASE_2 30,000 · PLATFORM PHASE_2 3,210 · no PHASE_1 line
+
+NEW-APPLICATION REGRESSION PROOF
+  Golden values in the same suite, independently recomputed on the pristine
+  baseline worktree at 67ef3612 and compared field by field:
+    1 scope : DTAM 5,000 / 25,000 · PLATFORM 535 / 2,675 · totals 30,000/3,000/210/33,210
+    3 scopes: DTAM 15,000 / 75,000 · PLATFORM 1,605 / 8,025 · totals 90,000/9,000/630/99,630
+  Identical before and after. Not one satang moved.
+
+EXISTING TEST UPDATED (flagged)
+  apps/backend/__tests__/unit/quotation-service.test.js:469-474 — toEqual pinned the
+  exact frozen-fee shape; the new `singleCharge` discriminator broke it. Every AMOUNT
+  in that assertion is unchanged; `singleCharge: false` was added with a comment.
+
+VIEW-PACK (Q3)  NOT PRODUCED — see W12-viewpack/INDEX.md. The upload step was
+  therefore NOT cut. Branch dev server ran fine on :3100; the mocked-session E2E
+  harness fails on branch AND on main, so no truthful before/after could be captured.
+
+════════════════════════════════════════════════════════════════════════════
+ROUND 3 — Q2 correction (per scope), 404 fix, upload cut, real press. 2026-08-22
+
+PER-SCOPE FIGURES, proven through the real code path at every scope count
+  scopes 1: base 30,000  payable 33,210
+  scopes 2: base 60,000  payable 66,420
+  scopes 3: base 90,000  payable 99,630
+  three-number agreement (screen == quotation == settlement) asserted at 1, 2 and 3.
+  New-application golden values re-confirmed unchanged at 1 and 3 scopes.
+
+CONSTANT RENAME
+  FEES.RENEWAL_PER_CERT -> FEES.RENEWAL_PER_SCOPE
+  SystemConfig fee.renewal_per_cert -> fee.renewal_per_scope
+  Legacy key still maps to the same field and is applied FIRST, so a row under
+  the new name wins deterministically when both exist. No configured value is
+  silently dropped.
+
+ENDPOINT FIX (the missing guard)
+  Live against the branch backend on :8100
+    POST /api/applications/renewal   -> 404
+    POST /api/applications/renewals  -> 401
+  Caller fixed (URL + body -> { originalCertificateId }).
+  src/__tests__/renewal-endpoint-contract.test.ts reads the REAL route file:
+  RED before the fix 9 failed / 2 passed; GREEN 11/11.
+
+REAL PRESS (W12-REAL-PRESS.txt) — live database, real certificate
+  GACP-TH-2569-85B448 -> application PENDING_AUDIT_FEE, full provenance,
+  audit row RENEWAL_FAST_PATH_ENTRY written (1 row), billed DTAM PHASE_2 30,000
+  + PLATFORM 3,210 = 33,210, no PHASE_1 line. Soft-deleted after capture.
+  The press caught a defect the unit tests could not: AuditLog.actorRole is
+  NOT NULL and was not being sent, so the row silently failed. Fixed, and a new
+  test now derives the required columns from prisma/schema/audit.prisma.
+
+SUITES
+  backend money battery : 73 suites / 771 tests, all pass
+  backend wide battery  : 148 suites, 4 failed / 12 tests failed — the same three
+                          real failures as baseline plus the known
+                          audit-onsite-wire-contract parallel flake. No new ones.
+  web-app FULL suite    : 302 suites / 2272 tests, ALL PASS
+  tsc 62 (baseline) · eslint clean · ratchet 30/56/122/2 (identical) ·
+  system-integrity ALL CHECKS PASSED
+
+REGRESSION CAUGHT BY THE REPO'S OWN GUARD
+  currency-never-wraps.test.ts counts live money surfaces. Switching the payment
+  screen to formatCurrency (which emits its own baht sign) dropped that element
+  out of the guard's pattern while it still rendered money — 7 of a required 8.
+  The floor was NOT lowered; the guarded render shape was restored using the
+  repo's existing formatNumber helper.

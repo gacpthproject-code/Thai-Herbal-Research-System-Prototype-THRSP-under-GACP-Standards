@@ -1,0 +1,17 @@
+import { chromium } from './lib.mjs';
+const B='https://demo.gacpth.com';
+const b=await chromium.launch();
+const ctx=await b.newContext({viewport:{width:1440,height:900},locale:'th-TH'});
+const p=await ctx.newPage(); p.setDefaultTimeout(25000);
+const trail=[]; p.on('framenavigated',f=>{if(f===p.mainFrame())trail.push(f.url().replace(B,''))});
+await p.goto(B+'/login',{waitUntil:'networkidle',timeout:40000}); await p.waitForTimeout(1200);
+console.log('landed on', p.url().replace(B,''));
+await p.locator('#identifier').fill(process.env.QA_ID);
+await p.locator('input[type=password]').first().fill(process.env.QA_PW);
+await p.locator('button:has-text("เข้าสู่ระบบ")').last().click();
+await p.waitForURL(u=>/\/health\/(home|dashboard|start|onboarding)/.test(u.pathname),{timeout:45000}).catch(e=>console.log('waitURL:',e.message.split('\n')[0].slice(0,80)));
+await p.waitForTimeout(2000);
+console.log('final', p.url().replace(B,''));
+console.log('trail', trail.join(' -> '));
+await ctx.storageState({path:process.argv[2]});
+await b.close();

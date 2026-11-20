@@ -1,0 +1,42 @@
+# red → green ของเทสต์ที่เขียนก่อนโค้ด (รันจริงใน session 2026-11-08 บน WSL)
+
+## walk-compare.selftest.js
+red   ก่อนมี walk-compare.js: "walk-compare selftest: FAIL (11)" exit 1 (ทุกเคสล้มเพราะยังไม่มีไฟล์ที่ทดสอบ)
+green หลังเขียน: "walk-compare selftest: PASS (12 cases)" exit 0 (เพิ่มเคส PASS → NOT-YET ตามกติกาของ coordinator)
+
+## deploy-walk.test.js (บัญชีเดินตรวจที่ไม่มี)
+red   5 เทสต์ใหม่ล้มด้วยเหตุที่คาด:
+      "Error: ไฟล์ตั้งค่าไม่มีบัญชี applicant" (accountCredentials โยนแทนคืน null)
+      "Error: ENOENT: no such file or directory, open '/tmp/no-such-walk.env'" (createContext พังเมื่อไฟล์ env ไม่มี)
+      "Error: spawn docker ENOENT" สองเทสต์ (แถวพยายามตรวจรหัสผ่านใน container ทั้งที่ไม่มีบัญชี)
+      config ผิดรูปแบบได้ exit อื่นแทน 2
+      ไฟล์เทสต์รัน 59.9 วินาที เพราะเทสต์ config ผิดรูปแบบตอนยังแดงเดินแถว identity จริง (ดู INDEX.md ข้อที่ต้องรู้)
+green "ℹ pass 43 · ℹ fail 0" duration 0.6 วินาที · หลังรอบตรวจ 45/45 (เพิ่มเทสต์แถวเขียนข้อมูลบน demo และตัวเลือกซ้ำ)
+
+## demo-deploy.selftest.sh
+red   ก่อนมีสคริปต์: "*** precheck-ok: exit 127, want 0" ... "*** up-ok: exit 127, want 0" · "demo-deploy selftest: FAIL"
+green รอบแรก 30 เคส PASS · หลังแก้ตามผลตรวจสี่รอบ 66 เคส PASS
+
+## mutation (แก้โค้ดให้ผิดทีละจุด selftest ต้องแดง แล้วคืนไฟล์)
+ถอด --no-deps                         → *** a compose call was not 'up -d --no-deps backend-demo frontend-demo'
+ข้ามตรวจ project ref                   → *** migrate-wrong-ref: exit 0, want 1 · migrate touched the database
+ข้ามตรวจขนาด backup                   → *** backup-too-small: exit 0, want 1
+พิมพ์ URL ฐานข้อมูล                     → *** the database password reached argv or output
+ข้ามตรวจ revision ของ backend           → ครั้งแรกไม่ถูกจับ → เพิ่มเคส up-backend-revision-mismatch → จับได้
+ปิดตัวปิด URL                          → *** migrate-ok: output does not say 'postgresql://***@'
+ตรึง baseline ใหม่ทุกครั้ง                → ครั้งแรกไม่ถูกจับ → เพิ่มเคส backup-after-crash-leftover → จับได้
+ปิดตรวจรอบของ rollback                 → *** rollback-not-this-round: exit 0, want 1
+ship ข้าม precheck                     → *** ship-wrong-sha: exit 0, want 1
+ยอมให้ rename                          → *** precheck-rename-into-evidence: exit 0, want 1
+ยอม revision ก่อนหน้าว่าง                → *** up-previous-revision-unreadable: exit 0, want 1
+ยอมแถวเขียนข้อมูลบน demo                → ✖ demo refuses the rows that write data
+ยอม host ใน query                      → *** migrate-crafted-url: exit 0, want 1
+ยอม fragment และ @ ตัวที่สอง            → *** migrate-crafted-url: exit 0, want 1
+ตัวปิด URL สนตัวพิมพ์                    → *** the database password reached argv, output or a file on the box
+ยอมคีย์ซ้ำ                              → *** migrate-duplicate-key: output does not say '2 ครั้ง'
+ยอม scripts/ ที่แก้ค้าง                  → *** precheck-dirty-scripts: exit 0, want 1
+demo-walk เขียนทับผลเดิม                → *** walk-baseline-exists: exit 2, want 1
+ยอม / ในส่วนผู้ใช้                       → *** migrate-crafted-url: exit 0, want 1
+ตัวปิด URL หยุดที่ @ แรก                 → ครั้งแรกไม่ถูกจับ (fake ไม่ได้รับรหัสผ่านเพราะไม่ได้ export) → แก้ fake → จับได้
+ปิดตัวตรวจ scripts/deploy ตรง sha       → *** up-dirty-wrapper: exit 0, want 1
+ไม่ตรวจผู้ใช้ของ pooler                  → *** migrate-crafted-url: exit 0, want 1

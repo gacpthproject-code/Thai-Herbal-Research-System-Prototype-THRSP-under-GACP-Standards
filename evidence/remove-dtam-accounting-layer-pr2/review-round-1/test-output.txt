@@ -1,0 +1,99 @@
+GREEN — working tree on 364c7bd8 + fix (committed next) · node v24.21.0 · NODE_OPTIONS unset
+== unit: cmd npx jest --config jest.config.cjs <review-round-1 unit files + touched suites>
+PASS __tests__/unit/dtam-accounting-layer-removed.test.js
+    ✓ journal-entry-service ไม่ส่งออก recordRemittanceToDtam / buildRemittanceEntryLines (61 ms)
+    ✓ ไม่มีไฟล์ใน services/routes/jobs ที่ยังเรียกชื่อ recordRemittanceToDtam ในโค้ด (55 ms)
+    ✓ ACCOUNTS ไม่มี PAYABLE_TO_DTAM / COST_DTAM_FEE และไม่มีรหัส 2151-001 / 5110-001 (2 ms)
+    ✓ chart-of-accounts ไม่มี 2151-001 / 5110-001 — บัญชีมือ (manual journal) จึงลงไม่ได้ด้วย (3 ms)
+    ✓ buildPaymentEntryLines ไม่ออกบรรทัด 2151-001 / 5110-001 แม้ผู้เรียกยังส่ง stateFee มา (12 ms)
+    ✓ order ปัจจุบัน (ส่วนกรมฯ = 0): ลง 1110/4110/2131 เท่านั้น และใบกำกับแสดงค่าบริการตามคอลัมน์ค่าบริการ (45 ms)
+    ✓ order รูปแบบเก่า (ส่วนกรมฯ > 0, ข้อมูลทดสอบก่อน 2026-09-11): ไม่มีบรรทัด 2151-001 ถูกเขียน — settle ถูกปฏิเสธทั้งก้อน (4 ms)
+    ✓ checkout-settlement-service ไม่ส่ง stateFee ให้ชั้นบัญชี และไม่บวกส่วนกรมฯ เข้าใบกำกับ (1 ms)
+    ✓ stripe-checkout-service ไม่คำนวณตัวแปร dtamPayableAmount — เขียน 0 ลงคอลัมน์ตรง ๆ จนกว่า PR3 ดรอป (1 ms)
+    ✓ financial-export-service ไม่ส่งออก buildGovRemittanceReport และไม่มี case gov_remittance (7 ms)
+PASS __tests__/unit/error-codes-catalog.test.js
+    ✓ exports a frozen object with at least 80 entries (RFC W4-B floor) (2 ms)
+    ✓ every entry has all 6 required fields with the right types (233 ms)
+    ✓ every source path points at a file that exists (known debt listed explicitly) (3 ms)
+    ✓ the known-debt list has no entry that is already fixed (1 ms)
+    ✓ every httpStatus is a 4xx or 5xx HTTP status code (28 ms)
+    ✓ catalog codes are unique (no duplicate keys across the object) (1 ms)
+    ✓ contains every code listed in shared/api-response.js DEFAULT_ERROR_MESSAGES (2 ms)
+    ✓ contains every code thrown by shared/errors.js AppError + JWT branches (1 ms)
+    ✓ exposes getMessage() that returns localised strings with fallback (1 ms)
+    ✓ exposes lookup() that returns the full row or undefined (1 ms)
+    ✓ extract-error-codes script runs and discovers ≥ catalog floor codes (69 ms)
+    ✓ extractor loadCatalog returns same module as direct require (1 ms)
+    ✓ every discovered code is catalogued (no drift between code and catalog) (66 ms)
+PASS __tests__/unit/error-codes-source-pointers.test.js
+    ✓ the source format is uniform enough to check mechanically (report if not) (2 ms)
+    ✓ no NEW pointer has drifted beyond the known 2026-09-26 baseline (catches the INVALID_ISSUER_SIDE class of regression) (7 ms)
+    ✓ the baseline names only codes that actually still need fixing (no over- or under-claim) (7 ms)
+    ✓ INVALID_ISSUER_SIDE is fixed by this round and is not in the baseline (1 ms)
+    ✓ every parseable source file exists for baseline entries too (so a MISSING file is never silently swallowed) (2 ms)
+PASS __tests__/unit/settlement-ignores-superseded-intent-events.test.js
+    ✓ for the SUPERSEDED intent A → the order holding B is untouched, and the event is recorded as ignored (3 ms)
+    ✓ for the CURRENT intent B → the order is still cancelled (1 ms)
+    ✓ found by intent id (no metadata) → it is the current intent by construction, still cancels (2 ms)
+    ✓ an order that records no intent at all is not cancelled by an event naming one (ONLY on equality) (1 ms)
+    ✓ a failed ignore-stamp does not turn into a handler failure (Stripe must not redeliver for it) (1 ms)
+    ✓ for the SUPERSEDED intent A → no failure is written on the order's charge row (1 ms)
+    ✓ for the CURRENT intent B → the failure is still recorded (1 ms)
+PASS __tests__/unit/checkout-reentry-reuses-the-live-intent.test.js
+    ✓ PI_A requires_payment_method → reused, no second intent, order still names PI_A (6 ms)
+    ✓ PI_A requires_action → reused, no second intent, order still names PI_A (1 ms)
+    ✓ PI_A processing → reused, no second intent, order still names PI_A (1 ms)
+    ✓ PI_A succeeded (webhook not landed yet) → nothing new is minted, the state is handed back without a client secret (2 ms)
+    ✓ PI_A canceled → the only replacement, under its own idempotency key, and the order moves to it (1 ms)
+    ✓ an intent state this flow never produces (requires_capture) → refused, nothing minted (1 ms)
+    ✓ the gateway cannot say what PI_A is → refused (fail closed), never a blind second intent (9 ms)
+    ✓ N-1: the order row changed between the read and the write (cancelled meanwhile, or a later replacement) → refused, nothing overwritten, no client secret (2 ms)
+    ✓ N-1: a first mint writes its intent with the same compare-and-set (read value: none) (1 ms)
+    ✓ a first entry (no intent on the order yet) still mints under the plain key (1 ms)
+PASS __tests__/unit/checkout-refuses-an-order-carrying-a-dtam-portion.test.js
+    ✓ one-fee snapshot (would otherwise be CHECKOUT_PRICE_DRIFT, a dead end) → CHECKOUT_ORDER_HAS_DTAM_PORTION, no client secret handed out (3 ms)
+    ✓ old-split snapshot whose figures match the order (would otherwise re-enter PI_A) → CHECKOUT_ORDER_HAS_DTAM_PORTION, no client secret handed out (2 ms)
+    ✓ no snapshot on the accepted row (would otherwise re-enter PI_A) → CHECKOUT_ORDER_HAS_DTAM_PORTION, no client secret handed out (1 ms)
+    ✓ a payable intent is canceled at the gateway, then order CANCELLED + invoice soft-deleted, both compare-and-set (3 ms)
+    ✓ an intent already canceled is not canceled again; the order is still retired (2 ms)
+    ✓ an order that never got an intent is retired without asking the gateway (1 ms)
+    ✓ PI_A succeeded (money may already be captured) → CHECKOUT_INTENT_UNUSABLE, nothing retired, nothing canceled (2 ms)
+    ✓ PI_A processing (money may already be captured) → CHECKOUT_INTENT_UNUSABLE, nothing retired, nothing canceled (2 ms)
+    ✓ cancel refused because the intent is ALREADY canceled (double press / webhook raced) → the retire continues (2 ms)
+    ✓ cancel refused because the intent was PAID in between (now succeeded) → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error (2 ms)
+    ✓ cancel refused because the intent was PAID in between (now processing) → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error (1 ms)
+    ✓ cancel fails and the intent cannot even be re-read → CHECKOUT_INTENT_UNUSABLE, nothing retired, no raw Stripe error (1 ms)
+    ✓ the order moved under us (compare-and-set matched nothing) → CHECKOUT_ORDER_CHANGED, invoice untouched (2 ms)
+    ✓ the next press finds no open order and mints a fresh one priced from the quotation, with no DTAM portion (19 ms)
+    ✓ CHECKOUT_ORDER_HAS_DTAM_PORTION is a 409 with Thai copy that names the next action (1 ms)
+PASS __tests__/unit/gov-remittance-export-is-refused.test.js
+  ✓ type=gov_remittance → 400 EXPORT_REPORT_TYPE_RETIRED, no file (1 ms)
+  ✓ the code is catalogued as a 400 (2 ms)
+  ✓ type=monthly still exports (2 ms)
+  ✓ type=tax still exports (1 ms)
+PASS __tests__/unit/canceled-webhook-retires-the-order-invoice-and-charge.test.js
+  ✓ the current intent canceled → order CANCELLED, unpaid invoice soft-deleted, PENDING charge CANCELLED, one transaction (3 ms)
+  ✓ an order already CANCELLED (e.g. by the old handler, or the retire guard) still has its invoice retired on redelivery (2 ms)
+  ✓ a SETTLED order is never retired by a canceled event (2 ms)
+  ✓ the order moved to another intent under us (compare-and-set matched nothing) → invoice and charge untouched (1 ms)
+  ✓ no write in the retire carries an amount column (2 ms)
+PASS __tests__/unit/settlement-refuses-an-order-carrying-a-dtam-portion.test.js
+  ✓ a PENDING_PAYMENT order with a DTAM portion is refused before any side effect, with a coded error (2 ms)
+  ✓ a CANCELLED order with a DTAM portion is refused before any side effect, with a coded error (1 ms)
+  ✓ settleEvent records it: FAILED with the code in `error`, attempts counted, a retry scheduled (2 ms)
+  ✓ the last attempt dead-letters it for an operator, never PROCESSED (2 ms)
+  ✓ an ALREADY-SETTLED historic order with a DTAM portion is still a clean no-op (nothing to refuse) (2 ms)
+Test Suites: 9 passed, 9 total
+Tests:       74 passed, 74 total
+== all backend unit suites: cmd npx jest --config jest.config.cjs __tests__/unit/
+Test Suites: 819 passed, 819 total
+Tests:       11021 passed, 11021 total
+== real Postgres 17 scratch (docker remit2-pr2-scratch-pg, all migrations applied): cmd DATABASE_URL=TEST_DATABASE_URL=<127.0.0.1:55433 scratch> npx jest --config jest.config.cjs <2 integration files> -i
+PASS __tests__/integration/canceled-webhook-lets-the-applicant-pay-again-real-postgres.test.js
+    ✓ A. ordinary order: canceled webhook → order CANCELLED + invoice retired (deletedBy/deleteReason) + charge CANCELLED → next press mints afresh (243 ms)
+    ✓ B. retire guard recovery: Stripe cancel succeeded, retire tx failed, canceled webhook lands → next press mints afresh (122 ms)
+PASS __tests__/integration/dtam-portion-order-retired-real-postgres.test.js
+    ✓ press 1: refused CHECKOUT_ORDER_HAS_DTAM_PORTION; intent canceled, order CANCELLED, invoice soft-deleted, charge CANCELLED; no amount moved (34 ms)
+    ✓ press 2: a fresh order is minted past both partial unique indexes, priced from the quotation, no DTAM portion (41 ms)
+    ✓ a payment that lands for the retired order anyway is recorded on its event (FAILED + code), not lost, not settled (27 ms)
+Tests:       5 passed, 5 total
